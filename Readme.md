@@ -9,7 +9,7 @@ This project is not affiliated with or sponsored by Anthropic.
 
 ## Maturity
 
-This packate is very new and under-tested.
+This package is very new and under-tested.
 SwiftClaude is pre-1.0, meaning the API can change based on feedback from the community.
 Linux is not currently supported, but we plan to add support in the future.
 
