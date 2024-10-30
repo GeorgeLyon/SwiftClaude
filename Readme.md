@@ -161,7 +161,7 @@ You can also add a `cacheBreakpoint: Claude.Beta.CacheBreakpoint()` parameter to
 ## Authentication
 
 ⚠️
-**You should take great care to keep your API keys private**
+**You should take great care to keep your API keys private.**
 **In no circumstances should you ship an application with your API key embedded.**
 **Failure to keep your keys private could result in unexpected charges, rate limiting or other consequences.**
 
