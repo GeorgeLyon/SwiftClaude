@@ -1,4 +1,8 @@
 public import ClaudeClient
 public import ClaudeMessagesEndpoint
 
-public typealias CacheBreakpoint = ClaudeClient.MessagesEndpoint.Request.CacheBreakpoint
+extension Claude.Beta {
+
+  public typealias CacheBreakpoint = ClaudeClient.MessagesEndpoint.Request.CacheBreakpoint
+
+}

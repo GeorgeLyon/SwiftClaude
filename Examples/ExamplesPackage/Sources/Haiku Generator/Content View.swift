@@ -127,11 +127,11 @@ private struct HaikuView: View {
     }
     let message = claude.nextMessage(
       in: conversation,
-      tools: Tools<String> {
+      tools: Tools {
         CatEmojiTool()
         EmojiTool()
       },
-      toolInvocationStrategy: .immediate
+      invokeTools: .whenInputAvailable
     )
     self.messages.append(message)
     Task {

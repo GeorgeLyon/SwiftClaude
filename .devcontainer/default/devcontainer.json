@@ -1,0 +1,35 @@
+{
+  "name": "SwiftClaude",
+  "dockerFile": "Dockerfile",
+
+  "capAdd": [
+    "SYS_PTRACE"
+  ],
+  "securityOpt": [
+    "seccomp=unconfined"
+  ],
+
+  "mounts": [
+    /// Keep build products on a volume for performance and to separate host and guest build artifacts
+    "source=${localWorkspaceFolderBasename}-build,target=${containerWorkspaceFolder}/.build,type=volume",
+  ],
+
+  "remoteEnv": {
+    /// Useful for disambiguating devcontainers
+    "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}"
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "sswg.swift-lang",
+        "vadimcn.vscode-lldb"
+      ],
+      "settings": {
+        /// LLDB settings for Swift
+        "lldb.library": "/usr/lib/liblldb.so",
+        "lldb.launch.expressions": "native"
+      }
+    }
+  }
+}

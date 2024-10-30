@@ -1,4 +1,4 @@
-extension Claude {
+extension Claude.Beta {
 
   public protocol Computer {
     func takeScreenshot(
@@ -22,27 +22,18 @@ extension Claude {
 extension Tools.Builder where Output == ToolInvocationResultContent {
 
   public static func buildExpression(
-    _ computer: some Claude.Computer
+    _ computer: some Claude.Beta.Computer
   ) -> Component {
-    buildExpression(Claude.ComputerTool(computer: computer))
+    buildExpression(Claude.Beta.ComputerTool(computer: computer))
   }
 
 }
 
-// MARK: - Context
-
-extension Claude {
-
-}
-
-extension Claude.Computer {
-}
-
 // MARK: - Tool
 
-extension Claude {
+extension Claude.Beta {
 
-  struct ComputerTool<Computer: Claude.Computer>: Claude.Tool {
+  struct ComputerTool<Computer: Claude.Beta.Computer>: Claude.Tool {
 
     /// - Parameters:
     ///   - displaySize:
@@ -66,7 +57,7 @@ extension Claude {
 
     public func invoke(
       with toolInput: Input,
-      in context: ToolInvocationContext<Self>,
+      in context: Claude.ToolInvocationContext<Self>,
       isolation: isolated Actor
     ) async throws -> ToolInvocationResultContent {
       let input = try ComputerToolInput(
@@ -116,8 +107,8 @@ extension Claude {
     }
 
     public static func decodeInput(
-      from payload: ToolInputDecoder<Self>.Payload,
-      using decoder: ToolInputDecoder<Self>,
+      from payload: Claude.ToolInputDecoder<Self>.Payload,
+      using decoder: Claude.ToolInputDecoder<Self>,
       isolation: isolated Actor
     ) async throws -> Input {
       let payload = try await decoder.decodeInput(
@@ -136,10 +127,10 @@ extension Claude {
 
     public struct _ToolInvocationContextPrivateData {
       /// Size that allows us to account for image processing in display coordinate calculations
-      init(adjustedDisplaySize: Image.Size) {
+      init(adjustedDisplaySize: Claude.Image.Size) {
         self.adjustedDisplaySize = adjustedDisplaySize
       }
-      fileprivate let adjustedDisplaySize: Image.Size
+      fileprivate let adjustedDisplaySize: Claude.Image.Size
     }
 
     private struct UnsupportedAction: Error {
@@ -164,18 +155,18 @@ extension Claude {
 
     fileprivate init<Computer>(
       input: ComputerTool<Computer>.Input,
-      displaySize: Image.Size
+      displaySize: Claude.Image.Size
     ) throws {
       let payload = input.payload
       switch payload.action {
       case .key:
         guard let text = payload.text else {
-          throw Claude.ComputerToolInput.InvalidPayload()
+          throw Claude.Beta.ComputerToolInput.InvalidPayload()
         }
         action = .key(text)
       case .type:
         guard let text = payload.text else {
-          throw Claude.ComputerToolInput.InvalidPayload()
+          throw Claude.Beta.ComputerToolInput.InvalidPayload()
         }
         action = .type(text)
       case .mouse_move:
@@ -183,7 +174,7 @@ extension Claude {
           let coordinates = payload.coordinate,
           coordinates.count == 2
         else {
-          throw Claude.ComputerToolInput.InvalidPayload()
+          throw Claude.Beta.ComputerToolInput.InvalidPayload()
         }
         action = .mouseMove(
           x: Double(coordinates[0]) / Double(displaySize.widthInPixels),
@@ -196,7 +187,7 @@ extension Claude {
           let coordinates = payload.coordinate,
           coordinates.count == 2
         else {
-          throw Claude.ComputerToolInput.InvalidPayload()
+          throw Claude.Beta.ComputerToolInput.InvalidPayload()
         }
         action = .leftClickDrag(
           x: Double(coordinates[0]) / Double(displaySize.widthInPixels),

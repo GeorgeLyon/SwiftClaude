@@ -5,11 +5,15 @@ var userAgent: String {
 }
 
 private var userAgentApp: String {
-  guard
-    let appName = Bundle.main.infoDictionary?[kCFBundleNameKey as String] as? String
-  else {
+  #if canImport(Darwin)
+    guard
+      let appName = Bundle.main.infoDictionary?[kCFBundleNameKey as String] as? String
+    else {
+      return "UnknownApp/UnknownVersion"
+    }
+  #else
     return "UnknownApp/UnknownVersion"
-  }
+  #endif
   guard
     let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
   else {

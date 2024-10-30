@@ -114,7 +114,7 @@ extension Claude {
       displaySize: Claude.Image.Size,
       displayNumber: Int? = nil
     ) -> ToolDefinition
-    where Tool == ComputerTool<Computer> {
+    where Tool == Claude.Beta.ComputerTool<Computer> {
       ToolDefinition(
         kind: .computer(
           displaySize: displaySize,

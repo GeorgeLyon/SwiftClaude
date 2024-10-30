@@ -15,7 +15,7 @@ extension Claude {
     toolChoice: ToolChoice? = nil,
     model: Model? = nil,
     maxOutputTokens: Int? = nil,
-    imagePreprocessingMode: Image.PreprocessingMode = .recommended(quality: 1),
+    imagePreprocessingMode: Image.PreprocessingMode,
     into message: Message,
     isolation: isolated Actor = #isolation
   ) {

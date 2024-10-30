@@ -12,6 +12,8 @@ extension Claude {
     systemPrompt: SystemPrompt? = nil,
     model: Model? = nil,
     maxOutputTokens: Int? = nil,
+    /// The isolation checker barfs if this has a default value other than `nil`
+    imagePreprocessingMode: Image.PreprocessingMode? = nil,
     isolation: isolated Actor = #isolation
   ) -> StreamingTextMessage {
     let message = StreamingTextMessage()
@@ -20,6 +22,7 @@ extension Claude {
       systemPrompt: systemPrompt,
       model: model,
       maxOutputTokens: maxOutputTokens,
+      imagePreprocessingMode: imagePreprocessingMode ?? .recommended(quality: 1),
       into: message,
       isolation: isolation
     )
@@ -32,10 +35,12 @@ extension Claude {
     in conversation: Conversation,
     systemPrompt: SystemPrompt? = nil,
     tools: Tools<ToolOutput>,
-    toolInvocationStrategy: StreamingMessageToolInvocationStrategy,
+    invokeTools toolInvocationStrategy: StreamingMessageToolInvocationStrategy = .manually,
     toolChoice: ToolChoice? = nil,
     model: Model? = nil,
     maxOutputTokens: Int? = nil,
+    /// The isolation checker barfs if this has a default value other than `nil`
+    imagePreprocessingMode: Image.PreprocessingMode? = nil,
     isolation: isolated Actor = #isolation
   ) -> StreamingMessage<ToolOutput> {
     let message = StreamingMessage<ToolOutput>(
@@ -48,6 +53,7 @@ extension Claude {
       toolChoice: toolChoice,
       model: model,
       maxOutputTokens: maxOutputTokens,
+      imagePreprocessingMode: imagePreprocessingMode ?? .recommended(quality: 1),
       into: message,
       isolation: isolation
     )
@@ -263,7 +269,7 @@ extension Claude {
       }
 
       /// Subsequent content blocks will immediately request tool invocation
-      toolInvocationStrategy = .immediate
+      toolInvocationStrategy = .whenInputAvailable
     }
 
     public func toolInvocationComplete(
@@ -735,8 +741,8 @@ extension Claude.StreamingMessage: Claude.StreamingMessageProtocol {
       result = .success(())
 
       if case .whenStreamingSuccessful = toolInvocationStrategy.kind {
-        for block in currentContentBlocks.map(\.toolUseBlock) {
-          block?.requestInvocation()
+        for block in currentContentBlocks.compactMap(\.toolUseBlock) {
+          block.requestInvocation()
         }
       }
     }
@@ -876,16 +882,16 @@ extension Claude {
   public struct StreamingMessageToolInvocationStrategy {
 
     /// Tools are only ever invoked after `requestInvocation()` is explicitly called on that tool
-    public static var manual: Self { .init(kind: .manual) }
+    public static var manually: Self { .init(kind: .manually) }
 
     /// Tools are invoked immediately when their input is available
-    public static var immediate: Self { .init(kind: .immediate) }
+    public static var whenInputAvailable: Self { .init(kind: .whenInputAvailable) }
 
     /// All tools are invoked once the message finishes streaming successfully
     public static var whenStreamingSuccessful: Self { .init(kind: .whenStreamingSuccessful) }
 
     fileprivate enum Kind {
-      case manual, immediate, whenStreamingSuccessful
+      case manually, whenInputAvailable, whenStreamingSuccessful
     }
     fileprivate let kind: Kind
 
@@ -1068,7 +1074,7 @@ extension Claude {
       self.toolUseID = toolUseID
       self.inputDecoder = inputDecoder
 
-      if invocationStrategy.kind == .immediate {
+      if invocationStrategy.kind == .whenInputAvailable {
         invocationRequests.continuation.yield()
       }
     }

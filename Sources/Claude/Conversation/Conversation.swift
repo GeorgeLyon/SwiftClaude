@@ -86,7 +86,8 @@ extension Conversation {
       message:
         "Cache breakpoints are not supported at the top level of the conversation. Add one to the last message's content block instead."
     )
-    public static func buildExpression(_ cacheBreakpoint: CacheBreakpoint) -> Component {
+    public static func buildExpression(_ cacheBreakpoint: Claude.Beta.CacheBreakpoint) -> Component
+    {
       fatalError()
     }
 

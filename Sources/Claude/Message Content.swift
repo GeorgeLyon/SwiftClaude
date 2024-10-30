@@ -80,7 +80,7 @@ extension Claude {
         Self(kind: .image(image))
       }
 
-      public static func cacheBreakpoint(_ cacheBreakpoint: CacheBreakpoint) -> Self {
+      public static func cacheBreakpoint(_ cacheBreakpoint: Beta.CacheBreakpoint) -> Self {
         Self(kind: .passthrough([.cacheBreakpoint(cacheBreakpoint)]))
       }
 
@@ -233,7 +233,7 @@ extension Claude {
       messageContent.components.append(.text(literal))
     }
 
-    public mutating func appendInterpolation(_ breakpoint: CacheBreakpoint) {
+    public mutating func appendInterpolation(_ breakpoint: Claude.Beta.CacheBreakpoint) {
       messageContent.components.append(.cacheBreakpoint(breakpoint))
     }
 
@@ -298,7 +298,7 @@ extension Claude {
       component
     }
 
-    public static func buildExpression(_ expression: CacheBreakpoint) -> Component {
+    public static func buildExpression(_ expression: Claude.Beta.CacheBreakpoint) -> Component {
       Component(messageContent: MessageContent([.cacheBreakpoint(expression)]))
     }
 
@@ -374,7 +374,7 @@ where Component: Claude.SupportsImagesInMessageContent {
   #if canImport(UIKit)
     public mutating func appendInterpolation(
       _ image: UIImage,
-      cacheBreakpoint: CacheBreakpoint? = nil
+      cacheBreakpoint: Claude.Beta.CacheBreakpoint? = nil
     ) {
       messageContent.components.append(.image(.init(image)))
       if let cacheBreakpoint {
@@ -386,7 +386,7 @@ where Component: Claude.SupportsImagesInMessageContent {
   #if canImport(AppKit)
     public mutating func appendInterpolation(
       _ image: NSImage,
-      cacheBreakpoint: CacheBreakpoint? = nil
+      cacheBreakpoint: Claude.Beta.CacheBreakpoint? = nil
     ) {
       messageContent.components.append(.image(.init(image)))
       if let cacheBreakpoint {
@@ -397,7 +397,7 @@ where Component: Claude.SupportsImagesInMessageContent {
 
   public mutating func appendInterpolation(
     _ image: Claude.Image,
-    cacheBreakpoint: CacheBreakpoint? = nil
+    cacheBreakpoint: Claude.Beta.CacheBreakpoint? = nil
   ) {
     appendInterpolation(image.platformImage, cacheBreakpoint: cacheBreakpoint)
   }

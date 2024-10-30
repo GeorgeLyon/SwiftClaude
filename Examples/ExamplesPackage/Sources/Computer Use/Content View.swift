@@ -29,7 +29,7 @@ struct ContentView: View {
 
   @State
   private var authenticator = Claude.KeychainAuthenticator(
-    namespace: "com.codebygeorge.SwiftClaude.HaikuGenerator",
+    namespace: "com.codebygeorge.SwiftClaude.ComputerUse",
     identifier: "api-key"
   )
 }
@@ -158,7 +158,7 @@ private struct ComputerUseView: View {
       tools: Tools<ToolInvocationResultContent> {
         computer
       },
-      toolInvocationStrategy: .immediate
+      invokeTools: .whenInputAvailable
     )
     messages.append(message)
     Task<Void, Never> {
@@ -201,7 +201,7 @@ private struct ComputerUseView: View {
 
 }
 
-private struct Computer: Claude.Computer {
+private struct Computer: Claude.Beta.Computer {
 
   let onNormalizedMouseMove: @MainActor (Double, Double) async throws -> Void
   let onLeftClick: @MainActor () async throws -> Void
