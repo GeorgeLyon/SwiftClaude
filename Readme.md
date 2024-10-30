@@ -24,7 +24,7 @@ To send a message, you simply call `Claude.nextMessage`:
 ```swift
 let message = claude.nextMessage(
   in: Converation {
-    "Write me a haiku about a really well-made tool.
+    "Write me a haiku about a really well-made tool."
   }
 )
 ```
@@ -99,7 +99,7 @@ You can also specify that SwiftClaude should automatically invoke tools when the
 ```swift
 let message = claude.nextMessage(
   in: Conversation {
-    "I'm creating a demo showcasing your ability to use tools, can you invoke the `TurboEncabulator` tool with some made-up input?
+    "I'm creating a demo showcasing your ability to use tools, can you invoke the `TurboEncabulator` tool with some made-up input?"
   },
   tools: Tools {
     TurboEncabulator()
