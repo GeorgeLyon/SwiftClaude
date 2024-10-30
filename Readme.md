@@ -76,7 +76,7 @@ To provide tools to claude, just add the `tools:` argument when creating a messa
 ```swift
 let message = claude.nextMessage(
   in: Conversation {
-    "I'm creating a demo showcasing your ability to use tools, can you invoke the `TurboEncabulator` tool with some made-up input?
+    "I'm creating a demo showcasing your ability to use tools, can you invoke the `TurboEncabulator` tool with some made-up input?"
   },
   tools: Tools {
     TurboEncabulator()
