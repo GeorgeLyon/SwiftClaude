@@ -110,11 +110,11 @@ extension Claude {
 
     typealias Output = Tool.Output
 
-    static func computer<Computer>(
+    static func computer(
       displaySize: Claude.Image.Size,
       displayNumber: Int? = nil
     ) -> ToolDefinition
-    where Tool == Claude.Beta.ComputerTool<Computer> {
+    where Tool: Claude.Beta.ComputerTool {
       ToolDefinition(
         kind: .computer(
           displaySize: displaySize,
@@ -185,10 +185,14 @@ extension Claude {
     }
 
     init(
-      client: ClaudeClient
+      client: ClaudeClient,
+      context: ToolInvocationContext<Tool>
     ) {
       self.client = client
+      self.context = context
     }
+
+    let context: ToolInvocationContext<Tool>
 
     #if canImport(ClaudeToolInput)
 

@@ -1251,7 +1251,10 @@ extension Claude.ConcreteToolWithContextProtocol {
       id: id,
       toolWithContext: self,
       toolUseID: toolUseID,
-      inputDecoder: Claude.ToolInputDecoder(client: client),
+      inputDecoder: Claude.ToolInputDecoder(
+        client: client,
+        context: context
+      ),
       invocationStrategy: invocationStrategy
     )
     /// Have to return both because Swift gets confused if we unify the protocols
