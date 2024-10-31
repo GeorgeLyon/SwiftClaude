@@ -57,7 +57,7 @@ extension Claude {
     public struct Component {
 
       public static func text(_ text: String) -> Self {
-        Self(kind: .passthrough([.text(text)]))
+        Self(kind: .passthrough(.init(text)))
       }
 
       public static func toolResult(

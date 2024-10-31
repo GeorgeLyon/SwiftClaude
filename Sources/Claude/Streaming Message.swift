@@ -561,7 +561,7 @@ extension Claude.StreamingMessage where ToolOutput == String {
   }
 
   public func toolInvocationResults(
-    isolation: isolated Actor
+    isolation: isolated Actor = #isolation
   ) async throws -> Claude.ToolInvocationResults {
     try await toolInvocationResults(
       render: { output in

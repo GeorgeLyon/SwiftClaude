@@ -24,21 +24,18 @@ extension ClaudeClient.MessagesEndpoint.Request.Message {
     }
 
     public init(_ block: Block) {
-      self.trailingText = []
-      self.blocks = [block]
+      self.init([block])
     }
 
     public init(arrayLiteral blocks: Block...) {
-      self.trailingText = []
-      self.blocks = blocks
-    }
-
-    public init(_ blocks: [Block]) {
-      self.trailingText = []
-      self.blocks = blocks
+      self.init(blocks)
     }
 
     public init(_ blocks: Block...) {
+      self.init(blocks)
+    }
+
+    public init(_ blocks: [Block]) {
       self.trailingText = []
       self.blocks = blocks
     }
@@ -156,6 +153,7 @@ extension ClaudeClient.MessagesEndpoint.Request.Message.Content {
         )
       )
     }
+
     public static func toolUse(
       id: ClaudeClient.MessagesEndpoint.ToolUse.ID,
       name: String,
@@ -169,6 +167,7 @@ extension ClaudeClient.MessagesEndpoint.Request.Message.Content {
         )
       )
     }
+
     public static func toolResult(
       id: ClaudeClient.MessagesEndpoint.ToolUse.ID,
       content: ToolResultContent?,
@@ -182,6 +181,7 @@ extension ClaudeClient.MessagesEndpoint.Request.Message.Content {
         )
       )
     }
+
     public static func image(
       mediaType: MediaType,
       data: Data

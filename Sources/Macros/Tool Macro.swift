@@ -15,7 +15,6 @@ struct ToolMacro: ExtensionMacro {
     do {
       let toolName: any ExprSyntaxProtocol
       do {
-        let segments: StringLiteralSegmentListSyntax
         if case .argumentList(let arguments) = node.arguments,
           let first = arguments.first
         {
@@ -24,7 +23,7 @@ struct ToolMacro: ExtensionMacro {
           /// `"\(Self.self)"`
           toolName = StringLiteralExprSyntax.init(
             openingQuote: .stringQuoteToken(),
-            segments: StringLiteralSegmentsSyntax {
+            segments: StringLiteralSegmentListSyntax {
               StringSegmentSyntax(content: .stringSegment(""))
               ExpressionSegmentSyntax(
                 expressions: LabeledExprListSyntax {
@@ -192,14 +191,6 @@ struct ToolMacro: ExtensionMacro {
 
       let invokeSingature: FunctionSignatureSyntax
       do {
-        /// Detect `Output` type
-
-        let outputType: any TypeSyntaxProtocol
-        if let returnsClause = function.signature.returnClause {
-          outputType = returnsClause.type.trimmed
-        } else {
-          outputType = IdentifierTypeSyntax(name: "Void")
-        }
 
         /// Keep singature the same, but replace parameters with `ToolInput`
         var signature = function.signature

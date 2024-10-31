@@ -58,6 +58,11 @@ let package = Package(
       ],
       swiftSettings: .claude
     ),
+    .testTarget(
+      name: "ClaudeTests",
+      dependencies: ["Claude"],
+      path: "Tests/Claude Tests"
+    ),
 
     .target(
       name: "ClaudeToolInput",
