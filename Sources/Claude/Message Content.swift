@@ -79,21 +79,21 @@ extension Claude {
       ) -> Self {
         Self(kind: .image(image))
       }
-      
+
       #if canImport(UIKit)
-      public static func image(
-        _ image: UIImage
-      ) -> Self {
-        Self(kind: .image(Claude.PlatformImage(image)))
-      }
+        public static func image(
+          _ image: UIImage
+        ) -> Self {
+          Self(kind: .image(Claude.PlatformImage(image)))
+        }
       #endif
-      
+
       #if canImport(AppKit)
-      public static func image(
-        _ image: NSImage
-      ) -> Self {
-        Self(kind: .image(Claude.PlatformImage(image)))
-      }
+        public static func image(
+          _ image: NSImage
+        ) -> Self {
+          Self(kind: .image(Claude.PlatformImage(image)))
+        }
       #endif
 
       public static func cacheBreakpoint(_ cacheBreakpoint: Beta.CacheBreakpoint) -> Self {

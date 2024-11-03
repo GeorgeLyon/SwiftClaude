@@ -1,6 +1,6 @@
 import Claude
-import SwiftUI
 private import ClaudeClient
+import SwiftUI
 
 /// Currently computer use doesn't work great, probably something to do with the image resizing logic
 
@@ -203,11 +203,11 @@ private struct ComputerUseView: View {
 }
 
 private struct Computer: Claude.Beta.ComputerTool {
-  
+
   let onNormalizedMouseMove: @MainActor (Double, Double) async throws -> Void
-  
+
   let onLeftClick: @MainActor () async throws -> Void
-  
+
   func invoke(
     with input: Input,
     in context: Claude.ToolInvocationContext<Computer>,
