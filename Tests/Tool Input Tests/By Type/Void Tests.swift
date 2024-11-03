@@ -1,59 +1,57 @@
-/// This file was Claudegenned but required slight adjustments to get working
-
-import XCTest
+import Testing
 
 @testable import ClaudeToolInput
 
-final class VoidSchemaTests: XCTestCase {
+@Suite
+struct VoidSchemaTests {
 
+  @Test
   func testVoidSchemaEncoding() async throws {
     let schema = ToolInputVoidSchema()
 
-    XCTAssertEqual(
-      try encode(schema),
-      """
-      {
-        "additionalProperties" : false,
-        "type" : "object"
-      }
-      """
+    #expect(
+      try encode(schema) == """
+        {
+          "additionalProperties" : false,
+          "type" : "object"
+        }
+        """
     )
 
-    XCTAssertEqual(
+    #expect(
       try encode(schema) { schema in
         schema.description = "A void schema"
-      },
-      """
-      {
-        "additionalProperties" : false,
-        "description" : "A void schema",
-        "type" : "object"
-      }
-      """
+      } == """
+        {
+          "additionalProperties" : false,
+          "description" : "A void schema",
+          "type" : "object"
+        }
+        """
     )
   }
 
+  @Test
   func testVoidSchemaValueEncoding() async throws {
-    XCTAssertEqual(
-      try encode(VoidWrapper()),
-      """
-      {
+    #expect(
+      try encode(VoidWrapper()) == """
+        {
 
-      }
-      """
+        }
+        """
     )
   }
 
+  @Test
   func testVoidSchemaValueDecoding() async throws {
 
-    XCTAssertEqual(
+    #expect(
       try decode(
         VoidWrapper.self,
         """
         {}
         """
-      ),
-      VoidWrapper()
+      ) == VoidWrapper()
     )
   }
 }

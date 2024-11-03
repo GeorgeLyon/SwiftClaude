@@ -1,10 +1,11 @@
 /// This file was Claudegenned, and required some light adjustment to get working
 
-import XCTest
+import Testing
 
 @testable import ClaudeToolInput
 
-final class RawRepresentableEnumerationTests: XCTestCase {
+@Suite
+struct RawRepresentableEnumerationTests {
 
   enum TestEnum: String, CaseIterable, ToolInput {
     case one = "1"
@@ -12,98 +13,96 @@ final class RawRepresentableEnumerationTests: XCTestCase {
     case three = "3"
   }
 
+  @Test
   func testEnumerationSchema() async throws {
-    XCTAssertEqual(
-      try encode(TestEnum.toolInputSchema),
-      """
-      {
-        "enum" : [
-          "1",
-          "2",
-          "3"
-        ]
-      }
-      """
+    #expect(
+      try encode(TestEnum.toolInputSchema) == """
+        {
+          "enum" : [
+            "1",
+            "2",
+            "3"
+          ]
+        }
+        """
     )
 
-    XCTAssertEqual(
+    #expect(
       try encode(TestEnum.toolInputSchema) { schema in
         schema.description = "A test enumeration"
-      },
-      """
-      {
-        "description" : "A test enumeration",
-        "enum" : [
-          "1",
-          "2",
-          "3"
-        ]
-      }
-      """
+      } == """
+        {
+          "description" : "A test enumeration",
+          "enum" : [
+            "1",
+            "2",
+            "3"
+          ]
+        }
+        """
     )
   }
 
+  @Test
   func testEnumerationEncoding() async throws {
-    XCTAssertEqual(
-      try encode(TestEnum.one),
-      """
-      "1"
-      """
+    #expect(
+      try encode(TestEnum.one) == """
+        "1"
+        """
     )
 
-    XCTAssertEqual(
-      try encode(TestEnum.two),
-      """
-      "2"
-      """
+    #expect(
+      try encode(TestEnum.two) == """
+        "2"
+        """
     )
 
-    XCTAssertEqual(
-      try encode(TestEnum.three),
-      """
-      "3"
-      """
+    #expect(
+      try encode(TestEnum.three) == """
+        "3"
+        """
     )
   }
 
+  @Test
   func testEnumerationDecoding() async throws {
-    XCTAssertEqual(
+    #expect(
       try decode(
         TestEnum.self,
         """
         "1"
         """
-      ),
-      TestEnum.one
+      ) == TestEnum.one
     )
 
-    XCTAssertEqual(
+    #expect(
       try decode(
         TestEnum.self,
         """
         "2"
         """
-      ),
-      TestEnum.two
+      ) == TestEnum.two
     )
 
-    XCTAssertEqual(
+    #expect(
       try decode(
         TestEnum.self,
         """
         "3"
         """
-      ),
-      TestEnum.three
+      ) == TestEnum.three
     )
 
-    XCTAssertThrowsError(
-      try decode(
-        TestEnum.self,
-        """
-        "4"
-        """
-      )
+    #expect(
+      performing: {
+        try decode(
+          TestEnum.self,
+          """
+          "4"
+          """
+        )
+      },
+      throws: { _ in true }
     )
   }
 
@@ -113,82 +112,80 @@ final class RawRepresentableEnumerationTests: XCTestCase {
     case two = 2
   }
 
+  @Test
   func testIntEnumerationSchema() async throws {
-    XCTAssertEqual(
-      try encode(IntEnum.toolInputSchema),
-      """
-      {
-        "enum" : [
-          0,
-          1,
-          2
-        ]
-      }
-      """
+    #expect(
+      try encode(IntEnum.toolInputSchema) == """
+        {
+          "enum" : [
+            0,
+            1,
+            2
+          ]
+        }
+        """
     )
   }
 
+  @Test
   func testIntEnumerationEncoding() async throws {
-    XCTAssertEqual(
-      try encode(IntEnum.zero),
-      """
-      0
-      """
+    #expect(
+      try encode(IntEnum.zero) == """
+        0
+        """
     )
 
-    XCTAssertEqual(
-      try encode(IntEnum.one),
-      """
-      1
-      """
+    #expect(
+      try encode(IntEnum.one) == """
+        1
+        """
     )
 
-    XCTAssertEqual(
-      try encode(IntEnum.two),
-      """
-      2
-      """
+    #expect(
+      try encode(IntEnum.two) == """
+        2
+        """
     )
   }
 
+  @Test
   func testIntEnumerationDecoding() async throws {
-    XCTAssertEqual(
+    #expect(
       try decode(
         IntEnum.self,
         """
         0
         """
-      ),
-      IntEnum.zero
+      ) == IntEnum.zero
     )
 
-    XCTAssertEqual(
+    #expect(
       try decode(
         IntEnum.self,
         """
         1
         """
-      ),
-      IntEnum.one
+      ) == IntEnum.one
     )
 
-    XCTAssertEqual(
+    #expect(
       try decode(
         IntEnum.self,
         """
         2
         """
-      ),
-      IntEnum.two
+      ) == IntEnum.two
     )
 
-    XCTAssertThrowsError(
+    #expect {
       try decode(
         IntEnum.self,
         """
         3
         """
       )
-    )
+    } throws: { _ in
+      true
+    }
   }
 }

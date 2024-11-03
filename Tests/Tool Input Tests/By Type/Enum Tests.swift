@@ -1,124 +1,123 @@
-import XCTest
+import Testing
 
 @testable import ClaudeToolInput
 
-final class EnumTests: XCTestCase {
+@Suite
+struct EnumTests {
 
+  @Test
   func testEnumSchema() async throws {
-    XCTAssertEqual(
-      try encode(TestEnum.toolInputSchema),
-      """
-      {
-        "additionalProperties" : false,
-        "maxProperties" : 1,
-        "minProperties" : 1,
-        "properties" : {
-          "bool" : {
-            "type" : "boolean"
-          },
-          "tuple" : {
-            "additionalProperties" : false,
-            "properties" : {
-              "_0" : {
-                "type" : "boolean"
-              },
-              "second" : {
-                "type" : "boolean"
-              }
+    #expect(
+      try encode(TestEnum.toolInputSchema) == """
+        {
+          "additionalProperties" : false,
+          "maxProperties" : 1,
+          "minProperties" : 1,
+          "properties" : {
+            "bool" : {
+              "type" : "boolean"
             },
-            "required" : [
-              "_0",
-              "second"
-            ],
-            "type" : "object"
+            "tuple" : {
+              "additionalProperties" : false,
+              "properties" : {
+                "_0" : {
+                  "type" : "boolean"
+                },
+                "second" : {
+                  "type" : "boolean"
+                }
+              },
+              "required" : [
+                "_0",
+                "second"
+              ],
+              "type" : "object"
+            },
+            "void" : {
+              "additionalProperties" : false,
+              "type" : "object"
+            }
           },
-          "void" : {
-            "additionalProperties" : false,
-            "type" : "object"
-          }
-        },
-        "type" : "object"
-      }
-      """
+          "type" : "object"
+        }
+        """
     )
 
-    XCTAssertEqual(
+    #expect(
       try encode(TestEnum.toolInputSchema) { schema in
         schema.description = "A test sum type"
-      },
-      """
-      {
-        "additionalProperties" : false,
-        "description" : "A test sum type",
-        "maxProperties" : 1,
-        "minProperties" : 1,
-        "properties" : {
-          "bool" : {
-            "type" : "boolean"
-          },
-          "tuple" : {
-            "additionalProperties" : false,
-            "properties" : {
-              "_0" : {
-                "type" : "boolean"
-              },
-              "second" : {
-                "type" : "boolean"
-              }
+      } == """
+        {
+          "additionalProperties" : false,
+          "description" : "A test sum type",
+          "maxProperties" : 1,
+          "minProperties" : 1,
+          "properties" : {
+            "bool" : {
+              "type" : "boolean"
             },
-            "required" : [
-              "_0",
-              "second"
-            ],
-            "type" : "object"
+            "tuple" : {
+              "additionalProperties" : false,
+              "properties" : {
+                "_0" : {
+                  "type" : "boolean"
+                },
+                "second" : {
+                  "type" : "boolean"
+                }
+              },
+              "required" : [
+                "_0",
+                "second"
+              ],
+              "type" : "object"
+            },
+            "void" : {
+              "additionalProperties" : false,
+              "type" : "object"
+            }
           },
-          "void" : {
-            "additionalProperties" : false,
-            "type" : "object"
-          }
-        },
-        "type" : "object"
-      }
-      """
+          "type" : "object"
+        }
+        """
     )
   }
 
+  @Test
   func testEnumEncoding() async throws {
-    XCTAssertEqual(
-      try encode(TestEnum.void),
-      """
-      {
-        "void" : {
+    #expect(
+      try encode(TestEnum.void) == """
+        {
+          "void" : {
 
+          }
         }
-      }
-      """
+        """
     )
 
-    XCTAssertEqual(
-      try encode(TestEnum.single(true)),
-      """
-      {
-        "bool" : true
-      }
-      """
+    #expect(
+      try encode(TestEnum.single(true)) == """
+        {
+          "bool" : true
+        }
+        """
     )
 
-    XCTAssertEqual(
-      try encode(TestEnum.tuple(true, second: false)),
-      """
-      {
-        "tuple" : {
-          "_0" : true,
-          "second" : false
+    #expect(
+      try encode(TestEnum.tuple(true, second: false)) == """
+        {
+          "tuple" : {
+            "_0" : true,
+            "second" : false
+          }
         }
-      }
-      """
+        """
     )
   }
 
+  @Test
   func testEnumDecoding() async throws {
-    XCTAssertEqual(
+    #expect(
       try decode(
         TestEnum.self,
         """
@@ -128,11 +127,10 @@ final class EnumTests: XCTestCase {
           }
         }
         """
-      ),
-      TestEnum.void
+      ) == TestEnum.void
     )
 
-    XCTAssertEqual(
+    #expect(
       try decode(
         TestEnum.self,
         """
@@ -140,11 +138,10 @@ final class EnumTests: XCTestCase {
           "bool" : true
         }
         """
-      ),
-      TestEnum.single(true)
+      ) == TestEnum.single(true)
     )
 
-    XCTAssertEqual(
+    #expect(
       try decode(
         TestEnum.self,
         """
@@ -155,11 +152,10 @@ final class EnumTests: XCTestCase {
           }
         }
         """
-      ),
-      TestEnum.tuple(true, second: false)
+      ) == TestEnum.tuple(true, second: false)
     )
 
-    XCTAssertThrowsError(
+    #expect {
       try decode(
         TestEnum.self,
         """
@@ -168,7 +164,9 @@ final class EnumTests: XCTestCase {
         }
         """
       )
-    )
+    } throws: { _ in
+      true
+    }
   }
 }
 
