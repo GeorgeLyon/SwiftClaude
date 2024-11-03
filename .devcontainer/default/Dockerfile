@@ -1,1 +1,1 @@
-FROM swiftlang/swift:nightly-main
+FROM swift:latest

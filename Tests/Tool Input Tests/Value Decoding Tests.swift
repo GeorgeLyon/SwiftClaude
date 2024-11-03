@@ -1,117 +1,114 @@
-import XCTest
+import Testing
 
 @testable import ClaudeToolInput
 
-final class ValueDecodingTests: XCTestCase {
+@Suite
+struct ValueDecodingTests {
 
+  @Test
   func testBooleanValue() async throws {
-    XCTAssertEqual(
+    #expect(
       try decode(
         Bool.self,
         """
         true
         """
-      ),
-      true
+      ) == true
     )
   }
 
+  @Test
   func testStringValue() async throws {
-    XCTAssertEqual(
+    #expect(
       try decode(
         String.self,
         """
         "hello"
         """
-      ),
-      "hello"
+      ) == "hello"
     )
   }
 
+  @Test
   func testNumberValue() async throws {
-    XCTAssertEqual(
+    #expect(
       try decode(
         Double.self,
         """
         3.14
         """
-      ),
-      3.14
+      ) == 3.14
     )
   }
 
+  @Test
   func testIntegerValue() async throws {
-    XCTAssertEqual(
+    #expect(
       try decode(
         Int.self,
         """
         42
         """
-      ),
-      42
+      ) == 42
     )
   }
 
+  @Test
   func testArrayValue() async throws {
-    XCTAssertEqual(
+    #expect(
       try decode(
         [Bool].self,
         """
         [true, false]
         """
-      ),
-      [true, false]
+      ) == [true, false]
     )
-    XCTAssertEqual(
+    #expect(
       try decode(
         [Bool].self,
         """
         []
         """
-      ),
-      [Bool]()
+      ) == [Bool]()
     )
   }
 
+  @Test
   func testOptionalValue() async throws {
-    XCTAssertEqual(
+    #expect(
       try decode(
         Bool?.self,
         """
         null
         """
-      ),
-      Bool?.none
+      ) == Bool?.none
     )
-    XCTAssertEqual(
+    #expect(
       try decode(
         Bool?.self,
         """
         true
         """
-      ),
-      Bool?.some(true)
+      ) == Bool?.some(true)
     )
-    XCTAssertEqual(
+    #expect(
       try decode(
         Bool??.self,
         """
         null
         """
-      ),
-      Bool??.none
+      ) == Bool??.none
     )
-    XCTAssertEqual(
+    #expect(
       try decode(
         Bool??.self,
         """
         {
         }
         """
-      ),
-      Bool??.some(nil)
+      ) == Bool??.some(nil)
     )
-    XCTAssertEqual(
+    #expect(
       try decode(
         Bool??.self,
         """
@@ -119,10 +116,9 @@ final class ValueDecodingTests: XCTestCase {
           "nestedOptional": null
         }
         """
-      ),
-      Bool??.some(nil)
+      ) == Bool??.some(nil)
     )
-    XCTAssertEqual(
+    #expect(
       try decode(
         Bool??.self,
         """
@@ -130,11 +126,11 @@ final class ValueDecodingTests: XCTestCase {
           "nestedOptional": true
         }
         """
-      ),
-      Bool??.some(true)
+      ) == Bool??.some(true)
     )
   }
 
+  @Test
   func testObjectValue() async throws {
     struct Foo: ToolInput, Equatable {
       typealias ToolInputSchema = ToolInputKeyedTupleSchema<
@@ -161,7 +157,7 @@ final class ValueDecodingTests: XCTestCase {
       let x: Bool
       let y: [Bool]
     }
-    XCTAssertEqual(
+    #expect(
       try decode(
         Foo.self,
         """
@@ -169,8 +165,7 @@ final class ValueDecodingTests: XCTestCase {
           "x": true,
           "y": [true, false]
         }
-        """),
-      Foo(x: true, y: [true, false])
+        """) == Foo(x: true, y: [true, false])
     )
 
     struct Bar: ToolInput, Equatable {
@@ -196,7 +191,7 @@ final class ValueDecodingTests: XCTestCase {
       let foo: Foo
     }
 
-    XCTAssertEqual(
+    #expect(
       try decode(
         Bar.self,
         """
@@ -206,8 +201,7 @@ final class ValueDecodingTests: XCTestCase {
             "y": [true, false]
           }
         }
-        """),
-      Bar(foo: Foo(x: true, y: [true, false]))
+        """) == Bar(foo: Foo(x: true, y: [true, false]))
     )
   }
 }

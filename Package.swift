@@ -6,11 +6,11 @@ import PackageDescription
 let package = Package(
   name: "SwiftClaude",
   platforms: [
-    .macOS(.v15),
-    .iOS(.v18),
-    .watchOS(.v11),
-    .tvOS(.v18),
-    .visionOS(.v2),
+    .macOS("15.0"),
+    .iOS("18.0"),
+    .watchOS("11.0"),
+    .tvOS("18.0"),
+    .visionOS("2.0"),
   ],
   products: [
     .library(

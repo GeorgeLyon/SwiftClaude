@@ -1,9 +1,11 @@
-import XCTest
+import Testing
 
 @testable import ClaudeToolInput
 
-final class UnkeyedTupleTests: XCTestCase {
+@Suite
+struct UnkeyedTupleTests {
 
+  @Test
   func testUnkeyedTupleSchema() async throws {
     let schema = ToolInputUnkeyedTupleSchema(
       ToolInputBoolSchema(),
@@ -11,70 +13,69 @@ final class UnkeyedTupleTests: XCTestCase {
       ToolInputIntegerSchema<Int>()
     )
 
-    XCTAssertEqual(
-      try encode(schema),
-      """
-      {
-        "items" : false,
-        "maxItems" : 3,
-        "minItems" : 3,
-        "prefixItems" : [
-          {
-            "type" : "boolean"
-          },
-          {
-            "type" : "string"
-          },
-          {
-            "type" : "integer"
-          }
-        ],
-        "type" : "array"
-      }
-      """
+    #expect(
+      try encode(schema) == """
+        {
+          "items" : false,
+          "maxItems" : 3,
+          "minItems" : 3,
+          "prefixItems" : [
+            {
+              "type" : "boolean"
+            },
+            {
+              "type" : "string"
+            },
+            {
+              "type" : "integer"
+            }
+          ],
+          "type" : "array"
+        }
+        """
     )
 
-    XCTAssertEqual(
+    #expect(
       try encode(schema) { schema in
         schema.description = "A test unkeyed tuple"
-      },
-      """
-      {
-        "description" : "A test unkeyed tuple",
-        "items" : false,
-        "maxItems" : 3,
-        "minItems" : 3,
-        "prefixItems" : [
-          {
-            "type" : "boolean"
-          },
-          {
-            "type" : "string"
-          },
-          {
-            "type" : "integer"
-          }
-        ],
-        "type" : "array"
-      }
-      """
+      } == """
+        {
+          "description" : "A test unkeyed tuple",
+          "items" : false,
+          "maxItems" : 3,
+          "minItems" : 3,
+          "prefixItems" : [
+            {
+              "type" : "boolean"
+            },
+            {
+              "type" : "string"
+            },
+            {
+              "type" : "integer"
+            }
+          ],
+          "type" : "array"
+        }
+        """
     )
   }
 
+  @Test
   func testUnkeyedTupleEncoding() async throws {
     let testTuple = TestTuple(toolInputSchemaDescribedValue: (true, "hello", 42))
-    XCTAssertEqual(
-      try encode(testTuple),
-      """
-      [
-        true,
-        "hello",
-        42
-      ]
-      """
+    #expect(
+      try encode(testTuple) == """
+        [
+          true,
+          "hello",
+          42
+        ]
+        """
     )
   }
 
+  @Test
   func testUnkeyedTupleDecoding() async throws {
     let decodedTuple = try decode(
       TestTuple.self,
@@ -86,9 +87,8 @@ final class UnkeyedTupleTests: XCTestCase {
       ]
       """
     )
-    XCTAssertEqual(
-      decodedTuple,
-      TestTuple(toolInputSchemaDescribedValue: (false, "world", -10))
+    #expect(
+      decodedTuple == TestTuple(toolInputSchemaDescribedValue: (false, "world", -10))
     )
   }
 }
