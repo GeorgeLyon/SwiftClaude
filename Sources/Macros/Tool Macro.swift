@@ -3,9 +3,9 @@ import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 
-struct ToolMacro: ExtensionMacro {
+public struct ToolMacro: ExtensionMacro {
 
-  static func expansion(
+  public static func expansion(
     of node: AttributeSyntax,
     attachedTo declaration: some DeclGroupSyntax,
     providingExtensionsOf type: some TypeSyntaxProtocol,

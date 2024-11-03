@@ -11,15 +11,15 @@ private var userAgentApp: String {
     else {
       return "UnknownApp/UnknownVersion"
     }
+    guard
+      let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+    else {
+      return "\(appName)/UnknownVersion"
+    }
+    return "\(appName)/\(appVersion)"
   #else
     return "UnknownApp/UnknownVersion"
   #endif
-  guard
-    let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
-  else {
-    return "\(appName)/UnknownVersion"
-  }
-  return "\(appName)/\(appVersion)"
 }
 
 private var userAgentPlatform: String {

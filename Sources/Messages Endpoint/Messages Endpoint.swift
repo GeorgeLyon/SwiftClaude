@@ -275,7 +275,7 @@ extension ClaudeClient.MessagesEndpoint.Request {
   public struct AnthropicToolDefinition {
 
     public static func computer(
-      displaySize: ClaudeClient.ImageSize,
+      displaySize: ClaudeClient.Image.Size,
       displayNumber: Int? = nil
     ) -> Self {
       let definition = Computer(

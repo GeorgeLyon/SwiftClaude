@@ -36,7 +36,7 @@ let package = Package(
     .testTarget(
       name: "ClaudeClientTests",
       dependencies: ["ClaudeClient"],
-      path: "Tests/Claude Client Tests"
+      path: "Tests/Client Tests"
     ),
 
     .target(
@@ -80,8 +80,18 @@ let package = Package(
         .product(name: "SwiftSyntax", package: "swift-syntax"),
         .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
         .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
+        .product(name: "SwiftDiagnostics", package: "swift-syntax"),
       ],
       path: "Sources/Macros"
+    ),
+    .testTarget(
+      name: "ClaudeMacrosTests",
+      dependencies: [
+        "ClaudeMacros",
+        .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+        .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
+      ],
+      path: "Tests/Macros Tests"
     ),
   ]
 )

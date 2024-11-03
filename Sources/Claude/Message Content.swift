@@ -79,6 +79,22 @@ extension Claude {
       ) -> Self {
         Self(kind: .image(image))
       }
+      
+      #if canImport(UIKit)
+      public static func image(
+        _ image: UIImage
+      ) -> Self {
+        Self(kind: .image(Claude.PlatformImage(image)))
+      }
+      #endif
+      
+      #if canImport(AppKit)
+      public static func image(
+        _ image: NSImage
+      ) -> Self {
+        Self(kind: .image(Claude.PlatformImage(image)))
+      }
+      #endif
 
       public static func cacheBreakpoint(_ cacheBreakpoint: Beta.CacheBreakpoint) -> Self {
         Self(kind: .passthrough([.cacheBreakpoint(cacheBreakpoint)]))
@@ -342,7 +358,7 @@ extension Claude.SupportsImagesInMessageContent {
     ) {
       self.init(
         messageContent: MessageContent(
-          [.image(.init(image))]
+          [.image(Claude.PlatformImage(image))]
         )
       )
     }
@@ -354,7 +370,7 @@ extension Claude.SupportsImagesInMessageContent {
     ) {
       self.init(
         messageContent: MessageContent(
-          [.image(.init(image))]
+          [.image(Claude.PlatformImage(image))]
         )
       )
     }
@@ -363,7 +379,11 @@ extension Claude.SupportsImagesInMessageContent {
   public init(
     _ image: Claude.Image
   ) {
-    self.init(image.platformImage)
+    self.init(
+      messageContent: MessageContent(
+        [.image(image)]
+      )
+    )
   }
 
 }
@@ -376,7 +396,7 @@ where Component: Claude.SupportsImagesInMessageContent {
       _ image: UIImage,
       cacheBreakpoint: Claude.Beta.CacheBreakpoint? = nil
     ) {
-      messageContent.components.append(.image(.init(image)))
+      messageContent.components.append(.image(image))
       if let cacheBreakpoint {
         messageContent.components.append(.cacheBreakpoint(cacheBreakpoint))
       }
@@ -388,7 +408,7 @@ where Component: Claude.SupportsImagesInMessageContent {
       _ image: NSImage,
       cacheBreakpoint: Claude.Beta.CacheBreakpoint? = nil
     ) {
-      messageContent.components.append(.image(.init(image)))
+      messageContent.components.append(.image(image))
       if let cacheBreakpoint {
         messageContent.components.append(.cacheBreakpoint(cacheBreakpoint))
       }
@@ -399,7 +419,10 @@ where Component: Claude.SupportsImagesInMessageContent {
     _ image: Claude.Image,
     cacheBreakpoint: Claude.Beta.CacheBreakpoint? = nil
   ) {
-    appendInterpolation(image.platformImage, cacheBreakpoint: cacheBreakpoint)
+    messageContent.components.append(.image(image))
+    if let cacheBreakpoint {
+      messageContent.components.append(.cacheBreakpoint(cacheBreakpoint))
+    }
   }
 
 }
@@ -413,7 +436,7 @@ extension Claude.MessageContentBuilder where Result: Claude.SupportsImagesInMess
       Component(
         messageContent: Claude.MessageContent(
           [
-            .image(.init(image))
+            .image(image)
           ]
         )
       )
@@ -427,7 +450,7 @@ extension Claude.MessageContentBuilder where Result: Claude.SupportsImagesInMess
       Component(
         messageContent: Claude.MessageContent(
           [
-            .image(.init(image))
+            .image(image)
           ]
         )
       )
@@ -437,7 +460,13 @@ extension Claude.MessageContentBuilder where Result: Claude.SupportsImagesInMess
   public static func buildExpression(
     _ image: Claude.Image
   ) -> Component {
-    buildExpression(image.platformImage)
+    Component(
+      messageContent: Claude.MessageContent(
+        [
+          .image(image)
+        ]
+      )
+    )
   }
 
 }

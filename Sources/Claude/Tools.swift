@@ -63,17 +63,19 @@ extension Claude.Tool {
     _ toolWithContext: inout (any Claude.ToolWithContextProtocol<Output>)?
   ) throws -> sending ClaudeClient.MessagesEndpoint.Request.ToolDefinitions.Element {
     switch definition.kind {
-    case let .userDefined(name, description, toolInput, privateData):
-      toolWithContext = Claude.ConcereteToolWithContext(
-        toolName: name,
-        tool: self,
-        context: Claude.ToolInvocationContext(privateData: privateData)
-      )
-      return .tool(
-        name: name,
-        description: description,
-        inputSchema: toolInput.toolInputSchema.encodable
-      )
+    #if canImport(ClaudeToolInput)
+      case let .userDefined(name, description, toolInput, privateData):
+        toolWithContext = Claude.ConcereteToolWithContext(
+          toolName: name,
+          tool: self,
+          context: Claude.ToolInvocationContext(privateData: privateData)
+        )
+        return .tool(
+          name: name,
+          description: description,
+          inputSchema: toolInput.toolInputSchema.encodable
+        )
+    #endif
     case let .computer(displaySize, displayNumber, privateData):
       let adjustedDisplaySize = try model.imageEncoder.recommendedSize(
         forSourceImageOfSize: displaySize,
@@ -96,11 +98,13 @@ extension Claude.Tool {
 
 }
 
-extension ToolInputSchema {
-  fileprivate var encodable: any Encodable {
-    ToolInputSchemaEncodingContainer(schema: self)
+#if canImport(ClaudeToolInput)
+  extension ToolInputSchema {
+    fileprivate var encodable: any Encodable {
+      ToolInputSchemaEncodingContainer(schema: self)
+    }
   }
-}
+#endif
 
 // MARK: Tool Definition
 
@@ -125,12 +129,14 @@ extension Claude {
     }
 
     enum Kind {
-      case userDefined(
-        name: String,
-        description: String,
-        toolInput: any ToolInput.Type,
-        privateData: Tool._ToolInvocationContextPrivateData
-      )
+      #if canImport(ClaudeToolInput)
+        case userDefined(
+          name: String,
+          description: String,
+          toolInput: any ToolInput.Type,
+          privateData: Tool._ToolInvocationContextPrivateData
+        )
+      #endif
       case computer(
         displaySize: Claude.Image.Size,
         displayNumber: Int?,
@@ -450,55 +456,59 @@ extension Claude.Tools {
 
 // MARK: - Macros Boilerplate
 
-@attached(extension)
-@attached(
-  extension,
-  conformances: Claude.Tool,
-  names: named(definition), named(Input), named(invoke)
-)
-public macro Tool(name: String? = nil) =
-  #externalMacro(
-    module: "ClaudeMacros",
-    type: "ToolMacro"
+#if canImport(ClaudeToolInput)
+
+  @attached(extension)
+  @attached(
+    extension,
+    conformances: Claude.Tool,
+    names: named(definition), named(Input), named(invoke)
   )
+  public macro Tool(name: String? = nil) =
+    #externalMacro(
+      module: "ClaudeMacros",
+      type: "ToolMacro"
+    )
 
-@attached(extension)
-@attached(
-  extension,
-  conformances: Claude.ToolInput,
-  names:
-    named(ToolInputSchema),
-  named(toolInputSchema),
-  named(init(toolInputSchemaDescribedValue:)),
-  named(toolInputSchemaDescribedValue)
-)
-public macro ToolInput() =
-  #externalMacro(
-    module: "ClaudeMacros",
-    type: "ToolInputMacro"
+  @attached(extension)
+  @attached(
+    extension,
+    conformances: Claude.ToolInput,
+    names:
+      named(ToolInputSchema),
+    named(toolInputSchema),
+    named(init(toolInputSchemaDescribedValue:)),
+    named(toolInputSchemaDescribedValue)
   )
+  public macro ToolInput() =
+    #externalMacro(
+      module: "ClaudeMacros",
+      type: "ToolInputMacro"
+    )
 
-/// Expose types referenced by macro expansion
-extension Claude {
+  /// Expose types referenced by macro expansion
+  extension Claude {
 
-  /// Compound Schemas
-  public typealias ToolInput = ClaudeToolInput.ToolInput
-  public typealias ToolInputSchema = ClaudeToolInput.ToolInputSchema
-  public typealias ToolInputKeyedTupleSchema = ClaudeToolInput.ToolInputKeyedTupleSchema
-  public typealias ToolInputEnumSchema = ClaudeToolInput.ToolInputEnumSchema
+    /// Compound Schemas
+    public typealias ToolInput = ClaudeToolInput.ToolInput
+    public typealias ToolInputSchema = ClaudeToolInput.ToolInputSchema
+    public typealias ToolInputKeyedTupleSchema = ClaudeToolInput.ToolInputKeyedTupleSchema
+    public typealias ToolInputEnumSchema = ClaudeToolInput.ToolInputEnumSchema
 
-  /// Primitive Schemas
-  public typealias ToolInputStringSchema = ClaudeToolInput.ToolInputStringSchema
-  public typealias ToolInputNumberSchema = ClaudeToolInput.ToolInputNumberSchema
-  public typealias ToolInputIntegerSchema = ClaudeToolInput.ToolInputIntegerSchema
-  public typealias ToolInputBoolSchema = ClaudeToolInput.ToolInputBoolSchema
-  public typealias ToolInputVoidSchema = ClaudeToolInput.ToolInputVoidSchema
+    /// Primitive Schemas
+    public typealias ToolInputStringSchema = ClaudeToolInput.ToolInputStringSchema
+    public typealias ToolInputNumberSchema = ClaudeToolInput.ToolInputNumberSchema
+    public typealias ToolInputIntegerSchema = ClaudeToolInput.ToolInputIntegerSchema
+    public typealias ToolInputBoolSchema = ClaudeToolInput.ToolInputBoolSchema
+    public typealias ToolInputVoidSchema = ClaudeToolInput.ToolInputVoidSchema
 
-  /// Miscellaneous types
-  public typealias ToolInputSchemaKey = ClaudeToolInput.ToolInputSchemaKey
-  public typealias ToolInputEnumNoCaseSpecified = ClaudeToolInput.ToolInputEnumNoCaseSpecified
+    /// Miscellaneous types
+    public typealias ToolInputSchemaKey = ClaudeToolInput.ToolInputSchemaKey
+    public typealias ToolInputEnumNoCaseSpecified = ClaudeToolInput.ToolInputEnumNoCaseSpecified
 
-}
+  }
+
+#endif
 
 // MARK: - Errors
 
