@@ -98,7 +98,7 @@ let package = Package(
 
 extension Array where Element == Platform {
   fileprivate static var supportToolInput: [Platform] {
-    [.iOS, .macOS, .macCatalyst, .visionOS, .tvOS, .watchOS]
+    [.iOS, .macOS, .macCatalyst, .visionOS, .tvOS, .watchOS, .linux]
   }
 }
 
