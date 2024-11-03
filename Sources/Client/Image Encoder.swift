@@ -1,6 +1,6 @@
-extension ClaudeClient {
+extension ClaudeClient.Image {
 
-  public struct ImageSize: Sendable {
+  public struct Size: Sendable {
     public init(
       widthInPixels: Int,
       heightInPixels: Int
@@ -65,7 +65,7 @@ extension ClaudeClient {
 
 extension ClaudeClient.Image.Encoder {
 
-  public typealias ImageSize = ClaudeClient.ImageSize
+  public typealias ImageSize = ClaudeClient.Image.Size
 
   public func recommendedSize(
     forSourceImageOfSize size: ImageSize,

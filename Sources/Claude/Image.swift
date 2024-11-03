@@ -1,4 +1,7 @@
 public import ClaudeClient
+public import ClaudeMessagesEndpoint
+
+private import struct Foundation.Data
 
 #if canImport(AppKit)
   public import AppKit
@@ -10,38 +13,55 @@ public import ClaudeClient
 
 extension Claude {
 
-  public struct Image {
-
-    #if canImport(AppKit)
-      public typealias PlatformImage = NSImage
-    #endif
-
-    #if canImport(UIKit)
-      public typealias PlatformImage = UIImage
-    #endif
-
-    public init(
-      _ image: PlatformImage
-    ) {
-      self.platformImage = image
-    }
-
-    public typealias Size = ClaudeClient.ImageSize
-    public var size: Size {
-      return Size(
-        widthInPixels: Int(platformImage.size.width),
-        heightInPixels: Int(platformImage.size.height)
-      )
-    }
-
-    public typealias PreprocessingMode = ClaudeClient.Image.PreprocessingMode
+  public protocol Image {
+    var size: Size { get }
 
     func messagesRequestMessageContent(
       for model: Model,
       preprocessingMode: PreprocessingMode
+    ) throws -> ClaudeClient.MessagesEndpoint.Request.Message.Content
+  }
+
+}
+
+extension Claude.Image {
+  public typealias Size = ClaudeClient.Image.Size
+  public typealias PreprocessingMode = ClaudeClient.Image.PreprocessingMode
+}
+
+extension Claude {
+
+  struct PlatformImage: Image {
+
+    #if canImport(UIKit)
+      public init(
+        _ image: UIImage
+      ) {
+        self.backing = image
+      }
+    #endif
+
+    #if canImport(AppKit)
+      public init(
+        _ image: NSImage
+      ) {
+        self.backing = image
+      }
+    #endif
+
+    public typealias Size = ClaudeClient.Image.Size
+    public var size: Size {
+      backing.claudeImageSize
+    }
+
+    public typealias PreprocessingMode = ClaudeClient.Image.PreprocessingMode
+
+    public func messagesRequestMessageContent(
+      for model: Model,
+      preprocessingMode: PreprocessingMode
     ) throws -> ClaudeClient.MessagesEndpoint.Request.Message.Content {
 
-      let preprocessedImage: PlatformImage
+      let preprocessedImage: PlatformImageBacking
       let recommendedSize = try model.imageEncoder.recommendedSize(
         forSourceImageOfSize: size,
         preprocessingMode: preprocessingMode
@@ -49,9 +69,9 @@ extension Claude {
       if recommendedSize.widthInPixels != size.widthInPixels,
         recommendedSize.heightInPixels != size.heightInPixels
       {
-        preprocessedImage = try platformImage.resized(to: recommendedSize)
+        preprocessedImage = try backing.resized(to: recommendedSize)
       } else {
-        preprocessedImage = platformImage
+        preprocessedImage = backing
       }
 
       return [
@@ -63,7 +83,7 @@ extension Claude {
 
     }
 
-    let platformImage: PlatformImage
+    private let backing: PlatformImageBacking
 
   }
 
@@ -73,11 +93,24 @@ extension Claude.Image {
 
 }
 
+private protocol PlatformImageBacking {
+  func resized(to newSize: ClaudeClient.Image.Size) throws -> PlatformImageBacking
+  var pngRepresentation: Data { get throws }
+  var claudeImageSize: Claude.Image.Size { get }
+}
+
 #if canImport(UIKit)
 
-  extension UIImage {
+  extension UIImage: PlatformImageBacking {
 
-    fileprivate func resized(to newSize: ClaudeClient.ImageSize) throws -> UIImage {
+    fileprivate var claudeImageSize: Claude.Image.Size {
+      Claude.Image.Size(
+        widthInPixels: Int(size.width),
+        heightInPixels: Int(size.height)
+      )
+    }
+
+    fileprivate func resized(to newSize: ClaudeClient.Image.Size) throws -> PlatformImageBacking {
       UIGraphicsBeginImageContextWithOptions(size, false, 1.0)
       defer { UIGraphicsEndImageContext() }
       self.draw(in: CGRect(origin: .zero, size: size))
@@ -104,9 +137,16 @@ extension Claude.Image {
 
 #if canImport(AppKit)
 
-  extension NSImage {
+  extension NSImage: PlatformImageBacking {
 
-    fileprivate func resized(to newSize: ClaudeClient.ImageSize) throws -> NSImage {
+    fileprivate var claudeImageSize: Claude.Image.Size {
+      Claude.Image.Size(
+        widthInPixels: Int(size.width),
+        heightInPixels: Int(size.height)
+      )
+    }
+
+    fileprivate func resized(to newSize: ClaudeClient.Image.Size) throws -> PlatformImageBacking {
       /// Logic adapted from https://stackoverflow.com/questions/11949250/how-to-resize-nsimage/42915296#42915296
 
       guard isValid else { throw InvalidImage() }

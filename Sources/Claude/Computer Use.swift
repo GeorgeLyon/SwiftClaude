@@ -1,3 +1,5 @@
+public import ClaudeClient
+
 // MARK: - Computer Tool
 
 extension Claude.Beta {
