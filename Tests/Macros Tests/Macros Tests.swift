@@ -22,10 +22,36 @@ private struct ClaudeMacroTests {
         }
       }
       """,
-      expandedSource: """
-        struct X {
+      expandedSource: #"""
+        struct MyTool {
+          func invoke(foo: Int) {
+          }
         }
-        """,
+
+        extension MyTool: Claude.Tool {
+          var definition: Claude.ToolDefinition<MyTool> {
+            Claude.ToolDefinition.userDefined(tool: MyTool.self, name: "\(MyTool.self)", description: """
+
+            """)
+          }
+          struct Input: Claude.ToolInput {
+            let foo: Int
+            typealias ToolInputSchema = Claude.ToolInputKeyedTupleSchema<Int.ToolInputSchema>
+            static var toolInputSchema: ToolInputSchema {
+              ToolInputSchema((key: Claude.ToolInputSchemaKey("foo"), schema: Int.toolInputSchema))
+            }
+            init(toolInputSchemaDescribedValue value: ToolInputSchema.DescribedValue) throws {
+              self.foo = try .init(toolInputSchemaDescribedValue: value)
+            }
+            var toolInputSchemaDescribedValue: ToolInputSchema.DescribedValue {
+              (foo.toolInputSchemaDescribedValue)
+            }
+          }
+          func invoke(with input: Input, in context: Claude.ToolInvocationContext<MyTool>, isolation: isolated Actor) async {
+            invoke(foo: input.foo)
+          }
+        }
+        """#,
       macroSpecs: macroSpecs,
       indentationWidth: .spaces(2),
       failureHandler: {
@@ -42,7 +68,6 @@ private struct ClaudeMacroTests {
     )
   }
 
-  private func expandMacros
   private let macroSpecs = [
     "Tool": MacroSpec(type: ToolMacro.self)
   ]

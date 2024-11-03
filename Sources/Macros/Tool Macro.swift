@@ -20,8 +20,8 @@ public struct ToolMacro: ExtensionMacro {
         {
           toolName = first.expression
         } else {
-          /// `"\(Self.self)"`
-          toolName = StringLiteralExprSyntax.init(
+          /// `"\(<Type>.self)"`
+          toolName = StringLiteralExprSyntax(
             openingQuote: .stringQuoteToken(),
             segments: StringLiteralSegmentListSyntax {
               StringSegmentSyntax(content: .stringSegment(""))
@@ -29,7 +29,7 @@ public struct ToolMacro: ExtensionMacro {
                 expressions: LabeledExprListSyntax {
                   LabeledExprSyntax(
                     expression: MemberAccessExprSyntax(
-                      base: DeclReferenceExprSyntax(baseName: "Self"),
+                      base: TypeExprSyntax(type: type),
                       declName: DeclReferenceExprSyntax(baseName: "self")
                     )
                   )
@@ -209,7 +209,7 @@ public struct ToolMacro: ExtensionMacro {
               name: "ToolInvocationContext",
               genericArgumentClause: GenericArgumentClauseSyntax {
                 GenericArgumentSyntax(
-                  argument: IdentifierTypeSyntax(name: "Self")
+                  argument: type
                 )
               }
             )
@@ -268,9 +268,12 @@ public struct ToolMacro: ExtensionMacro {
         ExtensionDeclSyntax(
           extendedType: type,
           inheritanceClause: InheritanceClauseSyntax {
-            for `protocol` in protocols {
-              InheritedTypeSyntax(type: `protocol`)
-            }
+            InheritedTypeSyntax(
+              type: MemberTypeSyntax(
+                baseType: IdentifierTypeSyntax(name: "Claude"),
+                name: "Tool"
+              )
+            )
           },
           memberBlock: MemberBlockSyntax {
 
@@ -287,7 +290,7 @@ public struct ToolMacro: ExtensionMacro {
                       name: "ToolDefinition",
                       genericArgumentClause: GenericArgumentClauseSyntax {
                         GenericArgumentSyntax(
-                          argument: IdentifierTypeSyntax(name: "Self")
+                          argument: type
                         )
                       }
                     )
@@ -309,7 +312,7 @@ public struct ToolMacro: ExtensionMacro {
                               label: "tool",
                               colon: .colonToken(),
                               expression: MemberAccessExprSyntax(
-                                base: DeclReferenceExprSyntax(baseName: "Self"),
+                                base: TypeExprSyntax(type: type),
                                 name: "self"
                               )
                             )
