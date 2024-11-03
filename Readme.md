@@ -139,7 +139,7 @@ private struct TurboEncabulator {
 ## Vision
 
 SwiftClaude supports [vision](https://docs.anthropic.com/en/docs/build-with-claude/vision).
-On Apple platforms, you can include `UIImage`s and `NSImage`s directly in user messages:
+On Apple platforms, you can include `UIImage` and `NSImage` directly in user messages:
 ```swift
 let message = claude.nextMessage(
   in: Conversation {
