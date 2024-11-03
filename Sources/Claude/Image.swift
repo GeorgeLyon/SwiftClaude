@@ -12,6 +12,8 @@ private import struct Foundation.Data
 #endif
 
 extension Claude {
+  
+  public typealias ImageSize = ClaudeClient.Image.Size
 
   public protocol Image {
     var size: Size { get }

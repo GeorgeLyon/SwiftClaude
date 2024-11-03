@@ -1,5 +1,6 @@
 import Claude
 import SwiftUI
+private import ClaudeClient
 
 /// Currently computer use doesn't work great, probably something to do with the image resizing logic
 
@@ -201,33 +202,33 @@ private struct ComputerUseView: View {
 
 }
 
-private struct Computer: Claude.Beta.Computer {
-
+private struct Computer: Claude.Beta.ComputerTool {
+  
   let onNormalizedMouseMove: @MainActor (Double, Double) async throws -> Void
+  
   let onLeftClick: @MainActor () async throws -> Void
-
-  func takeScreenshot(
-    isolation: isolated Actor
-  ) async throws -> Claude.Image {
-    Claude.Image(screenshot)
+  
+  func invoke(
+    with input: Input,
+    in context: Claude.ToolInvocationContext<Computer>,
+    isolation: isolated any Actor
+  ) async throws -> ToolInvocationResultContent {
+    switch input.action {
+    case .screenshot:
+      return "\(screenshot)"
+    case let .mouseMove(x, y):
+      try await onNormalizedMouseMove(x, y)
+      return "Moved"
+    case .leftClick:
+      try await onLeftClick()
+      return "Clicked"
+    default:
+      return "\(input.action) is not supported"
+    }
   }
 
-  func moveMouse(
-    toNormalizedPosition position: (x: Double, y: Double),
-    isolation: isolated Actor
-  ) async throws {
-    try await onNormalizedMouseMove(position.x, position.y)
-  }
-
-  func leftClick(
-    isolation: isolated Actor
-  ) async throws {
-    try await onLeftClick()
-  }
-
-  var displaySize: Claude.Image.Size {
-    let screenshot = screenshot
-    return Claude.Image.Size(
+  var displaySize: Claude.ImageSize {
+    return Claude.ImageSize(
       widthInPixels: Int(screenshot.size.width),
       heightInPixels: Int(screenshot.size.height)
     )

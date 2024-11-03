@@ -1,15 +1,19 @@
+import Claude
 import Foundation
-import Testing
+import SwiftSyntax
+import SwiftSyntaxMacroExpansion
 import SwiftSyntaxMacros
-import SwiftSyntaxMacrosTestSupport
-import ClaudeMacros
+import SwiftSyntaxMacrosGenericTestSupport
+import Testing
+
+@testable import ClaudeMacros
 
 @Suite
 private struct ClaudeMacroTests {
-  private let macros = ["Tool": ToolMacro.self]
-  
+
   @Test
   func testSimpleMacro() {
+
     assertMacroExpansion(
       """
       @Tool
@@ -18,15 +22,28 @@ private struct ClaudeMacroTests {
         }
       }
       """,
-      expandedSource: #"""
-        class MyClass {
-          func __macro_local_6uniquefMu_() {
-          }
+      expandedSource: """
+        struct X {
         }
-        """#,
-      macros: macros,
-      indentationWidth: .spaces(2)
+        """,
+      macroSpecs: macroSpecs,
+      indentationWidth: .spaces(2),
+      failureHandler: {
+        Issue.record(
+          "\($0.message)",
+          sourceLocation: SourceLocation(
+            fileID: $0.location.fileID,
+            filePath: $0.location.filePath,
+            line: $0.location.line,
+            column: $0.location.column
+          )
+        )
+      }
     )
   }
-  
+
+  private func expandMacros
+  private let macroSpecs = [
+    "Tool": MacroSpec(type: ToolMacro.self)
+  ]
 }

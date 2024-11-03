@@ -20,7 +20,7 @@ let package = Package(
   ],
   dependencies: [
     .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
-    .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "600.0.0-latest"),
+    .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "600.0.1"),
     .package(url: "https://github.com/apple/swift-async-algorithms", from: "1.0.0"),
   ],
   targets: [
@@ -87,6 +87,7 @@ let package = Package(
     .testTarget(
       name: "ClaudeMacrosTests",
       dependencies: [
+        "Claude",
         "ClaudeMacros",
         .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
         .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
