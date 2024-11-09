@@ -7,6 +7,13 @@ extension ClaudeClient.Model {
     .claude35Sonnet20241022
   }
 
+  public static var claude35haiku20241022: Self {
+    Self(
+      id: "claude-3-5-haiku-20241022",
+      maxOutputTokens: 8192,
+      imageEncoder: .default
+    )
+  }
   public static var claude35Sonnet20241022: Self {
     Self(
       id: "claude-3-5-sonnet-20241022",
@@ -22,6 +29,9 @@ extension ClaudeClient.Model {
     )
   }
 
+  @available(
+    *, deprecated, renamed: "claude35haiku20241022", message: "Upgrade to Claude 3.5 Haiku"
+  )
   public static var claude3haiku20240307: Self {
     Self(
       id: "claude-3-haiku-20240307",

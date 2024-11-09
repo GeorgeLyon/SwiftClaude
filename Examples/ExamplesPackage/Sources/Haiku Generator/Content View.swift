@@ -58,7 +58,7 @@ private struct HaikuView: View {
   init(authenticator: Claude.KeychainAuthenticator) {
     self.claude = Claude(
       authenticator: authenticator,
-      defaultModel: .claude3haiku20240307
+      defaultModel: .claude35haiku20241022
     )
   }
 
