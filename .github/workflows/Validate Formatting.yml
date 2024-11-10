@@ -1,0 +1,41 @@
+# Build and Test
+
+name: Validate Formatting
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  validate-formatting:
+    name: Validate Formatting
+
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Make devcontainer 'default' singular
+        run: .devcontainer/devcontainer-helper --make-singular default
+      
+      - name: Initialize devcontainer
+        uses: devcontainers/ci@v0.3
+        with:
+          push: never
+          runCmd: |
+            echo "Devcontainer Initialized."
+      
+      - name: Build
+        uses: devcontainers/ci@v0.3
+        with:
+          push: never
+          runCmd: |
+            swift format --recursive --in-place --parallel .
+
+      - name: Check that repository is clean
+        run:
+          .devcontainer/devcontainer-helper --clean
+          git diff --exit-code

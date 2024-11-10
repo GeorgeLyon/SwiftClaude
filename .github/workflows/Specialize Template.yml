@@ -1,0 +1,58 @@
+# This workflow is supposed to be triggered automatically when a new template-based repository has been created.
+# Reference: https://github.com/JetBrains/intellij-platform-plugin-template/blob/main/.github/workflows/template-cleanup.yml
+
+name: Specialize Template
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  # Triggered on first push to repos created from the template
+  specialize-template:
+    name: Specialize Template
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # These are needed to make ad-m/github-push-action work
+          # https://github.com/ad-m/github-push-action/tree/d91a481090679876dfc4178fef17f286781251df#example-workflow-file
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Specialize Template Parameters
+        if: github.event.repository.name != 'SwiftClaude'
+        run: |
+          # Replacement Variables
+          NEW_PROJECT_NAME="${{ github.event.repository.name }}"
+          echo "New project name: $NEW_PROJECT_NAME"
+          NEW_PROJECT_BUNDLE_ID_PREFIX="com.github.$(echo "${{ github.event.repository.owner.name }}" | sed 's/[^a-zA-Z0-9]//g' | tr '[:upper:]' '[:lower:]')"
+          echo "New project bundle ID prefix: $NEW_PROJECT_BUNDLE_ID_PREFIX"
+          
+          # Run specialization script (requires variables defined above)
+          ./specialize-template.sh "$NEW_PROJECT_BUNDLE_ID_PREFIX" "$NEW_PROJECT_NAME"
+        
+      - name: Test Specializing Template Parameters
+        if: github.event.repository.name == 'SwiftClaude'
+        run: |
+          # Run specialization script (requires variables defined above)
+          ./specialize-template.sh "com.codebygeorge" "TemplateSpecializationTest"
+
+      - name: Commit
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add -A
+          git commit -a --amend --no-edit --reset-author
+
+      - name: Push changes
+        if: github.event.repository.name != 'SwiftClaude'
+        uses: ad-m/github-push-action@v0.8.0
+        with:
+          branch: main
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          force: true
