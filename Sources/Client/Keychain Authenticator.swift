@@ -65,17 +65,7 @@
           account: [Self.accountPrefix, namespace, ".", identifier, Self.accountSuffix].joined(),
           useDataProtectionKeychain: useDataProtectionKeychain
         )
-        do {
-          if let password = try store.savedPassword {
-            authenticationState = .authenticated(
-              summary: try APIKey.deserialize(password).description
-            )
-          } else {
-            authenticationState = .unauthenticated
-          }
-        } catch {
-          authenticationState = .failed(error)
-        }
+        refreshAuthenticationState()
       }
 
       /// The current authentication state of this `KeychainAuthenticator`.
@@ -113,6 +103,22 @@
         } catch {
           authenticationState = .failed(error)
           throw error
+        }
+      }
+
+      /// Refreshes the authentication state
+      /// This will clear any errors encountered while trying to save an API key, and only report an error if accessing the saved key fails.
+      public func refreshAuthenticationState() {
+        do {
+          if let password = try store.savedPassword {
+            authenticationState = .authenticated(
+              summary: try APIKey.deserialize(password).description
+            )
+          } else {
+            authenticationState = .unauthenticated
+          }
+        } catch {
+          authenticationState = .failed(error)
         }
       }
 
