@@ -65,6 +65,7 @@
           account: [Self.accountPrefix, namespace, ".", identifier, Self.accountSuffix].joined(),
           useDataProtectionKeychain: useDataProtectionKeychain
         )
+        self.authenticationState = .unauthenticated
         refreshAuthenticationState()
       }
 
