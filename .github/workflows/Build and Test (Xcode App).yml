@@ -38,6 +38,7 @@ jobs:
       - name: Build
         run: |
           xcrun xcodebuild clean build \
+            CODE_SIGNING_REQUIRED=NO \
             -workspace .xcode/SwiftClaude.xcworkspace \
             -scheme SwiftClaudeApp \
             -derivedDataPath ".build/Xcode.noindex/DerivedData" \
@@ -48,6 +49,7 @@ jobs:
         if: matrix.build-configuration == 'Debug'
         run: |
           xcrun xcodebuild test \
+            CODE_SIGNING_REQUIRED=NO \
             -workspace .xcode/SwiftClaude.xcworkspace \
             -scheme SwiftClaudeAppPackage \
             -derivedDataPath ".build/Xcode.noindex/DerivedData" \
@@ -57,6 +59,7 @@ jobs:
       - name: UI Tests
         run: |
           xcrun xcodebuild test \
+            CODE_SIGNING_REQUIRED=NO \
             -workspace .xcode/SwiftClaude.xcworkspace \
             -scheme SwiftClaudeAppUITests \
             -derivedDataPath ".build/Xcode.noindex/DerivedData" \
