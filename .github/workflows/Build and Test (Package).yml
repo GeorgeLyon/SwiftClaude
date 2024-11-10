@@ -14,13 +14,13 @@ jobs:
       matrix:
         xcode-version:
           - "16"
-        swift-configuration:
+        build-configuration:
           - "debug"
           - "release"
     
     runs-on: macos-15
     
-    name: Build and Test (macOS, ${{ matrix.swift-configuration }})
+    name: Build and Test (macOS, ${{ matrix.build-configuration }})
 
     steps:
       - name: Checkout
@@ -31,15 +31,15 @@ jobs:
    
       - name: Build
         run: |
-          swift build --configuration ${{ matrix.swift-configuration }}
+          swift build --configuration ${{ matrix.build-configuration }}
 
       - name: Build Tests
-        if: matrix.swift-configuration == 'debug'
+        if: matrix.build-configuration == 'debug'
         run: |
-          swift build --build-tests --configuration ${{ matrix.swift-configuration }}
+          swift build --build-tests --configuration ${{ matrix.build-configuration }}
 
       - name: Test
-        if: matrix.swift-configuration == 'debug'
+        if: matrix.build-configuration == 'debug'
         run: |
           swift test --skip-build
       
@@ -52,9 +52,9 @@ jobs:
     strategy:
       matrix:
         devcontainer-name: ["default"]
-        swift-configuration: ["debug", "release"]
+        build-configuration: ["debug", "release"]
 
-    name: Build and Test (devcontainer/${{ matrix.devcontainer-name }}, ${{ matrix.swift-configuration }})
+    name: Build and Test (devcontainer/${{ matrix.devcontainer-name }}, ${{ matrix.build-configuration }})
 
     runs-on: ubuntu-latest
     
@@ -77,19 +77,19 @@ jobs:
         with:
           push: never
           runCmd: |
-            swift build --configuration ${{ matrix.swift-configuration }}
+            swift build --configuration ${{ matrix.build-configuration }}
 
       - name: Build Tests
-        if: matrix.swift-configuration == 'debug'
+        if: matrix.build-configuration == 'debug'
         uses: devcontainers/ci@v0.3
         with:
           push: never
           runCmd: |
-            swift build --build-tests --configuration ${{ matrix.swift-configuration }}
+            swift build --build-tests --configuration ${{ matrix.build-configuration }}
 
       - name: Test
         uses: devcontainers/ci@v0.3
-        if: matrix.swift-configuration == 'debug'
+        if: matrix.build-configuration == 'debug'
         with:
           push: never
           runCmd: |
