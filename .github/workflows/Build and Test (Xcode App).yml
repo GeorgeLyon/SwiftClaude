@@ -1,0 +1,77 @@
+# Build and Test the Xcode App
+# This tests the `SwiftClaudeAppPackage` as well as the `SwiftClaudeApp` Xcode project.
+
+name: Build and Test (Xcode)
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-test-xcode:
+    strategy:
+      matrix:
+        xcode-version:
+          - "16"
+        xcode-configuration:
+          - name: iOS Simulator
+            destination: "platform=iOS Simulator,name=iPhone 16"
+          - name: macOS
+            destination: "platform=macOS"
+        build-configuration:
+          - "Debug"
+          - "Release"
+    
+    runs-on: macos-15
+    
+    name: Build and Test (${{ matrix.xcode-configuration.name }}, ${{ matrix.build-configuration }})
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode-version }}.app/Contents/Developer
+
+      - name: Build
+        run: |
+          xcrun xcodebuild clean build \
+            CODE_SIGNING_REQUIRED=NO \
+            -workspace .xcode/SwiftClaude.xcworkspace \
+            -scheme SwiftClaudeApp \
+            -derivedDataPath ".build/Xcode.noindex/DerivedData" \
+            -configuration "${{ matrix.build-configuration }}" \
+            -destination "${{ matrix.xcode-configuration.destination }}"
+
+      - name: SwiftPM Tests
+        if: matrix.build-configuration == 'Debug'
+        run: |
+          xcrun xcodebuild test \
+            CODE_SIGNING_REQUIRED=NO \
+            -workspace .xcode/SwiftClaude.xcworkspace \
+            -scheme SwiftClaudeAppPackage \
+            -derivedDataPath ".build/Xcode.noindex/DerivedData" \
+            -configuration "${{ matrix.build-configuration }}" \
+            -destination "${{ matrix.xcode-configuration.destination }}"
+
+      - name: UI Tests
+        run: |
+          xcrun xcodebuild test \
+            CODE_SIGNING_REQUIRED=NO \
+            -workspace .xcode/SwiftClaude.xcworkspace \
+            -scheme SwiftClaudeAppUITests \
+            -derivedDataPath ".build/Xcode.noindex/DerivedData" \
+            -configuration "${{ matrix.build-configuration }}" \
+            -destination "${{ matrix.xcode-configuration.destination }}"
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: Test Results (${{ matrix.xcode-configuration.name }}, ${{ matrix.build-configuration }})
+          path: .build/Xcode.noindex/DerivedData/Logs/Test
+      
+      - name: Check that repository is clean
+        run:
+          git diff --exit-code

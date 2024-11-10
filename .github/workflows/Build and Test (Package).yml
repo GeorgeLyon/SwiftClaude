@@ -1,0 +1,101 @@
+# Build and Test the top-level package
+
+name: Build and Test (SwiftPM)
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-test-macOS:
+    strategy:
+      matrix:
+        xcode-version:
+          - "16"
+        build-configuration:
+          - "debug"
+          - "release"
+    
+    runs-on: macos-15
+    
+    name: Build and Test (macOS, ${{ matrix.build-configuration }})
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode-version }}.app/Contents/Developer
+   
+      - name: Build
+        run: |
+          swift build --configuration ${{ matrix.build-configuration }}
+
+      - name: Build Tests
+        if: matrix.build-configuration == 'debug'
+        run: |
+          swift build --build-tests --configuration ${{ matrix.build-configuration }}
+
+      - name: Test
+        if: matrix.build-configuration == 'debug'
+        run: |
+          swift test --skip-build
+      
+      - name: Check that repository is clean
+        run:
+          git diff --exit-code
+
+  build-and-test-devcontainer:
+
+    strategy:
+      matrix:
+        devcontainer-name: ["default"]
+        build-configuration: ["debug", "release"]
+
+    name: Build and Test (devcontainer/${{ matrix.devcontainer-name }}, ${{ matrix.build-configuration }})
+
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Make devcontainer '${{ matrix.devcontainer-name }}' singular
+        run: .devcontainer/devcontainer-helper --make-singular ${{ matrix.devcontainer-name }}
+      
+      - name: Initialize devcontainer
+        uses: devcontainers/ci@v0.3
+        with:
+          push: never
+          runCmd: |
+            echo "Devcontainer Initialized."
+      
+      - name: Build
+        uses: devcontainers/ci@v0.3
+        with:
+          push: never
+          runCmd: |
+            swift build --configuration ${{ matrix.build-configuration }}
+
+      - name: Build Tests
+        if: matrix.build-configuration == 'debug'
+        uses: devcontainers/ci@v0.3
+        with:
+          push: never
+          runCmd: |
+            swift build --build-tests --configuration ${{ matrix.build-configuration }}
+
+      - name: Test
+        uses: devcontainers/ci@v0.3
+        if: matrix.build-configuration == 'debug'
+        with:
+          push: never
+          runCmd: |
+            swift test --skip-build
+    
+      - name: Check that repository is clean
+        run:
+          .devcontainer/devcontainer-helper --clean
+          git diff --exit-code
