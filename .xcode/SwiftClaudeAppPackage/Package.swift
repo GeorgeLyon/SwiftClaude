@@ -47,7 +47,7 @@ let package = Package(
     ),
   
     .testTarget(
-      name: "SwiftClaudeAppTests",
+      name: "SwiftClaudeAppPackageTests",
       dependencies: [
         "App"
       ],
