@@ -45,5 +45,13 @@ let package = Package(
         .process("Screenshot.png")
       ]
     ),
+  
+    .testTarget(
+      name: "SwiftClaudeAppTests",
+      dependencies: [
+        "App"
+      ],
+      path: "Tests/App Tests"
+    )
   ]
 )
