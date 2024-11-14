@@ -1,4 +1,4 @@
-import SwiftClaude
+import Claude
 public import ClaudeClient
 import SwiftUI
 
