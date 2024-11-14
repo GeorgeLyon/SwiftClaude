@@ -78,8 +78,10 @@ extension Claude {
 
       return [
         .image(
-          mediaType: .png,
-          data: try preprocessedImage.pngRepresentation
+          .base64(
+            mediaType: .png,
+            data: try preprocessedImage.pngRepresentation
+          )
         )
       ]
 

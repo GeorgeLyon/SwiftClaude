@@ -1,4 +1,4 @@
-import ClaudeClient
+public import ClaudeClient
 public import ClaudeMessagesEndpoint
 
 #if canImport(UIKit)

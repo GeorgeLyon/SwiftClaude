@@ -507,7 +507,7 @@ extension Claude.Conversation {
 private typealias MessageID = ClaudeClient.MessagesEndpoint.Response.Event.MessageStart.Message.ID
 
 private protocol AnyToolUse {
-  var id: Claude.ToolUseID { get }
+  var id: Claude.ToolUse.ID { get }
   var toolName: String { get }
   var currentEncodableInput: (Encodable & Sendable)? { get }
   

@@ -3,6 +3,8 @@ public import ClaudeMessagesEndpoint
 
 private import struct Foundation.Data
 
+public import Observation
+
 #if canImport(ClaudeToolInput)
   public import ClaudeToolInput
 #endif
@@ -327,7 +329,7 @@ extension Claude {
   @Observable
   public final class ToolUse<Tool: Claude.Tool>: Identifiable {
     
-    public typealias ID = ToolUseID
+    public typealias ID = ClaudeClient.MessagesEndpoint.ToolUse.ID
     public let id: ID
     
     public typealias ToolOutput = Tool.Output
