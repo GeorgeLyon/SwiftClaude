@@ -4,14 +4,12 @@ extension ClaudeClient.MessagesEndpoint {
 
   public protocol StreamingMessage {
 
-    var metadata: Metadata { get set }
-
-    associatedtype ContentBlock: StreamingMessageContentBlock
+    func updateMetadata(_ newMetadata: Metadata)
 
     func appendContentBlock(
       with event: ContentBlockStart,
       isolation: isolated Actor
-    ) throws -> ContentBlock
+    ) throws -> any StreamingMessageContentBlock
 
     mutating func recoverFromUnknownEvent(_ error: Error) throws
 
@@ -58,33 +56,35 @@ extension ClaudeClient.MessagesEndpoint.StreamingMessageContentBlock {
 
 extension ClaudeClient.MessagesEndpoint.StreamingMessage {
 
-  @available(macOS 15.0, iOS 18.0, *)
-  mutating func process<Events: AsyncSequence>(
-    _ events: Events,
+  mutating func process(
+    _ response: MessagesEndpoint.Response,
     isolation: isolated Actor = #isolation
-  ) async where Events.Element == MessagesEndpoint.Response.Events.Element {
-
+  ) async {
+    updateMetadata(response.initialMetadata)
+    
     /// Don't use the message's metadata as a source of truth in case it is stubbed or mutated
-    var metadata = ClaudeClient.MessagesEndpoint.Metadata() {
+    var metadata = response.initialMetadata {
       didSet {
-        self.metadata = metadata
+        updateMetadata(metadata)
       }
     }
 
     /// Track content block states
-    var contentBlocks = MessagesEndpoint.ContentBlocks<ContentBlock>()
+    var contentBlocks = MessagesEndpoint.ContentBlocks<
+      any MessagesEndpoint.StreamingMessageContentBlock
+    >()
 
     do {
 
-      var events = events.makeAsyncIterator()
+      var events = response.events.makeAsyncIterator()
       while let event = try await events.next(isolation: isolation) {
         switch event {
         case .success(let event):
           switch event {
 
           /// Message
-          case .messageStart(let event):
-            metadata.apply(event)
+          case .messageStart:
+            throw ClaudeClient.MessagesEndpoint.MultipleMessageStartEvents()
           case .messageDelta(let event):
             metadata.apply(event)
           case .messageStop(let event):
@@ -149,11 +149,16 @@ extension ClaudeClient.MessagesEndpoint.StreamingMessage {
 
 }
 
+extension ClaudeClient.MessagesEndpoint {
+  
+  private struct MultipleMessageStartEvents: Error { }
+  
+}
+
 // MARK: - Compound Methods
 
 extension ClaudeClient {
 
-  @available(macOS 15.0, iOS 18.0, *)
   public func streamNextMessage<Message: MessagesEndpoint.StreamingMessage>(
     messages: sending [MessagesEndpoint.Request.Message],
     systemPrompt: sending MessagesEndpoint.Request.Message.Content? = nil,
@@ -166,7 +171,7 @@ extension ClaudeClient {
   ) async {
     let response: ClaudeClient.MessagesEndpoint.Response
     do {
-      response = try await self.messages(
+      response = try await self.messagesResponse(
         messages: messages,
         systemPrompt: systemPrompt,
         tools: tools,
@@ -175,7 +180,9 @@ extension ClaudeClient {
         maxOutputTokens: maxOutputTokens
       )
     } catch {
-      message.metadata.stop(dueTo: error)
+      var metadata = MessagesEndpoint.Metadata()
+      metadata.stop(dueTo: error)
+      message.updateMetadata(metadata)
       message.stop(dueTo: error)
       return
     }
@@ -190,7 +197,7 @@ extension ClaudeClient.MessagesEndpoint.Response {
     into message: inout Message,
     isolated isolation: isolated Actor = #isolation
   ) async {
-    await message.process(events, isolation: isolation)
+    await message.process(self)
   }
 
 }

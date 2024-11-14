@@ -70,7 +70,7 @@ extension ClaudeClient.Image.Encoder {
   public func recommendedSize(
     forSourceImageOfSize size: ImageSize,
     preprocessingMode: ClaudeClient.Image.PreprocessingMode
-  ) throws -> ImageSize {
+  ) throws -> sending ImageSize {
     guard case .default(let quality) = preprocessingMode.kind else { return size }
     assert((0...1).contains(quality))
 

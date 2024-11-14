@@ -59,21 +59,25 @@ extension Claude.Tool {
   /// This is phrased weirdly because we want the return value to be `sending` but also want to return `toolWithContext`.
   func messagesRequestToolDefinition(
     for model: Claude.Model,
-    imagePreprocessingMode: Claude.Image.PreprocessingMode,
-    _ toolWithContext: inout (any Claude.ToolWithContextProtocol<Output>)?
-  ) throws -> sending ClaudeClient.MessagesEndpoint.Request.ToolDefinitions.Element {
+    imagePreprocessingMode: Claude.Image.PreprocessingMode
+  ) throws -> (
+    element: ClaudeClient.MessagesEndpoint.Request.ToolDefinitions.Element,
+    toolWithContext: any Claude.ToolWithContextProtocol<Output>
+  ) {
     switch definition.kind {
     #if canImport(ClaudeToolInput)
       case let .userDefined(name, description, toolInput, privateData):
-        toolWithContext = Claude.ConcereteToolWithContext(
-          toolName: name,
-          tool: self,
-          context: Claude.ToolInvocationContext(privateData: privateData)
-        )
-        return .tool(
-          name: name,
-          description: description,
-          inputSchema: toolInput.toolInputSchema.encodable
+        return (
+          element: .tool(
+            name: name,
+            description: description,
+            inputSchema: toolInput.encodablToolInputSchema
+          ),
+          toolWithContext: Claude.ConcereteToolWithContext(
+            toolName: name,
+            tool: self,
+            context: Claude.ToolInvocationContext(privateData: privateData)
+          )
         )
     #endif
     case let .computer(displaySize, displayNumber, privateData):
@@ -85,25 +89,36 @@ extension Claude.Tool {
         displaySize: displaySize,
         displayNumber: displayNumber
       )
-      toolWithContext = Claude.ConcereteToolWithContext(
-        toolName: definition.name,
-        tool: self,
-        context: Claude.ToolInvocationContext(
-          privateData: privateData(adjustedDisplaySize)
+      return (
+        element: .tool(definition),
+        toolWithContext: Claude.ConcereteToolWithContext(
+          toolName: definition.name,
+          tool: self,
+          context: Claude.ToolInvocationContext(
+            privateData: privateData(adjustedDisplaySize)
+          )
         )
       )
-      return .tool(definition)
     }
   }
 
 }
 
 #if canImport(ClaudeToolInput)
-  extension ToolInputSchema {
-    fileprivate var encodable: any Encodable {
-      ToolInputSchemaEncodingContainer(schema: self)
-    }
+
+extension ToolInput {
+  fileprivate static var encodablToolInputSchema: any Encodable & Sendable {
+    ToolInputStaticSchemaEncodingContainer<Self>()
   }
+}
+
+private struct ToolInputStaticSchemaEncodingContainer<ToolInput: ClaudeToolInput.ToolInput>: Encodable, Sendable {
+  func encode(to encoder: any Encoder) throws {
+    try ToolInputSchemaEncodingContainer(schema: ToolInput.toolInputSchema)
+      .encode(to: encoder)
+  }
+}
+
 #endif
 
 // MARK: Tool Definition
@@ -230,7 +245,7 @@ extension Claude {
 
   public struct ToolInputEncoder<Tool: Claude.Tool> {
 
-    static func encode(_ input: Tool.Input) throws -> any Encodable {
+    static func encode(_ input: Tool.Input) throws -> Encodable & Sendable {
       var encoder = ToolInputEncoder()
       Tool.encodeInput(input, to: &encoder)
       guard let value = encoder.toolInput else {
@@ -240,11 +255,11 @@ extension Claude {
       return value
     }
 
-    mutating func encode(_ input: any Encodable) {
+    mutating func encode(_ input: Encodable & Sendable) {
       self.toolInput = input
     }
 
-    fileprivate var toolInput: (any Encodable)?
+    fileprivate var toolInput: (Encodable & Sendable)?
 
     private struct EncodingFailed: Error {
 
@@ -300,6 +315,357 @@ extension Claude {
   public struct ToolInvocationResults {
 
     let messageContent: MessageContent
+
+  }
+
+}
+
+// MARK: - Tool Use
+
+extension Claude {
+  
+  @Observable
+  public final class ToolUse<Tool: Claude.Tool>: Identifiable {
+    
+    public typealias ID = ToolUseID
+    public let id: ID
+    
+    public typealias ToolOutput = Tool.Output
+    
+    public var tool: any Claude.Tool<Tool.Output> {
+      toolWithContext.tool
+    }
+    public var toolName: String {
+      toolWithContext.toolName
+    }
+    private let toolWithContext: any ConcreteToolWithContextProtocol<Tool>
+    
+    public private(set) var currentInputJSON = ""
+    
+    public var inputJSONFragments: some Claude.OpaqueAsyncSequence<Substring> {
+      ObservableAppendOnlyCollectionPropertyStream(
+        root: self,
+        elementsKeyPath: \.currentInputJSON,
+        resultKeyPath: \.streamingResult
+      )
+      .opaque
+    }
+    
+    public func inputJSON(
+      isolation: isolated Actor = #isolation
+    ) async throws -> String {
+      try await untilNotNil(\.streamingResult)
+      return currentInputJSON
+    }
+    
+    public var currentInput: Tool.Input? {
+      try? inputDecodingResult?.get()
+    }
+    
+    public var currentEncodableInput: (Encodable & Sendable)? {
+      guard let currentInput else {
+        return nil
+      }
+      guard
+        let encodableInput = try? Claude.ToolInputEncoder<Tool>.encode(currentInput)
+      else {
+        /// Encoding tool input shouldn't fail for properly defined tools
+        assertionFailure()
+        return nil
+      }
+      return encodableInput
+    }
+    
+    public func input(
+      isolation: isolated Actor = #isolation
+    ) async throws -> Tool.Input {
+      try await untilNotNil(\.inputDecodingResult)
+    }
+    
+    public func encodableInput(
+      isolation: isolated Actor
+    ) async throws -> any Encodable {
+      let input = try await input()
+      return try Claude.ToolInputEncoder<Tool>.encode(input)
+    }
+    
+    public func requestInvocation() {
+      invocationRequests.continuation.yield()
+    }
+    
+    public private(set) var currentOutput: Tool.Output? {
+      didSet {
+        /// `currentOutput` may be set multiple times, but it should never be set to `nil`
+        assert(currentOutput != nil)
+      }
+    }
+    
+    public func output(
+      isolation: isolated Actor = #isolation
+    ) async throws -> Tool.Output {
+      /// Go through each result so the proper error is thrown
+      try await untilNotNil(\.streamingResult)
+      _ = try await untilNotNil(\.inputDecodingResult)
+      return try await untilNotNil(\.invocationResult)
+    }
+    
+    public var isInvocationCompleteOrFailed: Bool {
+      if streamingError != nil {
+        return true
+      } else if inputDecodingError != nil {
+        return true
+      } else {
+        return invocationResult != nil
+      }
+    }
+    
+    public var streamingError: Error? {
+      guard case .failure(let error) = streamingResult else {
+        return nil
+      }
+      return error
+    }
+    
+    public var inputDecodingError: Error? {
+      guard case .failure(let error) = inputDecodingResult else {
+        return nil
+      }
+      return error
+    }
+    
+    public var invocationError: Error? {
+      guard case .failure(let error) = invocationResult else {
+        return nil
+      }
+      return error
+    }
+    
+    public var currentError: Error? {
+      let errors = [streamingError, inputDecodingError, invocationError].compactMap { $0 }
+      /// At most one error should be non-`nil` since these represent serial stages of execution
+      assert(errors.count < 2)
+      return errors.first
+    }
+    
+    init(
+      id: ToolUse.ID,
+      toolWithContext: any ConcreteToolWithContextProtocol<Tool>,
+      inputDecoder: ToolInputDecoder<Tool>,
+      invocationStrategy: ToolInvocationStrategy
+    ) {
+      self.id = id
+      self.toolWithContext = toolWithContext
+      self.inputDecoder = inputDecoder
+      
+      if invocationStrategy.kind == .whenInputAvailable {
+        invocationRequests.continuation.yield()
+      }
+    }
+    
+    deinit {
+      /// If this block is deinitialized early, cancel any pending tool invocations
+      invocationTask?.cancel()
+      invocationRequests.continuation.finish(throwing: CancellationError())
+    }
+    
+    /// The result of streaming this block's data from the messages endpoint
+    private var streamingResult: Result<Void, Error>? {
+      didSet {
+        assert(
+          [
+            oldValue == nil,
+            streamingResult != nil,
+            inputDecodingResult == nil,
+            invocationTask == nil,
+            invocationResult == nil,
+          ].allSatisfy(\.self)
+        )
+      }
+    }
+    
+    /// The result of attempting to decode the tool input
+    private var inputDecodingResult: Result<Tool.Input, Error>? {
+      didSet {
+        assert(
+          [
+            oldValue == nil,
+            streamingResult != nil,
+            inputDecodingResult != nil,
+            invocationTask == nil,
+            invocationResult == nil,
+          ].allSatisfy(\.self)
+        )
+      }
+    }
+    
+    /// The asynchronous task responsible for invoking the tool
+    private var invocationTask: Task<Void, Never>? {
+      didSet {
+        assert(
+          [
+            oldValue == nil,
+            streamingResult != nil,
+            inputDecodingResult != nil,
+            invocationTask != nil,
+            invocationResult == nil,
+          ].allSatisfy(\.self)
+        )
+      }
+    }
+    
+    /// The result of invoking the tool
+    private var invocationResult: Result<ToolOutput, Error>? {
+      didSet {
+        assert(
+          [
+            oldValue == nil,
+            streamingResult != nil,
+            inputDecodingResult != nil,
+            invocationTask != nil,
+            invocationResult != nil,
+          ].allSatisfy(\.self)
+        )
+        if case .success = invocationResult {
+          /// If the result is `success`, `output` must have been set
+          assert(currentOutput != nil)
+        }
+      }
+    }
+    
+    private let inputDecoder: ToolInputDecoder<Tool>
+    
+    private let invocationRequests = AsyncThrowingStream<Void, Error>.makeStream()
+    
+    private struct InvocationDidNotSetOutput: Error {}
+  }
+  
+}
+
+public typealias ToolInvocationStrategy = Claude.ToolInvocationStrategy
+
+extension Claude {
+  
+  public struct ToolInvocationStrategy {
+
+    /// Tools are only ever invoked after `requestInvocation()` is explicitly called on that tool
+    public static var manually: Self { .init(kind: .manually) }
+
+    /// Tools are invoked immediately when their input is available
+    public static var whenInputAvailable: Self { .init(kind: .whenInputAvailable) }
+
+    /// All tools are invoked once the message finishes streaming successfully
+    public static var whenStreamingSuccessful: Self { .init(kind: .whenStreamingSuccessful) }
+
+    enum Kind {
+      case manually, whenInputAvailable, whenStreamingSuccessful
+    }
+    let kind: Kind
+
+    private init(kind: Kind) {
+      self.kind = kind
+    }
+
+  }
+}
+
+// MARK: Streaming Message Proxy
+
+private struct StreamingMessageToolUseProxy<Tool: Claude.Tool>:
+  ClaudeClient.MessagesEndpoint.StreamingMessageContentBlock
+{
+  
+  mutating func update(with delta: Delta) throws {
+    try toolUse.update(with: delta)
+  }
+  
+  func stop(dueTo error: Error?, isolation: isolated any Actor) async throws {
+    try await toolUse.stop(dueTo: error, isolation: isolation)
+  }
+  
+  init(toolUse: Claude.ToolUse<Tool>) {
+    self.toolUse = toolUse
+  }
+  private var toolUse: Claude.ToolUse<Tool>
+  
+}
+
+extension Claude.ToolUse {
+  
+  var proxy: any ClaudeClient.MessagesEndpoint.StreamingMessageContentBlock {
+    StreamingMessageToolUseProxy(toolUse: self)
+  }
+  
+  fileprivate typealias Delta = ClaudeClient.MessagesEndpoint.Response.Event.ContentBlockDelta.Delta
+  fileprivate func update(with delta: Delta) throws {
+    currentInputJSON.append(try delta.asInputJsonDelta.partialJson)
+  }
+
+  fileprivate func stop(dueTo error: Error?, isolation: isolated Actor) async throws {
+    /// Complete streaming
+    if let error {
+      streamingResult = .failure(error)
+    } else {
+      streamingResult = .success(())
+    }
+
+    /// Decode input
+    let input: Tool.Input
+    do {
+      let json: String
+      if currentInputJSON.isEmpty {
+        /// The way the streaming format works, the `content_block_start` for a tool use block has an empty JSON object for input, which we ignore.
+        /// If there is no input (i.e. the tool is a void function), the backend will send an empty `partial_json` seemingly meaning "no change".
+        /// We work around this issue by explicitly passing the empty object instead.
+        json = "{}"
+      } else {
+        json = currentInputJSON
+      }
+
+      input = try await Tool.decodeInput(
+        from: .init(json: json),
+        using: inputDecoder,
+        isolation: isolation
+      )
+      inputDecodingResult = .success(input)
+    } catch {
+      inputDecodingResult = .failure(error)
+      return
+    }
+
+    /// Asynchronously invoke tool
+    invocationTask = Task { [weak self, invocationRequests] in
+      _ = isolation
+      do {
+        /// Await at least one invocation request
+        for try await _ in invocationRequests.stream {
+          break
+        }
+
+        /// Strongly reference `tool` but not `self`
+        guard let toolWithContext = self?.toolWithContext else {
+          /// Since `self` is `nil`, no further action is required
+          return
+        }
+
+        let output = try await toolWithContext.tool.invoke(
+          with: input,
+          in: toolWithContext.context,
+          isolation: isolation
+        )
+        self?.currentOutput = output
+
+        guard let self else {
+          /// If `self` has gone away, don't throw the error so "Swift Error" breakpoints are less confusing
+          return
+        }
+        guard self.currentOutput != nil else {
+          throw InvocationDidNotSetOutput()
+        }
+        self.invocationResult = .success(output)
+      } catch {
+        self?.invocationResult = .failure(error)
+      }
+    }
 
   }
 
@@ -450,6 +816,70 @@ extension Claude.Tools {
       fileprivate let tools: Claude.Tools<Output>
     }
 
+  }
+
+}
+
+// MARK: Tool Kit
+
+extension Claude.Tools {
+  
+  func compile(
+    for model: Claude.Model,
+    imagePreprocessingMode: Claude.Image.PreprocessingMode
+  ) throws -> (ToolKit<Output>, ClaudeClient.MessagesEndpoint.Request.ToolDefinitions) {
+    var toolsByName: [String: any Claude.ToolWithContextProtocol<Output>] = [:]
+    var toolDefinitions = ClaudeClient.MessagesEndpoint.Request.ToolDefinitions()
+    
+    for element in elements {
+      switch element {
+      case .cacheBreakpoint(let breakpoint):
+        toolDefinitions.elements.append(.cacheBreakpoint(breakpoint))
+      case .tool(let tool):
+        let (definition, toolWithContext) = try tool.messagesRequestToolDefinition(
+          for: model,
+          imagePreprocessingMode: imagePreprocessingMode
+        )
+        let name = toolWithContext.toolName
+        guard toolsByName.updateValue(toolWithContext, forKey: name) == nil else {
+          throw MultipleToolsWithSameName(name: name)
+        }
+        toolDefinitions.elements.append(definition)
+      }
+    }
+    
+    return (
+      ToolKit(toolsByName: toolsByName),
+      toolDefinitions
+    )
+  }
+  
+  private struct MultipleToolsWithSameName: Error {
+    let name: String
+  }
+  
+}
+
+struct ToolKit<Output> {
+
+  func tool(named name: String) throws -> any Claude.ToolWithContextProtocol<Output> {
+    guard let tool = toolsByName[name] else {
+      throw UnknownTool(name: name)
+    }
+    return tool
+  }
+
+  fileprivate init(
+    toolsByName: [String: any Claude.ToolWithContextProtocol<Output>]
+  ) {
+    self.toolsByName = toolsByName
+  }
+
+  private let toolsByName: [String: any Claude.ToolWithContextProtocol<Output>]
+
+
+  private struct UnknownTool: Error {
+    let name: String
   }
 
 }

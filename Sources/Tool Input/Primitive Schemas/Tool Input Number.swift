@@ -10,7 +10,7 @@ extension Double: ToolInput {
 
 // MARK: - Schema
 
-public struct ToolInputNumberSchema<DescribedValue: FloatingPoint & Codable>:
+public struct ToolInputNumberSchema<DescribedValue: FloatingPoint & Codable & Sendable>:
   ToolInputSchema
 {
 

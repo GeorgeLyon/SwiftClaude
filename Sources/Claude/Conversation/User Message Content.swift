@@ -1,8 +1,8 @@
-public typealias UserMessage = Claude.UserMessage
+public typealias UserMessageContent = Claude.UserMessageContent
 
 extension Claude {
 
-  public struct UserMessage: MessageContentRepresentable, SupportsImagesInMessageContent {
+  public struct UserMessageContent: MessageContentRepresentable, SupportsImagesInMessageContent {
 
     public init(messageContent: MessageContent) {
       self.messageContent = messageContent
@@ -22,15 +22,6 @@ extension Claude {
       )
     }
 
-  }
-
-}
-
-extension Claude.MessageContentBuilder where Result == UserMessage {
-
-  @_disfavoredOverload
-  public static func buildExpression(_ expression: Claude.ToolInvocationResults) -> Component {
-    Component(messageContent: expression.messageContent)
   }
 
 }

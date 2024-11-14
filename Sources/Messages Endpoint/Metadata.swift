@@ -56,6 +56,19 @@ extension ClaudeClient.MessagesEndpoint {
         }
       }
     }
+    
+    init(_ start: Response.Event.MessageStart) {
+      state = .started
+      model = start.message.model
+      if var usage = usage {
+        assertionFailure()
+        usage.update(with: start.message.usage)
+        self.usage = usage
+      } else {
+        self.usage = start.message.usage
+      }
+      messageID = start.message.id
+    }
 
     mutating func apply(_ start: Response.Event.MessageStart) {
       guard case .idle = state else {

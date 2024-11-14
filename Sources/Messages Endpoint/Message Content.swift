@@ -7,7 +7,7 @@ extension ClaudeClient.MessagesEndpoint.Request.Message {
   /// - note:
   ///   `Message.Content` is used for things other than messages, such as the system prompt.
   ///   I couldn't come up with a more general name though so it remains `Message.Content` for now.
-  public struct Content: Encodable, ExpressibleByStringInterpolation, ExpressibleByArrayLiteral {
+  public struct Content: Encodable, Sendable, ExpressibleByStringInterpolation, ExpressibleByArrayLiteral {
 
     public init() {
       self.trailingText = []
@@ -78,6 +78,12 @@ extension ClaudeClient.MessagesEndpoint.Request.Message {
       processTrailingText()
       blocks.append(.cacheBreakpoint(cacheBreakpoint))
     }
+    
+    public mutating func append(
+      contentsOf other: Self
+    ) {
+      self += other
+    }
 
     public static func += (lhs: inout Self, rhs: Self) {
       if rhs.blocks.isEmpty {
@@ -126,7 +132,8 @@ extension ClaudeClient.MessagesEndpoint.Request.Message {
     }
 
     var containsCacheBreakpoints: Bool {
-      blocks.map(\.cacheableComponentArrayElement).contains(where: \.isCacheBreakpoint)
+      blocks.map(\.cacheableComponentArrayElement)
+        .contains(where: \.isCacheBreakpoint)
     }
 
     private var trailingText: [String]
@@ -142,7 +149,7 @@ extension ClaudeClient.MessagesEndpoint.Request.Message {
 
 extension ClaudeClient.MessagesEndpoint.Request.Message.Content {
 
-  public struct Block {
+  public struct Block: Sendable {
 
     public static func text(
       _ text: String
@@ -157,7 +164,7 @@ extension ClaudeClient.MessagesEndpoint.Request.Message.Content {
     public static func toolUse(
       id: ClaudeClient.MessagesEndpoint.ToolUse.ID,
       name: String,
-      input: any Encodable
+      input: Encodable & Sendable
     ) -> Block {
       Block(
         ToolUse(
@@ -183,15 +190,11 @@ extension ClaudeClient.MessagesEndpoint.Request.Message.Content {
     }
 
     public static func image(
-      mediaType: MediaType,
-      data: Data
+      _ imageSource: ImageSource
     ) -> Block {
       Block(
         Image(
-          source: Image.Source(
-            mediaType: mediaType,
-            data: Image.Source.Base64EncodedData(rawData: data)
-          )
+          source: AnyEncodable(imageSource.payload)
         )
       )
     }
@@ -201,71 +204,113 @@ extension ClaudeClient.MessagesEndpoint.Request.Message.Content {
       Block(cacheBreakpoint)
     }
 
-    public struct MediaType: Encodable {
-      public static var jpeg: Self { Self(rawValue: "image/jpeg") }
-      public static var png: Self { Self(rawValue: "image/png") }
-      public static var gif: Self { Self(rawValue: "image/gif") }
-      public static var webp: Self { Self(rawValue: "image/webp") }
-
-      public func encode(to encoder: any Encoder) throws {
-        try rawValue.encode(to: encoder)
-      }
-
-      private let rawValue: String
-    }
-
     /// `tool_result` content is currently the same as `user` message content.
     /// Use a typealias so that we can reuse `Content` manipulation logic.
     public typealias ToolResultContent = ClaudeClient.MessagesEndpoint.Request.Message.Content
 
-    private struct Text: Encodable {
+    private struct Text: Encodable, Sendable {
       private let type = "text"
 
       let text: String
     }
-    private struct ToolUse: Encodable {
+    private struct ToolUse: Encodable, Sendable {
       private let type = "tool_use"
 
       let id: ClaudeClient.MessagesEndpoint.ToolUse.ID
       let name: String
       let input: AnyEncodable
     }
-    private struct ToolResult: Encodable {
+    private struct ToolResult: Encodable, Sendable {
       private let type = "tool_result"
 
       let toolUseId: ClaudeClient.MessagesEndpoint.ToolUse.ID
       let content: ToolResultContent?
       let isError: Bool?
     }
-    private struct Image: Encodable {
+    private struct Image: Encodable, Sendable {
       private let type = "image"
-
-      struct Source: Encodable {
-        private let type = "base64"
-
-        let mediaType: MediaType
-
-        struct Base64EncodedData: Encodable {
-          let rawData: Data
-          func encode(to encoder: any Encoder) throws {
-            var container = encoder.singleValueContainer()
-            try container.encode(rawData.base64EncodedString())
-          }
-        }
-        let data: Base64EncodedData
-      }
-      let source: Source
+      
+      /// This should be the payload from `ImageSource`
+      let source: AnyEncodable
     }
 
-    private init(_ component: any Encodable) {
+    private init(_ component: any Encodable & Sendable) {
       cacheableComponentArrayElement = .component(AnyEncodable(component))
     }
     private init(_ cacheBreakpoint: CacheBreakpoint) {
       cacheableComponentArrayElement = .cacheBreakpoint(cacheBreakpoint)
     }
 
-    fileprivate let cacheableComponentArrayElement:
-      ClaudeClient.MessagesEndpoint.Request.CacheableComponentArray<AnyEncodable>.Element
+    fileprivate typealias Element = ClaudeClient.MessagesEndpoint.Request.CacheableComponentArray<AnyEncodable>.Element
+    fileprivate let cacheableComponentArrayElement: Element
+    
+  }
+
+}
+
+// MARK: - Images
+
+extension ClaudeClient.MessagesEndpoint.Request.Message.Content {
+  
+  public struct ImageSource {
+    
+    public struct MediaType: ExpressibleByStringLiteral {
+      public static var jpeg: Self { "image/jpeg" }
+      public static var png: Self { "image/png" }
+      public static var gif: Self { "image/gif" }
+      public static var webp: Self { "image/webp" }
+
+      public func encode(to encoder: any Encoder) throws {
+        try rawValue.encode(to: encoder)
+      }
+      
+      public init(stringLiteral value: StringLiteralType) {
+        self.rawValue = value
+      }
+
+      fileprivate let rawValue: String
+    }
+    
+    public static func base64(
+      mediaType: MediaType,
+      data: Data
+    ) -> Self {
+      Self(
+        payload: Base64(
+          mediaType: mediaType.rawValue,
+          data: data
+        )
+      )
+    }
+    
+    private struct Base64: Encodable {
+      
+      init(
+        mediaType: String,
+        data: Data
+      ) {
+        self.mediaType = mediaType
+        self.data = Base64EncodedData(rawData: data)
+      }
+      
+      private let type = "base64"
+      private let mediaType: String
+
+      private struct Base64EncodedData: Encodable {
+        let rawData: Data
+        func encode(to encoder: any Encoder) throws {
+          var container = encoder.singleValueContainer()
+          try container.encode(rawData.base64EncodedString())
+        }
+      }
+      private let data: Base64EncodedData
+    }
+    
+    fileprivate let payload: any Encodable & Sendable
+    
+    private init(payload: any Encodable & Sendable) {
+      self.payload = payload
+    }
   }
 
 }
