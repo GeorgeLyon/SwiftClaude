@@ -8,11 +8,12 @@ extension Claude {
   
   public func streamNextMessage<Conversation: Claude.Conversation>(
     in conversation: Conversation,
-    model: Claude.Model,
+    model: Claude.Model? = nil,
     maxOutputTokens: Int? = nil,
-    imagePreprocessingMode: Claude.Image.PreprocessingMode,
+    imagePreprocessingMode: Claude.Image.PreprocessingMode = .recommended(),
     isolation: isolated Actor = #isolation
   ) async throws {
+    let model = model ?? defaultModel
     let messages = try conversation.messagesRequestMessages(
       for: model,
       imagePreprocessingMode: imagePreprocessingMode
@@ -65,9 +66,9 @@ extension Claude {
     
     associatedtype ToolOutput = Never
     
-    associatedtype ToolUseBlock = Never
+    associatedtype ToolUseBlock = Claude.ConversationToolUseBlockNever
     
-    var messages: [ConversationMessage<Self>] { get }
+    var messages: [Message] { get }
     
     func append(_ assistantMessage: AssistantMessage)
     
@@ -104,7 +105,7 @@ extension Claude.Conversation {
   
 }
 
-extension Claude.Conversation where ToolUseBlock == Never {
+extension Claude.Conversation where ToolUseBlock == Claude.ConversationToolUseBlockNever {
   
   public static func toolUseBlock<Tool: Claude.Tool>(
     _ toolUse: Claude.ToolUse<Tool>
@@ -126,11 +127,38 @@ extension Claude.Conversation where UserMessage == String {
   
 }
 
+// MARK: Message
+
 extension Claude {
   
   public enum ConversationMessage<Conversation: Claude.Conversation> {
     case user(Conversation.UserMessage)
     case assistant(ConversationAssistantMessage<Conversation>)
+  }
+  
+}
+
+extension Claude.ConversationMessage: Identifiable where Conversation.UserMessage: Identifiable {
+  
+  public struct ID: Hashable {
+    
+    fileprivate enum Kind: Hashable {
+      case user(Conversation.UserMessage.ID)
+      case assistant(Conversation.AssistantMessage.ID)
+    }
+    fileprivate init(kind: Kind) {
+      self.kind = kind
+    }
+    
+    private let kind: Kind
+  }
+  public var id: ID {
+    switch self {
+    case .user(let message):
+      ID(kind: .user(message.id))
+    case .assistant(let message):
+      ID(kind: .assistant(message.id))
+    }
   }
   
 }
@@ -170,7 +198,7 @@ extension Claude {
 extension Claude {
   
   @Observable
-  public final class ConversationAssistantMessageTextBlock {
+  public final class ConversationAssistantMessageTextBlock: Identifiable {
     
     public struct ID: Hashable {
       fileprivate init(
@@ -230,6 +258,7 @@ extension Claude {
 // MARK: - Message
 
 extension Claude {
+  
   @Observable
   public final class ConversationAssistantMessage<
     Conversation: Claude.Conversation
@@ -267,7 +296,7 @@ extension Claude {
     
     fileprivate enum PrivateContentBlock {
       case textBlock(TextBlock)
-      case toolUseBlock(ToolUseBlock, AnyToolUse)
+      case toolUseBlock(ToolUseBlock, any ToolUseProtocol<Conversation.ToolOutput>)
     }
     fileprivate var currentPrivateContentBlocks: [PrivateContentBlock] = []
     
@@ -319,7 +348,50 @@ extension Claude {
       toolInvocationStrategy = .whenInputAvailable
     }
     
-    /// This can change, for example if `requestToolInvocations` is called while streaming, this becomes `immediate`
+    public func toolInvocationComplete(
+      isolation: isolated Actor = #isolation
+    ) async throws {
+      try await streamingComplete()
+      for block in currentPrivateContentBlocks {
+        guard case .toolUseBlock(_, let toolUse) = block else {
+          continue
+        }
+        _ = try await toolUse.output(isolation: isolation)
+      }
+    }
+
+    public var isToolInvocationCompleteOrFailed: Bool {
+      guard streamingResult != nil else {
+        return false
+      }
+      for block in currentPrivateContentBlocks {
+        guard case .toolUseBlock(_, let toolUse) = block else {
+          continue
+        }
+        guard toolUse.isInvocationCompleteOrFailed else {
+          return false
+        }
+      }
+      return true
+    }
+
+    public var currentError: Error? {
+      if case .failure(let error) = streamingResult {
+        return error
+      } else {
+        for block in currentPrivateContentBlocks {
+          guard case .toolUseBlock(_, let toolUse) = block else {
+            continue
+          }
+          if let error = toolUse.currentError {
+            return error
+          }
+        }
+        return nil
+      }
+    }
+    
+    /// This can change, for example if `requestToolInvocations` is called while streaming, this becomes `whenInputAvailable`
     private var toolInvocationStrategy: Claude.ToolInvocationStrategy
     
     // MARK: Lifecycle
@@ -332,6 +404,43 @@ extension Claude {
       self.toolInvocationStrategy = toolInvocationStrategy
     }
     
+  }
+  
+}
+
+extension Claude {
+  
+  public enum ConversationToolUseBlockNever: Identifiable {
+    public var id: Never {
+      switch self {
+        
+      }
+    }
+  }
+}
+
+extension Claude.ConversationAssistantMessage.ContentBlock: Identifiable where Conversation.ToolUseBlock: Identifiable {
+  
+  public struct ID: Hashable {
+    
+    fileprivate enum Kind: Hashable {
+      case text(Claude.ConversationAssistantMessageTextBlock.ID)
+      case toolUse(Conversation.ToolUseBlock.ID)
+    }
+    
+    fileprivate init(kind: Kind) {
+      self.kind = kind
+    }
+    
+    private let kind: Kind
+  }
+  public var id: ID {
+    switch self {
+    case .textBlock(let textBlock):
+      ID(kind: .text(textBlock.id))
+    case .toolUseBlock(let toolUseBlock):
+      ID(kind: .toolUse(toolUseBlock.id))
+    }
   }
   
 }
@@ -536,17 +645,25 @@ extension Claude.Conversation {
 
 private typealias MessageID = ClaudeClient.MessagesEndpoint.Response.Event.MessageStart.Message.ID
 
-private protocol AnyToolUse {
+private protocol ToolUseProtocol<Output> {
+  associatedtype Output
+  
   var id: Claude.ToolUse.ID { get }
   var toolName: String { get }
   var currentEncodableInput: (Encodable & Sendable)? { get }
+  
+  var isInvocationCompleteOrFailed: Bool { get }
+  var currentError: Error? { get }
+  func output(
+    isolation: isolated Actor
+  ) async throws -> Output
   
   func requestInvocation()
   
   var proxy: any ClaudeClient.MessagesEndpoint.StreamingMessageContentBlock { get }
 }
 
-extension Claude.ToolUse: AnyToolUse {
+extension Claude.ToolUse: ToolUseProtocol {
 
 }
 
@@ -559,7 +676,7 @@ extension Claude.ToolWithContextProtocol {
     client: ClaudeClient,
     invocationStrategy: Claude.ToolInvocationStrategy,
     isolation: isolated Actor
-  ) throws -> (AnyToolUse, Conversation.ToolUseBlock)
+  ) throws -> (any ToolUseProtocol<Output>, Conversation.ToolUseBlock)
   where Conversation.ToolOutput == Output
   {
     let toolUse = Claude.ToolUse<Tool>(

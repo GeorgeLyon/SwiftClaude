@@ -3,6 +3,12 @@ public import ClaudeClient
 import SwiftUI
 
 public struct ComputerUseDemo: View {
+  public var body: some View {
+    Text("Computer")
+  }
+}
+
+/*
 
   public init(authenticator: Claude.KeychainAuthenticator) {
     self.claude = Claude(
@@ -193,3 +199,4 @@ private struct Computer: Claude.Beta.ComputerTool {
     return UIImage(contentsOfFile: path)!
   }
 #endif
+*/

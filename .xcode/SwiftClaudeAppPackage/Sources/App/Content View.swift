@@ -26,7 +26,8 @@ struct ContentView: View {
             HaikuGenerator(authenticator: authenticator)
           }
           Tab("Computer Use Demo", systemImage: "desktopcomputer") {
-            ComputerUseDemo(authenticator: authenticator)
+            Text("Computer")
+//            ComputerUseDemo(authenticator: authenticator)
           }
         }
         

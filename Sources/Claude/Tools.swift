@@ -324,6 +324,8 @@ extension Claude {
 
 // MARK: - Tool Use
 
+public typealias ToolUse = Claude.ToolUse
+
 extension Claude {
   
   @Observable
