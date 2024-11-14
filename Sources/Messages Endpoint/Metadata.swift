@@ -10,7 +10,7 @@ extension ClaudeClient.MessagesEndpoint {
 
     public private(set) var state: State = .idle
     public private(set) var model: ClaudeClient.Model.ID?
-    public private(set) var usage: Usage?
+    public private(set) var usage = Usage()
     public private(set) var stopReason: StopReason?
     public private(set) var messageID: Response.Event.MessageStart.Message.ID?
 
@@ -34,9 +34,7 @@ extension ClaudeClient.MessagesEndpoint {
       public private(set) var cacheCreationInputTokens: Int?
       public private(set) var cacheReadInputTokens: Int?
 
-      private init() {
-        /// This should only be decoded and mutated with `update`
-      }
+      fileprivate init() {}
 
       public mutating func update(with other: Usage?) {
         guard let other = other else {
@@ -56,71 +54,70 @@ extension ClaudeClient.MessagesEndpoint {
         }
       }
     }
-    
-    init(_ start: Response.Event.MessageStart) {
+
+    mutating func apply(_ start: Response.Event.MessageStart) throws {
+      switch state {
+      case .idle:
+        break
+      case .started:
+        throw MultipleStartEvents()
+      case .stopped:
+        throw EventAfterStop()
+      }
+
       state = .started
       model = start.message.model
-      if var usage = usage {
-        assertionFailure()
-        usage.update(with: start.message.usage)
+      if let usage = start.message.usage {
         self.usage = usage
-      } else {
-        self.usage = start.message.usage
       }
       messageID = start.message.id
     }
 
-    mutating func apply(_ start: Response.Event.MessageStart) {
-      guard case .idle = state else {
-        assertionFailure()
-        return
+    mutating func apply(_ delta: Response.Event.MessageDelta) throws {
+      switch state {
+      case .idle:
+        throw MissingStartEvent()
+      case .started:
+        break
+      case .stopped:
+        throw EventAfterStop()
       }
-      state = .started
-      model = start.message.model
-      if var usage = usage {
-        assertionFailure()
-        usage.update(with: start.message.usage)
-        self.usage = usage
-      } else {
-        self.usage = start.message.usage
-      }
-      messageID = start.message.id
-    }
 
-    mutating func apply(_ delta: Response.Event.MessageDelta) {
       stopReason = delta.delta.stopReason
+      usage.update(with: delta.usage)
+    }
 
-      if var usage = usage {
-        usage.update(with: delta.usage)
-        self.usage = usage
-      } else {
-        /// `message_start` should have initialized this
-        assertionFailure()
-        self.usage = delta.usage
+    mutating func apply(_ stop: Response.Event.MessageStop) throws {
+      /// All logic is currently handled by `stop(dueTo:)`.
+    }
+
+    mutating func stop(dueTo error: Error?) throws {
+      switch state {
+      case .idle:
+        /// It is OK for a message to go from idle to stopped, but this should only be in response to an error
+        guard error != nil else {
+          assertionFailure()
+          throw StoppingIdleMessage()
+        }
+        break
+      case .started:
+        break
+      case .stopped:
+        throw EventAfterStop()
       }
-    }
 
-    mutating func apply(_ stop: Response.Event.MessageStop) {
-      state = .stopped(nil)
-    }
-
-    mutating func stop(dueTo error: Error?) {
       if let error {
         state = .stopped(error)
-      } else if case .stopped = state {
-        /// This is expected, since we set `stopped` in `apply(_:)`
       } else {
-        assertionFailure()
-        state = .stopped(MetadataError.StoppingUnstoppedMessageWithoutError())
+        state = .stopped(nil)
       }
     }
 
   }
 
-  private enum MetadataError {
-    struct StoppingUnstoppedMessageWithoutError: Error {
-
-    }
-  }
+  private struct MultipleStartEvents: Error {}
+  private struct MissingStartEvent: Error {}
+  private struct StoppingIdleMessage: Error {}
+  private struct EventAfterStop: Error {}
 
 }

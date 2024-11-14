@@ -7,7 +7,9 @@ extension ClaudeClient.MessagesEndpoint.Request.Message {
   /// - note:
   ///   `Message.Content` is used for things other than messages, such as the system prompt.
   ///   I couldn't come up with a more general name though so it remains `Message.Content` for now.
-  public struct Content: Encodable, Sendable, ExpressibleByStringInterpolation, ExpressibleByArrayLiteral {
+  public struct Content: Encodable, Sendable, ExpressibleByStringInterpolation,
+    ExpressibleByArrayLiteral
+  {
 
     public init() {
       self.trailingText = []
@@ -78,7 +80,7 @@ extension ClaudeClient.MessagesEndpoint.Request.Message {
       processTrailingText()
       blocks.append(.cacheBreakpoint(cacheBreakpoint))
     }
-    
+
     public mutating func append(
       contentsOf other: Self
     ) {
@@ -229,7 +231,7 @@ extension ClaudeClient.MessagesEndpoint.Request.Message.Content {
     }
     private struct Image: Encodable, Sendable {
       private let type = "image"
-      
+
       /// This should be the payload from `ImageSource`
       let source: AnyEncodable
     }
@@ -241,9 +243,11 @@ extension ClaudeClient.MessagesEndpoint.Request.Message.Content {
       cacheableComponentArrayElement = .cacheBreakpoint(cacheBreakpoint)
     }
 
-    fileprivate typealias Element = ClaudeClient.MessagesEndpoint.Request.CacheableComponentArray<AnyEncodable>.Element
+    fileprivate typealias Element = ClaudeClient.MessagesEndpoint.Request.CacheableComponentArray<
+      AnyEncodable
+    >.Element
     fileprivate let cacheableComponentArrayElement: Element
-    
+
   }
 
 }
@@ -251,9 +255,9 @@ extension ClaudeClient.MessagesEndpoint.Request.Message.Content {
 // MARK: - Images
 
 extension ClaudeClient.MessagesEndpoint.Request.Message.Content {
-  
+
   public struct ImageSource {
-    
+
     public struct MediaType: ExpressibleByStringLiteral {
       public static var jpeg: Self { "image/jpeg" }
       public static var png: Self { "image/png" }
@@ -263,14 +267,14 @@ extension ClaudeClient.MessagesEndpoint.Request.Message.Content {
       public func encode(to encoder: any Encoder) throws {
         try rawValue.encode(to: encoder)
       }
-      
+
       public init(stringLiteral value: StringLiteralType) {
         self.rawValue = value
       }
 
       fileprivate let rawValue: String
     }
-    
+
     public static func base64(
       mediaType: MediaType,
       data: Data
@@ -282,9 +286,9 @@ extension ClaudeClient.MessagesEndpoint.Request.Message.Content {
         )
       )
     }
-    
+
     private struct Base64: Encodable {
-      
+
       init(
         mediaType: String,
         data: Data
@@ -292,7 +296,7 @@ extension ClaudeClient.MessagesEndpoint.Request.Message.Content {
         self.mediaType = mediaType
         self.data = Base64EncodedData(rawData: data)
       }
-      
+
       private let type = "base64"
       private let mediaType: String
 
@@ -305,9 +309,9 @@ extension ClaudeClient.MessagesEndpoint.Request.Message.Content {
       }
       private let data: Base64EncodedData
     }
-    
+
     fileprivate let payload: any Encodable & Sendable
-    
+
     private init(payload: any Encodable & Sendable) {
       self.payload = payload
     }

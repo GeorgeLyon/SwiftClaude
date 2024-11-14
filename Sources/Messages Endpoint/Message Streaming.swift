@@ -60,10 +60,8 @@ extension ClaudeClient.MessagesEndpoint.StreamingMessage {
     _ response: MessagesEndpoint.Response,
     isolation: isolated Actor = #isolation
   ) async {
-    updateMetadata(response.initialMetadata)
-    
     /// Don't use the message's metadata as a source of truth in case it is stubbed or mutated
-    var metadata = response.initialMetadata {
+    var metadata = Metadata() {
       didSet {
         updateMetadata(metadata)
       }
@@ -75,7 +73,6 @@ extension ClaudeClient.MessagesEndpoint.StreamingMessage {
     >()
 
     do {
-
       var events = response.events.makeAsyncIterator()
       while let event = try await events.next(isolation: isolation) {
         switch event {
@@ -83,12 +80,12 @@ extension ClaudeClient.MessagesEndpoint.StreamingMessage {
           switch event {
 
           /// Message
-          case .messageStart:
-            throw ClaudeClient.MessagesEndpoint.MultipleMessageStartEvents()
+          case .messageStart(let event):
+            try metadata.apply(event)
           case .messageDelta(let event):
-            metadata.apply(event)
+            try metadata.apply(event)
           case .messageStop(let event):
-            metadata.apply(event)
+            try metadata.apply(event)
 
             guard try contentBlocks.allStopped else {
               throw ClaudeClient.StreamingMessageError.ContentBlocksNotStoppedAtMessageStop()
@@ -106,7 +103,7 @@ extension ClaudeClient.MessagesEndpoint.StreamingMessage {
               }
             }
 
-            metadata.stop(dueTo: nil)
+            try metadata.stop(dueTo: nil)
             stop(dueTo: nil)
             return
 
@@ -141,18 +138,12 @@ extension ClaudeClient.MessagesEndpoint.StreamingMessage {
         }
       }
 
-      metadata.stop(dueTo: error)
+      try? metadata.stop(dueTo: error)
       stop(dueTo: error)
     }
 
   }
 
-}
-
-extension ClaudeClient.MessagesEndpoint {
-  
-  private struct MultipleMessageStartEvents: Error { }
-  
 }
 
 // MARK: - Compound Methods
@@ -181,7 +172,14 @@ extension ClaudeClient {
       )
     } catch {
       var metadata = MessagesEndpoint.Metadata()
-      metadata.stop(dueTo: error)
+
+      do {
+        try metadata.stop(dueTo: error)
+      } catch {
+        /// Ignore errors updating the metadata
+        assertionFailure()
+      }
+
       message.updateMetadata(metadata)
       message.stop(dueTo: error)
       return

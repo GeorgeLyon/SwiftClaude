@@ -102,7 +102,7 @@ extension Claude {
 
       fileprivate enum Kind {
         case text(String)
-        
+
         case toolUse(
           id: ToolUse.ID,
           name: String,
@@ -118,7 +118,7 @@ extension Claude {
         case image(Image)
 
         case cacheBreakpoint(Beta.CacheBreakpoint)
-        
+
       }
       fileprivate let kind: Kind
 
@@ -168,7 +168,7 @@ extension Claude {
         }
       }
       return content
-      
+
     }
 
   }

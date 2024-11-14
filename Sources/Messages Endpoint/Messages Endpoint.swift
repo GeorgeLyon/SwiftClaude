@@ -38,7 +38,7 @@ extension ClaudeClient {
       systemPrompt: systemPrompt,
       messages: messages
     )
-    
+
     /// - note: Region isolation checked fails if we don't use the intermediate `events` variable
     let events = try await serverSentEvents(
       method: .post,
@@ -48,24 +48,8 @@ extension ClaudeClient {
       body: body,
       eventType: MessagesEndpoint.Response.Event.self
     )
-    
-    /// The first event should be `message_start`.
-    /// Consider this as part of the "response" and parse it first so we can provide its data (like message ID) in a non-optional manner.
-    let messageID: MessagesEndpoint.Message.ID
-    let initialMetadata: MessagesEndpoint.Metadata
-    do {
-      var eventsIterator = events.makeAsyncIterator()
-      guard case .success(.messageStart(let messageStart)) = try await eventsIterator.next(isolation: #isolation) else {
-        struct ExpectedMessageStart: Error { }
-        throw ExpectedMessageStart()
-      }
-      messageID = messageStart.message.id
-      initialMetadata = MessagesEndpoint.Metadata(messageStart)
-    }
-    
+
     return MessagesEndpoint.Response(
-      messageID: messageID,
-      initialMetadata: initialMetadata,
       events: .init(events: events)
     )
   }
@@ -188,7 +172,7 @@ extension ClaudeClient.MessagesEndpoint.Request {
     public init() {
       elements = []
     }
-    
+
     public init(elements: [Element]) {
       self.elements = elements
     }
@@ -395,10 +379,8 @@ extension ClaudeClient.MessagesEndpoint {
       public let untypedValue: UntypedID
     }
   }
-  
+
   public struct Response {
-    public let messageID: Message.ID
-    let initialMetadata: Metadata
     let events: Events
   }
 
@@ -421,7 +403,6 @@ extension ClaudeClient.MessagesEndpoint.Response {
         }
       }
 
-      @available(macOS 15.0, iOS 18.0, *)
       public mutating func next(isolation actor: isolated (any Actor)?) async throws -> Element? {
         switch try await events.next(isolation: actor) {
         case .none:
