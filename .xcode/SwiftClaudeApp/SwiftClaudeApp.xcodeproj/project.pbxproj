@@ -24,6 +24,7 @@
 /* Begin PBXFileReference section */
 		5E28D4512CE03A4E00420ECE /* SwiftClaudeAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SwiftClaudeAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		5E2C493B2CA4F8C9001FB83C /* SwiftClaudeApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SwiftClaudeApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5E6F7A442CE6E81400A94960 /* Readme.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; name = Readme.md; path = ../Readme.md; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -69,6 +70,7 @@
 		5E2C49322CA4F8C9001FB83C = {
 			isa = PBXGroup;
 			children = (
+				5E6F7A442CE6E81400A94960 /* Readme.md */,
 				5E2C493D2CA4F8C9001FB83C /* SwiftClaudeApp */,
 				5E28D4522CE03A4E00420ECE /* SwiftClaudeAppUITests */,
 				5E28D4772CE03E4900420ECE /* Frameworks */,

@@ -21,7 +21,7 @@ extension ClaudeClient {
       self.body = body
 
       /// Uncomment to print the request
-      print("REQUEST: \(String(decoding: body!, as: UTF8.self))")
+      // print("REQUEST: \(String(decoding: body!, as: UTF8.self))")
     }
     package let http: HTTPRequest
     package let body: Data?

@@ -50,7 +50,7 @@ public struct HaikuGenerator: View {
           }
         }
       case .toolInvocationResultsAvailable:
-        Button("Respond to tool use request") {
+        Button("Provide tool invocation results") {
           submit()
         }
       case .streaming, .waitingForToolInvocationResults:
