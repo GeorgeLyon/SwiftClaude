@@ -53,6 +53,11 @@ public struct ComputerUseDemo: View {
         Button("Provide tool invocation results") {
           submit()
         }
+      case .failed(let error):
+        Text("Error: \(error)")
+        Button("Reset") {
+          conversation = Conversation()
+        }
       }
     }
   }
@@ -149,14 +154,9 @@ private final class Conversation: Claude.Conversation {
     .user(.init("Tap on Safari"))
   ]
   
-  func append(_ assistantMessage: AssistantMessage) {
-    messages.append(.assistant(assistantMessage))
-  }
-  
   static func userMessageContent(for message: UserMessage) -> Claude.UserMessageContent {
     message.content
   }
-  
   
   static func toolUseBlock<Tool: Claude.Tool>(
     _ toolUse: Claude.ToolUse<Tool>

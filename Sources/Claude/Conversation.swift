@@ -18,7 +18,7 @@ extension Claude {
     switch conversation.state {
     case .idle, .toolInvocationResultsAvailable:
       break
-    case .streaming, .waitingForToolInvocationResults:
+    case .streaming, .waitingForToolInvocationResults, .failed:
       assertionFailure()
     }
 
@@ -193,6 +193,7 @@ extension Claude {
     case streaming
     case waitingForToolInvocationResults
     case toolInvocationResultsAvailable
+    case failed(Error)
   }
 
 }
@@ -216,6 +217,9 @@ extension Claude.Conversation {
 
     guard case .assistant(let lastMessage) = lastMessage else {
       return .idle
+    }
+    if let error = lastMessage.currentError {
+      return .failed(error)
     }
     guard lastMessage.isStreamingCompleteOrFailed else {
       return .streaming

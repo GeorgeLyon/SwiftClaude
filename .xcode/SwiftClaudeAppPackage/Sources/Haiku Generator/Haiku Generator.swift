@@ -46,7 +46,7 @@ public struct HaikuGenerator: View {
           }
         } else {
           Button("Reset") {
-            conversation = Conversation()
+            reset()
           }
         }
       case .toolInvocationResultsAvailable:
@@ -55,6 +55,11 @@ public struct HaikuGenerator: View {
         }
       case .streaming, .waitingForToolInvocationResults:
         ProgressView()
+      case .failed(let error):
+        Text("Error: \(error)")
+        Button("Reset") {
+          reset()
+        }
       }
     }
   }
@@ -90,6 +95,11 @@ public struct HaikuGenerator: View {
       print("Message Stopped: \(message.currentMetadata.stopReason as Any)")
     }
   }
+  
+  private func reset() {
+    haikuTopic = ""
+    conversation = Conversation()
+  }
 
   @State
   private var claude: Claude
@@ -122,10 +132,6 @@ private final class Conversation: Claude.Conversation {
   }
   
   var messages: [Message] = []
-  
-  func append(_ assistantMessage: AssistantMessage) {
-    messages.append(.assistant(assistantMessage))
-  }
   
   static func userMessageContent(for message: UserMessage) -> Claude.UserMessageContent {
     .init(message.text)
