@@ -97,7 +97,7 @@ extension Claude {
 
 extension Claude {
 
-  public protocol Conversation: Observable, AnyObject {
+  public protocol Conversation {
 
     associatedtype UserMessage
 
@@ -170,6 +170,16 @@ extension Claude.Conversation where ToolOutput == Never {
     for toolOutput: ToolOutput
   ) -> ToolInvocationResultContent {
 
+  }
+
+}
+
+extension Claude.Conversation where ToolOutput == ToolInvocationResultContent {
+
+  public static func toolInvocationResultContent(
+    for toolOutput: ToolOutput
+  ) -> ToolInvocationResultContent {
+    toolOutput
   }
 
 }
@@ -710,8 +720,7 @@ extension Claude.Conversation {
           assertionFailure()
           throw IncompleteConversation()
         }
-        var toolInvocationResultContentBlocks:
-          [ClaudeClient.MessagesEndpoint.Request.Message.Content.Block] = []
+        var toolInvocationResultContent: ClaudeClient.MessagesEndpoint.Request.Message.Content = []
         var assistantContent: ClaudeClient.MessagesEndpoint.Request.Message.Content = []
         for block in assistant.currentPrivateContentBlocks {
           switch block {
@@ -742,7 +751,7 @@ extension Claude.Conversation {
               output = try invocationResult.get()
             } catch {
               /// We only errors thrown by the tool to be encoded as "error" results.
-              toolInvocationResultContentBlocks.append(
+              toolInvocationResultContent.append(
                 .toolResult(
                   id: toolUse.id,
                   content: "\(error)",
@@ -752,7 +761,7 @@ extension Claude.Conversation {
               continue
             }
 
-            toolInvocationResultContentBlocks.append(
+            toolInvocationResultContent.append(
               .toolResult(
                 id: toolUse.id,
                 content: try Self.toolInvocationResultContent(for: output)
@@ -779,12 +788,12 @@ extension Claude.Conversation {
           messages.append(
             .init(
               role: .user,
-              content: .init(toolInvocationResultContentBlocks)
+              content: toolInvocationResultContent
             )
           )
         } else {
           /// We shouldn't have tool results to encode if `stopReason` is not `toolUse`
-          assert(toolInvocationResultContentBlocks.isEmpty)
+          assert(toolInvocationResultContent.isEmpty)
         }
       }
     }

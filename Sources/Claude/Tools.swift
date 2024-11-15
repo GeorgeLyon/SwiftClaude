@@ -87,7 +87,7 @@ extension Claude.Tool {
         preprocessingMode: imagePreprocessingMode
       )
       let definition = ClaudeClient.MessagesEndpoint.Request.AnthropicToolDefinition.computer(
-        displaySize: displaySize,
+        displaySize: adjustedDisplaySize,
         displayNumber: displayNumber
       )
       return (

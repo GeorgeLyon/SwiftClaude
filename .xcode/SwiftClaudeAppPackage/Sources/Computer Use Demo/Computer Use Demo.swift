@@ -3,12 +3,6 @@ public import ClaudeClient
 import SwiftUI
 
 public struct ComputerUseDemo: View {
-  public var body: some View {
-    Text("Computer")
-  }
-}
-
-/*
 
   public init(authenticator: Claude.KeychainAuthenticator) {
     self.claude = Claude(
@@ -42,26 +36,21 @@ public struct ComputerUseDemo: View {
 
           }
         }
-      if let message = messages.last {
-        ZStack {
-          ProgressView().opacity(message.isToolInvocationCompleteOrFailed ? 0 : 1)
-          if message.isToolInvocationCompleteOrFailed {
-            if message.currentMetadata.stopReason == .toolUse {
-              Button("Continue tool use") {
-                submit()
-              }
-            } else {
-              Button("Reset") {
-                messages = []
-              }
-            }
+      switch conversation.state {
+      case .idle:
+        if conversation.messages.count == 1 {
+          Button("Tap Safari") {
+            submit()
+          }
+        } else {
+          Button("Reset") {
+            conversation = Conversation()
           }
         }
-        if let error = message.currentError {
-          Text("Error: \(error)")
-        }
-      } else {
-        Button("Tap Safari") {
+      case .streaming, .waitingForToolInvocationResults:
+        ProgressView()
+      case .toolInvocationResultsAvailable:
+        Button("Provide tool invocation results") {
           submit()
         }
       }
@@ -69,26 +58,6 @@ public struct ComputerUseDemo: View {
   }
 
   private func submit() {
-    var conversation = Conversation {
-      "Open the safari app"
-    }
-
-    for message in messages {
-      guard
-        let assistantMessage = message.currentAssistantMessage(
-          inputDecodingFailureEncodingStrategy: .encodeErrorInPlaceOfInput,
-          streamingFailureEncodingStrategy: .appendErrorMessage,
-          stopDueToMaxTokensEncodingStrategy: .appendErrorMessage
-        ),
-        let toolInvocationResult = message.currentToolInvocationResults
-      else {
-        assertionFailure()
-        continue
-      }
-      conversation.append(assistantMessage)
-      conversation.append(UserMessage(toolInvocationResult))
-    }
-
     let computer = Computer(
       onNormalizedMouseMove: { x, y in
         await withCheckedContinuation { continuation in
@@ -108,12 +77,13 @@ public struct ComputerUseDemo: View {
 
     let message = claude.nextMessage(
       in: conversation,
+      model: .claude35Sonnet20241022,
       tools: Tools<ToolInvocationResultContent> {
         computer
       },
       invokeTools: .whenInputAvailable
     )
-    messages.append(message)
+    conversation.messages.append(.assistant(message))
     Task<Void, Never> {
       do {
         for try await block in message.contentBlocks {
@@ -124,9 +94,9 @@ public struct ComputerUseDemo: View {
               fflush(stdout)
             }
             print()
-          case .toolUseBlock(let toolUse):
-            print("🛠️ Using Tool: \(toolUse.toolName) 🛠️")
-            print("Input Received: \(try await toolUse.inputJSON())")
+          case .toolUseBlock(let toolUseBlock):
+            print("🛠️ Using Tool: \(toolUseBlock.toolUse.toolName) 🛠️")
+            print("Input Received: \(try await toolUseBlock.toolUse.inputJSON())")
             break
           }
         }
@@ -147,10 +117,52 @@ public struct ComputerUseDemo: View {
   private var claude: Claude
 
   @State
-  private var messages: [StreamingMessage<ToolInvocationResultContent>] = []
+  private var conversation = Conversation()
 
   @State
   private var screenshot = demoScreenshot
+  
+}
+
+@Observable
+private final class Conversation: Claude.Conversation {
+
+  final class UserMessage: Identifiable {
+    init(_ content: UserMessageContent) {
+      self.content = content
+    }
+    let content: UserMessageContent
+  }
+  
+  typealias ToolOutput = ToolInvocationResultContent
+  
+  struct ToolUseBlock: Identifiable {
+    init<Tool: Claude.Tool>(_ toolUse: ToolUse<Tool>) where Tool.Output == ToolInvocationResultContent {
+      self.toolUse = toolUse
+    }
+    let toolUse: any ToolUseProtocol<ToolInvocationResultContent>
+    
+    var id: ToolUse.ID { toolUse.id }
+  }
+  
+  var messages: [Message] = [
+    .user(.init("Tap on Safari"))
+  ]
+  
+  func append(_ assistantMessage: AssistantMessage) {
+    messages.append(.assistant(assistantMessage))
+  }
+  
+  static func userMessageContent(for message: UserMessage) -> Claude.UserMessageContent {
+    message.content
+  }
+  
+  
+  static func toolUseBlock<Tool: Claude.Tool>(
+    _ toolUse: Claude.ToolUse<Tool>
+  ) throws -> ToolUseBlock where Tool.Output == ToolInvocationResultContent {
+    ToolUseBlock(toolUse)
+  }
   
 }
 
@@ -199,4 +211,3 @@ private struct Computer: Claude.Beta.ComputerTool {
     return UIImage(contentsOfFile: path)!
   }
 #endif
-*/

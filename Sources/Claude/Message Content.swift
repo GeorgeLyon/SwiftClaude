@@ -136,7 +136,7 @@ extension Claude {
       for component in components {
         switch component.kind {
         case .text(let text):
-          content.append(.text(text))
+          content.append(text)
         case let .toolUse(id, name, input):
           content.append(
             .toolUse(

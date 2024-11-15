@@ -103,6 +103,10 @@ extension ClaudeClient.MessagesEndpoint.Request.Message {
       return result
     }
 
+    public var isEmpty: Bool {
+      trailingText.isEmpty && blocks.isEmpty
+    }
+
     private mutating func processTrailingText() {
       let text = trailingText.joined()
       /// Empty text content blocks are rejected by the API

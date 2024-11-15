@@ -143,13 +143,6 @@ private final class Conversation: Claude.Conversation {
     .init(toolOutput)
   }
   
-  var tools: Tools<String>? {
-    Tools {
-      CatEmojiTool()
-      EmojiTool()
-    }
-  }
-  
 }
 
 @Tool
