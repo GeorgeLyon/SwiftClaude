@@ -269,6 +269,30 @@ extension Claude {
     }
   }
 
+  /// Specifies how to encode input decoding failures when
+  public struct ToolInputDecodingFailureEncodingStrategy {
+
+    public static var encodeErrorInPlaceOfInput: Self {
+      Self(kind: .encodeErrorInPlaceOfInput)
+    }
+
+    func encode(_ error: Error) -> Encodable & Sendable {
+      switch kind {
+      case .encodeErrorInPlaceOfInput:
+        return Failure(error: "\(error)")
+      }
+    }
+
+    private enum Kind {
+      case encodeErrorInPlaceOfInput
+    }
+    private let kind: Kind
+
+    private struct Failure: Encodable {
+      let error: String
+    }
+  }
+
 }
 
 #if canImport(ClaudeToolInput)
@@ -314,30 +338,76 @@ extension Claude {
 
   }
 
-  /// An array of `tool_result` content blocks represening the results of invoking the tools specified in `tool_use` blocks in an assistant message.
-  public struct ToolInvocationResults {
+}
 
-    let messageContent: MessageContent
+// MARK: - Tool Use
+
+public typealias ToolUseProtocol = Claude.ToolUseProtocol
+public typealias ToolUse = Claude.ToolUse
+
+extension Claude {
+
+  public protocol ToolUseProtocol<Output>: Identifiable {
+
+    associatedtype Output
+
+    var id: Claude.ToolUse.ID { get }
+
+    var tool: any Claude.Tool<Output> { get }
+
+    var toolName: String { get }
+
+    var currentInputJSON: String { get }
+
+    var inputJSONFragments: any Claude.OpaqueAsyncSequence<Substring> { get }
+
+    func inputJSON(
+      isolation: isolated Actor
+    ) async throws -> String
+
+    var isInvocationCompleteOrFailed: Bool { get }
+
+    var currentError: Error? { get }
+
+    var currentOutput: Output? { get }
+
+    func output(
+      isolation: isolated Actor
+    ) async throws -> Output
+
+    func requestInvocation()
 
   }
 
 }
 
-// MARK: - Tool Use
+extension Claude.ToolUseProtocol {
 
-public typealias ToolUse = Claude.ToolUse
+  public func inputJSON(
+    isolation: isolated Actor = #isolation
+  ) async throws -> String {
+    try await inputJSON(isolation: isolation)
+  }
+
+  public func output(
+    isolation: isolated Actor = #isolation
+  ) async throws -> Output {
+    try await output(isolation: isolation)
+  }
+
+}
 
 extension Claude {
 
   @Observable
-  public final class ToolUse<Tool: Claude.Tool>: Identifiable {
+  public final class ToolUse<Tool: Claude.Tool>: ToolUseProtocol {
 
     public typealias ID = ClaudeClient.MessagesEndpoint.ToolUse.ID
     public let id: ID
 
-    public typealias ToolOutput = Tool.Output
+    public typealias Output = Tool.Output
 
-    public var tool: any Claude.Tool<Tool.Output> {
+    public var tool: any Claude.Tool<Output> {
       toolWithContext.tool
     }
     public var toolName: String {
@@ -347,7 +417,7 @@ extension Claude {
 
     public private(set) var currentInputJSON = ""
 
-    public var inputJSONFragments: some Claude.OpaqueAsyncSequence<Substring> {
+    public var inputJSONFragments: any Claude.OpaqueAsyncSequence<Substring> {
       ObservableAppendOnlyCollectionPropertyStream(
         root: self,
         elementsKeyPath: \.currentInputJSON,
@@ -365,20 +435,6 @@ extension Claude {
 
     public var currentInput: Tool.Input? {
       try? inputDecodingResult?.get()
-    }
-
-    public var currentEncodableInput: (Encodable & Sendable)? {
-      guard let currentInput else {
-        return nil
-      }
-      guard
-        let encodableInput = try? Claude.ToolInputEncoder<Tool>.encode(currentInput)
-      else {
-        /// Encoding tool input shouldn't fail for properly defined tools
-        assertionFailure()
-        return nil
-      }
-      return encodableInput
     }
 
     public func input(
@@ -412,6 +468,10 @@ extension Claude {
       try await untilNotNil(\.streamingResult)
       _ = try await untilNotNil(\.inputDecodingResult)
       return try await untilNotNil(\.invocationResult)
+    }
+
+    public var isStreamingCompleteOrFailed: Bool {
+      streamingResult != nil
     }
 
     public var isInvocationCompleteOrFailed: Bool {
@@ -450,6 +510,19 @@ extension Claude {
       /// At most one error should be non-`nil` since these represent serial stages of execution
       assert(errors.count < 2)
       return errors.first
+    }
+
+    func currentEncodableInput(
+      inputDecodingFailureEncodingStrategy: ToolInputDecodingFailureEncodingStrategy
+    ) -> (Encodable & Sendable)? {
+      guard let currentInput else {
+        return nil
+      }
+      do {
+        return try Claude.ToolInputEncoder<Tool>.encode(currentInput)
+      } catch {
+        return inputDecodingFailureEncodingStrategy.encode(error)
+      }
     }
 
     init(
@@ -519,7 +592,7 @@ extension Claude {
     }
 
     /// The result of invoking the tool
-    private var invocationResult: Result<ToolOutput, Error>? {
+    private(set) var invocationResult: Result<Output, Error>? {
       didSet {
         assert(
           [
@@ -531,7 +604,7 @@ extension Claude {
           ].allSatisfy(\.self)
         )
         if case .success = invocationResult {
-          /// If the result is `success`, `output` must have been set
+          /// If the result is `success`, `currentOutput` must have been set
           assert(currentOutput != nil)
         }
       }
@@ -606,12 +679,13 @@ extension Claude.ToolUse {
   }
 
   fileprivate func stop(dueTo error: Error?, isolation: isolated Actor) async throws {
-    /// Complete streaming
     if let error {
       streamingResult = .failure(error)
-    } else {
-      streamingResult = .success(())
+      return
     }
+
+    /// Streaming success is only set _after_ we've decoded the input so there isn't a "streaming complete but input not yet decoded" phase.
+    /// Such a phase would add complexity but not really be useful in any way
 
     /// Decode input
     let input: Tool.Input
@@ -631,8 +705,10 @@ extension Claude.ToolUse {
         using: inputDecoder,
         isolation: isolation
       )
+      streamingResult = .success(())
       inputDecodingResult = .success(input)
     } catch {
+      streamingResult = .success(())
       inputDecodingResult = .failure(error)
       return
     }

@@ -10,67 +10,86 @@ extension Claude {
     model: Claude.Model? = nil,
     maxOutputTokens: Int? = nil,
     imagePreprocessingMode: Claude.Image.PreprocessingMode? = nil,
+    tools: Tools<Conversation.ToolOutput>? = nil,
+    toolChoice: ToolChoice? = nil,
     invokeTools toolInvocationStrategy: ToolInvocationStrategy? = nil,
     isolation: isolated Actor = #isolation
   ) -> Conversation.AssistantMessage {
+    switch conversation.state {
+    case .idle, .toolInvocationResultsAvailable:
+      break
+    case .streaming, .waitingForToolInvocationResults:
+      assertionFailure()
+    }
+
     let message = Conversation.AssistantMessage(
       /// If we make this non-optional and use `.manually` as the default argument, the region isolation checker gets confused.
       /// https://github.com/swiftlang/swift/issues/77620
       toolInvocationStrategy: toolInvocationStrategy ?? .manually
     )
-    Task<Void, Never> {
-      _ = isolation
 
-      do {
-        /// If we make this non-optional and use `.recommended()` as the default argument, the region isolation checker gets confused.
-        /// https://github.com/swiftlang/swift/issues/77620
-        let imagePreprocessingMode = imagePreprocessingMode ?? .recommended()
+    do {
+      /// We want to compute the following properties synchronously since `conversation` might mutate after this message returns
 
-        let model = model ?? defaultModel
+      /// If we make this non-optional and use `.recommended()` as the default argument, the region isolation checker gets confused.
+      /// https://github.com/swiftlang/swift/issues/77620
+      let imagePreprocessingMode = imagePreprocessingMode ?? .recommended()
 
-        let messages = try conversation.messagesRequestMessages(
+      let model = model ?? defaultModel
+
+      let messages = try conversation.messagesRequestMessages(
+        for: model,
+        imagePreprocessingMode: imagePreprocessingMode
+      )
+
+      let systemPrompt = try conversation.systemPrompt?.messageContent
+        .messagesRequestMessageContent(
           for: model,
           imagePreprocessingMode: imagePreprocessingMode
         )
 
-        let systemPrompt = try conversation.systemPrompt?.messageContent
-          .messagesRequestMessageContent(
-            for: model,
-            imagePreprocessingMode: imagePreprocessingMode
-          )
+      let toolKit: ToolKit<Conversation.ToolOutput>?
+      let toolDefinitions: ClaudeClient.MessagesEndpoint.Request.ToolDefinitions?
+      if let tools = tools {
+        (toolKit, toolDefinitions) = try tools.compile(
+          for: model,
+          imagePreprocessingMode: imagePreprocessingMode
+        )
+      } else {
+        toolKit = nil
+        toolDefinitions = nil
+      }
+      Task<Void, Never> {
+        _ = isolation
 
-        let toolKit: ToolKit<Conversation.ToolOutput>?
-        let toolDefinitions: ClaudeClient.MessagesEndpoint.Request.ToolDefinitions?
-        if let tools = conversation.tools {
-          (toolKit, toolDefinitions) = try tools.compile(
-            for: model,
-            imagePreprocessingMode: imagePreprocessingMode
+        let response: ClaudeClient.MessagesEndpoint.Response
+        do {
+          response = try await client.messagesResponse(
+            messages: messages,
+            systemPrompt: systemPrompt,
+            tools: toolDefinitions,
+            toolChoice: toolChoice,
+            model: model.id,
+            maxOutputTokens: maxOutputTokens ?? model.maxOutputTokens,
+            isolation: isolation
           )
-        } else {
-          toolKit = nil
-          toolDefinitions = nil
+        } catch {
+          message.stop(dueTo: error)
+          return
         }
 
-        let response = try await client.messagesResponse(
-          messages: messages,
-          systemPrompt: systemPrompt,
-          tools: toolDefinitions,
-          toolChoice: conversation.toolChoice,
-          model: model.id,
-          maxOutputTokens: maxOutputTokens ?? model.maxOutputTokens,
-          isolation: isolation
-        )
-        conversation.append(message)
         var proxy = ConversationAssistantMessageProxy(
           client: client,
           toolKit: toolKit,
           message: message
         )
         await response.stream(into: &proxy)
-      } catch {
-        message.stop(dueTo: error)
       }
+
+    } catch {
+      message.stop(dueTo: error)
     }
+
     return message
   }
 
@@ -88,21 +107,23 @@ extension Claude {
 
     var messages: [Message] { get }
 
-    func append(_ assistantMessage: AssistantMessage)
-
     var systemPrompt: SystemPrompt? { get }
-
-    var tools: Tools<ToolOutput>? { get }
-
-    var toolChoice: ToolChoice? { get }
 
     static func toolUseBlock<Tool: Claude.Tool>(
       _ toolUse: Claude.ToolUse<Tool>
     ) throws -> ToolUseBlock where Tool.Output == ToolOutput
 
-    static func content(
+    static func userMessageContent(
       for message: UserMessage
     ) -> UserMessageContent
+
+    static func toolInvocationResultContent(
+      for toolOutput: ToolOutput
+    ) -> ToolInvocationResultContent
+
+    var toolInputDecodingFailureEncodingStrategy: Claude.ToolInputDecodingFailureEncodingStrategy {
+      get
+    }
 
   }
 
@@ -115,7 +136,11 @@ extension Claude.Conversation {
 
   public var systemPrompt: SystemPrompt? { nil }
 
-  public var toolChoice: Claude.ToolChoice? { nil }
+  public var toolInputDecodingFailureEncodingStrategy:
+    Claude.ToolInputDecodingFailureEncodingStrategy
+  {
+    .encodeErrorInPlaceOfInput
+  }
 
 }
 
@@ -127,16 +152,77 @@ extension Claude.Conversation where ToolUseBlock == Claude.ConversationToolUseBl
     throw Claude.ToolUseUnavailable()
   }
 
-  public var tools: Tools<ToolOutput>? { nil }
-
 }
 
 extension Claude.Conversation where UserMessage == String {
 
-  public static func content(
+  public static func userMessageContent(
     for message: String
   ) -> UserMessageContent {
     UserMessageContent(message)
+  }
+
+}
+
+extension Claude.Conversation where ToolOutput == Never {
+
+  public static func toolInvocationResultContent(
+    for toolOutput: ToolOutput
+  ) -> ToolInvocationResultContent {
+
+  }
+
+}
+
+// MARK: Conversation State
+
+extension Claude {
+
+  public enum ConversationState {
+    case idle
+    case streaming
+    case waitingForToolInvocationResults
+    case toolInvocationResultsAvailable
+  }
+
+}
+
+extension Claude.Conversation {
+
+  public var state: Claude.ConversationState {
+    var reversedMessages = messages.reversed().makeIterator()
+    let lastMessage = reversedMessages.next()
+
+    /// All assistant messages that are not the last messages should be complete
+    #if DEBUG
+      while let notLastMessage = reversedMessages.next() {
+        guard case .assistant(let assistantMessage) = notLastMessage else {
+          continue
+        }
+        assert(assistantMessage.isStreamingCompleteOrFailed)
+        assert(assistantMessage.isToolInvocationCompleteOrFailed)
+      }
+    #endif
+
+    guard case .assistant(let lastMessage) = lastMessage else {
+      return .idle
+    }
+    guard lastMessage.isStreamingCompleteOrFailed else {
+      return .streaming
+    }
+    guard lastMessage.isToolInvocationCompleteOrFailed else {
+      return .waitingForToolInvocationResults
+    }
+    guard let stopReason = lastMessage.currentMetadata.stopReason else {
+      assertionFailure()
+      return .idle
+    }
+    switch stopReason {
+    case .endTurn, .maxTokens, .stopSequence:
+      return .idle
+    case .toolUse:
+      return .toolInvocationResultsAvailable
+    }
   }
 
 }
@@ -189,19 +275,7 @@ extension Claude {
       self.messageContent = messageContent
     }
 
-    public init(_ toolInvocationResults: Claude.ToolInvocationResults) {
-      self.messageContent = toolInvocationResults.messageContent
-    }
-
     public var messageContent: MessageContent
-
-    public mutating func append(
-      contentsOf toolInvocationResults: Claude.ToolInvocationResults
-    ) {
-      messageContent.components.append(
-        contentsOf: toolInvocationResults.messageContent.components
-      )
-    }
 
   }
 
@@ -244,6 +318,10 @@ extension Claude {
     ) async throws -> String {
       try await untilNotNil(\.result)
       return currentText
+    }
+
+    public var isStreamingCompleteOrFailed: Bool {
+      result != nil
     }
 
     public var currentError: Error? {
@@ -310,7 +388,7 @@ extension Claude {
 
     fileprivate enum PrivateContentBlock {
       case textBlock(TextBlock)
-      case toolUseBlock(ToolUseBlock, any ToolUseProtocol<Conversation.ToolOutput>)
+      case toolUseBlock(ToolUseBlock, any PrivateToolUseProtocol<Conversation.ToolOutput>)
     }
     fileprivate var currentPrivateContentBlocks: [PrivateContentBlock] = []
 
@@ -326,7 +404,7 @@ extension Claude {
       return currentMetadata
     }
 
-    public var isStreamingComplete: Bool {
+    public var isStreamingCompleteOrFailed: Bool {
       streamingResult != nil
     }
 
@@ -616,8 +694,8 @@ extension Claude.Conversation {
     var messages: [ClaudeClient.MessagesEndpoint.Request.Message] = []
     for message in self.messages {
       switch message {
-      case .user(let user):
-        let content = Self.content(for: user)
+      case .user(let userMessage):
+        let content = Self.userMessageContent(for: userMessage)
         messages.append(
           .init(
             role: .user,
@@ -628,21 +706,61 @@ extension Claude.Conversation {
           )
         )
       case .assistant(let assistant):
+        guard assistant.isStreamingCompleteOrFailed else {
+          assertionFailure()
+          throw IncompleteConversation()
+        }
+        var toolInvocationResultContentBlocks:
+          [ClaudeClient.MessagesEndpoint.Request.Message.Content.Block] = []
         var assistantContent: ClaudeClient.MessagesEndpoint.Request.Message.Content = []
-        // TODO: Handle stream-during-streaming case
         for block in assistant.currentPrivateContentBlocks {
           switch block {
           case .textBlock(let textBlock):
             assistantContent.append(textBlock.currentText)
           case .toolUseBlock(_, let toolUse):
-            guard let input = toolUse.currentEncodableInput else {
-              fatalError()
+            guard
+              let input = toolUse.currentEncodableInput(
+                inputDecodingFailureEncodingStrategy: toolInputDecodingFailureEncodingStrategy
+              )
+            else {
+              throw IncompleteConversation()
             }
             assistantContent.append(
               .toolUse(
                 id: toolUse.id,
                 name: toolUse.toolName,
                 input: input
+              )
+            )
+
+            guard let invocationResult = toolUse.invocationResult else {
+              throw IncompleteConversation()
+            }
+
+            let output: ToolOutput
+            do {
+              output = try invocationResult.get()
+            } catch {
+              /// We only errors thrown by the tool to be encoded as "error" results.
+              toolInvocationResultContentBlocks.append(
+                .toolResult(
+                  id: toolUse.id,
+                  content: "\(error)",
+                  isError: true
+                )
+              )
+              continue
+            }
+
+            toolInvocationResultContentBlocks.append(
+              .toolResult(
+                id: toolUse.id,
+                content: try Self.toolInvocationResultContent(for: output)
+                  .messageContent
+                  .messagesRequestMessageContent(
+                    for: model,
+                    imagePreprocessingMode: imagePreprocessingMode
+                  )
               )
             )
           }
@@ -653,6 +771,21 @@ extension Claude.Conversation {
             content: assistantContent
           )
         )
+
+        guard let stopReason = assistant.currentMetadata.stopReason else {
+          throw IncompleteConversation()
+        }
+        if case .toolUse = stopReason {
+          messages.append(
+            .init(
+              role: .user,
+              content: .init(toolInvocationResultContentBlocks)
+            )
+          )
+        } else {
+          /// We shouldn't have tool results to encode if `stopReason` is not `toolUse`
+          assert(toolInvocationResultContentBlocks.isEmpty)
+        }
       }
     }
     return messages
@@ -660,29 +793,27 @@ extension Claude.Conversation {
 
 }
 
+private struct IncompleteConversation: Error {
+
+}
+
 // MARK: - Implementation Details
 
 private typealias MessageID = ClaudeClient.MessagesEndpoint.Response.Event.MessageStart.Message.ID
 
-private protocol ToolUseProtocol<Output> {
+private protocol PrivateToolUseProtocol<Output>: Claude.ToolUseProtocol {
   associatedtype Output
 
-  var id: Claude.ToolUse.ID { get }
-  var toolName: String { get }
-  var currentEncodableInput: (Encodable & Sendable)? { get }
+  func currentEncodableInput(
+    inputDecodingFailureEncodingStrategy: Claude.ToolInputDecodingFailureEncodingStrategy
+  ) -> (Encodable & Sendable)?
 
-  var isInvocationCompleteOrFailed: Bool { get }
-  var currentError: Error? { get }
-  func output(
-    isolation: isolated Actor
-  ) async throws -> Output
-
-  func requestInvocation()
+  var invocationResult: Result<Output, Error>? { get }
 
   var proxy: any ClaudeClient.MessagesEndpoint.StreamingMessageContentBlock { get }
 }
 
-extension Claude.ToolUse: ToolUseProtocol {
+extension Claude.ToolUse: PrivateToolUseProtocol {
 
 }
 
@@ -695,7 +826,7 @@ extension Claude.ToolWithContextProtocol {
     client: ClaudeClient,
     invocationStrategy: Claude.ToolInvocationStrategy,
     isolation: isolated Actor
-  ) throws -> (any ToolUseProtocol<Output>, Conversation.ToolUseBlock)
+  ) throws -> (any PrivateToolUseProtocol<Output>, Conversation.ToolUseBlock)
   where Conversation.ToolOutput == Output {
     let toolUse = Claude.ToolUse<Tool>(
       id: id,

@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		5E28D4792CE03E4900420ECE /* SwiftClaudeAppPackage in Frameworks */ = {isa = PBXBuildFile; productRef = 5E28D4782CE03E4900420ECE /* SwiftClaudeAppPackage */; };
+		5E6F7A412CE6E44100A94960 /* SwiftClaude in Frameworks */ = {isa = PBXBuildFile; productRef = 5E6F7A402CE6E44100A94960 /* SwiftClaude */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -50,6 +51,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5E6F7A412CE6E44100A94960 /* SwiftClaude in Frameworks */,
 				5E28D4792CE03E4900420ECE /* SwiftClaudeAppPackage in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -127,6 +129,7 @@
 			name = SwiftClaudeApp;
 			packageProductDependencies = (
 				5E28D4782CE03E4900420ECE /* SwiftClaudeAppPackage */,
+				5E6F7A402CE6E44100A94960 /* SwiftClaude */,
 			);
 			productName = SwiftClaudeApp;
 			productReference = 5E2C493B2CA4F8C9001FB83C /* SwiftClaudeApp.app */;
@@ -163,6 +166,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				5E28D45C2CE03D7200420ECE /* XCLocalSwiftPackageReference "../SwiftClaudeAppPackage" */,
+				5E6F7A3F2CE6E44100A94960 /* XCLocalSwiftPackageReference "../../../SwiftClaude" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 5E2C493C2CA4F8C9001FB83C /* Products */;
@@ -500,12 +504,20 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../SwiftClaudeAppPackage;
 		};
+		5E6F7A3F2CE6E44100A94960 /* XCLocalSwiftPackageReference "../../../SwiftClaude" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../../SwiftClaude;
+		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		5E28D4782CE03E4900420ECE /* SwiftClaudeAppPackage */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = SwiftClaudeAppPackage;
+		};
+		5E6F7A402CE6E44100A94960 /* SwiftClaude */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SwiftClaude;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
