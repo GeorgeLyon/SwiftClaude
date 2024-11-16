@@ -92,7 +92,6 @@ public struct HaikuGenerator: View {
         }
       }
       print()
-      print("Message Stopped: \(message.currentMetadata.stopReason as Any)")
     }
   }
   

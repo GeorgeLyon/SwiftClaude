@@ -1,7 +1,9 @@
-private import AsyncAlgorithms
 public import ClaudeClient
 public import ClaudeMessagesEndpoint
-public import Observation
+
+import Observation
+
+// MARK: - Messages
 
 extension Claude {
 
@@ -95,273 +97,7 @@ extension Claude {
 
 }
 
-extension Claude {
-
-  public protocol Conversation {
-
-    associatedtype UserMessage
-
-    associatedtype ToolOutput = Never
-
-    associatedtype ToolUseBlock = Claude.ConversationToolUseBlockNever
-
-    var messages: [Message] { get }
-
-    var systemPrompt: SystemPrompt? { get }
-
-    static func toolUseBlock<Tool: Claude.Tool>(
-      _ toolUse: Claude.ToolUse<Tool>
-    ) throws -> ToolUseBlock where Tool.Output == ToolOutput
-
-    static func userMessageContent(
-      for message: UserMessage
-    ) -> UserMessageContent
-
-    static func toolInvocationResultContent(
-      for toolOutput: ToolOutput
-    ) -> ToolInvocationResultContent
-
-    var toolInputDecodingFailureEncodingStrategy: Claude.ToolInputDecodingFailureEncodingStrategy {
-      get
-    }
-
-  }
-
-}
-
-extension Claude.Conversation {
-
-  public typealias Message = Claude.ConversationMessage<Self>
-  public typealias AssistantMessage = Claude.ConversationAssistantMessage<Self>
-
-  public var systemPrompt: SystemPrompt? { nil }
-
-  public var toolInputDecodingFailureEncodingStrategy:
-    Claude.ToolInputDecodingFailureEncodingStrategy
-  {
-    .encodeErrorInPlaceOfInput
-  }
-
-}
-
-extension Claude.Conversation where ToolUseBlock == Claude.ConversationToolUseBlockNever {
-
-  public static func toolUseBlock<Tool: Claude.Tool>(
-    _ toolUse: Claude.ToolUse<Tool>
-  ) throws -> ToolUseBlock where Tool.Output == ToolOutput {
-    throw Claude.ToolUseUnavailable()
-  }
-
-}
-
-extension Claude.Conversation where UserMessage == String {
-
-  public static func userMessageContent(
-    for message: String
-  ) -> UserMessageContent {
-    UserMessageContent(message)
-  }
-
-}
-
-extension Claude.Conversation where ToolOutput == Never {
-
-  public static func toolInvocationResultContent(
-    for toolOutput: ToolOutput
-  ) -> ToolInvocationResultContent {
-
-  }
-
-}
-
-extension Claude.Conversation where ToolOutput == ToolInvocationResultContent {
-
-  public static func toolInvocationResultContent(
-    for toolOutput: ToolOutput
-  ) -> ToolInvocationResultContent {
-    toolOutput
-  }
-
-}
-
-// MARK: Conversation State
-
-extension Claude {
-
-  public enum ConversationState {
-    case idle
-    case streaming
-    case waitingForToolInvocationResults
-    case toolInvocationResultsAvailable
-    case failed(Error)
-  }
-
-}
-
-extension Claude.Conversation {
-
-  public var state: Claude.ConversationState {
-    var reversedMessages = messages.reversed().makeIterator()
-    let lastMessage = reversedMessages.next()
-
-    /// All assistant messages that are not the last messages should be complete
-    #if DEBUG
-      while let notLastMessage = reversedMessages.next() {
-        guard case .assistant(let assistantMessage) = notLastMessage else {
-          continue
-        }
-        assert(assistantMessage.isStreamingCompleteOrFailed)
-        assert(assistantMessage.isToolInvocationCompleteOrFailed)
-      }
-    #endif
-
-    guard case .assistant(let lastMessage) = lastMessage else {
-      return .idle
-    }
-    if let error = lastMessage.currentError {
-      return .failed(error)
-    }
-    guard lastMessage.isStreamingCompleteOrFailed else {
-      return .streaming
-    }
-    guard lastMessage.isToolInvocationCompleteOrFailed else {
-      return .waitingForToolInvocationResults
-    }
-    guard let stopReason = lastMessage.currentMetadata.stopReason else {
-      assertionFailure()
-      return .idle
-    }
-    switch stopReason {
-    case .endTurn, .maxTokens, .stopSequence:
-      return .idle
-    case .toolUse:
-      return .toolInvocationResultsAvailable
-    }
-  }
-
-}
-
-// MARK: Message
-
-extension Claude {
-
-  public enum ConversationMessage<Conversation: Claude.Conversation> {
-    case user(Conversation.UserMessage)
-    case assistant(ConversationAssistantMessage<Conversation>)
-  }
-
-}
-
-extension Claude.ConversationMessage: Identifiable where Conversation.UserMessage: Identifiable {
-
-  public struct ID: Hashable {
-
-    fileprivate enum Kind: Hashable {
-      case user(Conversation.UserMessage.ID)
-      case assistant(Conversation.AssistantMessage.ID)
-    }
-    fileprivate init(kind: Kind) {
-      self.kind = kind
-    }
-
-    private let kind: Kind
-  }
-  public var id: ID {
-    switch self {
-    case .user(let message):
-      ID(kind: .user(message.id))
-    case .assistant(let message):
-      ID(kind: .assistant(message.id))
-    }
-  }
-
-}
-
-// MARK: - User Message Content
-
-public typealias UserMessageContent = Claude.UserMessageContent
-
-extension Claude {
-
-  public struct UserMessageContent: MessageContentRepresentable, SupportsImagesInMessageContent {
-
-    public init(messageContent: MessageContent) {
-      self.messageContent = messageContent
-    }
-
-    public var messageContent: MessageContent
-
-  }
-
-}
-
-// MARK: - Text Block
-
-extension Claude {
-
-  @Observable
-  public final class ConversationAssistantMessageTextBlock: Identifiable {
-
-    public struct ID: Hashable {
-      fileprivate init(
-        messageID: MessageID,
-        index: Int
-      ) {
-        self.messageID = messageID
-        self.index = index
-      }
-
-      private let messageID: MessageID
-      private let index: Int
-    }
-    public let id: ID
-
-    public private(set) var currentText: String
-
-    public var textFragments: some Claude.OpaqueAsyncSequence<Substring> {
-      ObservableAppendOnlyCollectionPropertyStream(
-        root: self,
-        elementsKeyPath: \.currentText,
-        resultKeyPath: \.result
-      )
-      .opaque
-    }
-
-    public func text(
-      isolation: isolated Actor = #isolation
-    ) async throws -> String {
-      try await untilNotNil(\.result)
-      return currentText
-    }
-
-    public var isStreamingCompleteOrFailed: Bool {
-      result != nil
-    }
-
-    public var currentError: Error? {
-      guard case .failure(let error) = result else { return nil }
-      return error
-    }
-
-    fileprivate init(
-      id: ID,
-      initialText: String
-    ) {
-      self.id = id
-      self.currentText = initialText
-    }
-
-    private var result: Result<Void, Error>? {
-      didSet {
-        assert(oldValue == nil && result != nil)
-      }
-    }
-
-  }
-
-}
-
-// MARK: - Message
+// MARK: - Assistant Message
 
 extension Claude {
 
@@ -499,7 +235,7 @@ extension Claude {
 
     // MARK: Lifecycle
 
-    fileprivate init(
+    init(
       toolInvocationStrategy: Claude.ToolInvocationStrategy
     ) {
       self.toolInvocationStrategy = toolInvocationStrategy
@@ -547,7 +283,73 @@ where Conversation.ToolUseBlock: Identifiable {
 
 }
 
-// MARK: Proxies
+// MARK: Assistant Message Text Block
+
+extension Claude {
+  
+  @Observable
+  public final class ConversationAssistantMessageTextBlock: Identifiable {
+
+    public struct ID: Hashable {
+      fileprivate init(
+        messageID: MessageID,
+        index: Int
+      ) {
+        self.messageID = messageID
+        self.index = index
+      }
+
+      private let messageID: MessageID
+      private let index: Int
+    }
+    public let id: ID
+
+    public private(set) var currentText: String
+
+    public var textFragments: some Claude.OpaqueAsyncSequence<Substring> {
+      ObservableAppendOnlyCollectionPropertyStream(
+        root: self,
+        elementsKeyPath: \.currentText,
+        resultKeyPath: \.result
+      )
+      .opaque
+    }
+
+    public func text(
+      isolation: isolated Actor = #isolation
+    ) async throws -> String {
+      try await untilNotNil(\.result)
+      return currentText
+    }
+
+    public var isStreamingCompleteOrFailed: Bool {
+      result != nil
+    }
+
+    public var currentError: Error? {
+      guard case .failure(let error) = result else { return nil }
+      return error
+    }
+
+    fileprivate init(
+      id: ID,
+      initialText: String
+    ) {
+      self.id = id
+      self.currentText = initialText
+    }
+
+    private var result: Result<Void, Error>? {
+      didSet {
+        assert(oldValue == nil && result != nil)
+      }
+    }
+
+  }
+  
+}
+
+// MARK: Assistant Message Proxies
 
 extension Claude.ConversationAssistantMessageTextBlock {
 
@@ -699,115 +501,101 @@ private struct ConversationAssistantMessageProxy<
 
 // MARK: - Messages Request
 
-extension Claude.Conversation {
-
-  fileprivate func messagesRequestMessages(
+extension Claude.ConversationAssistantMessage {
+  
+  func messagesRequestMessages(
     for model: Claude.Model,
-    imagePreprocessingMode: Claude.Image.PreprocessingMode
+    imagePreprocessingMode: Claude.Image.PreprocessingMode,
+    toolInputDecodingFailureEncodingStrategy: Claude.ToolInputDecodingFailureEncodingStrategy,
+    renderToolOutput: (Conversation.ToolOutput) throws -> ToolInvocationResultContent
   ) throws -> [ClaudeClient.MessagesEndpoint.Request.Message] {
-    var messages: [ClaudeClient.MessagesEndpoint.Request.Message] = []
-    for message in self.messages {
-      switch message {
-      case .user(let userMessage):
-        let content = Self.userMessageContent(for: userMessage)
-        messages.append(
-          .init(
-            role: .user,
-            content: try content.messageContent.messagesRequestMessageContent(
-              for: model,
-              imagePreprocessingMode: imagePreprocessingMode
-            )
+    guard isStreamingCompleteOrFailed else {
+      assertionFailure()
+      throw IncompleteMessage()
+    }
+    var toolInvocationResultContent: ClaudeClient.MessagesEndpoint.Request.Message.Content = []
+    var assistantContent: ClaudeClient.MessagesEndpoint.Request.Message.Content = []
+    for block in currentPrivateContentBlocks {
+      switch block {
+      case .textBlock(let textBlock):
+        assistantContent.append(textBlock.currentText)
+      case .toolUseBlock(_, let toolUse):
+        guard
+          let input = toolUse.currentEncodableInput(
+            inputDecodingFailureEncodingStrategy: toolInputDecodingFailureEncodingStrategy
           )
-        )
-      case .assistant(let assistant):
-        guard assistant.isStreamingCompleteOrFailed else {
-          assertionFailure()
-          throw IncompleteConversation()
+        else {
+          throw IncompleteMessage()
         }
-        var toolInvocationResultContent: ClaudeClient.MessagesEndpoint.Request.Message.Content = []
-        var assistantContent: ClaudeClient.MessagesEndpoint.Request.Message.Content = []
-        for block in assistant.currentPrivateContentBlocks {
-          switch block {
-          case .textBlock(let textBlock):
-            assistantContent.append(textBlock.currentText)
-          case .toolUseBlock(_, let toolUse):
-            guard
-              let input = toolUse.currentEncodableInput(
-                inputDecodingFailureEncodingStrategy: toolInputDecodingFailureEncodingStrategy
-              )
-            else {
-              throw IncompleteConversation()
-            }
-            assistantContent.append(
-              .toolUse(
-                id: toolUse.id,
-                name: toolUse.toolName,
-                input: input
-              )
-            )
-
-            guard let invocationResult = toolUse.invocationResult else {
-              throw IncompleteConversation()
-            }
-
-            let output: ToolOutput
-            do {
-              output = try invocationResult.get()
-            } catch {
-              /// We only errors thrown by the tool to be encoded as "error" results.
-              toolInvocationResultContent.append(
-                .toolResult(
-                  id: toolUse.id,
-                  content: "\(error)",
-                  isError: true
-                )
-              )
-              continue
-            }
-
-            toolInvocationResultContent.append(
-              .toolResult(
-                id: toolUse.id,
-                content: try Self.toolInvocationResultContent(for: output)
-                  .messageContent
-                  .messagesRequestMessageContent(
-                    for: model,
-                    imagePreprocessingMode: imagePreprocessingMode
-                  )
-              )
-            )
-          }
-        }
-        messages.append(
-          .init(
-            role: .assistant,
-            content: assistantContent
+        assistantContent.append(
+          .toolUse(
+            id: toolUse.id,
+            name: toolUse.toolName,
+            input: input
           )
         )
 
-        guard let stopReason = assistant.currentMetadata.stopReason else {
-          throw IncompleteConversation()
+        guard let invocationResult = toolUse.invocationResult else {
+          throw IncompleteMessage()
         }
-        if case .toolUse = stopReason {
-          messages.append(
-            .init(
-              role: .user,
-              content: toolInvocationResultContent
+
+        let output: Conversation.ToolOutput
+        do {
+          output = try invocationResult.get()
+        } catch {
+          /// We only errors thrown by the tool to be encoded as "error" results.
+          toolInvocationResultContent.append(
+            .toolResult(
+              id: toolUse.id,
+              content: "\(error)",
+              isError: true
             )
           )
-        } else {
-          /// We shouldn't have tool results to encode if `stopReason` is not `toolUse`
-          assert(toolInvocationResultContent.isEmpty)
+          continue
         }
+
+        toolInvocationResultContent.append(
+          .toolResult(
+            id: toolUse.id,
+            content: try renderToolOutput(output)
+              .messageContent
+              .messagesRequestMessageContent(
+                for: model,
+                imagePreprocessingMode: imagePreprocessingMode
+              )
+          )
+        )
       }
     }
+    
+    var messages: [ClaudeClient.MessagesEndpoint.Request.Message] = []
+    messages.append(
+      .init(
+        role: .assistant,
+        content: assistantContent
+      )
+    )
+
+    guard let stopReason = currentMetadata.stopReason else {
+      throw IncompleteMessage()
+    }
+    if case .toolUse = stopReason {
+      messages.append(
+        .init(
+          role: .user,
+          content: toolInvocationResultContent
+        )
+      )
+    } else {
+      /// We shouldn't have tool results to encode if `stopReason` is not `toolUse`
+      assert(toolInvocationResultContent.isEmpty)
+    }
+    
     return messages
   }
-
-}
-
-private struct IncompleteConversation: Error {
-
+  
+  private struct IncompleteMessage: Error { }
+  
 }
 
 // MARK: - Implementation Details
