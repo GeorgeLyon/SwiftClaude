@@ -131,34 +131,12 @@ public struct ComputerUseDemo: View {
 
 @Observable
 private final class Conversation: Claude.Conversation {
-
-  final class UserMessage: Identifiable {
-    init(_ content: UserMessageContent) {
-      self.content = content
-    }
-    let content: UserMessageContent
-  }
-  
-  typealias ToolOutput = ToolInvocationResultContent
-  
-  struct ToolUseBlock: Identifiable {
-    init<Tool: Claude.Tool>(_ toolUse: ToolUse<Tool>) where Tool.Output == ToolInvocationResultContent {
-      self.toolUse = toolUse
-    }
-    let toolUse: any ToolUseProtocol<ToolInvocationResultContent>
-    
-    var id: ToolUse.ID { toolUse.id }
-  }
   
   var messages: [Message] = [
-    .user(.init("Tap on Safari"))
+    .user("Tap on Safari")
   ]
   
-  static func toolUseBlock<Tool: Claude.Tool>(
-    _ toolUse: Claude.ToolUse<Tool>
-  ) throws -> ToolUseBlock where Tool.Output == ToolInvocationResultContent {
-    ToolUseBlock(toolUse)
-  }
+  typealias ToolOutput = ToolInvocationResultContent
   
 }
 

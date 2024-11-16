@@ -67,7 +67,7 @@ public struct HaikuGenerator: View {
   private func submit() {
     if conversation.messages.isEmpty {
       conversation.messages.append(
-        .user(.init("Write me a haiku about \(haikuTopic)."))
+        .user("Write me a haiku about \(raw: haikuTopic).")
       )
     }
     let message = claude.nextMessage(
@@ -114,39 +114,9 @@ public struct HaikuGenerator: View {
 @Observable
 private final class Conversation: Claude.Conversation {
 
-  final class UserMessage: Identifiable {
-    init(_ text: String) {
-      self.text = text
-    }
-    let text: String
-  }
-  
-  struct ToolUseBlock: Identifiable {
-    init<Tool: Claude.Tool>(_ toolUse: ToolUse<Tool>) where Tool.Output == String {
-      self.toolUse = toolUse
-    }
-    let toolUse: any ToolUseProtocol<ToolOutput>
-    
-    var id: ToolUse.ID { toolUse.id }
-  }
-  
   var messages: [Message] = []
   
-  static func userMessageContent(for message: UserMessage) -> Claude.UserMessageContent {
-    .init(message.text)
-  }
-  
-  static func toolUseBlock<Tool: Claude.Tool>(
-    _ toolUse: Claude.ToolUse<Tool>
-  ) throws -> ToolUseBlock where Tool.Output == String {
-    ToolUseBlock(toolUse)
-  }
-  
-  static func toolInvocationResultContent(
-    for toolOutput: String
-  ) -> Claude.ToolInvocationResultContent {
-    .init(toolOutput)
-  }
+  typealias ToolOutput = String
   
 }
 

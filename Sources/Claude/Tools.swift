@@ -1,6 +1,5 @@
 public import ClaudeClient
 public import ClaudeMessagesEndpoint
-public import Observation
 
 private import struct Foundation.Data
 
