@@ -154,10 +154,6 @@ private final class Conversation: Claude.Conversation {
     .user(.init("Tap on Safari"))
   ]
   
-  static func userMessageContent(for message: UserMessage) -> Claude.UserMessageContent {
-    message.content
-  }
-  
   static func toolUseBlock<Tool: Claude.Tool>(
     _ toolUse: Claude.ToolUse<Tool>
   ) throws -> ToolUseBlock where Tool.Output == ToolInvocationResultContent {

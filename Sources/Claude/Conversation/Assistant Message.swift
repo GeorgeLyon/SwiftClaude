@@ -1,7 +1,8 @@
 public import ClaudeClient
 public import ClaudeMessagesEndpoint
+public import Observation
 
-import Observation
+private import AsyncAlgorithms
 
 // MARK: - Messages
 
@@ -247,13 +248,6 @@ extension Claude {
 
 extension Claude {
 
-  public enum ConversationToolUseBlockNever: Identifiable {
-    public var id: Never {
-      switch self {
-
-      }
-    }
-  }
 }
 
 extension Claude.ConversationAssistantMessage.ContentBlock: Identifiable
@@ -628,7 +622,7 @@ extension Claude.ToolWithContextProtocol {
     invocationStrategy: Claude.ToolInvocationStrategy,
     isolation: isolated Actor
   ) throws -> (any PrivateToolUseProtocol<Output>, Conversation.ToolUseBlock)
-  where Conversation.ToolOutput == Output {
+  where Conversation.ToolUseBlock.Output == Output {
     let toolUse = Claude.ToolUse<Tool>(
       id: id,
       toolWithContext: self,
@@ -638,7 +632,7 @@ extension Claude.ToolWithContextProtocol {
       ),
       invocationStrategy: invocationStrategy
     )
-    return (toolUse, try Conversation.toolUseBlock(toolUse))
+    return (toolUse, try Conversation.toolUseBlock(for: toolUse))
   }
 
 }

@@ -1,24 +1,24 @@
-private import AsyncAlgorithms
-public import ClaudeClient
-public import ClaudeMessagesEndpoint
-public import Observation
+import ClaudeClient
+import ClaudeMessagesEndpoint
 
 extension Claude {
 
   public protocol Conversation {
 
     associatedtype UserMessageImage = Never
-
-    associatedtype ToolOutput = Never
-
-    associatedtype ToolUseBlock = Claude.ConversationToolUseBlockNever
+    
+    associatedtype ToolUseBlock: ConversationToolUseBlockProtocol = ConversationToolUseBlockNever
 
     var messages: [Message] { get }
 
     var systemPrompt: SystemPrompt? { get }
-
+    
+    static func image(
+      for userMessageImage: UserMessageImage
+    ) throws -> Claude.Image
+    
     static func toolUseBlock<Tool: Claude.Tool>(
-      _ toolUse: Claude.ToolUse<Tool>
+      for toolUse: Claude.ToolUse<Tool>
     ) throws -> ToolUseBlock where Tool.Output == ToolOutput
 
     static func toolInvocationResultContent(
@@ -36,8 +36,9 @@ extension Claude {
 extension Claude.Conversation {
 
   public typealias Message = Claude.ConversationMessage<Self>
-  public typealias UserMessage = Claude.ConversationUserMessage<UserMessageImage>
+  public typealias UserMessage = Claude.ConversationUserMessage<Self>
   public typealias AssistantMessage = Claude.ConversationAssistantMessage<Self>
+  public typealias ToolOutput = ToolUseBlock.Output
 
   public var systemPrompt: SystemPrompt? { nil }
 
@@ -49,14 +50,24 @@ extension Claude.Conversation {
 
 }
 
-extension Claude.Conversation where ToolUseBlock == Claude.ConversationToolUseBlockNever {
+extension Claude.Conversation where UserMessageImage == Never {
+  
+  static func image(
+    for userMessageImage: UserMessageImage
+  ) throws -> Claude.Image {
+    
+  }
+  
+}
 
-  public static func toolUseBlock<Tool: Claude.Tool>(
-    _ toolUse: Claude.ToolUse<Tool>
+extension Claude.Conversation where ToolUseBlock == Claude.ConversationToolUseBlockNever {
+  
+  static func toolUseBlock<Tool: Claude.Tool>(
+    for toolUse: Claude.ToolUse<Tool>
   ) throws -> ToolUseBlock where Tool.Output == ToolOutput {
     throw Claude.ToolUseUnavailable()
   }
-
+  
 }
 
 extension Claude.Conversation where ToolOutput == Never {
@@ -141,7 +152,7 @@ extension Claude.Conversation {
 extension Claude {
 
   public enum ConversationMessage<Conversation: Claude.Conversation> {
-    case user(Conversation.UserMessage)
+    case user(ConversationUserMessage<Conversation>)
     case assistant(ConversationAssistantMessage<Conversation>)
   }
 
@@ -172,24 +183,6 @@ extension Claude.ConversationMessage: Identifiable {
 
 }
 
-// MARK: - User Message Content
-
-public typealias UserMessageContent = Claude.UserMessageContent
-
-extension Claude {
-
-  public struct UserMessageContent: MessageContentRepresentable, SupportsImagesInMessageContent {
-
-    public init(messageContent: MessageContent) {
-      self.messageContent = messageContent
-    }
-
-    public var messageContent: MessageContent
-
-  }
-
-}
-
 // MARK: - Messages Request
 
 extension Claude.Conversation {
@@ -202,7 +195,15 @@ extension Claude.Conversation {
     for message in self.messages {
       switch message {
       case .user(let userMessage):
-        let content = Self.userMessageContent(for: userMessage)
+        var content = Claude.UserMessageContent()
+        for contentBlock in userMessage.contentBlocks {
+          switch contentBlock {
+          case .text(let text):
+            content.append(text)
+          case .image(let image):
+            content.append(try Self.image(for: image))
+          }
+        }
         messages.append(
           .init(
             role: .user,
