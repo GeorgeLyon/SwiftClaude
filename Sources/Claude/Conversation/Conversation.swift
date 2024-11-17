@@ -264,10 +264,10 @@ extension Claude.Conversation {
         var content = Claude.UserMessageContent()
         for contentBlock in userMessage.contentBlocks {
           switch contentBlock {
-          case .text(let text):
-            content.append(text)
-          case .image(let image):
-            content.append(try Self.image(for: image))
+          case .textBlock(let textBlock):
+            content.append(textBlock.text)
+          case .imageBlock(let imageBlock):
+            content.append(try Self.image(for: imageBlock.image))
           }
         }
         messages.append(

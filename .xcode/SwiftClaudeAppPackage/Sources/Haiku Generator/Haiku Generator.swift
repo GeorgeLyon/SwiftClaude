@@ -21,7 +21,14 @@ public struct HaikuGenerator: View {
       ForEach(conversation.messages) { message in
         switch message {
         case .user(let user):
-          Text(user.text)
+          ForEach(user.contentBlocks) { block in
+            switch block {
+            case .textBlock(let textBlock):
+              Text(textBlock.text)
+            case .imageBlock(let imageBlock):
+              Image(uiImage: imageBlock.image)
+            }
+          }
         case .assistant(let assistant):
           ForEach(assistant.currentContentBlocks) { block in
             switch block {
@@ -115,6 +122,8 @@ public struct HaikuGenerator: View {
 private final class Conversation: Claude.Conversation {
 
   var messages: [Message] = []
+  
+  typealias UserMessageImage = UIImage
   
   typealias ToolOutput = String
   
