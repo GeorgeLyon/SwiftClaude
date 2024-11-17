@@ -1,8 +1,7 @@
+private import AsyncAlgorithms
 public import ClaudeClient
 public import ClaudeMessagesEndpoint
 public import Observation
-
-private import AsyncAlgorithms
 
 // MARK: - Messages
 
@@ -280,7 +279,7 @@ where Conversation.ToolUseBlock: Identifiable {
 // MARK: Assistant Message Text Block
 
 extension Claude {
-  
+
   @Observable
   public final class ConversationAssistantMessageTextBlock: Identifiable {
 
@@ -340,7 +339,7 @@ extension Claude {
     }
 
   }
-  
+
 }
 
 // MARK: Assistant Message Proxies
@@ -496,7 +495,7 @@ private struct ConversationAssistantMessageProxy<
 // MARK: - Messages Request
 
 extension Claude.ConversationAssistantMessage {
-  
+
   func messagesRequestMessages(
     for model: Claude.Model,
     imagePreprocessingMode: Claude.Image.PreprocessingMode,
@@ -561,7 +560,7 @@ extension Claude.ConversationAssistantMessage {
         )
       }
     }
-    
+
     var messages: [ClaudeClient.MessagesEndpoint.Request.Message] = []
     messages.append(
       .init(
@@ -584,12 +583,12 @@ extension Claude.ConversationAssistantMessage {
       /// We shouldn't have tool results to encode if `stopReason` is not `toolUse`
       assert(toolInvocationResultContent.isEmpty)
     }
-    
+
     return messages
   }
-  
-  private struct IncompleteMessage: Error { }
-  
+
+  private struct IncompleteMessage: Error {}
+
 }
 
 // MARK: - Implementation Details

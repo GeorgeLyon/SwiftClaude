@@ -2,11 +2,11 @@ import ClaudeClient
 import ClaudeMessagesEndpoint
 
 #if canImport(UIKit)
-public import UIKit
+  public import UIKit
 #endif
 
 #if canImport(AppKit)
-public import AppKit
+  public import AppKit
 #endif
 
 extension Claude {
@@ -14,20 +14,20 @@ extension Claude {
   public protocol Conversation {
 
     associatedtype UserMessageImage = Never
-    
+
     associatedtype ToolOutput = Never
-    
+
     associatedtype ToolUseBlock: ConversationToolUseBlockProtocol
-      where ToolUseBlock.Output == ToolOutput
+    where ToolUseBlock.Output == ToolOutput
 
     var messages: [Message] { get }
 
     var systemPrompt: SystemPrompt? { get }
-    
+
     static func image(
       for userMessageImage: UserMessageImage
     ) throws -> Claude.Image
-    
+
     static func toolUseBlock<Tool: Claude.Tool>(
       for toolUse: Claude.ToolUse<Tool>
     ) throws -> ToolUseBlock where Tool.Output == ToolOutput
@@ -61,69 +61,69 @@ extension Claude.Conversation {
 }
 
 extension Claude.Conversation where UserMessageImage == Never {
-  
+
   public static func image(
     for userMessageImage: UserMessageImage
   ) throws -> Claude.Image {
-    
+
   }
-  
+
 }
 
 #if canImport(UIKit)
-extension Claude.Conversation where UserMessageImage == UIImage {
-  
-  public static func image(
-    for userMessageImage: UserMessageImage
-  ) throws -> Claude.Image {
-    Claude.PlatformImage(userMessageImage)
+  extension Claude.Conversation where UserMessageImage == UIImage {
+
+    public static func image(
+      for userMessageImage: UserMessageImage
+    ) throws -> Claude.Image {
+      Claude.PlatformImage(userMessageImage)
+    }
+
   }
-  
-}
 #endif
 
 #if canImport(AppKit)
-extension Claude.Conversation where UserMessageImage == NSImage {
-  
-  public static func image(
-    for userMessageImage: UserMessageImage
-  ) throws -> Claude.Image {
-    Claude.PlatformImage(userMessageImage)
+  extension Claude.Conversation where UserMessageImage == NSImage {
+
+    public static func image(
+      for userMessageImage: UserMessageImage
+    ) throws -> Claude.Image {
+      Claude.PlatformImage(userMessageImage)
+    }
+
   }
-  
-}
 #endif
 
 extension Claude.Conversation {
-  
+
   public typealias ToolUseBlock = Claude.ConversationToolUseBlock<ToolOutput>
-  
+
 }
 
 extension Claude.Conversation where ToolUseBlock == Claude.ConversationToolUseBlock<ToolOutput> {
-  
+
   public static func toolUseBlock<Tool: Claude.Tool>(
     for toolUse: Claude.ToolUse<Tool>
   ) throws -> ToolUseBlock where Tool.Output == ToolOutput {
     Claude.ConversationToolUseBlock(toolUse: toolUse)
   }
-  
+
 }
 
 extension Claude.Conversation where ToolOutput == Never {
-  
+
   public typealias ToolUseBlock = Claude.ConversationToolUseBlockNever
-  
+
 }
 
 extension Claude.Conversation where ToolUseBlock == Claude.ConversationToolUseBlockNever {
-  
+
   public static func toolUseBlock<Tool: Claude.Tool>(
     for toolUse: Claude.ToolUse<Tool>
   ) throws -> ToolUseBlock where Tool.Output == ToolOutput {
     throw Claude.ToolUseUnavailable()
   }
-  
+
 }
 
 extension Claude.Conversation where ToolOutput == Never {
@@ -147,13 +147,13 @@ extension Claude.Conversation where ToolOutput == ToolInvocationResultContent {
 }
 
 extension Claude.Conversation where ToolOutput == String {
-  
+
   public static func toolInvocationResultContent(
     for toolOutput: String
   ) -> Claude.ToolInvocationResultContent {
     .init(toolOutput)
   }
-  
+
 }
 
 // MARK: Conversation State
@@ -298,4 +298,3 @@ extension Claude.Conversation {
 private struct IncompleteConversation: Error {
 
 }
-

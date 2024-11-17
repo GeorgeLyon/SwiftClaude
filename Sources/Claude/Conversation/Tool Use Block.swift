@@ -2,16 +2,16 @@ public import ClaudeClient
 public import ClaudeMessagesEndpoint
 
 extension Claude {
-  
+
   public protocol ConversationToolUseBlockProtocol: Identifiable {
-    
+
     associatedtype Output
-    
+
     init<Tool>(toolUse: ToolUse<Tool>) throws
-      where Tool.Output == Output
-    
+    where Tool.Output == Output
+
   }
- 
+
   public enum ConversationToolUseBlockNever: ConversationToolUseBlockProtocol {
     public typealias Output = Never
     public var id: Never {
@@ -20,12 +20,11 @@ extension Claude {
       }
     }
     public init<Tool>(toolUse: ToolUse<Tool>) throws
-    where Tool.Output == Output
-    {
+    where Tool.Output == Output {
       throw ToolUseUnavailable()
     }
   }
-  
+
   /// We can't use `ToolUseProtocol` directly in `ConversationAssistantMessage` so we wrap it in a concrete type.
   public struct ConversationToolUseBlock<Output>: ConversationToolUseBlockProtocol {
     public typealias ID = ClaudeClient.MessagesEndpoint.ToolUse.ID
@@ -33,13 +32,12 @@ extension Claude {
       toolUse.id
     }
     public init<Tool>(toolUse: ToolUse<Tool>)
-    where Tool.Output == Output
-    {
+    where Tool.Output == Output {
       self.toolUse = toolUse
     }
     public let toolUse: any ToolUseProtocol<Output>
   }
-  
+
 }
 
 // MARK: - Convenience

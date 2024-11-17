@@ -387,7 +387,7 @@ extension Claude.SupportsImagesInMessageContent {
       )
     )
   }
-  
+
 }
 
 extension Claude.SupportsImagesInMessageContent where Self: Claude.MessageContentRepresentable {
@@ -401,25 +401,24 @@ extension Claude.SupportsImagesInMessageContent where Self: Claude.MessageConten
   #endif
 
   #if canImport(AppKit)
-  public mutating func append(
-    _ image: NSImage
-  ) {
-    append(Claude.PlatformImage(image))
-  }
-  #endif
-  
     public mutating func append(
-      _ image: Claude.Image
+      _ image: NSImage
     ) {
-      messageContent.append(
-        contentsOf: MessageContent(
-          [.image(image)]
-        )
-      )
+      append(Claude.PlatformImage(image))
     }
-  
-}
+  #endif
 
+  public mutating func append(
+    _ image: Claude.Image
+  ) {
+    messageContent.append(
+      contentsOf: MessageContent(
+        [.image(image)]
+      )
+    )
+  }
+
+}
 
 extension Claude.MessageContentStringInterpolation
 where Component: Claude.SupportsImagesInMessageContent {
