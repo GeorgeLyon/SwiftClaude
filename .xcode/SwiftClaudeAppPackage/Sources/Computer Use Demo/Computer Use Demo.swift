@@ -1,14 +1,10 @@
 import Claude
-public import ClaudeClient
 import SwiftUI
 
 public struct ComputerUseDemo: View {
 
-  public init(authenticator: Claude.KeychainAuthenticator) {
-    self.claude = Claude(
-      authenticator: authenticator,
-      defaultModel: .claude35Sonnet20241022
-    )
+  public init(claude: Claude) {
+    self.claude = claude
   }
 
   public var body: some View {
