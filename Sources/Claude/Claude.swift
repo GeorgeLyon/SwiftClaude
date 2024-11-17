@@ -4,6 +4,7 @@ public import ClaudeMessagesEndpoint
 public typealias ToolChoice = Claude.ToolChoice
 
 public struct Claude {
+
   public init(
     backend: Backend = .production,
     authenticator: Authenticator,

@@ -42,22 +42,25 @@ public struct HaikuGenerator: View {
         }
       }
       
-      switch conversation.state {
-      case .idle:
-        if conversation.messages.isEmpty {
-          Button("Write Haiku") {
+      switch conversation.currentState {
+      case .ready(for: let nextStep):
+        switch nextStep {
+        case .user:
+          if conversation.messages.isEmpty {
+            Button("Write Haiku") {
+              submit()
+            }
+          } else {
+            Button("Reset") {
+              reset()
+            }
+          }
+        case .toolUseResult:
+          Button("Provide tool invocation results") {
             submit()
           }
-        } else {
-          Button("Reset") {
-            reset()
-          }
         }
-      case .toolInvocationResultsAvailable:
-        Button("Provide tool invocation results") {
-          submit()
-        }
-      case .streaming, .waitingForToolInvocationResults:
+      case .responding:
         ProgressView()
       case .failed(let error):
         Text("Error: \(error)")
@@ -71,7 +74,7 @@ public struct HaikuGenerator: View {
   private func submit() {
     if conversation.messages.isEmpty {
       conversation.messages.append(
-        .user("Write me a haiku about \(raw: haikuTopic).")
+        .user("Write me a haiku about \(haikuTopic).")
       )
     }
     let message = claude.nextMessage(

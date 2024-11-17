@@ -161,18 +161,65 @@ extension Claude.Conversation where ToolOutput == String {
 extension Claude {
 
   public enum ConversationState {
-    case idle
+    case ready(for: ConversationNextStep)
+    case responding(ConversationResponsePhase)
+    case failed(Error)
+  }
+  
+  public enum ConversationNextStep {
+    /// The conversation is ready for the user to specify the next message and request a response
+    /// This will still be the state if a user message has been added but a response has not been requested
+    case user
+    case toolUseResult
+  }
+  
+  public enum ConversationResponsePhase {
     case streaming
     case waitingForToolInvocationResults
-    case toolInvocationResultsAvailable
-    case failed(Error)
   }
 
 }
 
 extension Claude.Conversation {
 
-  public var state: Claude.ConversationState {
+  /// Returns the current state of the conversation
+  /// Unlike most other properties on `SwiftClaude` types involved in streaming, there is no exact `async` (non "current-") analog.
+  /// The closest thing is `nextStep`
+  public var currentState: Claude.ConversationState {
+    guard let lastMessage = lastMessageIfItIsAnAssitantMessage else {
+      return .ready(for: .user)
+    }
+    if let error = lastMessage.currentError {
+      return .failed(error)
+    }
+    guard lastMessage.isStreamingCompleteOrFailed else {
+      return .responding(.streaming)
+    }
+    guard lastMessage.isToolInvocationCompleteOrFailed else {
+      return .responding(.waitingForToolInvocationResults)
+    }
+    guard let stopReason = lastMessage.currentMetadata.stopReason else {
+      return .failed(Claude.NoStopReasonProvided())
+    }
+    do {
+      return .ready(for: try lastMessage.currentNextStep)
+    } catch {
+      return .failed(error)
+    }
+  }
+  
+  /// Waits for straming and tool invocation to complete, then returns the next step for this conversation
+  public func nextStep(
+    isolation: isolated Actor = #isolation
+  ) async throws -> Claude.ConversationNextStep {
+    guard let lastMessage = lastMessageIfItIsAnAssitantMessage else {
+      return .user
+    }
+    try await lastMessage.toolInvocationComplete()
+    return try lastMessage.currentNextStep
+  }
+  
+  private var lastMessageIfItIsAnAssitantMessage: AssistantMessage? {
     var reversedMessages = messages.reversed().makeIterator()
     let lastMessage = reversedMessages.next()
 
@@ -186,32 +233,45 @@ extension Claude.Conversation {
         assert(assistantMessage.isToolInvocationCompleteOrFailed)
       }
     #endif
-
+    
     guard case .assistant(let lastMessage) = lastMessage else {
-      return .idle
+      return nil
     }
-    if let error = lastMessage.currentError {
-      return .failed(error)
-    }
-    guard lastMessage.isStreamingCompleteOrFailed else {
-      return .streaming
-    }
-    guard lastMessage.isToolInvocationCompleteOrFailed else {
-      return .waitingForToolInvocationResults
-    }
-    guard let stopReason = lastMessage.currentMetadata.stopReason else {
-      assertionFailure()
-      return .idle
-    }
-    switch stopReason {
-    case .endTurn, .maxTokens, .stopSequence:
-      return .idle
-    case .toolUse:
-      return .toolInvocationResultsAvailable
-    }
+    return lastMessage
   }
 
 }
+
+private extension Claude.ConversationAssistantMessage {
+  
+  var currentNextStep: Claude.ConversationNextStep {
+    get throws {
+      switch currentMetadata.stopReason {
+      case .none:
+        throw Claude.NoStopReasonProvided()
+      case .maxTokens:
+        throw Claude.MaxOutputTokensReached()
+      case .stopSequence:
+        /// `stopSequence` seems not super useful, so we still support it from the low level APIs but we don't make an explicit affordance for it to avoid adding complexity to the high level APIs.
+        fallthrough
+      case .endTurn:
+        return .user
+      case .toolUse:
+        return .toolUseResult
+      }
+    }
+  }
+  
+}
+
+extension Claude {
+  
+  private struct NoStopReasonProvided: Error { }
+  
+  private struct MaxOutputTokensReached: Error { }
+  
+}
+
 
 // MARK: Message
 

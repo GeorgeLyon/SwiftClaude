@@ -32,23 +32,26 @@ public struct ComputerUseDemo: View {
 
           }
         }
-      switch conversation.state {
-      case .idle:
-        if conversation.messages.count == 1 {
-          Button("Tap Safari") {
+      switch conversation.currentState {
+      case .ready(for: let nextMessage):
+        switch nextMessage {
+        case .user:
+          if conversation.messages.count == 1 {
+            Button("Tap Safari") {
+              submit()
+            }
+          } else {
+            Button("Reset") {
+              conversation = Conversation()
+            }
+          }
+        case .toolUseResult:
+          Button("Provide tool invocation results") {
             submit()
           }
-        } else {
-          Button("Reset") {
-            conversation = Conversation()
-          }
         }
-      case .streaming, .waitingForToolInvocationResults:
+      case .responding:
         ProgressView()
-      case .toolInvocationResultsAvailable:
-        Button("Provide tool invocation results") {
-          submit()
-        }
       case .failed(let error):
         Text("Error: \(error)")
         Button("Reset") {

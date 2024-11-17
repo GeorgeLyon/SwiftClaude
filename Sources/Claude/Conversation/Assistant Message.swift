@@ -17,12 +17,15 @@ extension Claude {
     invokeTools toolInvocationStrategy: ToolInvocationStrategy? = nil,
     isolation: isolated Actor = #isolation
   ) -> Conversation.AssistantMessage {
-    switch conversation.state {
-    case .idle, .toolInvocationResultsAvailable:
+    #if DEBUG
+    switch conversation.currentState {
+    case .ready, .failed:
       break
-    case .streaming, .waitingForToolInvocationResults, .failed:
+    case .responding:
+      /// Streaming a response to a conversation that is currently managing a response may result in hard-to-diagnose errors
       assertionFailure()
     }
+    #endif
 
     let message = Conversation.AssistantMessage(
       /// If we make this non-optional and use `.manually` as the default argument, the region isolation checker gets confused.

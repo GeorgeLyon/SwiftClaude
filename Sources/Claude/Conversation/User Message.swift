@@ -127,6 +127,9 @@ extension Claude.ConversationUserMessage: ExpressibleByStringInterpolation {
     public mutating func appendLiteral(_ literal: String) {
       contentBlocks.append(.text(literal))
     }
+    public mutating func appendInterpolation(_ value: String) {
+      contentBlocks.append(.text(value))
+    }
 
     /// `raw:`-prefixed methods to override other interpolations.
     public mutating func appendInterpolation<T>(raw value: T)

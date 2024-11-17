@@ -19,6 +19,30 @@ SwiftClaude is pre-1.0, meaning the API can change based on feedback from the co
 The following examples assume you have created a value `let claude: Claude`. 
 See [Authentication](#Authentication) for how to create a `Claude`. 
 
+SwiftClaude's core abstraction is `Conversation`, which is a protocol you implement in your project:
+```swift
+import SwiftClaude
+
+struct Conversation: Claude.Conversation {
+  var messages: [Message]
+}
+
+var conversation = Conversation(
+  messages: [
+    .user("Write me a haiku about a really well-made tool.")
+  ]
+)
+```
+
+Once you have a conversation, you can ask Claude to provide the next message:
+```swift
+let message = claude.nextMessage(in: conversation)
+```
+
+
+
+
+
 To send a message, you simply call `Claude.nextMessage`:
 ```swift
 let message = claude.nextMessage(
