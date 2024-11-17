@@ -18,13 +18,13 @@ extension Claude {
     isolation: isolated Actor = #isolation
   ) -> Conversation.AssistantMessage {
     #if DEBUG
-    switch conversation.currentState {
-    case .ready, .failed:
-      break
-    case .responding:
-      /// Streaming a response to a conversation that is currently managing a response may result in hard-to-diagnose errors
-      assertionFailure()
-    }
+      switch conversation.currentState {
+      case .ready, .failed:
+        break
+      case .responding:
+        /// Streaming a response to a conversation that is currently managing a response may result in hard-to-diagnose errors
+        assertionFailure()
+      }
     #endif
 
     let message = Conversation.AssistantMessage(

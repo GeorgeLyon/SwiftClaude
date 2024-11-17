@@ -165,14 +165,14 @@ extension Claude {
     case responding(ConversationResponsePhase)
     case failed(Error)
   }
-  
+
   public enum ConversationNextStep {
     /// The conversation is ready for the user to specify the next message and request a response
     /// This will still be the state if a user message has been added but a response has not been requested
     case user
     case toolUseResult
   }
-  
+
   public enum ConversationResponsePhase {
     case streaming
     case waitingForToolInvocationResults
@@ -207,7 +207,7 @@ extension Claude.Conversation {
       return .failed(error)
     }
   }
-  
+
   /// Waits for straming and tool invocation to complete, then returns the next step for this conversation
   public func nextStep(
     isolation: isolated Actor = #isolation
@@ -218,7 +218,7 @@ extension Claude.Conversation {
     try await lastMessage.toolInvocationComplete()
     return try lastMessage.currentNextStep
   }
-  
+
   private var lastMessageIfItIsAnAssitantMessage: AssistantMessage? {
     var reversedMessages = messages.reversed().makeIterator()
     let lastMessage = reversedMessages.next()
@@ -233,7 +233,7 @@ extension Claude.Conversation {
         assert(assistantMessage.isToolInvocationCompleteOrFailed)
       }
     #endif
-    
+
     guard case .assistant(let lastMessage) = lastMessage else {
       return nil
     }
@@ -242,9 +242,9 @@ extension Claude.Conversation {
 
 }
 
-private extension Claude.ConversationAssistantMessage {
-  
-  var currentNextStep: Claude.ConversationNextStep {
+extension Claude.ConversationAssistantMessage {
+
+  fileprivate var currentNextStep: Claude.ConversationNextStep {
     get throws {
       switch currentMetadata.stopReason {
       case .none:
@@ -261,17 +261,16 @@ private extension Claude.ConversationAssistantMessage {
       }
     }
   }
-  
+
 }
 
 extension Claude {
-  
-  private struct NoStopReasonProvided: Error { }
-  
-  private struct MaxOutputTokensReached: Error { }
-  
-}
 
+  private struct NoStopReasonProvided: Error {}
+
+  private struct MaxOutputTokensReached: Error {}
+
+}
 
 // MARK: Message
 
