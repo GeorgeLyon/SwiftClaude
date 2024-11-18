@@ -318,21 +318,13 @@ extension Claude.Conversation {
     for message in self.messages {
       switch message {
       case .user(let userMessage):
-        var content = Claude.UserMessageContent()
-        for contentBlock in userMessage.contentBlocks {
-          switch contentBlock {
-          case .textBlock(let textBlock):
-            content.append(textBlock.text)
-          case .imageBlock(let imageBlock):
-            content.append(try Self.image(for: imageBlock.image))
-          }
-        }
         messages.append(
           .init(
             role: .user,
-            content: try content.messageContent.messagesRequestMessageContent(
+            content: try userMessage.messagesRequestMessageContent(
               for: model,
-              imagePreprocessingMode: imagePreprocessingMode
+              imagePreprocessingMode: imagePreprocessingMode,
+              renderImage: Self.image(for:)
             )
           )
         )

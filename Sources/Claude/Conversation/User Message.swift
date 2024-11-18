@@ -1,3 +1,5 @@
+import ClaudeClient
+import ClaudeMessagesEndpoint
 public import Observation
 
 #if canImport(UIKit)
@@ -180,22 +182,30 @@ extension Claude.ConversationUserMessage: ExpressibleByStringInterpolation {
 
 #endif
 
-// MARK: - Message Content
+// MARK: - Messages Request
 
-extension Claude {
+extension Claude.ConversationUserMessage {
 
-  public struct UserMessageContent: MessageContentRepresentable, SupportsImagesInMessageContent {
-
-    public init() {
-      self.messageContent = .init()
+  func messagesRequestMessageContent(
+    for model: Claude.Model,
+    imagePreprocessingMode: Claude.Image.PreprocessingMode,
+    renderImage: (Image) throws -> Claude.Image
+  ) throws -> ClaudeClient.MessagesEndpoint.Request.Message.Content {
+    var content: ClaudeClient.MessagesEndpoint.Request.Message.Content = []
+    for contentBlock in contentBlocks {
+      switch contentBlock {
+      case .textBlock(let textBlock):
+        content.append(textBlock.text)
+      case .imageBlock(let imageBlock):
+        content.append(
+          contentsOf: try renderImage(imageBlock.image)
+            .messagesRequestMessageContent(
+              for: model,
+              preprocessingMode: imagePreprocessingMode)
+        )
+      }
     }
-
-    public init(messageContent: MessageContent) {
-      self.messageContent = messageContent
-    }
-
-    public var messageContent: MessageContent
-
+    return content
   }
 
 }
