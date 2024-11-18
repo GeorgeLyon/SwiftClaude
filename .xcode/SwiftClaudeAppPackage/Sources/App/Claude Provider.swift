@@ -1,13 +1,13 @@
-import SwiftUI
 import Claude
+import SwiftUI
 
 public struct ClaudeProvider<Content: View>: View {
-  
+
   let defaultModel: Claude.Model
-  
+
   @ViewBuilder
   let content: (Claude) -> Content
-  
+
   public var body: some View {
     switch authenticator.authenticationState {
     case .authenticated(let summary):
@@ -51,22 +51,22 @@ public struct ClaudeProvider<Content: View>: View {
       }
     }
   }
-  
+
   @State
   private var isClearAPIKeyAlertPresented = false
-  
+
   @State
   private var authenticator = Claude.KeychainAuthenticator(
     namespace: "com.github.georgelyon.SwiftClaudeProjectTemplate",
     identifier: "claude-api-key"
   )
-  
+
 }
 
 // MARK: - Implementation Details
 
 private struct ClaudeProviderContentWrapper<Content: View>: View {
-  
+
   init(
     authenticator: Claude.Authenticator,
     defaultModel: Claude.Model,
@@ -78,13 +78,13 @@ private struct ClaudeProviderContentWrapper<Content: View>: View {
       defaultModel: defaultModel
     )
   }
-  
+
   let content: (Claude) -> Content
-  
+
   var body: some View {
     content(claude)
   }
-  
+
   @State
   private var claude: Claude
 }

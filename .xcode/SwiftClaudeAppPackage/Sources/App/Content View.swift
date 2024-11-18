@@ -1,14 +1,13 @@
 import Claude
 import ClaudeClient
-import SwiftUI
-
-import HaikuGenerator
 import ComputerUseDemo
+import HaikuGenerator
+import SwiftUI
 
 /// Currently computer use doesn't work great, probably something to do with the image resizing logic
 
 struct ContentView: View {
-  
+
   var body: some View {
     ClaudeProvider(
       defaultModel: .claude35Sonnet20241022
@@ -23,7 +22,7 @@ struct ContentView: View {
       }
     }
     .padding()
-  
+
   }
 
   @State

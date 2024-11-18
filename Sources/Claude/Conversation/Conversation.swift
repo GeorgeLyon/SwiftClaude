@@ -17,7 +17,8 @@ extension Claude {
 
     associatedtype ToolOutput = Never
 
-    associatedtype ToolUseBlock: ConversationToolUseBlockProtocol
+    associatedtype ToolUseBlock: ConversationToolUseBlockProtocol = Claude
+      .ConversationToolUseBlockNever
     where ToolUseBlock.Output == ToolOutput
 
     var messages: [Message] { get }
@@ -197,9 +198,6 @@ extension Claude.Conversation {
     }
     guard lastMessage.isToolInvocationCompleteOrFailed else {
       return .responding(.waitingForToolInvocationResults)
-    }
-    guard let stopReason = lastMessage.currentMetadata.stopReason else {
-      return .failed(Claude.NoStopReasonProvided())
     }
     do {
       return .ready(for: try lastMessage.currentNextStep)

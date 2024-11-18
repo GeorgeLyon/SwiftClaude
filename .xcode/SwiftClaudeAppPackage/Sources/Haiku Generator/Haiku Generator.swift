@@ -14,34 +14,40 @@ public struct HaikuGenerator: View {
           submit()
         }
         .disabled(!conversation.messages.isEmpty)
-      
+
       ForEach(conversation.messages) { message in
         switch message {
         case .user(let user):
-          ForEach(user.contentBlocks) { block in
-            switch block {
-            case .textBlock(let textBlock):
-              Text(textBlock.text)
-            case .imageBlock(let imageBlock):
-              Image(uiImage: imageBlock.image)
-            }
-          }
+          Text(user.text)
+        /// If you want to support images, you can do something like the following:
+        // ForEach(user.contentBlocks) { block in
+        //   switch block {
+        //   case .textBlock(let textBlock):
+        //     Text(textBlock.text)
+        //   case .imageBlock(let imageBlock):
+        //     Image(uiImage: imageBlock.image)
+        //   }
+        // }
         case .assistant(let assistant):
-          ForEach(assistant.currentContentBlocks) { block in
-            switch block {
-            case .textBlock(let textBlock):
-              Text(textBlock.currentText)
-            case .toolUseBlock(let toolUseBlock):
-              if let output = toolUseBlock.toolUse.currentOutput {
-                Text("[Using \(toolUseBlock.toolUse.toolName): \(output)]")
-              } else {
-                Text("[Using \(toolUseBlock.toolUse.toolName)]")
+          #if TOOL_USE_DISABLED
+            Text(assistant.currentText)
+          #else
+            ForEach(assistant.currentContentBlocks) { block in
+              switch block {
+              case .textBlock(let textBlock):
+                Text(textBlock.currentText)
+              case .toolUseBlock(let toolUseBlock):
+                if let output = toolUseBlock.toolUse.currentOutput {
+                  Text("[Using \(toolUseBlock.toolUse.toolName): \(output)]")
+                } else {
+                  Text("[Using \(toolUseBlock.toolUse.toolName)]")
+                }
               }
             }
-          }
+          #endif
         }
       }
-      
+
       switch conversation.currentState {
       case .ready(for: let nextStep):
         switch nextStep {
@@ -77,31 +83,47 @@ public struct HaikuGenerator: View {
         .user("Write me a haiku about \(haikuTopic).")
       )
     }
-    let message = claude.nextMessage(
-      in: conversation,
-      tools: Tools {
-        CatEmojiTool()
-        EmojiTool()
-      },
-      invokeTools: .whenInputAvailable
-    )
+    #if TOOL_USE_DISABLED
+      let message = claude.nextMessage(
+        in: conversation
+      )
+    #else
+      let message = claude.nextMessage(
+        in: conversation,
+        tools: Tools {
+          CatEmojiTool()
+          EmojiTool()
+        },
+        invokeTools: .whenInputAvailable
+      )
+    #endif
     conversation.messages.append(.assistant(message))
     Task {
-      for try await block in message.contentBlocks {
-        switch block {
-        case .textBlock(let textBlock):
-          for try await textFragment in textBlock.textFragments {
-            print(textFragment, terminator: "")
-            fflush(stdout)
-          }
-        case .toolUseBlock(let toolUseBlock):
-          print("[Using \(toolUseBlock.toolUse.toolName): \(try await toolUseBlock.toolUse.output())]")
+      #if TOOL_USE_DISABLED
+        for try await segment in message.textSegments {
+          print(segment, terminator: "")
+          fflush(stdout)
         }
-      }
-      print()
+        print()
+      /// Or, all at once:
+      // print(try await message.text())
+      #else
+        for try await block in message.contentBlocks {
+          switch block {
+          case .textBlock(let textBlock):
+            for try await textFragment in textBlock.textFragments {
+              print(textFragment, terminator: "")
+              fflush(stdout)
+            }
+          case .toolUseBlock(let toolUseBlock):
+            print("[Using \(toolUseBlock.toolName): \(try await toolUseBlock.output())]")
+          }
+        }
+        print()
+      #endif
     }
   }
-  
+
   private func reset() {
     haikuTopic = ""
     conversation = Conversation()
@@ -109,23 +131,22 @@ public struct HaikuGenerator: View {
 
   @State
   private var haikuTopic = ""
-  
+
   @State
   private var conversation = Conversation()
-  
+
   private let claude: Claude
-  
+
 }
 
-@Observable
-private final class Conversation: Claude.Conversation {
+private struct Conversation: Claude.Conversation {
 
   var messages: [Message] = []
-  
-  typealias UserMessageImage = UIImage
-  
-  typealias ToolOutput = String
-  
+
+  #if !TOOL_USE_DISABLED
+    typealias ToolOutput = String
+  #endif
+
 }
 
 @Tool

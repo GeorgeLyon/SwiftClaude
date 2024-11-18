@@ -125,18 +125,18 @@ public struct ComputerUseDemo: View {
 
   @State
   private var screenshot = demoScreenshot
-  
+
 }
 
 @Observable
 private final class Conversation: Claude.Conversation {
-  
+
   var messages: [Message] = [
     .user("Tap on Safari")
   ]
-  
+
   typealias ToolOutput = ToolInvocationResultContent
-  
+
 }
 
 private struct Computer: Claude.Beta.ComputerTool {

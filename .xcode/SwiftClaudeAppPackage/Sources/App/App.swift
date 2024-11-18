@@ -2,7 +2,7 @@ import SwiftUI
 
 @main
 struct App: SwiftUI.App {
-  init() { }
+  init() {}
   var body: some Scene {
     WindowGroup {
       ContentView()

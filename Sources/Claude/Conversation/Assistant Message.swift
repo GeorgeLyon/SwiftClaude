@@ -248,7 +248,47 @@ extension Claude {
 
 }
 
-extension Claude {
+extension Claude.ConversationAssistantMessage
+where ToolUseBlock == Claude.ConversationToolUseBlockNever {
+
+  public var currentText: String {
+    currentContentBlocks
+      .map { block -> String in
+        switch block {
+        case .textBlock(let textBlock):
+          return textBlock.currentText
+        case .toolUseBlock(let toolUseBlock):
+          switch toolUseBlock {
+
+          }
+        }
+      }
+      .joined()
+  }
+
+  public func text(
+    isolation: isolated Actor = #isolation
+  ) async throws -> String {
+    try await streamingComplete()
+    return currentText
+  }
+
+  public var textSegments: some Claude.OpaqueAsyncSequence<Substring> {
+    return
+      contentBlocks
+      .map { block in
+        switch block {
+        case .textBlock(let textBlock):
+          return textBlock.textFragments
+        case .toolUseBlock(let toolUseBlock):
+          switch toolUseBlock {
+
+          }
+        }
+      }
+      .joined()
+      .opaque
+  }
 
 }
 

@@ -45,47 +45,47 @@ extension Claude {
 /// For convenience, pass through `ToolUseProtocol` members
 extension Claude.ConversationToolUseBlock {
 
-  var tool: any Claude.Tool<Output> {
+  public var tool: any Claude.Tool<Output> {
     toolUse.tool
   }
 
-  var toolName: String {
+  public var toolName: String {
     toolUse.toolName
   }
 
-  var currentInputJSON: String {
+  public var currentInputJSON: String {
     toolUse.currentInputJSON
   }
 
-  var inputJSONFragments: any Claude.OpaqueAsyncSequence<Substring> {
+  public var inputJSONFragments: any Claude.OpaqueAsyncSequence<Substring> {
     toolUse.inputJSONFragments
   }
 
-  func inputJSON(
+  public func inputJSON(
     isolation: isolated Actor = #isolation
   ) async throws -> String {
     try await toolUse.inputJSON(isolation: isolation)
   }
 
-  var isInvocationCompleteOrFailed: Bool {
+  public var isInvocationCompleteOrFailed: Bool {
     toolUse.isInvocationCompleteOrFailed
   }
 
-  var currentError: Error? {
+  public var currentError: Error? {
     toolUse.currentError
   }
 
-  var currentOutput: Output? {
+  public var currentOutput: Output? {
     toolUse.currentOutput
   }
 
-  func output(
+  public func output(
     isolation: isolated Actor = #isolation
   ) async throws -> Output {
     try await toolUse.output(isolation: isolation)
   }
 
-  func requestInvocation() {
+  public func requestInvocation() {
     toolUse.requestInvocation()
   }
 

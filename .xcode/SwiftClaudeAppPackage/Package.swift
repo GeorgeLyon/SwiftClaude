@@ -25,7 +25,7 @@ let package = Package(
       name: "App",
       dependencies: [
         "HaikuGenerator",
-        "ComputerUseDemo"
+        "ComputerUseDemo",
       ]
     ),
     .target(
@@ -33,7 +33,11 @@ let package = Package(
       dependencies: [
         "SwiftClaude"
       ],
-      path: "Sources/Haiku Generator"
+      path: "Sources/Haiku Generator",
+      swiftSettings: [
+        /// Uncomment this line to disable tool use
+        // .define("TOOL_USE_DISABLED")
+      ]
     ),
     .target(
       name: "ComputerUseDemo",
@@ -45,13 +49,13 @@ let package = Package(
         .process("Screenshot.png")
       ]
     ),
-  
+
     .testTarget(
       name: "SwiftClaudeAppPackageTests",
       dependencies: [
         "App"
       ],
       path: "Tests/App Tests"
-    )
+    ),
   ]
 )
