@@ -133,6 +133,9 @@ private struct Conversation: Claude.Conversation {
 } 
 ```
 
+`String` is the simplest type to use for tool output, but you can also use `ToolInvocationResultContent`, or even a custom type if you want to leverage more sophisticated capabilities like [vision](#Vision). 
+For a working example, consult `ComputerUseDemo` in `.xcode/SwiftClaudeAppPackage`. 
+
 You also need to provide Claude with the list of tools it has access to:
 ```swift
 let message = claude.nextMessage(
@@ -159,10 +162,7 @@ let message = claude.nextMessage(
 ) 
 ```
 
-`String` is the simplest type to use for tool output, but you can also use `ToolInvocationResultContent`, or even a custom type if you want to leverage more sophisticated capabilities like [vision](#Vision). 
-For a working example, consult `ComputerUseDemo` in `.xcode/SwiftClaudeAppPackage`. 
-
-Conversations with tool use require handling some additional cases, since they may include more than just text content blocks.
+Conversations with tool use require handling some additional cases, since they may include more than just text.
 Instead of just processing text or text segments, you will now need to process content blocks.
 Text content blocks have a similar API to text-only messages, and tool use blocks can be processed in a number of ways.
 The async API looks something like this:
@@ -209,7 +209,7 @@ repeat {
     tools: Tools { … }
   )
   conversation.append(message)
-} while try await conversation.nextStep() == .toolUse
+} while try await conversation.nextStep() == .toolUseResult
 ```
 
 ### Vision 
