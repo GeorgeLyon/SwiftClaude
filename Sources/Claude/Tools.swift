@@ -59,21 +59,25 @@ extension Claude.Tool {
   /// This is phrased weirdly because we want the return value to be `sending` but also want to return `toolWithContext`.
   func messagesRequestToolDefinition(
     for model: Claude.Model,
-    imagePreprocessingMode: Claude.Image.PreprocessingMode,
-    _ toolWithContext: inout (any Claude.ToolWithContextProtocol<Output>)?
-  ) throws -> sending ClaudeClient.MessagesEndpoint.Request.ToolDefinitions.Element {
+    imagePreprocessingMode: Claude.Image.PreprocessingMode
+  ) throws -> (
+    element: ClaudeClient.MessagesEndpoint.Request.ToolDefinitions.Element,
+    toolWithContext: any Claude.ToolWithContextProtocol<Output>
+  ) {
     switch definition.kind {
     #if canImport(ClaudeToolInput)
       case let .userDefined(name, description, toolInput, privateData):
-        toolWithContext = Claude.ConcereteToolWithContext(
-          toolName: name,
-          tool: self,
-          context: Claude.ToolInvocationContext(privateData: privateData)
-        )
-        return .tool(
-          name: name,
-          description: description,
-          inputSchema: toolInput.toolInputSchema.encodable
+        return (
+          element: .tool(
+            name: name,
+            description: description,
+            inputSchema: toolInput.encodablToolInputSchema
+          ),
+          toolWithContext: Claude.ConcereteToolWithContext(
+            toolName: name,
+            tool: self,
+            context: Claude.ToolInvocationContext(privateData: privateData)
+          )
         )
     #endif
     case let .computer(displaySize, displayNumber, privateData):
@@ -82,28 +86,41 @@ extension Claude.Tool {
         preprocessingMode: imagePreprocessingMode
       )
       let definition = ClaudeClient.MessagesEndpoint.Request.AnthropicToolDefinition.computer(
-        displaySize: displaySize,
+        displaySize: adjustedDisplaySize,
         displayNumber: displayNumber
       )
-      toolWithContext = Claude.ConcereteToolWithContext(
-        toolName: definition.name,
-        tool: self,
-        context: Claude.ToolInvocationContext(
-          privateData: privateData(adjustedDisplaySize)
+      return (
+        element: .tool(definition),
+        toolWithContext: Claude.ConcereteToolWithContext(
+          toolName: definition.name,
+          tool: self,
+          context: Claude.ToolInvocationContext(
+            privateData: privateData(adjustedDisplaySize)
+          )
         )
       )
-      return .tool(definition)
     }
   }
 
 }
 
 #if canImport(ClaudeToolInput)
-  extension ToolInputSchema {
-    fileprivate var encodable: any Encodable {
-      ToolInputSchemaEncodingContainer(schema: self)
+
+  extension ToolInput {
+    fileprivate static var encodablToolInputSchema: any Encodable & Sendable {
+      ToolInputStaticSchemaEncodingContainer<Self>()
     }
   }
+
+  private struct ToolInputStaticSchemaEncodingContainer<ToolInput: ClaudeToolInput.ToolInput>:
+    Encodable, Sendable
+  {
+    func encode(to encoder: any Encoder) throws {
+      try ToolInputSchemaEncodingContainer(schema: ToolInput.toolInputSchema)
+        .encode(to: encoder)
+    }
+  }
+
 #endif
 
 // MARK: Tool Definition
@@ -230,7 +247,7 @@ extension Claude {
 
   public struct ToolInputEncoder<Tool: Claude.Tool> {
 
-    static func encode(_ input: Tool.Input) throws -> any Encodable {
+    static func encode(_ input: Tool.Input) throws -> Encodable & Sendable {
       var encoder = ToolInputEncoder()
       Tool.encodeInput(input, to: &encoder)
       guard let value = encoder.toolInput else {
@@ -240,14 +257,38 @@ extension Claude {
       return value
     }
 
-    mutating func encode(_ input: any Encodable) {
+    mutating func encode(_ input: Encodable & Sendable) {
       self.toolInput = input
     }
 
-    fileprivate var toolInput: (any Encodable)?
+    fileprivate var toolInput: (Encodable & Sendable)?
 
     private struct EncodingFailed: Error {
 
+    }
+  }
+
+  /// Specifies how to encode input decoding failures when
+  public struct ToolInputDecodingFailureEncodingStrategy {
+
+    public static var encodeErrorInPlaceOfInput: Self {
+      Self(kind: .encodeErrorInPlaceOfInput)
+    }
+
+    func encode(_ error: Error) -> Encodable & Sendable {
+      switch kind {
+      case .encodeErrorInPlaceOfInput:
+        return Failure(error: "\(error)")
+      }
+    }
+
+    private enum Kind {
+      case encodeErrorInPlaceOfInput
+    }
+    private let kind: Kind
+
+    private struct Failure: Encodable {
+      let error: String
     }
   }
 
@@ -293,13 +334,6 @@ extension Claude {
     }
 
     public var messageContent: MessageContent
-
-  }
-
-  /// An array of `tool_result` content blocks represening the results of invoking the tools specified in `tool_use` blocks in an assistant message.
-  public struct ToolInvocationResults {
-
-    let messageContent: MessageContent
 
   }
 
@@ -450,6 +484,69 @@ extension Claude.Tools {
       fileprivate let tools: Claude.Tools<Output>
     }
 
+  }
+
+}
+
+// MARK: Tool Kit
+
+extension Claude.Tools {
+
+  func compile(
+    for model: Claude.Model,
+    imagePreprocessingMode: Claude.Image.PreprocessingMode
+  ) throws -> (ToolKit<Output>, ClaudeClient.MessagesEndpoint.Request.ToolDefinitions) {
+    var toolsByName: [String: any Claude.ToolWithContextProtocol<Output>] = [:]
+    var toolDefinitions = ClaudeClient.MessagesEndpoint.Request.ToolDefinitions()
+
+    for element in elements {
+      switch element {
+      case .cacheBreakpoint(let breakpoint):
+        toolDefinitions.elements.append(.cacheBreakpoint(breakpoint))
+      case .tool(let tool):
+        let (definition, toolWithContext) = try tool.messagesRequestToolDefinition(
+          for: model,
+          imagePreprocessingMode: imagePreprocessingMode
+        )
+        let name = toolWithContext.toolName
+        guard toolsByName.updateValue(toolWithContext, forKey: name) == nil else {
+          throw MultipleToolsWithSameName(name: name)
+        }
+        toolDefinitions.elements.append(definition)
+      }
+    }
+
+    return (
+      ToolKit(toolsByName: toolsByName),
+      toolDefinitions
+    )
+  }
+
+  private struct MultipleToolsWithSameName: Error {
+    let name: String
+  }
+
+}
+
+struct ToolKit<Output> {
+
+  func tool(named name: String) throws -> any Claude.ToolWithContextProtocol<Output> {
+    guard let tool = toolsByName[name] else {
+      throw UnknownTool(name: name)
+    }
+    return tool
+  }
+
+  fileprivate init(
+    toolsByName: [String: any Claude.ToolWithContextProtocol<Output>]
+  ) {
+    self.toolsByName = toolsByName
+  }
+
+  private let toolsByName: [String: any Claude.ToolWithContextProtocol<Output>]
+
+  private struct UnknownTool: Error {
+    let name: String
   }
 
 }

@@ -78,8 +78,10 @@ extension Claude {
 
       return [
         .image(
-          mediaType: .png,
-          data: try preprocessedImage.pngRepresentation
+          .base64(
+            mediaType: .png,
+            data: try preprocessedImage.pngRepresentation
+          )
         )
       ]
 
@@ -113,9 +115,13 @@ private protocol PlatformImageBacking {
     }
 
     fileprivate func resized(to newSize: ClaudeClient.Image.Size) throws -> PlatformImageBacking {
-      UIGraphicsBeginImageContextWithOptions(size, false, 1.0)
+      let newSize = CGSize(
+        width: newSize.widthInPixels,
+        height: newSize.heightInPixels
+      )
+      UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
       defer { UIGraphicsEndImageContext() }
-      self.draw(in: CGRect(origin: .zero, size: size))
+      self.draw(in: CGRect(origin: .zero, size: newSize))
       guard let resizedImage = UIGraphicsGetImageFromCurrentImageContext() else {
         throw ResizingFailed()
       }

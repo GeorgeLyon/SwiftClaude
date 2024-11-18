@@ -1,36 +1,211 @@
-public typealias UserMessage = Claude.UserMessage
+import ClaudeClient
+import ClaudeMessagesEndpoint
+public import Observation
+
+#if canImport(UIKit)
+  public import UIKit
+#endif
+
+#if canImport(AppKit)
+  public import AppKit
+#endif
 
 extension Claude {
 
-  public struct UserMessage: MessageContentRepresentable, SupportsImagesInMessageContent {
+  @Observable
+  public final class ConversationUserMessage<Conversation: Claude.Conversation>: Identifiable {
 
-    public init(messageContent: MessageContent) {
-      self.messageContent = messageContent
+    public init() {
+      contentBlocks = []
     }
 
-    public init(_ toolInvocationResults: Claude.ToolInvocationResults) {
-      self.messageContent = toolInvocationResults.messageContent
+    public init(contentBlocks: [ContentBlock]) {
+      self.contentBlocks = contentBlocks
     }
 
-    public var messageContent: MessageContent
+    public enum ContentBlock: Identifiable {
+      case textBlock(TextBlock)
+      case imageBlock(ImageBlock)
 
-    public mutating func append(
-      contentsOf toolInvocationResults: Claude.ToolInvocationResults
-    ) {
-      messageContent.components.append(
-        contentsOf: toolInvocationResults.messageContent.components
-      )
+      public static func text(_ text: String) -> Self {
+        .textBlock(.init(text: text))
+      }
+      public static func image(_ image: Image) -> Self {
+        .imageBlock(.init(image: image))
+      }
+
+      public struct ID: Hashable {
+        fileprivate enum Kind: Hashable {
+          case textBlock(TextBlock.ID)
+          case imageBlock(ImageBlock.ID)
+        }
+        fileprivate init(kind: Kind) {
+          self.kind = kind
+        }
+        private let kind: Kind
+      }
+      public var id: ID {
+        switch self {
+        case .textBlock(let textBlock):
+          ID(kind: .textBlock(textBlock.id))
+        case .imageBlock(let imageBlock):
+          ID(kind: .imageBlock(imageBlock.id))
+        }
+      }
+    }
+    public var contentBlocks: [ContentBlock]
+
+    public typealias TextBlock = ConversationUserMessageTextBlock
+
+    public typealias Image = Conversation.UserMessageImage
+
+    public final class ImageBlock: Identifiable {
+      public init(image: Image) {
+        self.image = image
+      }
+      public let image: Image
     }
 
   }
 
+  public final class ConversationUserMessageTextBlock: Identifiable {
+    public init(text: String) {
+      self.text = text
+    }
+    public let text: String
+  }
+
 }
 
-extension Claude.MessageContentBuilder where Result == UserMessage {
+// MARK: - Text-only Messages
 
-  @_disfavoredOverload
-  public static func buildExpression(_ expression: Claude.ToolInvocationResults) -> Component {
-    Component(messageContent: expression.messageContent)
+extension Claude.ConversationUserMessage where Conversation.UserMessageImage == Never {
+
+  public var text: String {
+    contentBlocks
+      .map { contentBlock in
+        switch contentBlock {
+        case .textBlock(let textBlock):
+          return textBlock.text
+        case .imageBlock(let imageBlock):
+          switch imageBlock.image {
+
+          }
+        }
+      }
+      .joined()
+  }
+
+}
+
+// MARK: - Expressible By Array Literal
+
+extension Claude.ConversationUserMessage: ExpressibleByArrayLiteral {
+
+  public convenience init(arrayLiteral elements: ContentBlock...) {
+    self.init(contentBlocks: elements)
+  }
+
+}
+
+// MARK: - Expressible By String Interpolation
+
+/// We can't rely on `MessageContentRepresentable` here because `ContentBlock` is an `enum` meant for public consumption.
+extension Claude.ConversationUserMessage: ExpressibleByStringInterpolation {
+  public convenience init(stringLiteral value: StringLiteralType) {
+    self.init(contentBlocks: [.text(value)])
+  }
+
+  public convenience init(stringInterpolation: StringInterpolation) {
+    self.init(contentBlocks: stringInterpolation.contentBlocks)
+  }
+
+  public struct StringInterpolation: StringInterpolationProtocol {
+
+    public init(literalCapacity: Int, interpolationCount: Int) {
+      contentBlocks.reserveCapacity(literalCapacity + interpolationCount)
+    }
+
+    public mutating func appendLiteral(_ literal: String) {
+      contentBlocks.append(.text(literal))
+    }
+    public mutating func appendInterpolation(_ value: String) {
+      contentBlocks.append(.text(value))
+    }
+
+    /// `raw:`-prefixed methods to override other interpolations.
+    public mutating func appendInterpolation<T>(raw value: T)
+    where T: CustomStringConvertible, T: TextOutputStreamable {
+      contentBlocks.append(.text("\(value)"))
+    }
+    public mutating func appendInterpolation<T>(raw value: T) where T: TextOutputStreamable {
+      contentBlocks.append(.text("\(value)"))
+    }
+    public mutating func appendInterpolation<T>(raw value: T) where T: CustomStringConvertible {
+      contentBlocks.append(.text("\(value)"))
+    }
+    public mutating func appendInterpolation<T>(raw value: T) {
+      contentBlocks.append(.text("\(value)"))
+    }
+    public mutating func appendInterpolation(raw value: any Any.Type) {
+      contentBlocks.append(.text("\(value)"))
+    }
+
+    fileprivate private(set) var contentBlocks:
+      [Claude.ConversationUserMessage<Conversation>.ContentBlock] = []
+  }
+}
+
+#if canImport(UIKit)
+
+  extension Claude.ConversationUserMessage.StringInterpolation
+  where Conversation.UserMessageImage == UIImage {
+
+    public mutating func appendInterpolation(_ value: UIImage) {
+      contentBlocks.append(.image(value))
+    }
+
+  }
+
+#endif
+
+#if canImport(AppKit)
+
+  extension Claude.ConversationUserMessage.StringInterpolation
+  where Conversation.UserMessageImage == NSImage {
+
+    public mutating func appendInterpolation(_ value: NSImage) {
+      contentBlocks.append(.image(value))
+    }
+
+  }
+
+#endif
+
+// MARK: - Messages Request
+
+extension Claude.ConversationUserMessage {
+
+  func messagesRequestMessageContent(
+    for model: Claude.Model,
+    imagePreprocessingMode: Claude.Image.PreprocessingMode,
+    renderImage: (Image) throws -> Claude.Image
+  ) throws -> ClaudeClient.MessagesEndpoint.Request.Message.Content {
+    var content: ClaudeClient.MessagesEndpoint.Request.Message.Content = []
+    for contentBlock in contentBlocks {
+      switch contentBlock {
+      case .textBlock(let textBlock):
+        content.append(textBlock.text)
+      case .imageBlock(let imageBlock):
+        content.append(
+          contentsOf: try renderImage(imageBlock.image)
+            .messagesRequestMessageContent(
+              for: model,
+              preprocessingMode: imagePreprocessingMode)
+        )
+      }
+    }
+    return content
   }
 
 }

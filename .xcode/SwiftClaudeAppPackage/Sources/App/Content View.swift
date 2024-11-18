@@ -1,44 +1,28 @@
 import Claude
 import ClaudeClient
-import SwiftUI
-
-import HaikuGenerator
 import ComputerUseDemo
+import HaikuGenerator
+import SwiftUI
 
 /// Currently computer use doesn't work great, probably something to do with the image resizing logic
 
 struct ContentView: View {
-  
+
   var body: some View {
-    VStack {
-      switch authenticator.authenticationState {
-      case .authenticated(let summary):
-        HStack {
-          Text(summary)
-          Spacer()
-          Button("Change API Key") {
-            _ = try? authenticator.deleteApiKey()
-          }
+    ClaudeProvider(
+      defaultModel: .claude35Sonnet20241022
+    ) { claude in
+      TabView {
+        Tab("Haiku Generator", systemImage: "sparkles.rectangle.stack") {
+          HaikuGenerator(claude: claude)
         }
-        
-        TabView {
-          Tab("Haiku Generator", systemImage: "sparkles.rectangle.stack") {
-            HaikuGenerator(authenticator: authenticator)
-          }
-          Tab("Computer Use Demo", systemImage: "desktopcomputer") {
-            ComputerUseDemo(authenticator: authenticator)
-          }
+        Tab("Computer Use Demo", systemImage: "desktopcomputer") {
+          ComputerUseDemo(claude: claude)
         }
-        
-      case .unauthenticated:
-        APIKeyEntryView(authenticator: authenticator)
-          .padding()
-      case .failed(let error):
-        Text("Failed: \(error)")
       }
-      Spacer()
     }
     .padding()
+
   }
 
   @State

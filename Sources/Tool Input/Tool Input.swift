@@ -19,7 +19,7 @@ extension ToolInput where ToolInputSchema.DescribedValue == Self {
 // MARK: - Schema
 
 public protocol ToolInputSchema {
-  associatedtype DescribedValue
+  associatedtype DescribedValue: Sendable
   var metadata: ToolInputSchemaMetadata<Self> { get }
   func decodeValue(from decoder: ToolInputDecoder) throws -> DescribedValue
 
@@ -104,17 +104,17 @@ package struct ToolInputDecodableContainer<
 /// Package-private for now so we don't expose the encoding of `ToolInput` publicly
 package struct ToolInputEncodableContainer<
   ToolInput: ClaudeToolInput.ToolInput
->: Encodable {
+>: Encodable, Sendable {
   public init(toolInput: ToolInput) {
-    self.toolInput = toolInput
+    value = toolInput.toolInputSchemaDescribedValue
   }
   public func encode(to encoder: Encoder) throws {
     try ToolInput.toolInputSchema.encode(
-      toolInput.toolInputSchemaDescribedValue,
+      value,
       to: encoder
     )
   }
-  private let toolInput: ToolInput
+  private let value: ToolInput.ToolInputSchema.DescribedValue
 }
 
 // MARK: - Convenience

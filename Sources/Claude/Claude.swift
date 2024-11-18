@@ -1,7 +1,10 @@
 public import ClaudeClient
 public import ClaudeMessagesEndpoint
 
+public typealias ToolChoice = Claude.ToolChoice
+
 public struct Claude {
+
   public init(
     backend: Backend = .production,
     authenticator: Authenticator,
@@ -21,7 +24,6 @@ public struct Claude {
   public typealias APIKey = ClaudeClient.APIKey
   public typealias Backend = ClaudeClient.Backend
 
-  public typealias ToolUse = ClaudeClient.MessagesEndpoint.ToolUse
   public typealias ToolChoice = ClaudeClient.MessagesEndpoint.Request.ToolChoice
 
   #if canImport(Security)

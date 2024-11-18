@@ -34,7 +34,7 @@ extension UInt64: ToolInput {
 
 // MARK: - Schema
 
-public struct ToolInputIntegerSchema<DescribedValue: BinaryInteger & Codable>:
+public struct ToolInputIntegerSchema<DescribedValue: BinaryInteger & Codable & Sendable>:
   ToolInputSchema
 {
 

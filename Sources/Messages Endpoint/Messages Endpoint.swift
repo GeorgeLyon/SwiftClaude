@@ -4,11 +4,11 @@ public typealias MessagesEndpoint = ClaudeClient.MessagesEndpoint
 
 extension ClaudeClient {
 
-  public func messages(
-    messages: sending [MessagesEndpoint.Request.Message],
-    systemPrompt: sending MessagesEndpoint.Request.Message.Content?,
-    tools: sending MessagesEndpoint.Request.ToolDefinitions?,
-    toolChoice: sending MessagesEndpoint.Request.ToolChoice?,
+  public func messagesResponse(
+    messages: [MessagesEndpoint.Request.Message],
+    systemPrompt: MessagesEndpoint.Request.Message.Content?,
+    tools: MessagesEndpoint.Request.ToolDefinitions?,
+    toolChoice: MessagesEndpoint.Request.ToolChoice?,
     model: Model.ID,
     maxOutputTokens: Int,
     isolation: isolated Actor = #isolation
@@ -30,22 +30,25 @@ extension ClaudeClient {
       anthropicBetaHeaders.append(contentsOf: Set(toolBetaHeaders))
     }
 
+    let body = MessagesEndpoint.Request.Body(
+      model: model,
+      maxOutputTokens: maxOutputTokens,
+      toolChoice: toolChoice,
+      tools: tools,
+      systemPrompt: systemPrompt,
+      messages: messages
+    )
+
     /// - note: Region isolation checked fails if we don't use the intermediate `events` variable
     let events = try await serverSentEvents(
       method: .post,
       path: "v1/messages",
       apiVersion: .v2023_06_01,
       anthropicBetaHeaders: anthropicBetaHeaders.isEmpty ? nil : anthropicBetaHeaders,
-      body: MessagesEndpoint.Request.Body(
-        model: model,
-        maxOutputTokens: maxOutputTokens,
-        toolChoice: toolChoice,
-        tools: tools,
-        systemPrompt: systemPrompt,
-        messages: messages
-      ),
+      body: body,
       eventType: MessagesEndpoint.Response.Event.self
     )
+
     return MessagesEndpoint.Response(
       events: .init(events: events)
     )
@@ -70,7 +73,7 @@ extension ClaudeClient.MessagesEndpoint {
 
 extension ClaudeClient.MessagesEndpoint.Request {
 
-  fileprivate struct Body: Encodable {
+  fileprivate struct Body: Encodable, Sendable {
 
     init(
       model: ClaudeClient.Model.ID,
@@ -99,7 +102,7 @@ extension ClaudeClient.MessagesEndpoint.Request {
 
   }
 
-  public struct ToolChoice: Encodable {
+  public struct ToolChoice: Encodable, Sendable {
     public static func auto(isParallelToolUseDisabled: Bool? = nil) -> ToolChoice {
       ToolChoice(type: .auto, isParallelToolUseDisabled: isParallelToolUseDisabled)
     }
@@ -151,7 +154,7 @@ extension ClaudeClient.MessagesEndpoint {
   public enum ToolUse {
 
     /// An `ID` that links tool use requests to tool use responses
-    public struct ID: TypedID, Codable {
+    public struct ID: TypedID, Sendable, Codable, Hashable {
       public init(untypedValue: UntypedID) {
         self.untypedValue = untypedValue
       }
@@ -164,19 +167,23 @@ extension ClaudeClient.MessagesEndpoint {
 
 extension ClaudeClient.MessagesEndpoint.Request {
 
-  public struct ToolDefinitions: Encodable {
+  public struct ToolDefinitions: Encodable, Sendable {
+
+    public init() {
+      elements = []
+    }
 
     public init(elements: [Element]) {
       self.elements = elements
     }
 
-    public struct Element {
+    public struct Element: Sendable {
 
       /// A user-defined tool
       public static func tool(
         name: String,
         description: String,
-        inputSchema: any Encodable
+        inputSchema: any Encodable & Sendable
       ) -> Self {
         Self(
           component: .userDefinedTool(
@@ -224,7 +231,7 @@ extension ClaudeClient.MessagesEndpoint.Request {
       }
 
       /// A user-defined tool
-      private struct UserToolDefinition: Encodable {
+      private struct UserToolDefinition: Encodable, Sendable {
         init(
           name: String,
           description: String,
@@ -272,7 +279,7 @@ extension ClaudeClient.MessagesEndpoint.Request {
 extension ClaudeClient.MessagesEndpoint.Request {
 
   /// The definition of an Anthropic-specified tool, like `computer` or `text_editor`
-  public struct AnthropicToolDefinition {
+  public struct AnthropicToolDefinition: Sendable {
 
     public static func computer(
       displaySize: ClaudeClient.Image.Size,
@@ -339,9 +346,9 @@ extension ClaudeClient.MessagesEndpoint.Request {
 
 extension ClaudeClient.MessagesEndpoint.Request {
 
-  public struct Message: Encodable {
+  public struct Message: Encodable, Sendable {
 
-    public enum Role: String, Encodable {
+    public enum Role: String, Encodable, Sendable {
       case user, assistant
     }
     public init(role: Role, content: Content) {
@@ -363,6 +370,15 @@ extension ClaudeClient.MessagesEndpoint.Request {
 // MARK: - Response
 
 extension ClaudeClient.MessagesEndpoint {
+
+  public enum Message {
+    public struct ID: TypedID, Sendable, Decodable, Hashable {
+      public init(untypedValue: UntypedID) {
+        self.untypedValue = untypedValue
+      }
+      public let untypedValue: UntypedID
+    }
+  }
 
   public struct Response {
     let events: Events
@@ -387,7 +403,6 @@ extension ClaudeClient.MessagesEndpoint.Response {
         }
       }
 
-      @available(macOS 15.0, iOS 18.0, *)
       public mutating func next(isolation actor: isolated (any Actor)?) async throws -> Element? {
         switch try await events.next(isolation: actor) {
         case .none:
@@ -424,12 +439,7 @@ extension ClaudeClient.MessagesEndpoint.Response {
 
     public struct MessageStart: Decodable {
       public struct Message: Decodable {
-        public struct ID: TypedID, Decodable, Hashable {
-          public init(untypedValue: UntypedID) {
-            self.untypedValue = untypedValue
-          }
-          public let untypedValue: UntypedID
-        }
+        public typealias ID = ClaudeClient.MessagesEndpoint.Message.ID
         public let id: ID
         public let model: ClaudeClient.Model.ID
         public let usage: ClaudeClient.MessagesEndpoint.Metadata.Usage?

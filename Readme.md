@@ -14,137 +14,211 @@ SwiftClaude is pre-1.0, meaning the API can change based on feedback from the co
 
 ## Usage
 
+The following is a quick introduction to SwiftClaude.
+For more details, look at the example projects defined in `.xcode/SwiftClaudeAppPackage`, particularly `HaikuGenerator`.
+
 ### Basic Usage
 
 The following examples assume you have created a value `let claude: Claude`. 
 See [Authentication](#Authentication) for how to create a `Claude`. 
 
-To send a message, you simply call `Claude.nextMessage`:
+SwiftClaude's core abstraction is `Conversation`, which is a protocol you implement in your project:
 ```swift
-let message = claude.nextMessage(
-  in: Converation {
-    "Write me a haiku about a really well-made tool."
-  }
+import SwiftClaude
+
+struct Conversation: Claude.Conversation {
+  var messages: [Message]
+}
+
+var conversation = Conversation(
+  messages: [
+    .user("Write me a haiku about a really well-made tool.")
+  ]
 )
 ```
 
-Text-only messages can be processed in a number of ways.
-The simplest is just getting the full text:
+Once you have a conversation, you can ask Claude to provide the next message:
 ```swift
-let text = try await message.text()
+let message = claude.nextMessage(in: conversation)
 ```
 
-You can also stream text fragments as they arrive:
+Messages have a simple async API, you can await the full text or process it in chunks:
 ```swift
-for try await fragment in message.textFragments {
-  print(text, terminator: "")
+/// Print the full text
+print(try await message.text())
+
+/// Print the text as segments come in
+for try await segment in message.textSegments {
+  print(segment, terminator: "")
   fflush(stdout)
 }
 print()
 ```
 
-Messages are also `Observable` for easy integration with SwiftUI.
-Properties meant to be observed are prefixed with `current`, such as `currentText`.
-The `HaikuGenerator` example shows off how to use messages with SwiftUI.
+Messages are also `Observable`, meaning you can use them directly in SwiftUI:
+```swift
+Text(message.currentText)
+```
 
-## Tool Use
+For most properties, SwiftClaude provides an async version and an `Observable` version.
+The `Observable` version is typically prefixed with `current`.
 
-SwiftClaude has great support for [tool use](https://docs.anthropic.com/en/docs/build-with-claude/tool-use) via the `@Tool` macro. 
+If you want to implement multiple turns of a conversation simply add the new message to the conversation followed by a response and request a new message.
+```swift
+conversation.messages += [
+  .assistant(message),
+  .user("That was great! Can you write me one more, this time about track saws?")
+]
+let nextMessage = claude.nextMessage(in: conversation)
+```
 
-Here is an example tool definition:
+### Tool Use
+
+SwiftClaude has excellent support for [tool use](https://docs.anthropic.com/en/docs/build-with-claude/tool-use) via the `@Tool` macro.
+
+Defining a tool is as easy as creating a type with an `invoke` method and attaching the `@Tool` macro.
+Here is an example from `HaikuGenerator`:
 ```swift
 @Tool
-struct TurboEncabulator {
+struct EmojiTool {
 
-  /// Turbo-encabulates its input
-  /// - Parameters:
-  ///   - marzlevaneCount: the number of marzlevanes to use when turbo-encabulating
+  /// Displays an emoji
+  /// Great for spicing up a haiku!
   func invoke(
-    marzlevaneCount: Int
-  ) {
-    …
+    _ emoji: String
+  ) -> String {
+    emoji
   }
 
 }
 ```
 
-Now, when this tool is provided to Claude, Claude will know how to call it.
-The comment on the `invoke` function will also be sent to Claude to help Claude understand how to use the tool.
+The comment on the `invoke` function is particularly important here and SwiftClaude will actually send it to Claude to help Claude understand how best to call the function you define.
+For information on how best to document your tool, consult [Anthropic's documentation](https://docs.anthropic.com/en/docs/build-with-claude/tool-use).
 
-To provide tools to claude, just add the `tools:` argument when creating a message:
-```swift
-let message = claude.nextMessage(
-  in: Conversation {
-    "I'm creating a demo showcasing your ability to use tools, can you invoke the `TurboEncabulator` tool with some made-up input?"
-  },
-  tools: Tools {
-    TurboEncabulator()
-  }
-)
-```
-_Note:_ `nextMessage` returns a different type depending on whether or not tools are provided. 
-Without tools, you get a `StreamingTextMessage`, and with tools you get a `StreamingMessage<ToolOutput>`
-
-By default, you need to manually request the invocation of any tools in the returned message by calling `requestInvocation` on the relevant content blocks, or `requestToolInvocations` on the message:
-```swift
-/// On individual content blocks
-for try await block in message.contentBlocks {
-  block.toolUseBlock?.requestInvocation()
-}
-/// On the message
-message.requestToolInvocations()
-```
-You can also specify that SwiftClaude should automatically invoke tools when they are ready using `invokeTools: .whenInputAvailable`:
-```swift
-let message = claude.nextMessage(
-  in: Conversation {
-    "I'm creating a demo showcasing your ability to use tools, can you invoke the `TurboEncabulator` tool with some made-up input?"
-  },
-  tools: Tools {
-    TurboEncabulator()
-  },
-  invokeTools: .whenInputAvailable
-)
-```
-
-_Note:_ By default, Claude can request multiple parallel tool invocations. 
-You can control this behavior by specifying a `ToolChoice` with `isParallelToolUseDisabled: false`.
-
-More complex tools can be defined by providing custom `struct`s or `enum`s as arguments using the `@ToolInput` macro:
+If you want the inputs to your tool to be more sophisticated, you can use the `@ToolInput` macro to define custom structs or enums.
+For example, here is a `Command` tool that could enable claude to navigate forward, backward, or to a specified URL:
 ```swift
 @ToolInput
-enum SpurvingBearing {
-  case fixed
-  case rotating(rpm: Double)
-  case magnetoReluctance(fieldStrength: Float, coilWindings: Int, fluxCapacitance: Double)
+enum Command {
+  case goBack
+  case goForward
+  case navigate(to: String)
 }
+```
 
+You can use this in a tool by simply adding it as parameter to the `invoke` function:
+```swift
 @Tool
-private struct TurboEncabulator {
+struct Browser {
 
-  /// Turbo-encabulates its input
-  /// - Parameters:
-  ///   - marzlevaneCount: the number of marzlevanes to use
-  ///   - spurvingBearing: the type of Spurving bearing to use
-  private func invoke(
-    marzlevaneCount: Int,
-    spurvingBearing: SpurvingBearing
-  ) {
-    
+  /// Controls a browser
+  func invoke(
+    _ command: Command
+  ) -> String {
+    /// Execute `command`
   }
 
 }
 ```
 
-## Vision
+To use this in a conversation, you need to specify the type you want to use for `ToolOutput`:
+```swift
+private struct Conversation: Claude.Conversation {
+
+  var messages: [Message] = []
+
+  typealias ToolOutput = String
+
+} 
+```
+
+`String` is the simplest type to use for tool output, but you can also use `ToolInvocationResultContent`, or even a custom type if you want to leverage more sophisticated capabilities like [vision](#Vision). 
+For a working example, consult `ComputerUseDemo` in `.xcode/SwiftClaudeAppPackage`. 
+
+You also need to provide Claude with the list of tools it has access to:
+```swift
+let message = claude.nextMessage(
+  in: conversation,
+  tools: Tools {
+    CatEmojiTool()
+    EmojiTool()
+  }
+)
+```
+
+When Claude requests tool invocations, those tools are not invoked by default and require explicitly calling `requestInvocation` on the specific tool, or `requestToolInvocations` on the message.
+We recommend prompting the user before invoking tools to ensure that Claude's request is aligned with the user's intentions.
+For simple tools which just provide context or display UI, you can specify a `ToolInvocationStrategy` that makes this process simpler.
+For example `whenToolInputAvailable` will automatically invoke tools the input is decoded successfully:
+```swift
+let message = claude.nextMessage(
+  in: conversation,
+  tools: Tools {
+    CatEmojiTool()
+    EmojiTool()
+  },
+  invokeTools: .whenInputAvailable
+) 
+```
+
+Conversations with tool use require handling some additional cases, since they may include more than just text.
+Instead of just processing text or text segments, you will now need to process content blocks.
+Text content blocks have a similar API to text-only messages, and tool use blocks can be processed in a number of ways.
+The async API looks something like this:
+```swift
+for try await block in message.contentBlocks {
+  switch block {
+  case .textBlock(let textBlock):
+    for try await textFragment in textBlock.textFragments {
+      print(textFragment, terminator: "")
+      fflush(stdout)
+    }
+  case .toolUseBlock(let toolUseBlock):
+    print("[Using \(toolUseBlock.toolName): \(try await toolUseBlock.output())]")
+  }
+}
+print()
+```
+
+Like text-only messages, messages with tool invocations are `Observable` and can be used in frameworks build on top of `Observation` like `SwiftUI` (via the `current`-prefixed properties).
+Here is a SwiftUI example:
+```swift
+ForEach(assistant.currentContentBlocks) { block in
+  switch block {
+  case .textBlock(let textBlock):
+    Text(textBlock.currentText)
+  case .toolUseBlock(let toolUseBlock):
+    if let output = toolUseBlock.toolUse.currentOutput {
+      Text("[Using \(toolUseBlock.toolUse.toolName): \(output)]")
+    } else {
+      Text("[Using \(toolUseBlock.toolUse.toolName)]")
+    }
+  }
+}
+```
+
+Note: Messages and content blocks also all conform to `Identifiable` to make it even easier to use with `SwiftUI`.
+
+Tool results need to be sent back to Claude in order to continue the conversation. 
+The easiest way to do this is to inspect `conversation.nextStep()` like so:
+```swift
+repeat {
+  let message = claude.nextMessage(
+    in: conversation, 
+    tools: Tools { … }
+  )
+  conversation.append(message)
+} while try await conversation.nextStep() == .toolUseResult
+```
+
+### Vision 
 
 SwiftClaude supports [vision](https://docs.anthropic.com/en/docs/build-with-claude/vision).
 On Apple platforms, you can include `UIImage` and `NSImage` directly in user messages:
 ```swift
-let message = claude.nextMessage(
-  in: Conversation {
-    "Write me a haiku inspired by this image: \(image)"
-  }
+conversation.messages.append(
+  .user("Describe this image: \(image)")
 )
 ```
 
@@ -206,4 +280,4 @@ Then, add `SwiftClaude` as a dependency to your target:
     ),
 ```
 
-You can also reference the projects in `Examples` for additional details.
+You can also reference the projects in `.xcode/SwiftClaudeAppPackage` for additional details.

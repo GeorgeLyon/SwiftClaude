@@ -1,4 +1,4 @@
-import ClaudeClient
+public import ClaudeClient
 public import ClaudeMessagesEndpoint
 
 #if canImport(UIKit)
@@ -57,7 +57,7 @@ extension Claude {
     public struct Component {
 
       public static func text(_ text: String) -> Self {
-        Self(kind: .passthrough(.init(text)))
+        Self(kind: .text(text))
       }
 
       public static func toolResult(
@@ -97,21 +97,17 @@ extension Claude {
       #endif
 
       public static func cacheBreakpoint(_ cacheBreakpoint: Beta.CacheBreakpoint) -> Self {
-        Self(kind: .passthrough([.cacheBreakpoint(cacheBreakpoint)]))
-      }
-
-      static func passthrough(
-        _ blocks: ClaudeClient.MessagesEndpoint.Request.Message.Content.Block...
-      ) -> Self {
-        Self(
-          kind: .passthrough(
-            ClaudeClient.MessagesEndpoint.Request.Message.Content(blocks)
-          )
-        )
+        Self(kind: .cacheBreakpoint(cacheBreakpoint))
       }
 
       fileprivate enum Kind {
-        case passthrough(ClaudeClient.MessagesEndpoint.Request.Message.Content)
+        case text(String)
+
+        case toolUse(
+          id: ToolUse.ID,
+          name: String,
+          input: any Encodable & Sendable
+        )
 
         case toolResult(
           id: ToolUse.ID,
@@ -120,6 +116,8 @@ extension Claude {
         )
 
         case image(Image)
+
+        case cacheBreakpoint(Beta.CacheBreakpoint)
 
       }
       fileprivate let kind: Kind
@@ -133,32 +131,44 @@ extension Claude {
     func messagesRequestMessageContent(
       for model: Model,
       imagePreprocessingMode: Image.PreprocessingMode
-    ) throws -> ClaudeClient.MessagesEndpoint.Request.Message.Content {
-      return
-        try components
-        .map { component -> ClaudeClient.MessagesEndpoint.Request.Message.Content in
-          switch component.kind {
-          case .passthrough(let content):
-            return content
-          case let .toolResult(id, content, isError):
-            return [
-              .toolResult(
-                id: id,
-                content: try content?.messagesRequestMessageContent(
-                  for: model,
-                  imagePreprocessingMode: imagePreprocessingMode
-                ),
-                isError: isError
-              )
-            ]
-          case .image(let image):
-            return try image.messagesRequestMessageContent(
-              for: model,
-              preprocessingMode: imagePreprocessingMode
+    ) throws -> sending ClaudeClient.MessagesEndpoint.Request.Message.Content {
+      var content: ClaudeClient.MessagesEndpoint.Request.Message.Content = []
+      for component in components {
+        switch component.kind {
+        case .text(let text):
+          content.append(text)
+        case let .toolUse(id, name, input):
+          content.append(
+            .toolUse(
+              id: id,
+              name: name,
+              input: input
             )
-          }
+          )
+        case let .toolResult(id, resultContent, isError):
+          content.append(
+            .toolResult(
+              id: id,
+              content: try resultContent?.messagesRequestMessageContent(
+                for: model,
+                imagePreprocessingMode: imagePreprocessingMode
+              ),
+              isError: isError
+            )
+          )
+        case .image(let image):
+          let otherContent = try image.messagesRequestMessageContent(
+            for: model,
+            preprocessingMode: imagePreprocessingMode
+          )
+          content.append(contentsOf: otherContent)
+          break
+        case .cacheBreakpoint(let breakpoint):
+          content.append(.cacheBreakpoint(breakpoint))
         }
-        .joined()
+      }
+      return content
+
     }
 
   }
@@ -356,11 +366,7 @@ extension Claude.SupportsImagesInMessageContent {
     public init(
       _ image: UIImage
     ) {
-      self.init(
-        messageContent: MessageContent(
-          [.image(Claude.PlatformImage(image))]
-        )
-      )
+      self.init(Claude.PlatformImage(image))
     }
   #endif
 
@@ -368,11 +374,7 @@ extension Claude.SupportsImagesInMessageContent {
     public init(
       _ image: NSImage
     ) {
-      self.init(
-        messageContent: MessageContent(
-          [.image(Claude.PlatformImage(image))]
-        )
-      )
+      self.init(Claude.PlatformImage(image))
     }
   #endif
 
@@ -381,6 +383,36 @@ extension Claude.SupportsImagesInMessageContent {
   ) {
     self.init(
       messageContent: MessageContent(
+        [.image(image)]
+      )
+    )
+  }
+
+}
+
+extension Claude.SupportsImagesInMessageContent where Self: Claude.MessageContentRepresentable {
+
+  #if canImport(UIKit)
+    public mutating func append(
+      _ image: UIImage
+    ) {
+      append(Claude.PlatformImage(image))
+    }
+  #endif
+
+  #if canImport(AppKit)
+    public mutating func append(
+      _ image: NSImage
+    ) {
+      append(Claude.PlatformImage(image))
+    }
+  #endif
+
+  public mutating func append(
+    _ image: Claude.Image
+  ) {
+    messageContent.append(
+      contentsOf: MessageContent(
         [.image(image)]
       )
     )
