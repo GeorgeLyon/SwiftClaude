@@ -11,32 +11,28 @@ extension ClaudeClient.Model {
     Self(
       id: "claude-3-5-haiku-20241022",
       maxOutputTokens: 8192,
-      imageEncoder: .default
+      vision: .unavailable
     )
   }
   public static var claude35Sonnet20241022: Self {
     Self(
       id: "claude-3-5-sonnet-20241022",
       maxOutputTokens: 8192,
-      imageEncoder: .default
+      vision: .standard
     )
   }
   public static var claude3Opust20240229: Self {
     Self(
       id: "claude-3-opus-20240229",
       maxOutputTokens: 4096,
-      imageEncoder: .default
+      vision: .standard
     )
   }
-
-  @available(
-    *, deprecated, renamed: "claude35haiku20241022", message: "Upgrade to Claude 3.5 Haiku"
-  )
   public static var claude3haiku20240307: Self {
     Self(
       id: "claude-3-haiku-20240307",
       maxOutputTokens: 4096,
-      imageEncoder: .default
+      vision: .standard
     )
   }
 
@@ -48,16 +44,16 @@ extension ClaudeClient {
 
     public let id: ID
     public let maxOutputTokens: Int
-    public let imageEncoder: Image.Encoder
+    public let vision: Vision
 
     public init(
       id: ID,
       maxOutputTokens: Int,
-      imageEncoder: Image.Encoder
+      vision: Vision
     ) {
       self.id = id
       self.maxOutputTokens = maxOutputTokens
-      self.imageEncoder = imageEncoder
+      self.vision = vision
     }
 
     public struct ID: TypedID, Sendable, Codable, ExpressibleByStringInterpolation {
