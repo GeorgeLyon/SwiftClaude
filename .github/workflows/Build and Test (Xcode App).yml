@@ -39,7 +39,7 @@ jobs:
         run: |
           xcrun xcodebuild clean build \
             CODE_SIGNING_REQUIRED=NO \
-            -workspace .xcode/SwiftClaude.xcworkspace \
+            -workspace SwiftClaude.xcworkspace \
             -scheme SwiftClaudeApp \
             -derivedDataPath ".build/Xcode.noindex/DerivedData" \
             -configuration "${{ matrix.build-configuration }}" \
@@ -50,7 +50,7 @@ jobs:
         run: |
           xcrun xcodebuild test \
             CODE_SIGNING_REQUIRED=NO \
-            -workspace .xcode/SwiftClaude.xcworkspace \
+            -workspace SwiftClaude.xcworkspace \
             -scheme SwiftClaudeAppPackage \
             -derivedDataPath ".build/Xcode.noindex/DerivedData" \
             -configuration "${{ matrix.build-configuration }}" \
@@ -60,7 +60,7 @@ jobs:
         run: |
           xcrun xcodebuild test \
             CODE_SIGNING_REQUIRED=NO \
-            -workspace .xcode/SwiftClaude.xcworkspace \
+            -workspace SwiftClaude.xcworkspace \
             -scheme SwiftClaudeAppUITests \
             -derivedDataPath ".build/Xcode.noindex/DerivedData" \
             -configuration "${{ matrix.build-configuration }}" \
