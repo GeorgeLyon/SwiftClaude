@@ -16,24 +16,34 @@ extension ClaudeClient.Image {
 
 extension ClaudeClient {
 
-  /// `ImageEncoder` doesn't actually do any images, its just a store for the image encoding settings of a given model
-  public enum Image {
+  public struct Vision {
 
-    public struct Encoder {
-
-      /// https://docs.anthropic.com/en/docs/build-with-claude/vision
-      public static var `default`: Encoder {
-        Encoder(
+    /// https://docs.anthropic.com/en/docs/build-with-claude/vision
+    public static var standard: Vision {
+      Vision(
+        configuration: Configuration(
           maximumRecommendedPixelCount: 1_150_000,
           maximumRecommendedEdgeLength: 1568,
           minimumRecommendedEdgeLength: 200
         )
-      }
-
-      private let maximumRecommendedPixelCount: Double
-      private let maximumRecommendedEdgeLength: Double
-      private let minimumRecommendedEdgeLength: Double
+      )
     }
+
+    public static var unavailable: Vision {
+      Vision(configuration: nil)
+    }
+
+    private struct Configuration {
+      let maximumRecommendedPixelCount: Double
+      let maximumRecommendedEdgeLength: Double
+      let minimumRecommendedEdgeLength: Double
+    }
+    private let configuration: Configuration?
+
+  }
+
+  /// `ImageEncoder` doesn't actually do any images, its just a store for the image encoding settings of a given model
+  public enum Image {
 
     public struct PreprocessingMode {
 
@@ -63,7 +73,7 @@ extension ClaudeClient {
 
 }
 
-extension ClaudeClient.Image.Encoder {
+extension ClaudeClient.Vision {
 
   public typealias ImageSize = ClaudeClient.Image.Size
 
@@ -71,6 +81,9 @@ extension ClaudeClient.Image.Encoder {
     forSourceImageOfSize size: ImageSize,
     preprocessingMode: ClaudeClient.Image.PreprocessingMode
   ) throws -> sending ImageSize {
+    guard let configuration = configuration else {
+      throw ModelDoesNotSupportVision()
+    }
     guard case .default(let quality) = preprocessingMode.kind else { return size }
     assert((0...1).contains(quality))
 
@@ -81,9 +94,9 @@ extension ClaudeClient.Image.Encoder {
     let minimumHeight: Double
     do {
       if size.widthInPixels > size.heightInPixels {
-        minimumHeight = minimumRecommendedEdgeLength
+        minimumHeight = configuration.minimumRecommendedEdgeLength
       } else {
-        minimumHeight = minimumRecommendedEdgeLength / aspectRatio
+        minimumHeight = configuration.minimumRecommendedEdgeLength / aspectRatio
       }
     }
 
@@ -97,14 +110,15 @@ extension ClaudeClient.Image.Encoder {
     }
 
     let maximumRecommendedHeightBasedOnTotalNumberOfPixels =
-      (maximumRecommendedPixelCount / aspectRatio).squareRoot()
+      (configuration.maximumRecommendedPixelCount / aspectRatio).squareRoot()
 
     let maximumRecommendedHeightBasedOnLongestEdge: Double
     do {
       if size.widthInPixels < size.heightInPixels {
-        maximumRecommendedHeightBasedOnLongestEdge = maximumRecommendedEdgeLength
+        maximumRecommendedHeightBasedOnLongestEdge = configuration.maximumRecommendedEdgeLength
       } else {
-        maximumRecommendedHeightBasedOnLongestEdge = maximumRecommendedEdgeLength / aspectRatio
+        maximumRecommendedHeightBasedOnLongestEdge =
+          configuration.maximumRecommendedEdgeLength / aspectRatio
       }
     }
 
@@ -126,6 +140,10 @@ extension ClaudeClient.Image.Encoder {
 
   private struct ImageSmallerThanMinimumRecommendedSize: Error {
     let minimumSize: ImageSize
+  }
+
+  private struct ModelDoesNotSupportVision: Error {
+
   }
 
 }

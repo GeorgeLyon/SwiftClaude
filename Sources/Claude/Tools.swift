@@ -81,7 +81,7 @@ extension Claude.Tool {
         )
     #endif
     case let .computer(displaySize, displayNumber, privateData):
-      let adjustedDisplaySize = try model.imageEncoder.recommendedSize(
+      let adjustedDisplaySize = try model.vision.recommendedSize(
         forSourceImageOfSize: displaySize,
         preprocessingMode: imagePreprocessingMode
       )

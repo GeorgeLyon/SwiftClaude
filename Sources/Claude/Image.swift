@@ -64,7 +64,7 @@ extension Claude {
     ) throws -> ClaudeClient.MessagesEndpoint.Request.Message.Content {
 
       let preprocessedImage: PlatformImageBacking
-      let recommendedSize = try model.imageEncoder.recommendedSize(
+      let recommendedSize = try model.vision.recommendedSize(
         forSourceImageOfSize: size,
         preprocessingMode: preprocessingMode
       )
