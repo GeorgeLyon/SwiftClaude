@@ -6,13 +6,10 @@ extension Claude.Beta {
 
   public protocol ComputerTool: Claude.Tool
   where
-    Input == Claude.Beta.ComputerToolInput,
-    _ToolInvocationContextPrivateData == Claude.Beta.ComputerToolInput
-      ._ToolInvocationContextPrivateData
+    Input == Claude.Beta.ComputerToolInput
   {
 
     associatedtype Input = Claude.Beta.ComputerTool
-    associatedtype _ToolInvocationContextPrivateData = Input._ToolInvocationContextPrivateData
 
     var displaySize: Claude.Image.Size { get }
     var displayNumber: Int? { get }
@@ -75,12 +72,6 @@ extension Claude.Beta {
       case cursorPosition
     }
     public let action: Action
-
-    public struct _ToolInvocationContextPrivateData {
-      /// Size that allows us to account for image processing in display coordinate calculations
-      init(adjustedDisplaySize: Claude.Image.Size) {
-      }
-    }
 
     fileprivate init(
       payload: Payload,
