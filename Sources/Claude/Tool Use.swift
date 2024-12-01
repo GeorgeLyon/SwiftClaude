@@ -364,6 +364,7 @@ extension Claude.ToolUse {
       }
 
       input = try await Tool.decodeInput(
+        for: toolWithContext.tool,
         from: .init(json: json),
         using: inputDecoder,
         isolation: isolation

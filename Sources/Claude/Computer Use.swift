@@ -27,6 +27,7 @@ extension Claude.Beta.ComputerTool {
   }
 
   public static func decodeInput(
+    for tool: Self,
     from payload: Claude.ToolInputDecoder<Self>.Payload,
     using decoder: Claude.ToolInputDecoder<Self>,
     isolation: isolated Actor
@@ -37,7 +38,10 @@ extension Claude.Beta.ComputerTool {
     )
     return try Input(
       payload: payload,
-      displaySize: decoder.context.privateData.adjustedDisplaySize
+      displaySize: try decoder.context.requestModel.vision.recommendedSize(
+        forSourceImageOfSize: tool.displaySize,
+        preprocessingMode: decoder.context.requestImagePreprocessingMode
+      )
     )
   }
 
@@ -75,9 +79,7 @@ extension Claude.Beta {
     public struct _ToolInvocationContextPrivateData {
       /// Size that allows us to account for image processing in display coordinate calculations
       init(adjustedDisplaySize: Claude.Image.Size) {
-        self.adjustedDisplaySize = adjustedDisplaySize
       }
-      fileprivate let adjustedDisplaySize: Claude.Image.Size
     }
 
     fileprivate init(
