@@ -28,6 +28,7 @@ extension Claude {
     ) async throws(Failure) -> Output
 
     static func decodeInput(
+      for tool: Self,
       from payload: Claude.ToolInputDecoder<Self>.Payload,
       using decoder: Claude.ToolInputDecoder<Self>,
       isolation: isolated Actor
@@ -38,20 +39,8 @@ extension Claude {
       to encoder: inout ToolInputEncoder<Self>
     )
 
-    /// This is a very rough API that allows us to track how image preprocessing affects the computer tool's coordinates
-    associatedtype _ToolInvocationContextPrivateData = ()
-
   }
 
-}
-
-extension Claude.Tool where _ToolInvocationContextPrivateData == Void {
-  static func _toolInvocationContext(
-    for model: Claude.Model,
-    imagePreprocessingMode: Claude.Image.PreprocessingMode
-  ) -> Claude.ToolInvocationContext<Self> {
-    Claude.ToolInvocationContext<Self>(privateData: ())
-  }
 }
 
 extension Claude.Tool {
@@ -66,7 +55,7 @@ extension Claude.Tool {
   ) {
     switch definition.kind {
     #if canImport(ClaudeToolInput)
-      case let .userDefined(name, description, toolInput, privateData):
+      case let .userDefined(name, description, toolInput):
         return (
           element: .tool(
             name: name,
@@ -76,11 +65,14 @@ extension Claude.Tool {
           toolWithContext: Claude.ConcereteToolWithContext(
             toolName: name,
             tool: self,
-            context: Claude.ToolInvocationContext(privateData: privateData)
+            context: Claude.ToolInvocationContext<Self>(
+              requestModel: model,
+              requestImagePreprocessingMode: imagePreprocessingMode
+            )
           )
         )
     #endif
-    case let .computer(displaySize, displayNumber, privateData):
+    case let .computer(displaySize, displayNumber):
       let adjustedDisplaySize = try model.vision.recommendedSize(
         forSourceImageOfSize: displaySize,
         preprocessingMode: imagePreprocessingMode
@@ -94,8 +86,9 @@ extension Claude.Tool {
         toolWithContext: Claude.ConcereteToolWithContext(
           toolName: definition.name,
           tool: self,
-          context: Claude.ToolInvocationContext(
-            privateData: privateData(adjustedDisplaySize)
+          context: Claude.ToolInvocationContext<Self>(
+            requestModel: model,
+            requestImagePreprocessingMode: imagePreprocessingMode
           )
         )
       )
@@ -139,8 +132,7 @@ extension Claude {
       ToolDefinition(
         kind: .computer(
           displaySize: displaySize,
-          displayNumber: displayNumber,
-          privateData: { Tool._ToolInvocationContextPrivateData(adjustedDisplaySize: $0) }
+          displayNumber: displayNumber
         )
       )
     }
@@ -150,14 +142,12 @@ extension Claude {
         case userDefined(
           name: String,
           description: String,
-          toolInput: any ToolInput.Type,
-          privateData: Tool._ToolInvocationContextPrivateData
+          toolInput: any ToolInput.Type
         )
       #endif
       case computer(
         displaySize: Claude.Image.Size,
-        displayNumber: Int?,
-        privateData: (Claude.Image.Size) -> Tool._ToolInvocationContextPrivateData
+        displayNumber: Int?
       )
     }
     let kind: Kind
@@ -176,15 +166,13 @@ extension Claude {
       description: String
     ) -> Self
     where
-      Tool.Input: ToolInput,
-      Tool._ToolInvocationContextPrivateData == Void
+      Tool.Input: ToolInput
     {
       Self(
         kind: .userDefined(
           name: name,
           description: description,
-          toolInput: Tool.Input.self,
-          privateData: ()
+          toolInput: Tool.Input.self
         )
       )
     }
@@ -307,6 +295,7 @@ extension Claude {
     }
 
     public static func decodeInput(
+      for tool: Self,
       from payload: Claude.ToolInputDecoder<Self>.Payload,
       using decoder: Claude.ToolInputDecoder<Self>,
       isolation: isolated Actor
@@ -345,7 +334,11 @@ extension Claude {
 
   public struct ToolInvocationContext<Tool: Claude.Tool> {
 
-    let privateData: Tool._ToolInvocationContextPrivateData
+    /// The model responsible for making the tool use request
+    let requestModel: Model
+
+    /// The image preprocessing mode used to make the original request
+    let requestImagePreprocessingMode: Image.PreprocessingMode
 
   }
 
