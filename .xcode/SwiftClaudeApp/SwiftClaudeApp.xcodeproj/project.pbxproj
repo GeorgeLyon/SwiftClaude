@@ -168,7 +168,6 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				5E28D45C2CE03D7200420ECE /* XCLocalSwiftPackageReference "../SwiftClaudeAppPackage" */,
-				5E6F7A3F2CE6E44100A94960 /* XCLocalSwiftPackageReference "../../../SwiftClaude" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 5E2C493C2CA4F8C9001FB83C /* Products */;
@@ -505,10 +504,6 @@
 		5E28D45C2CE03D7200420ECE /* XCLocalSwiftPackageReference "../SwiftClaudeAppPackage" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../SwiftClaudeAppPackage;
-		};
-		5E6F7A3F2CE6E44100A94960 /* XCLocalSwiftPackageReference "../../../SwiftClaude" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = ../../../SwiftClaude;
 		};
 /* End XCLocalSwiftPackageReference section */
 
