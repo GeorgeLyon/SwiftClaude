@@ -11,8 +11,14 @@
 
   "mounts": [
     /// Keep build products on a volume for performance and to separate host and guest build artifacts
-    "source=${localWorkspaceFolderBasename}-build,target=${containerWorkspaceFolder}/.build,type=volume",
+    "type=volume,source=${localWorkspaceFolderBasename}-build,target=${containerWorkspaceFolder}/.build",
+    "type=volume,source=${localWorkspaceFolderBasename}-npm,target=/root/.npm",
+    "type=bind,source=${localEnv:HOME}/.claude-code/claude,target=/root/.claude",
+    "type=bind,source=${localEnv:HOME}/.claude-code/claude.json,target=/root/.claude.json"
   ],
+
+  /// Install Claude Code, but only after creating the npm volume
+  "postCreateCommand": "npm install -g @anthropic-ai/claude-code",
 
   "remoteEnv": {
     /// Useful for disambiguating devcontainers
@@ -22,14 +28,9 @@
   "customizations": {
     "vscode": {
       "extensions": [
-        "sswg.swift-lang",
+        "swiftlang.swift-vscode",
         "vadimcn.vscode-lldb"
-      ],
-      "settings": {
-        /// LLDB settings for Swift
-        "lldb.library": "/usr/lib/liblldb.so",
-        "lldb.launch.expressions": "native"
-      }
+      ]
     }
   }
 }
