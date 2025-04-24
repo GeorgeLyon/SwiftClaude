@@ -94,6 +94,18 @@ let package = Package(
       ],
       path: "Tests/Macros Tests"
     ),
+
+    // MARK: - New Tool Targets
+
+    .target(
+      name: "Tool",
+      swiftSettings: .claude
+    ),
+    .testTarget(
+      name: "ToolTests",
+      dependencies: ["Tool"],
+      path: "Tests/Tool Tests"
+    ),
   ]
 )
 
