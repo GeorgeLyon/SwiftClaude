@@ -200,7 +200,22 @@ extension StructDeclSyntax {
 
 }
 
+extension EnumDeclSyntax {
+
+  var toolInputMembers: MemberBlockItemListSyntax {
+    MemberBlockItemListSyntax {
+      let caseDecls = memberBlock
+        .members
+        .compactMap { $0.decl.as(EnumCaseDeclSyntax.self) }
+
+    }
+  }
+
+}
+
 // MARK: - Implementation Details
+
+// MARK: Struct Properties
 
 extension StructDeclSyntax {
 
@@ -280,16 +295,6 @@ extension TypeAnnotationSyntax {
         )
       )
     )
-  }
-
-}
-
-extension DeclModifierListSyntax {
-
-  fileprivate static var `private`: Self {
-    DeclModifierListSyntax {
-      DeclModifierSyntax(name: .keyword(.private))
-    }
   }
 
 }
@@ -381,6 +386,18 @@ extension StructDeclSyntax.StoredProperty {
         )
       }
     )
+  }
+
+}
+
+// MARK: Shared
+
+extension DeclModifierListSyntax {
+
+  fileprivate static var `private`: Self {
+    DeclModifierListSyntax {
+      DeclModifierSyntax(name: .keyword(.private))
+    }
   }
 
 }

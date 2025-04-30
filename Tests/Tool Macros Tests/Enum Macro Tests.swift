@@ -6,21 +6,25 @@ import Testing
 
 @testable import ToolMacros
 
-@Suite("Struct")
-private struct StructMacroTests {
+@Suite("Enum")
+private struct EnumMacroTests {
 
   @Test
-  func testStructMacro() {
+  func testEnumMacro() {
 
     assertMacroExpansion(
       """
       @ToolInput
-      struct ToolInputStruct {
-        let anInteger: Int
-        /// An (x, y) coordinate
-        let aCoordinate: (Int, Int)
-        // Crazy Declaration
-        let a, b: Bool, c: String
+      enum ToolInputEnum {
+        case simple
+        /// A case with a single associated value
+        case singleAssociatedValue(Int)
+        // Multiple associated values without a name
+        case mutlipleUnnamedAssociatedValues(Int, String)
+        // Multiple associated values with a name
+        case multipleNamedAssociatedValues(a: Int, b: String, c: Bool)
+        // Multiple associated values with some named and some unnamed
+        case mixedAssociatedValues(Int, b: String, c: Bool)
       }
       """,
       expandedSource: #"""
