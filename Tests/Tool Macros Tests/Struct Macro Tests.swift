@@ -18,10 +18,8 @@ private struct ClaudeMacroTests {
       @ToolInput
       struct ToolInputStruct {
         let anInteger: Int
-
         /// An (x, y) coordinate
         let aCoordinate: (Int, Int)
-
         // Crazy Declaration
         let a, b: Bool, c: String
       }
@@ -34,6 +32,7 @@ private struct ClaudeMacroTests {
           // Crazy Declaration
           let a, b: Bool, c: String
         }
+        
         extension ToolInputStruct: ToolInput.SchemaCodable {
           static var toolInputSchema: some ToolInput.Schema<Self> {
             ToolInput.structSchema(
