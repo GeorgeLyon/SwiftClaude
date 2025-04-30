@@ -8,7 +8,7 @@ extension StructDeclSyntax {
       let storedProperties = try self.storedProperties
 
       /// var toolInputSchema: some ToolInput.Schema<Self> { … }
-      let toolInputSchemaProperty = 
+      let toolInputSchemaProperty =
         VariableDeclSyntax(
           modifiers: DeclModifierListSyntax {
             DeclModifierSyntax(name: .keyword(.static))
@@ -118,40 +118,150 @@ extension StructDeclSyntax {
             )
           )
         }
-        
+
       /// private enum ToolInputSchemaPropertyKey: CodingKey { … }
-      let propertyKeyEnum = 
+      let propertyKeyEnum =
         EnumDeclSyntax(
-          modifiers: DeclModifierListSyntax {
-            DeclModifierSyntax(name: .keyword(.private))
-          },
-          identifier: "ToolInputSchemaPropertyKey",
+          modifiers: .private,
+          name: "ToolInputSchemaPropertyKey",
           inheritanceClause: InheritanceClauseSyntax(
             colon: .colonToken(),
-            inheritedType: MemberTypeSyntax(
-              baseType: IdentifierTypeSyntax(name: "CodingKey")
-            )
-          ),
-          memberBlock: CodeBlockSyntax {
-            for property in storedProperties {
-              EnumCaseDeclSyntax(
-                caseKeyword: .caseToken(trailingTrivia: .newline),
-                identifier: property.name,
-                trailingComma: .commaToken(trailingTrivia: .newline)
+            inheritedTypes: InheritedTypeListSyntax {
+              InheritedTypeSyntax(
+                type: MemberTypeSyntax(
+                  baseType: IdentifierTypeSyntax(name: "Swift"),
+                  name: "CodingKey"
+                )
               )
             }
-          }
+          ),
+          memberBlock: MemberBlockSyntax(
+            membersBuilder: {
+              for property in storedProperties {
+                EnumCaseDeclSyntax {
+                  EnumCaseElementSyntax(name: property.name)
+                }
+              }
+            }
+          )
         )
-      }
+
+      let initializer = InitializerDeclSyntax(
+        modifiers: .private,
+        signature: FunctionSignatureSyntax(
+          parameterClause: FunctionParameterClauseSyntax(
+            parameters: FunctionParameterListSyntax {
+              FunctionParameterSyntax(
+                firstName: "structSchemaDecoder",
+                type: MemberTypeSyntax(
+                  baseType: IdentifierTypeSyntax(name: "ToolInput"),
+                  name: "StructSchemaDecoder",
+                  genericArgumentClause: GenericArgumentClauseSyntax {
+                    for property in storedProperties {
+                      GenericArgumentSyntax(
+                        argument: property.type
+                      )
+                    }
+                  }
+                )
+              )
+            }
+          )
+        ),
+        body: CodeBlockSyntax {
+          /// self.propertyName = structSchemaDecoder.propertyValues.0
+          for (index, property) in storedProperties.enumerated() {
+            InfixOperatorExprSyntax(
+              leftOperand: MemberAccessExprSyntax(
+                base: DeclReferenceExprSyntax(baseName: "self"),
+                name: property.name
+              ),
+              operator: AssignmentExprSyntax(),
+              rightOperand: MemberAccessExprSyntax(
+                base: MemberAccessExprSyntax(
+                  base: DeclReferenceExprSyntax(baseName: "structSchemaDecoder"),
+                  name: "propertyValues"
+                ),
+                name: "\(raw: index)"
+              )
+            )
+          }
+        }
+
+      )
 
       return MemberBlockItemListSyntax {
         toolInputSchemaProperty
+        propertyKeyEnum
+        initializer
+      }
     }
   }
 
 }
 
 // MARK: - Implementation Details
+
+extension StructDeclSyntax {
+
+  fileprivate struct StoredProperty {
+    let name: TokenSyntax
+    let type: TypeSyntax
+    let typeExpression: DeclReferenceExprSyntax
+    let comment: String?
+  }
+
+  fileprivate var storedProperties: some Sequence<StoredProperty> {
+    get throws {
+      var storedProperties: [StoredProperty] = []
+      for member in memberBlock.members {
+        guard let variable = member.decl.as(VariableDeclSyntax.self) else {
+          continue
+        }
+        guard !variable.bindings.contains(where: { $0.accessorBlock != nil }) else {
+          /// This is a computed property
+          continue
+        }
+
+        let comment = member.comment
+
+        /// In order to handle complex declarations such as `let a, b: Bool, c: String`, we iterate over the bindings in reverse and store the last type annotation.
+        /// Note that these will be in reverse order in the expanded source.
+        var lastTypeAnnotation: TypeSyntax?
+        for binding in variable.bindings.reversed() {
+
+          guard let type = binding.typeAnnotation?.type ?? lastTypeAnnotation else {
+            throw DiagnosticError(
+              node: variable,
+              severity: .error,
+              message: "Missing type annotation"
+            )
+          }
+          lastTypeAnnotation = type
+
+          guard let name = binding.pattern.as(IdentifierPatternSyntax.self)?.identifier else {
+            throw DiagnosticError(
+              node: binding, severity: .error,
+              message: "Binding pattern does not have an identifier")
+          }
+
+          storedProperties.append(
+            StoredProperty(
+              name: name,
+              type: type,
+              typeExpression: DeclReferenceExprSyntax(
+                baseName: "\(raw: type.trimmed)"
+              ),
+              comment: comment
+            )
+          )
+        }
+      }
+      return storedProperties
+    }
+  }
+
+}
 
 extension TypeAnnotationSyntax {
 
@@ -170,6 +280,16 @@ extension TypeAnnotationSyntax {
         )
       )
     )
+  }
+
+}
+
+extension DeclModifierListSyntax {
+
+  fileprivate static var `private`: Self {
+    DeclModifierListSyntax {
+      DeclModifierSyntax(name: .keyword(.private))
+    }
   }
 
 }
@@ -249,7 +369,7 @@ extension StructDeclSyntax.StoredProperty {
                 label: "representing",
                 colon: .colonToken(),
                 expression: MemberAccessExprSyntax(
-                  base: DeclReferenceExprSyntax(baseName: "\(raw: type.trimmed)"),
+                  base: typeExpression,
                   name: "self"
                 )
               )
@@ -261,63 +381,6 @@ extension StructDeclSyntax.StoredProperty {
         )
       }
     )
-  }
-
-}
-
-extension StructDeclSyntax {
-
-  fileprivate struct StoredProperty {
-    let name: TokenSyntax
-    let type: TypeSyntax
-    let comment: String?
-  }
-
-  fileprivate var storedProperties: some Sequence<StoredProperty> {
-    get throws {
-      var storedProperties: [StoredProperty] = []
-      for member in memberBlock.members {
-        guard let variable = member.decl.as(VariableDeclSyntax.self) else {
-          continue
-        }
-        guard !variable.bindings.contains(where: { $0.accessorBlock != nil }) else {
-          /// This is a computed property
-          continue
-        }
-
-        let comment = member.comment
-
-        /// In order to handle complex declarations such as `let a, b: Bool, c: String`, we iterate over the bindings in reverse and store the last type annotation.
-        /// Note that these will be in reverse order in the expanded source.
-        var lastTypeAnnotation: TypeSyntax?
-        for binding in variable.bindings.reversed() {
-
-          guard let type = binding.typeAnnotation?.type ?? lastTypeAnnotation else {
-            throw DiagnosticError(
-              node: variable,
-              severity: .error,
-              message: "Missing type annotation"
-            )
-          }
-          lastTypeAnnotation = type
-
-          guard let name = binding.pattern.as(IdentifierPatternSyntax.self)?.identifier else {
-            throw DiagnosticError(
-              node: binding, severity: .error,
-              message: "Binding pattern does not have an identifier")
-          }
-
-          storedProperties.append(
-            StoredProperty(
-              name: name,
-              type: type,
-              comment: comment
-            )
-          )
-        }
-      }
-      return storedProperties
-    }
   }
 
 }
