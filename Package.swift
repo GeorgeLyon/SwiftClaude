@@ -16,7 +16,11 @@ let package = Package(
     .library(
       name: "SwiftClaude",
       targets: ["Claude"]
-    )
+    ),
+    .library(
+      name: "Tool",
+      targets: ["Tool"]
+    ),
   ],
   dependencies: [
     .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
@@ -99,12 +103,35 @@ let package = Package(
 
     .target(
       name: "Tool",
+      dependencies: [
+        "ToolMacros"
+      ],
       swiftSettings: .claude
     ),
     .testTarget(
       name: "ToolTests",
       dependencies: ["Tool"],
       path: "Tests/Tool Tests"
+    ),
+
+    .macro(
+      name: "ToolMacros",
+      dependencies: [
+        .product(name: "SwiftSyntax", package: "swift-syntax"),
+        .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+        .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
+        .product(name: "SwiftDiagnostics", package: "swift-syntax"),
+      ],
+      path: "Sources/Tool Macros"
+    ),
+    .testTarget(
+      name: "ToolMacrosTests",
+      dependencies: [
+        "ToolMacros",
+        .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+        .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
+      ],
+      path: "Tests/Tool Macros Tests"
     ),
   ]
 )
@@ -117,6 +144,7 @@ extension Array where Element == Platform {
 
 extension Array where Element == SwiftSetting {
   fileprivate static let claude: [SwiftSetting] = [
-    .enableUpcomingFeature("InternalImportsByDefault")
+    .enableUpcomingFeature("InternalImportsByDefault"),
+    .enableUpcomingFeature("AsyncCallerExecution"),
   ]
 }

@@ -3,48 +3,57 @@ import Testing
 
 @testable import Tool
 
-@Suite("Struct")
-struct StructSchemaTests {
+private struct Person: ToolInput.SchemaCodable {
 
-  private struct Person: ToolInput.SchemaCodable {
+  let name: String
+  let age: Int
+  let isActive: Bool?
 
-    let name: String
-    let age: Int
-    let isActive: Bool?
+}
 
-    static let toolInputSchema: some ToolInput.Schema<Self> =
-      ToolInput.structSchema(
-        representing: Person.self,
-        description: "A person object",
-        keyedBy: PropertyKey.self,
-        properties: (
-          key: .name,
+extension Person {
+
+  static let toolInputSchema: some ToolInput.Schema<Self> =
+    ToolInput.structSchema(
+      representing: Self.self,
+      description: "A person object",
+      keyedBy: PropertyKey.self,
+      properties: (
+        (
           description: nil,
           keyPath: \.name,
+          key: .name,
           schema: ToolInput.schema()
         ),
         (
-          key: .age,
           description: "The person's age",
           keyPath: \.age,
+          key: .age,
           schema: ToolInput.schema()
         ),
         (
-          key: .isActive,
           description: "Whether the person is active",
           keyPath: \.isActive,
+          key: .isActive,
           schema: ToolInput.schema()
-        ),
-        initializer: { name, age, isActive in
-          Self(name: name, age: age, isActive: isActive)
-        }
-      )
+        )
+      ),
+      initializer: Self.init(structSchemaDecoder:)
+    )
 
-    private enum PropertyKey: CodingKey {
-      case name, age, isActive
-    }
-
+  private enum PropertyKey: CodingKey {
+    case name, age, isActive
   }
+
+  private init(structSchemaDecoder: ToolInput.StructSchemaDecoder<String, Int, Bool?>) {
+    name = structSchemaDecoder.propertyValues.0
+    age = structSchemaDecoder.propertyValues.1
+    isActive = structSchemaDecoder.propertyValues.2
+  }
+}
+
+@Suite("Struct")
+struct StructSchemaTests {
 
   @Test
   private func testSchemaEncoding() throws {

@@ -8,13 +8,17 @@ extension ToolInput {
     representing _: Value.Type,
     description: String?,
     keyedBy _: PropertyKey.Type,
-    properties: repeat (
-      key: PropertyKey,
-      description: String?,
-      keyPath: KeyPath<Value, (each PropertySchema).Value> & Sendable,
-      schema: (each PropertySchema)
+    properties: (
+      repeat (
+        description: String?,
+        keyPath: KeyPath<Value, (each PropertySchema).Value> & Sendable,
+        key: PropertyKey,
+        schema: (each PropertySchema)
+      )
     ),
-    initializer: @escaping @Sendable (repeat (each PropertySchema).Value) -> Value
+    initializer: @escaping @Sendable (
+      StructSchemaDecoder<repeat (each PropertySchema).Value>
+    ) -> Value
   ) -> some Schema<Value> {
     StructSchema(
       keyPaths: (repeat (each properties).keyPath),
@@ -28,6 +32,16 @@ extension ToolInput {
       ),
       initializer: initializer
     )
+  }
+
+  public struct StructSchemaDecoder<each PropertyValue> {
+    public let propertyValues: (repeat each PropertyValue)
+
+    fileprivate init(
+      propertyValues: (repeat each PropertyValue)
+    ) {
+      self.propertyValues = propertyValues
+    }
   }
 
 }
@@ -45,7 +59,10 @@ private struct StructSchema<
   typealias PropertiesSchema = ObjectPropertiesSchema<PropertyKey, repeat each PropertySchema>
   let propertiesSchema: PropertiesSchema
 
-  let initializer: @Sendable (repeat (each PropertySchema).Value) -> Value
+  let initializer:
+    @Sendable (
+      ToolInput.StructSchemaDecoder<repeat (each PropertySchema).Value>
+    ) -> Value
 
   func encodeSchemaDefinition(to encoder: ToolInput.SchemaEncoder<Self>) throws {
     try propertiesSchema.encodeSchemaDefinition(to: encoder.map())
@@ -62,7 +79,11 @@ private struct StructSchema<
     let properties =
       try propertiesSchema
       .decodeValue(from: ToolInput.Decoder(wrapped: decoder.wrapped))
-    return initializer(repeat each properties)
+    return initializer(
+      ToolInput.StructSchemaDecoder(
+        propertyValues: (repeat each properties)
+      )
+    )
   }
 
 }
