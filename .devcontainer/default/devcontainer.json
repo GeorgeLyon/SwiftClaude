@@ -18,7 +18,7 @@
   /// Install Claude Code, but only after creating the npm volume
   "postCreateCommand": {
     "Install Claude Code": "npm install -g @anthropic-ai/claude-code",
-    "Link Local Configuration": "ln -s ${containerWorkspaceFolder}/.claude-code/claude.json /root/.claude.json && ln -s ${containerWorkspaceFolder}/.claude-code/claude /root/.claude"
+    "Link Local Configuration": "ln -s ${containerWorkspaceFolder}/.claude/code/claude.json /root/.claude.json && ln -s ${containerWorkspaceFolder}/.claude/code/claude /root/.claude"
   },
 
   "remoteEnv": {
