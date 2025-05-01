@@ -20,6 +20,7 @@
     "Install Claude Code": "npm install -g @anthropic-ai/claude-code",
     "Link Local Configuration": "ln -s ${containerWorkspaceFolder}/.claude-code/claude.json /root/.claude.json && ln -s ${containerWorkspaceFolder}/.claude-code/claude /root/.claude"
   },
+
   "remoteEnv": {
     /// Useful for disambiguating devcontainers
     "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}"

@@ -4,7 +4,6 @@
 /// These are intended to be added to enums via a macro and so are structured to be very regular.
 extension ToolInput {
 
-  @_disfavoredOverload
   public static func enumSchema<
     Value: CaseIterable & RawRepresentable,
     CaseKey: CodingKey,
@@ -119,11 +118,8 @@ extension ToolInput {
 
 extension ToolInput {
 
-  public static func enumCaseAssociatedValuesSchema<
-    Key: CodingKey
-  >(
-    keyedBy: Key.Type,
-    values: ()
+  public static func enumCaseAssociatedValuesSchema(
+    _ values: ()
   ) -> some Schema<Void> {
     EnumCaseVoidAssociatedValueSchema()
   }
@@ -132,8 +128,7 @@ extension ToolInput {
     Key: CodingKey,
     ValueSchema: Schema
   >(
-    keyedBy: Key.Type,
-    values: (
+    _ values: (
       key: Key?,
       schema: ValueSchema
     )
@@ -141,13 +136,11 @@ extension ToolInput {
     values.schema
   }
 
-  @_disfavoredOverload
   public static func enumCaseAssociatedValuesSchema<
     Key: CodingKey,
     each ValueSchema: Schema
   >(
-    keyedBy: Key.Type,
-    values: (
+    _ values: (
       repeat (
         key: Key,
         schema: each ValueSchema
@@ -165,13 +158,11 @@ extension ToolInput {
     )
   }
 
-  @_disfavoredOverload
   public static func enumCaseAssociatedValuesSchema<
     Key: CodingKey,
     each ValueSchema: Schema
   >(
-    keyedBy: Key.Type,
-    values: (
+    _ values: (
       repeat (
         key: Key?,
         schema: each ValueSchema

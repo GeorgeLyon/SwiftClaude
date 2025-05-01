@@ -11,50 +11,51 @@ struct EnumSchemaTests {
     case second(Int)
     case third(String, x: Int)
     case fourth(x: String, y: Int)
+    case fifth
 
     static let toolInputSchema: some ToolInput.Schema<Self> = {
       let associatedValues_first = ToolInput.enumCaseAssociatedValuesSchema(
-        keyedBy: CaseKey.First.self,
-        values: (
-          key: nil,
+        ((
+          key: CaseKey.First?.none,
           schema: ToolInput.schema(representing: String.self)
-        )
+        ))
       )
 
       let associatedValues_second = ToolInput.enumCaseAssociatedValuesSchema(
-        keyedBy: CaseKey.Second.self,
-        values: (
-          key: nil,
+        ((
+          key: CaseKey.Second?.none,
           schema: ToolInput.schema(representing: Int.self)
-        )
+        ))
       )
 
       let associatedValues_third = ToolInput.enumCaseAssociatedValuesSchema(
-        keyedBy: CaseKey.Third.self,
-        values: (
+        (
           (
-            key: nil,
+            key: CaseKey.Third?.none,
             schema: ToolInput.schema(representing: String.self)
           ),
           (
-            key: .x,
+            key: CaseKey.Third?.some(.x),
             schema: ToolInput.schema(representing: Int.self)
           )
         )
       )
 
       let associatedValues_fourth = ToolInput.enumCaseAssociatedValuesSchema(
-        keyedBy: CaseKey.Fourth.self,
-        values: (
+        (
           (
-            key: .x,
+            key: CaseKey.Fourth?.some(.x),
             schema: ToolInput.schema(representing: String.self)
           ),
           (
-            key: .y,
+            key: CaseKey.Fourth?.some(.y),
             schema: ToolInput.schema(representing: Int.self)
           )
         )
+      )
+
+      let associatedValues_fifth = ToolInput.enumCaseAssociatedValuesSchema(
+        ()
       )
 
       return ToolInput.enumSchema(
@@ -70,7 +71,7 @@ struct EnumSchemaTests {
           ),
           (
             key: .second,
-            description: nil,
+            description: String?.none,
             associatedValueSchema: associatedValues_second,
             initializer: { @Sendable second in .second(second) }
           ),
@@ -85,21 +86,28 @@ struct EnumSchemaTests {
             description: nil,
             associatedValueSchema: associatedValues_fourth,
             initializer: { @Sendable fourth in Self.fourth(x: fourth.0, y: fourth.1) }
+          ),
+          (
+            key: .fifth,
+            description: nil,
+            associatedValueSchema: associatedValues_fifth,
+            initializer: { @Sendable fifth in Self.fifth }
           )
         ),
-        encodeValue: { value, encodeFirst, encodeSecond, encodeThird, encodeFourth in
+        encodeValue: { value, encodeFirst, encodeSecond, encodeThird, encodeFourth, encodeFifth in
           switch value {
           case .first(let first): try encodeFirst((first))
           case .second(let second): try encodeSecond((second))
           case .third(let third_0, let third_x): try encodeThird((third_0, third_x))
           case let .fourth(x, y): try encodeFourth((x, y))
+          case .fifth: try encodeFifth(())
           }
         }
       )
     }()
 
     private enum CaseKey: Swift.CodingKey {
-      case first, second, third, fourth
+      case first, second, third, fourth, fifth
 
       enum First: Swift.CodingKey {
       }
@@ -121,18 +129,9 @@ struct EnumSchemaTests {
     case three
 
     static let toolInputSchema: some ToolInput.Schema<Self> = {
-      let associatedValues_one = ToolInput.enumCaseAssociatedValuesSchema(
-        keyedBy: CaseKey.Empty.self,
-        values: ()
-      )
-      let associatedValues_two = ToolInput.enumCaseAssociatedValuesSchema(
-        keyedBy: CaseKey.Empty.self,
-        values: ()
-      )
-      let associatedValues_three = ToolInput.enumCaseAssociatedValuesSchema(
-        keyedBy: CaseKey.Empty.self,
-        values: ()
-      )
+      let associatedValues_one = ToolInput.enumCaseAssociatedValuesSchema(())
+      let associatedValues_two = ToolInput.enumCaseAssociatedValuesSchema(())
+      let associatedValues_three = ToolInput.enumCaseAssociatedValuesSchema(())
 
       return ToolInput.enumSchema(
         representing: Self.self,

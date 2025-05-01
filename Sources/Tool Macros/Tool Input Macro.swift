@@ -70,116 +70,99 @@ extension StructDeclSyntax {
       let storedProperties = try self.storedProperties
 
       /// var toolInputSchema: some ToolInput.Schema<Self> { … }
-      let toolInputSchemaProperty =
-        VariableDeclSyntax(
-          modifiers: DeclModifierListSyntax {
-            DeclModifierSyntax(name: .keyword(.static))
-          },
-          bindingSpecifier: .keyword(.var)
-        ) {
-          PatternBindingSyntax(
-            pattern: IdentifierPatternSyntax(identifier: "toolInputSchema"),
-            typeAnnotation: .someSchemaOfSelf,
-            accessorBlock: AccessorBlockSyntax(
-              accessors: .getter(
-                CodeBlockItemListSyntax {
-                  FunctionCallExprSyntax(
-                    calledExpression: MemberAccessExprSyntax(
-                      base: DeclReferenceExprSyntax(baseName: "ToolInput"),
-                      name: "structSchema"
-                    ),
-                    leftParen: .leftParenToken(trailingTrivia: .newline),
-                    arguments: LabeledExprListSyntax {
-                      /// representing
-                      LabeledExprSyntax(
-                        label: "representing",
-                        colon: .colonToken(),
-                        expression: MemberAccessExprSyntax(
-                          base: DeclReferenceExprSyntax(baseName: "Self"),
-                          name: "self"
-                        ),
-                        trailingComma: .commaToken(trailingTrivia: .newline)
-                      )
-
-                      /// description
-                      if let comment {
-                        LabeledExprSyntax(
-                          label: "description",
-                          colon: .colonToken(),
-                          expression: StringLiteralExprSyntax(
-                            openingQuote: .multilineStringQuoteToken(),
-                            content: comment,
-                            closingQuote: .multilineStringQuoteToken()
-                          ),
-                          trailingComma: .commaToken(trailingTrivia: .newline)
-                        )
-                      } else {
-                        LabeledExprSyntax(
-                          label: "description",
-                          colon: .colonToken(),
-                          expression: NilLiteralExprSyntax(),
-                          trailingComma: .commaToken(trailingTrivia: .newline)
-                        )
-                      }
-
-                      /// keyedBy
-                      LabeledExprSyntax(
-                        label: "keyedBy",
-                        colon: .colonToken(),
-                        expression: MemberAccessExprSyntax(
-                          base: DeclReferenceExprSyntax(
-                            baseName: "ToolInputSchemaPropertyKey"
-                          ),
-                          name: "self"
-                        ),
-                        trailingComma: .commaToken(trailingTrivia: .newline)
-                      )
-
-                      /// properties
-                      LabeledExprSyntax(
-                        label: "properties",
-                        colon: .colonToken(),
-                        expression: TupleExprSyntax(
-                          elements: LabeledExprListSyntax {
-                            for property in storedProperties {
-                              LabeledExprSyntax(
-                                expression: property.structSchemaPropertyArgument
-                              )
-                            }
-                          },
-                          rightParen: .rightParenToken(leadingTrivia: .newline)
-                        ),
-                        trailingComma: .commaToken(trailingTrivia: .newline)
-                      )
-
-                      /// initializer
-                      LabeledExprSyntax(
-                        label: "initializer",
-                        colon: .colonToken(),
-                        expression: MemberAccessExprSyntax(
-                          base: DeclReferenceExprSyntax(
-                            baseName: "Self"
-                          ),
-                          declName: DeclReferenceExprSyntax(
-                            baseName: "init",
-                            argumentNames: DeclNameArgumentsSyntax(
-                              arguments: DeclNameArgumentListSyntax {
-                                DeclNameArgumentSyntax(name: "structSchemaDecoder")
-                              }
-                            )
-                          )
-                        ),
-                        trailingTrivia: .newline
-                      )
-                    },
-                    rightParen: .rightParenToken()
-                  )
-
-                }
-              )
+      let toolInputSchemaProperty: VariableDeclSyntax = .toolInputSchema {
+        FunctionCallExprSyntax(
+          calledExpression: MemberAccessExprSyntax(
+            base: DeclReferenceExprSyntax(baseName: "ToolInput"),
+            name: "structSchema"
+          ),
+          leftParen: .leftParenToken(trailingTrivia: .newline),
+          arguments: LabeledExprListSyntax {
+            /// representing: Self.self
+            LabeledExprSyntax(
+              label: "representing",
+              colon: .colonToken(),
+              expression: MemberAccessExprSyntax(
+                base: DeclReferenceExprSyntax(baseName: "Self"),
+                name: "self"
+              ),
+              trailingComma: .commaToken(trailingTrivia: .newline)
             )
-          )
-        }
+
+            /// description: ...
+            if let comment {
+              LabeledExprSyntax(
+                label: "description",
+                colon: .colonToken(),
+                expression: StringLiteralExprSyntax(
+                  openingQuote: .multilineStringQuoteToken(),
+                  content: comment,
+                  closingQuote: .multilineStringQuoteToken()
+                ),
+                trailingComma: .commaToken(trailingTrivia: .newline)
+              )
+            } else {
+              LabeledExprSyntax(
+                label: "description",
+                colon: .colonToken(),
+                expression: NilLiteralExprSyntax(),
+                trailingComma: .commaToken(trailingTrivia: .newline)
+              )
+            }
+
+            /// keyedBy: ToolInputSchemaPropertyKey.self
+            LabeledExprSyntax(
+              label: "keyedBy",
+              colon: .colonToken(),
+              expression: MemberAccessExprSyntax(
+                base: DeclReferenceExprSyntax(
+                  baseName: "ToolInputSchemaPropertyKey"
+                ),
+                name: "self"
+              ),
+              trailingComma: .commaToken(trailingTrivia: .newline)
+            )
+
+            /// properties: ( ... )
+            LabeledExprSyntax(
+              label: "properties",
+              colon: .colonToken(),
+              expression: TupleExprSyntax(
+                elements: LabeledExprListSyntax {
+                  for property in storedProperties {
+                    LabeledExprSyntax(
+                      expression: property.structSchemaPropertyArgument
+                    )
+                  }
+                },
+                rightParen: .rightParenToken(leadingTrivia: .newline)
+              ),
+              trailingComma: .commaToken(trailingTrivia: .newline)
+            )
+
+            /// initializer: Self.init(structSchemaDecoder:)
+            LabeledExprSyntax(
+              label: "initializer",
+              colon: .colonToken(),
+              expression: MemberAccessExprSyntax(
+                base: DeclReferenceExprSyntax(
+                  baseName: "Self"
+                ),
+                declName: DeclReferenceExprSyntax(
+                  baseName: "init",
+                  argumentNames: DeclNameArgumentsSyntax(
+                    arguments: DeclNameArgumentListSyntax {
+                      DeclNameArgumentSyntax(name: "structSchemaDecoder")
+                    }
+                  )
+                )
+              ),
+              trailingTrivia: .newline
+            )
+          },
+          rightParen: .rightParenToken()
+        )
+      }
 
       /// private enum ToolInputSchemaPropertyKey: CodingKey { … }
       let propertyKeyEnum =
@@ -325,44 +308,6 @@ extension StructDeclSyntax {
 
 }
 
-// MARK: Enum
-
-extension EnumDeclSyntax {
-
-  var toolInputMembers: MemberBlockItemListSyntax {
-    MemberBlockItemListSyntax {
-      let caseDecls = memberBlock
-        .members
-        .compactMap { $0.decl.as(EnumCaseDeclSyntax.self) }
-
-    }
-  }
-
-}
-
-// MARK: Shared
-
-extension TypeAnnotationSyntax {
-
-  fileprivate static var someSchemaOfSelf: Self {
-    TypeAnnotationSyntax(
-      type: SomeOrAnyTypeSyntax(
-        someOrAnySpecifier: .keyword(.some),
-        constraint: MemberTypeSyntax(
-          baseType: IdentifierTypeSyntax(name: "ToolInput"),
-          name: "Schema",
-          genericArgumentClause: GenericArgumentClauseSyntax {
-            GenericArgumentSyntax(
-              argument: IdentifierTypeSyntax(name: "Self")
-            )
-          }
-        )
-      )
-    )
-  }
-
-}
-
 extension StructDeclSyntax.StoredProperty {
 
   fileprivate var structSchemaPropertyArgument: some ExprSyntaxProtocol {
@@ -454,7 +399,99 @@ extension StructDeclSyntax.StoredProperty {
 
 }
 
+// MARK: Enum
+
+extension EnumDeclSyntax {
+
+  var toolInputMembers: MemberBlockItemListSyntax {
+    let caseDecls = memberBlock
+      .members
+      .compactMap { $0.decl.as(EnumCaseDeclSyntax.self) }
+
+    let toolInputSchemaProperty: VariableDeclSyntax = .toolInputSchema {
+      FunctionCallExprSyntax(
+        calledExpression: MemberAccessExprSyntax(
+          base: DeclReferenceExprSyntax(baseName: "ToolInput"),
+          name: "structSchema"
+        ),
+        leftParen: .leftParenToken(trailingTrivia: .newline),
+        arguments: LabeledExprListSyntax {
+          /// representing: Self.self
+          LabeledExprSyntax(
+            label: "representing",
+            colon: .colonToken(),
+            expression: MemberAccessExprSyntax(
+              base: DeclReferenceExprSyntax(baseName: "Self"),
+              name: "self"
+            ),
+            trailingComma: .commaToken(trailingTrivia: .newline)
+          )
+
+          /// keyedBy: ToolInputSchemaCaseKey.self
+          LabeledExprSyntax(
+            label: "keyedBy",
+            colon: .colonToken(),
+            expression: MemberAccessExprSyntax(
+              base: DeclReferenceExprSyntax(
+                baseName: "ToolInputSchemaCaseKey"
+              ),
+              name: "self"
+            ),
+            trailingComma: .commaToken(trailingTrivia: .newline)
+          )
+
+        }
+      )
+    }
+
+    return MemberBlockItemListSyntax {
+      toolInputSchemaProperty
+    }
+  }
+
+}
+
 // MARK: Shared
+
+extension VariableDeclSyntax {
+
+  fileprivate static func toolInputSchema(
+    @CodeBlockItemListBuilder _ builder: () -> CodeBlockItemListSyntax
+  )
+    -> Self
+  {
+    VariableDeclSyntax(
+      modifiers: DeclModifierListSyntax {
+        DeclModifierSyntax(name: .keyword(.static))
+      },
+      bindingSpecifier: .keyword(.var)
+    ) {
+      PatternBindingSyntax(
+        pattern: IdentifierPatternSyntax(identifier: "toolInputSchema"),
+        typeAnnotation: TypeAnnotationSyntax(
+          type: SomeOrAnyTypeSyntax(
+            someOrAnySpecifier: .keyword(.some),
+            constraint: MemberTypeSyntax(
+              baseType: IdentifierTypeSyntax(name: "ToolInput"),
+              name: "Schema",
+              genericArgumentClause: GenericArgumentClauseSyntax {
+                GenericArgumentSyntax(
+                  argument: IdentifierTypeSyntax(name: "Self")
+                )
+              }
+            )
+          )
+        ),
+        accessorBlock: AccessorBlockSyntax(
+          accessors: .getter(
+            CodeBlockItemListSyntax(itemsBuilder: builder)
+          )
+        )
+      )
+    }
+  }
+
+}
 
 extension DeclModifierListSyntax {
 
