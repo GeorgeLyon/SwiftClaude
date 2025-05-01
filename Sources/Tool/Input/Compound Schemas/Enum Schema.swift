@@ -7,7 +7,7 @@ extension ToolInput {
   public static func enumSchema<
     Value: CaseIterable & RawRepresentable,
     CaseKey: CodingKey,
-    each AssociatedValueSchema: ToolInput.Schema
+    each AssociatedValuesSchema: ToolInput.Schema
   >(
     representing _: Value.Type,
     description: String?,
@@ -16,13 +16,13 @@ extension ToolInput {
       repeat (
         key: CaseKey,
         description: String?,
-        associatedValueSchema: each AssociatedValueSchema,
-        initializer: @Sendable ((each AssociatedValueSchema).Value) -> Value
+        associatedValuesSchema: each AssociatedValuesSchema,
+        initializer: @Sendable ((each AssociatedValuesSchema).Value) -> Value
       )
     ),
     encodeValue: @escaping @Sendable (
       Value,
-      repeat ((each AssociatedValueSchema).Value) throws -> Void
+      repeat ((each AssociatedValuesSchema).Value) throws -> Void
     ) throws -> Void
   ) -> some Schema<Value>
   where Value.RawValue == String {
@@ -34,7 +34,7 @@ extension ToolInput {
   public static func enumSchema<
     Value: CaseIterable & RawRepresentable,
     CaseKey: CodingKey,
-    each AssociatedValueSchema: ToolInput.Schema
+    each AssociatedValuesSchema: ToolInput.Schema
   >(
     representing _: Value.Type,
     description: String?,
@@ -43,13 +43,13 @@ extension ToolInput {
       repeat (
         key: CaseKey,
         description: String?,
-        associatedValueSchema: each AssociatedValueSchema,
-        initializer: @Sendable ((each AssociatedValueSchema).Value) -> Value
+        associatedValuesSchema: each AssociatedValuesSchema,
+        initializer: @Sendable ((each AssociatedValuesSchema).Value) -> Value
       )
     ),
     encodeValue: @escaping @Sendable (
       Value,
-      repeat ((each AssociatedValueSchema).Value) throws -> Void
+      repeat ((each AssociatedValuesSchema).Value) throws -> Void
     ) throws -> Void
   ) -> some Schema<Value>
   where Value.RawValue: BinaryInteger & Codable & Sendable {
@@ -61,7 +61,7 @@ extension ToolInput {
   public static func enumSchema<
     Value,
     CaseKey: CodingKey,
-    each AssociatedValueSchema: ToolInput.Schema
+    each AssociatedValuesSchema: ToolInput.Schema
   >(
     representing _: Value.Type,
     description: String?,
@@ -70,13 +70,13 @@ extension ToolInput {
       repeat (
         key: CaseKey,
         description: String?,
-        associatedValueSchema: each AssociatedValueSchema,
-        initializer: @Sendable ((each AssociatedValueSchema).Value) -> Value
+        associatedValuesSchema: each AssociatedValuesSchema,
+        initializer: @Sendable ((each AssociatedValuesSchema).Value) -> Value
       )
     ),
     encodeValue: @escaping @Sendable (
       Value,
-      repeat ((each AssociatedValueSchema).Value) throws -> Void
+      repeat ((each AssociatedValuesSchema).Value) throws -> Void
     ) throws -> Void
   ) -> some Schema<Value> {
     StandardEnumSchema(
@@ -84,7 +84,7 @@ extension ToolInput {
       cases: (repeat EnumSchemaCase(
         key: (each cases).key,
         description: (each cases).description,
-        schema: (each cases).associatedValueSchema,
+        schema: (each cases).associatedValuesSchema,
         initializer: (each cases).initializer
       )),
       encodeValue: encodeValue
@@ -250,18 +250,18 @@ where Value.RawValue: Codable & Sendable {
 private struct StandardEnumSchema<
   Value,
   CaseKey: CodingKey,
-  each AssociatedValueSchema: ToolInput.Schema
+  each AssociatedValuesSchema: ToolInput.Schema
 >: InternalSchema {
 
   let description: String?
 
-  typealias Cases = (repeat EnumSchemaCase<Value, CaseKey, each AssociatedValueSchema>)
+  typealias Cases = (repeat EnumSchemaCase<Value, CaseKey, each AssociatedValuesSchema>)
   let cases: Cases
 
   let encodeValue:
     @Sendable (
       Value,
-      repeat @escaping ((each AssociatedValueSchema).Value) throws -> Void
+      repeat @escaping ((each AssociatedValuesSchema).Value) throws -> Void
     ) throws -> Void
 
   func encodeSchemaDefinition(

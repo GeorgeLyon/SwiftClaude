@@ -90,25 +90,7 @@ extension StructDeclSyntax {
             )
 
             /// description: ...
-            if let comment {
-              LabeledExprSyntax(
-                label: "description",
-                colon: .colonToken(),
-                expression: StringLiteralExprSyntax(
-                  openingQuote: .multilineStringQuoteToken(),
-                  content: comment,
-                  closingQuote: .multilineStringQuoteToken()
-                ),
-                trailingComma: .commaToken(trailingTrivia: .newline)
-              )
-            } else {
-              LabeledExprSyntax(
-                label: "description",
-                colon: .colonToken(),
-                expression: NilLiteralExprSyntax(),
-                trailingComma: .commaToken(trailingTrivia: .newline)
-              )
-            }
+            descriptionArgument
 
             /// keyedBy: ToolInputSchemaPropertyKey.self
             LabeledExprSyntax(
@@ -252,7 +234,6 @@ extension StructDeclSyntax {
   fileprivate struct StoredProperty {
     let name: TokenSyntax
     let type: TypeSyntax
-    let typeExpression: DeclReferenceExprSyntax
     let comment: String?
   }
 
@@ -294,9 +275,6 @@ extension StructDeclSyntax {
             StoredProperty(
               name: name,
               type: type,
-              typeExpression: DeclReferenceExprSyntax(
-                baseName: "\(raw: type.trimmed)"
-              ),
               comment: comment
             )
           )
@@ -368,30 +346,11 @@ extension StructDeclSyntax.StoredProperty {
           trailingComma: .commaToken(trailingTrivia: .newline)
         )
 
-        /// schema
+        /// schema: ToolInput.schema(representing: <type>.self)
         LabeledExprSyntax(
           label: "schema",
           colon: .colonToken(),
-          expression: FunctionCallExprSyntax(
-            calledExpression: MemberAccessExprSyntax(
-              base: DeclReferenceExprSyntax(baseName: "ToolInput"),
-              name: "schema"
-            ),
-            leftParen: .leftParenToken(),
-            arguments: LabeledExprListSyntax {
-              LabeledExprSyntax(
-                label: "representing",
-                colon: .colonToken(),
-                expression: MemberAccessExprSyntax(
-                  base: typeExpression,
-                  name: "self"
-                )
-              )
-            },
-            rightParen: .rightParenToken(),
-            trailingTrivia: .newline
-          )
-
+          expression: type.toolInputSchema
         )
       }
     )
@@ -409,44 +368,277 @@ extension EnumDeclSyntax {
       .compactMap { $0.decl.as(EnumCaseDeclSyntax.self) }
 
     let toolInputSchemaProperty: VariableDeclSyntax = .toolInputSchema {
-      FunctionCallExprSyntax(
-        calledExpression: MemberAccessExprSyntax(
-          base: DeclReferenceExprSyntax(baseName: "ToolInput"),
-          name: "structSchema"
-        ),
-        leftParen: .leftParenToken(trailingTrivia: .newline),
-        arguments: LabeledExprListSyntax {
-          /// representing: Self.self
-          LabeledExprSyntax(
-            label: "representing",
-            colon: .colonToken(),
-            expression: MemberAccessExprSyntax(
-              base: DeclReferenceExprSyntax(baseName: "Self"),
-              name: "self"
-            ),
-            trailingComma: .commaToken(trailingTrivia: .newline)
-          )
+      /// let <case>AssociatedValuesSchema = ToolInput.enumCaseAssociatedValuesSchema(…)
+      for caseDeclElement in caseDecls.flatMap(\.elements) {
+        caseDeclElement.associatedValuesSchema
+      }
 
-          /// keyedBy: ToolInputSchemaCaseKey.self
-          LabeledExprSyntax(
-            label: "keyedBy",
-            colon: .colonToken(),
-            expression: MemberAccessExprSyntax(
-              base: DeclReferenceExprSyntax(
-                baseName: "ToolInputSchemaCaseKey"
+      /// return ToolInput.enumSchema(…)
+      ReturnStmtSyntax(
+        expression: FunctionCallExprSyntax(
+          calledExpression: MemberAccessExprSyntax(
+            base: DeclReferenceExprSyntax(baseName: "ToolInput"),
+            name: "enumSchema"
+          ),
+          leftParen: .leftParenToken(trailingTrivia: .newline),
+          arguments: LabeledExprListSyntax {
+            /// representing: Self.self
+            LabeledExprSyntax(
+              label: "representing",
+              colon: .colonToken(),
+              expression: MemberAccessExprSyntax(
+                base: DeclReferenceExprSyntax(baseName: "Self"),
+                name: "self"
               ),
-              name: "self"
-            ),
-            trailingComma: .commaToken(trailingTrivia: .newline)
-          )
+              trailingComma: .commaToken(trailingTrivia: .newline)
+            )
 
-        }
+            /// description: ...
+            descriptionArgument
+
+            /// keyedBy: ToolInputSchemaCaseKey.self
+            LabeledExprSyntax(
+              label: "keyedBy",
+              colon: .colonToken(),
+              expression: MemberAccessExprSyntax(
+                base: DeclReferenceExprSyntax(
+                  baseName: "ToolInputSchemaCaseKey"
+                ),
+                name: "self"
+              ),
+              trailingComma: .commaToken(trailingTrivia: .newline)
+            )
+
+            /// cases: (…)
+            LabeledExprSyntax(
+              label: "cases",
+              colon: .colonToken(),
+              expression: TupleExprSyntax(
+                leftParen: .leftParenToken(trailingTrivia: .newline),
+                elements: LabeledExprListSyntax {
+                  for caseDecl in caseDecls {
+                    let descriptionArgument = caseDecl.descriptionArgument
+                    for element in caseDecl.elements {
+                      LabeledExprSyntax(
+                        expression: element.enumSchemaCaseArgument(
+                          descriptionArgument: descriptionArgument
+                        ),
+                        trailingComma: .commaToken(trailingTrivia: .newline)
+                      )
+                    }
+                  }
+                },
+                rightParen: .rightParenToken(leadingTrivia: .newline)
+              )
+            )
+
+          }
+        )
       )
     }
 
     return MemberBlockItemListSyntax {
       toolInputSchemaProperty
     }
+  }
+
+}
+
+extension EnumCaseElementListSyntax.Element {
+
+  fileprivate var associatedValuesSchema: VariableDeclSyntax {
+    VariableDeclSyntax(
+      bindingSpecifier: .keyword(.let),
+      bindings: PatternBindingListSyntax {
+        PatternBindingSyntax(
+          pattern: IdentifierPatternSyntax(identifier: associatedValuesSchemaName),
+          initializer: InitializerClauseSyntax(
+            value: FunctionCallExprSyntax(
+              calledExpression: MemberAccessExprSyntax(
+                base: DeclReferenceExprSyntax(baseName: "ToolInput"),
+                name: "enumCaseAssociatedValuesSchema"
+              ),
+              leftParen: .leftParenToken(trailingTrivia: .newline),
+              arguments: LabeledExprListSyntax {
+                let associatedValuesKey = MemberAccessExprSyntax(
+                  base: DeclReferenceExprSyntax(baseName: "ToolInputSchemaCaseKey"),
+                  name: "AssociatedValue\(name)"
+                )
+
+                /// values: (…)
+                LabeledExprSyntax(
+                  label: "values",
+                  colon: .colonToken(),
+                  expression: TupleExprSyntax(
+                    leftParen: .leftParenToken(trailingTrivia: .newline),
+                    elements: LabeledExprListSyntax {
+                      if let parameters = parameterClause?.parameters {
+                        for parameter in parameters {
+                          LabeledExprSyntax(
+                            expression: parameter.associatedValuesSchemaArgument(
+                              key: associatedValuesKey
+                            )
+                          )
+                        }
+                      }
+                    },
+                    rightParen: .rightParenToken(leadingTrivia: .newline)
+                  )
+                )
+
+                /// keyedBy: ToolInputSchemaCaseKey.AssociatedValue<case>.self
+                LabeledExprSyntax(
+                  label: "keyedBy",
+                  colon: .colonToken(),
+                  expression: MemberAccessExprSyntax(
+                    base: associatedValuesKey,
+                    name: "self"
+                  )
+                )
+              },
+              rightParen: .rightParenToken()
+            )
+          )
+        )
+      }
+    )
+  }
+
+  fileprivate func enumSchemaCaseArgument(
+    descriptionArgument: LabeledExprSyntax
+  ) -> TupleExprSyntax {
+    TupleExprSyntax(
+      leftParen: .leftParenToken(trailingTrivia: .newline),
+      elements: LabeledExprListSyntax {
+        /// key: ToolInputSchemaCaseKey.first,
+        LabeledExprSyntax(
+          label: "key",
+          colon: .colonToken(),
+          expression: MemberAccessExprSyntax(
+            base: DeclReferenceExprSyntax(baseName: "ToolInputSchemaCaseKey"),
+            name: name
+          ),
+          trailingComma: .commaToken(trailingTrivia: .newline)
+        )
+
+        /// description: "A string",
+        descriptionArgument
+
+        /// associatedValuesSchema: associatedValues_first,
+        LabeledExprSyntax(
+          label: "associatedValuesSchema",
+          colon: .colonToken(),
+          expression: DeclReferenceExprSyntax(baseName: associatedValuesSchemaName),
+          trailingComma: .commaToken(trailingTrivia: .newline)
+        )
+
+        /// initializer: { @Sendable first in .first(first) }
+        LabeledExprSyntax(
+          label: "initializer",
+          colon: .colonToken(),
+          expression: ClosureExprSyntax(
+            signature: ClosureSignatureSyntax(
+              attributes: AttributeListSyntax {
+                AttributeSyntax(
+                  atSign: .atSignToken(),
+                  attributeName: IdentifierTypeSyntax(name: "Sendable")
+                )
+              },
+              parameterClause: .simpleInput(
+                ClosureShorthandParameterListSyntax {
+                  ClosureShorthandParameterSyntax(name: "values")
+                },
+              )
+            ),
+            statements: CodeBlockItemListSyntax {
+              let initializer = MemberAccessExprSyntax(
+                name: name
+              )
+              if let parameters = parameterClause?.parameters {
+                FunctionCallExprSyntax(
+                  calledExpression: initializer,
+                  leftParen: .leftParenToken(),
+                  arguments: LabeledExprListSyntax {
+                    if parameters.count > 1 {
+                      for (offset, parameter) in parameters.enumerated() {
+                        LabeledExprSyntax(
+                          label: parameter.firstName,
+                          colon: parameter.firstName == nil ? nil : .colonToken(),
+                          expression: MemberAccessExprSyntax(
+                            base: DeclReferenceExprSyntax(baseName: "values"),
+                            name: "\(raw: offset)"
+                          )
+                        )
+                      }
+                    } else if let parameter = parameters.first {
+                      LabeledExprSyntax(
+                        label: parameter.firstName,
+                        colon: parameter.firstName == nil ? nil : .colonToken(),
+                        expression: DeclReferenceExprSyntax(baseName: "values")
+                      )
+                    }
+                  },
+                  rightParen: .rightParenToken()
+                )
+              } else {
+                initializer
+              }
+            }
+          )
+        )
+      },
+      rightParen: .rightParenToken(leadingTrivia: .newline)
+    )
+  }
+
+  private var associatedValuesSchemaName: TokenSyntax {
+    "\(name)AssociatedValuesSchema"
+  }
+
+}
+
+extension EnumCaseParameterListSyntax.Element {
+
+  fileprivate func associatedValuesSchemaArgument(key: some ExprSyntaxProtocol) -> TupleExprSyntax {
+    TupleExprSyntax(
+      leftParen: .leftParenToken(trailingTrivia: .newline),
+      elements: LabeledExprListSyntax {
+        if let name = secondName ?? firstName {
+          /// key: ToolInputSchemaCaseKey.AssociatedValue<case>.name,
+          LabeledExprSyntax(
+            label: "key",
+            colon: .colonToken(),
+            expression: MemberAccessExprSyntax(
+              base: key,
+              name: name
+            ),
+            trailingComma: .commaToken(trailingTrivia: .newline)
+          )
+        } else {
+          /// key: ToolInputSchemaCaseKey.AssociatedValue<case>?.none,
+          LabeledExprSyntax(
+            label: "key",
+            colon: .colonToken(),
+            expression: MemberAccessExprSyntax(
+              base: OptionalChainingExprSyntax(
+                expression: key
+              ),
+              name: "none"
+            ),
+            trailingComma: .commaToken(trailingTrivia: .newline)
+          )
+        }
+
+        /// schema: ToolInput.schema(representing: <Type>.self),
+        LabeledExprSyntax(
+          label: "schema",
+          colon: .colonToken(),
+          expression: type.toolInputSchema
+        )
+
+      },
+      rightParen: .rightParenToken(leadingTrivia: .newline)
+    )
   }
 
 }
@@ -493,11 +685,64 @@ extension VariableDeclSyntax {
 
 }
 
+extension TypeSyntax {
+
+  var toolInputSchema: some ExprSyntaxProtocol {
+    FunctionCallExprSyntax(
+      calledExpression: MemberAccessExprSyntax(
+        base: DeclReferenceExprSyntax(baseName: "ToolInput"),
+        name: "schema"
+      ),
+      leftParen: .leftParenToken(),
+      arguments: LabeledExprListSyntax {
+        LabeledExprSyntax(
+          label: "representing",
+          colon: .colonToken(),
+          expression: MemberAccessExprSyntax(
+            base: DeclReferenceExprSyntax(baseName: "\(trimmed)"),
+            name: "self"
+          )
+        )
+      },
+      rightParen: .rightParenToken(),
+      trailingTrivia: .newline
+    )
+  }
+
+}
+
 extension DeclModifierListSyntax {
 
   fileprivate static var `private`: Self {
     DeclModifierListSyntax {
       DeclModifierSyntax(name: .keyword(.private))
+    }
+  }
+
+}
+
+extension SyntaxProtocol {
+
+  fileprivate var descriptionArgument: LabeledExprSyntax {
+    /// description: ...
+    if let comment {
+      LabeledExprSyntax(
+        label: "description",
+        colon: .colonToken(),
+        expression: StringLiteralExprSyntax(
+          openingQuote: .multilineStringQuoteToken(),
+          content: comment,
+          closingQuote: .multilineStringQuoteToken()
+        ),
+        trailingComma: .commaToken(trailingTrivia: .newline)
+      )
+    } else {
+      LabeledExprSyntax(
+        label: "description",
+        colon: .colonToken(),
+        expression: NilLiteralExprSyntax(),
+        trailingComma: .commaToken(trailingTrivia: .newline)
+      )
     }
   }
 

@@ -71,31 +71,31 @@ struct EnumSchemaTests {
           (
             key: .first,
             description: "A string",
-            associatedValueSchema: associatedValues_first,
+            associatedValuesSchema: associatedValues_first,
             initializer: { @Sendable first in .first(first) }
           ),
           (
             key: .second,
             description: String?.none,
-            associatedValueSchema: associatedValues_second,
+            associatedValuesSchema: associatedValues_second,
             initializer: { @Sendable second in .second(x: second) }
           ),
           (
             key: .third,
             description: nil,
-            associatedValueSchema: associatedValues_third,
+            associatedValuesSchema: associatedValues_third,
             initializer: { @Sendable third in Self.third(third.0, x: third.1) }
           ),
           (
             key: .fourth,
             description: nil,
-            associatedValueSchema: associatedValues_fourth,
+            associatedValuesSchema: associatedValues_fourth,
             initializer: { @Sendable fourth in Self.fourth(x: fourth.0, y: fourth.1) }
           ),
           (
             key: .fifth,
             description: nil,
-            associatedValueSchema: associatedValues_fifth,
+            associatedValuesSchema: associatedValues_fifth,
             initializer: { @Sendable fifth in Self.fifth }
           )
         ),
@@ -158,19 +158,19 @@ struct EnumSchemaTests {
           (
             key: .one,
             description: nil,
-            associatedValueSchema: associatedValues_one,
+            associatedValuesSchema: associatedValues_one,
             initializer: { @Sendable _ in .one }
           ),
           (
             key: .two,
             description: nil,
-            associatedValueSchema: associatedValues_two,
+            associatedValuesSchema: associatedValues_two,
             initializer: { @Sendable _ in .two }
           ),
           (
             key: .three,
             description: nil,
-            associatedValueSchema: associatedValues_three,
+            associatedValuesSchema: associatedValues_three,
             initializer: { @Sendable _ in .three }
           )
         ),
@@ -226,7 +226,7 @@ struct EnumSchemaTests {
       cases: ((
         key: .only,
         description: "The only case",
-        associatedValueSchema: ToolInput.schema(),
+        associatedValuesSchema: ToolInput.schema(),
         initializer: { @Sendable value in .only(value) }
       )),
       encodeValue: { value, encode in
