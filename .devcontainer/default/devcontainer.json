@@ -34,7 +34,7 @@
       ],
       "settings": {
         "files.exclude": {
-          ".claude-code": true
+          // ".claude-code": true
         }
       }
     }

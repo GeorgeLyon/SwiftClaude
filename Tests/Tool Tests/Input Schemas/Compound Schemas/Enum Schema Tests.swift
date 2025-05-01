@@ -235,25 +235,27 @@ struct EnumSchemaTests {
           "maxProperties" : 1,
           "minProperties" : 1,
           "properties" : {
+            "fifth" : {
+              "type" : "null"
+            },
             "first" : {
               "description" : "A string",
               "type" : "string"
             },
             "fourth" : {
-              "additionalProperties" : false,
-              "properties" : {
-                "x" : {
+              "items" : false,
+              "minItems" : 2,
+              "prefixItems" : [
+                {
+                  "description" : "x",
                   "type" : "string"
                 },
-                "y" : {
+                {
+                  "description" : "y",
                   "type" : "integer"
                 }
-              },
-              "required" : [
-                "x",
-                "y"
               ],
-              "type" : "object"
+              "type" : "array"
             },
             "second" : {
               "type" : "integer"
@@ -286,6 +288,14 @@ struct EnumSchemaTests {
       schema.encodedJSON(for: .first("a")) == """
         {
           "first" : "a"
+        }
+        """
+    )
+
+    #expect(
+      schema.encodedJSON(for: .fifth) == """
+        {
+          "fifth" : null
         }
         """
     )
