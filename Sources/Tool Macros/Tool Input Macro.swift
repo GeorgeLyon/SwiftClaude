@@ -335,7 +335,7 @@ extension StructDeclSyntax.StoredProperty {
           )
         }
 
-        /// keyPath: \Self.propertName
+        /// keyPath: \Self.propertyName
         LabeledExprSyntax(
           label: "keyPath",
           colon: .colonToken(),

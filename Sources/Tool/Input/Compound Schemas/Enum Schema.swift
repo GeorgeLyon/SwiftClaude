@@ -118,8 +118,9 @@ extension ToolInput {
 
 extension ToolInput {
 
-  public static func enumCaseAssociatedValuesSchema(
-    _ values: ()
+  public static func enumCaseAssociatedValuesSchema<Key: CodingKey>(
+    values: (),
+    keyedBy: Key.Type
   ) -> some Schema<Void> {
     EnumCaseVoidAssociatedValueSchema()
   }
@@ -128,10 +129,11 @@ extension ToolInput {
     Key: CodingKey,
     ValueSchema: Schema
   >(
-    _ values: (
+    values: (
       key: Key?,
       schema: ValueSchema
-    )
+    ),
+    keyedBy: Key.Type
   ) -> some Schema<ValueSchema.Value> {
     values.schema
   }
@@ -140,12 +142,13 @@ extension ToolInput {
     Key: CodingKey,
     each ValueSchema: Schema
   >(
-    _ values: (
+    values: (
       repeat (
         key: Key,
         schema: each ValueSchema
       )
-    )
+    ),
+    keyedBy: Key.Type
   ) -> some Schema<(repeat (each ValueSchema).Value)> {
     /// Associated values which all have names are represented as an object
     ObjectPropertiesSchema(
@@ -162,12 +165,13 @@ extension ToolInput {
     Key: CodingKey,
     each ValueSchema: Schema
   >(
-    _ values: (
+    values: (
       repeat (
         key: Key?,
         schema: each ValueSchema
       )
-    )
+    ),
+    keyedBy: Key.Type
   ) -> some Schema<(repeat (each ValueSchema).Value)> {
     TupleSchema(
       elements: (repeat (

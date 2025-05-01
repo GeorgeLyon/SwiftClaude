@@ -8,28 +8,30 @@ struct EnumSchemaTests {
   private enum TestEnum: ToolInput.SchemaCodable, Equatable {
 
     case first(String)
-    case second(Int)
+    case second(x: Int)
     case third(String, x: Int)
     case fourth(x: String, y: Int)
     case fifth
 
     static let toolInputSchema: some ToolInput.Schema<Self> = {
       let associatedValues_first = ToolInput.enumCaseAssociatedValuesSchema(
-        ((
+        values: ((
           key: CaseKey.First?.none,
           schema: ToolInput.schema(representing: String.self)
-        ))
+        )),
+        keyedBy: CaseKey.First.self
       )
 
       let associatedValues_second = ToolInput.enumCaseAssociatedValuesSchema(
-        ((
-          key: CaseKey.Second?.none,
+        values: ((
+          key: CaseKey.Second.x,
           schema: ToolInput.schema(representing: Int.self)
-        ))
+        )),
+        keyedBy: CaseKey.Second.self
       )
 
       let associatedValues_third = ToolInput.enumCaseAssociatedValuesSchema(
-        (
+        values: (
           (
             key: CaseKey.Third?.none,
             schema: ToolInput.schema(representing: String.self)
@@ -38,11 +40,12 @@ struct EnumSchemaTests {
             key: CaseKey.Third?.some(.x),
             schema: ToolInput.schema(representing: Int.self)
           )
-        )
+        ),
+        keyedBy: CaseKey.Third.self
       )
 
       let associatedValues_fourth = ToolInput.enumCaseAssociatedValuesSchema(
-        (
+        values: (
           (
             key: CaseKey.Fourth?.some(.x),
             schema: ToolInput.schema(representing: String.self)
@@ -51,11 +54,13 @@ struct EnumSchemaTests {
             key: CaseKey.Fourth?.some(.y),
             schema: ToolInput.schema(representing: Int.self)
           )
-        )
+        ),
+        keyedBy: CaseKey.Fourth.self
       )
 
       let associatedValues_fifth = ToolInput.enumCaseAssociatedValuesSchema(
-        ()
+        values: (),
+        keyedBy: CaseKey.Fifth.self
       )
 
       return ToolInput.enumSchema(
@@ -73,7 +78,7 @@ struct EnumSchemaTests {
             key: .second,
             description: String?.none,
             associatedValueSchema: associatedValues_second,
-            initializer: { @Sendable second in .second(second) }
+            initializer: { @Sendable second in .second(x: second) }
           ),
           (
             key: .third,
@@ -112,12 +117,15 @@ struct EnumSchemaTests {
       enum First: Swift.CodingKey {
       }
       enum Second: Swift.CodingKey {
+        case x
       }
       enum Third: Swift.CodingKey {
         case x
       }
       enum Fourth: Swift.CodingKey {
         case x, y
+      }
+      enum Fifth: Swift.CodingKey {
       }
     }
 
@@ -129,9 +137,18 @@ struct EnumSchemaTests {
     case three
 
     static let toolInputSchema: some ToolInput.Schema<Self> = {
-      let associatedValues_one = ToolInput.enumCaseAssociatedValuesSchema(())
-      let associatedValues_two = ToolInput.enumCaseAssociatedValuesSchema(())
-      let associatedValues_three = ToolInput.enumCaseAssociatedValuesSchema(())
+      let associatedValues_one = ToolInput.enumCaseAssociatedValuesSchema(
+        values: (),
+        keyedBy: CaseKey.Empty.self
+      )
+      let associatedValues_two = ToolInput.enumCaseAssociatedValuesSchema(
+        values: (),
+        keyedBy: CaseKey.Empty.self
+      )
+      let associatedValues_three = ToolInput.enumCaseAssociatedValuesSchema(
+        values: (),
+        keyedBy: CaseKey.Empty.self
+      )
 
       return ToolInput.enumSchema(
         representing: Self.self,
