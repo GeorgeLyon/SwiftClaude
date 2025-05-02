@@ -429,9 +429,49 @@ extension EnumDeclSyntax {
                   }
                 },
                 rightParen: .rightParenToken(leadingTrivia: .newline)
-              )
+              ),
+              trailingComma: .commaToken(trailingTrivia: .newline)
             )
 
+            /// encodeValue: { … }
+            LabeledExprSyntax(
+              label: "encodeValue",
+              colon: .colonToken(),
+              expression: ClosureExprSyntax(
+                signature: ClosureSignatureSyntax(
+                  attributes: AttributeListSyntax {
+                    AttributeSyntax(
+                      atSign: .atSignToken(),
+                      attributeName: IdentifierTypeSyntax(name: "Sendable")
+                    )
+                  },
+                  parameterClause: .simpleInput(
+                    ClosureShorthandParameterListSyntax {
+                      ClosureShorthandParameterSyntax(
+                        name: "value"
+                      )
+                      for element in caseDecls.flatMap(\.elements) {
+                        ClosureShorthandParameterSyntax(
+                          name: "\(element.name)Encoder"
+                        )
+                      }
+                    },
+                  )
+                ),
+                statements: CodeBlockItemListSyntax {
+                  SwitchExprSyntax(
+                    subject: DeclReferenceExprSyntax(baseName: "value"),
+                    cases: SwitchCaseListSyntax {
+                      for caseDecl in caseDecls {
+                        for element in caseDecl.elements {
+                          element.switchCase(encoder: "\(element.name)Encoder")
+                        }
+                      }
+                    }
+                  )
+                }
+              )
+            )
           }
         )
       )
@@ -451,7 +491,7 @@ extension EnumCaseElementListSyntax.Element {
       bindingSpecifier: .keyword(.let),
       bindings: PatternBindingListSyntax {
         PatternBindingSyntax(
-          pattern: IdentifierPatternSyntax(identifier: associatedValuesSchemaName),
+          pattern: IdentifierPatternSyntax(identifier: "\(name)AssociatedValuesSchema"),
           initializer: InitializerClauseSyntax(
             value: FunctionCallExprSyntax(
               calledExpression: MemberAccessExprSyntax(
@@ -528,7 +568,7 @@ extension EnumCaseElementListSyntax.Element {
         LabeledExprSyntax(
           label: "associatedValuesSchema",
           colon: .colonToken(),
-          expression: DeclReferenceExprSyntax(baseName: associatedValuesSchemaName),
+          expression: DeclReferenceExprSyntax(baseName: "\(name)AssociatedValuesSchema"),
           trailingComma: .commaToken(trailingTrivia: .newline)
         )
 
@@ -591,8 +631,90 @@ extension EnumCaseElementListSyntax.Element {
     )
   }
 
-  private var associatedValuesSchemaName: TokenSyntax {
-    "\(name)AssociatedValuesSchema"
+  fileprivate func switchCase(encoder: TokenSyntax) -> SwitchCaseSyntax {
+    SwitchCaseSyntax(
+      /// case .enumCase…
+      label: .case(
+        SwitchCaseLabelSyntax {
+          SwitchCaseItemListSyntax {
+            if let parameters = parameterClause?.parameters {
+              /// case .enumCase(…):
+              SwitchCaseItemSyntax(
+                pattern: ExpressionPatternSyntax(
+                  expression: FunctionCallExprSyntax(
+                    calledExpression: MemberAccessExprSyntax(
+                      name: name
+                    ),
+                    leftParen: .leftParenToken(),
+                    arguments: LabeledExprListSyntax {
+                      for (parameterName, _) in parameters.named() {
+                        LabeledExprSyntax(
+                          expression: PatternExprSyntax(
+                            pattern: ValueBindingPatternSyntax(
+                              bindingSpecifier: .keyword(.let),
+                              pattern: IdentifierPatternSyntax(
+                                identifier: parameterName
+                              )
+                            )
+                          )
+                        )
+                      }
+                    },
+                    rightParen: .rightParenToken()
+                  )
+                )
+              )
+            } else {
+              /// case .enumCase:
+              SwitchCaseItemSyntax(
+                pattern: ExpressionPatternSyntax(
+                  expression: MemberAccessExprSyntax(
+                    name: name
+                  )
+                )
+              )
+            }
+          }
+        }
+      ),
+      /// case .enumCase(…):
+      statements: CodeBlockItemListSyntax {
+        /// enumCaseEncoder(…)
+        TryExprSyntax(
+          expression: FunctionCallExprSyntax(
+            calledExpression: DeclReferenceExprSyntax(baseName: "\(name)Encoder"),
+            leftParen: .leftParenToken(),
+            arguments: LabeledExprListSyntax {
+              LabeledExprSyntax(
+                expression: TupleExprSyntax {
+                  let parameters = parameterClause?.parameters ?? []
+                  for (name, _) in parameters.named() {
+                    LabeledExprSyntax(
+                      expression: DeclReferenceExprSyntax(baseName: name)
+                    )
+                  }
+                }
+              )
+            },
+            rightParen: .rightParenToken()
+          )
+        )
+      }
+    )
+  }
+
+}
+
+extension Sequence where Element == EnumCaseParameterSyntax {
+
+  func named() -> some Sequence<(name: TokenSyntax, parameter: Element)> {
+    enumerated()
+      .map { pair in
+        (
+          name: pair.element.name ?? "_\(raw: pair.offset)",
+          parameter: pair.element
+        )
+      }
   }
 
 }
@@ -603,7 +725,7 @@ extension EnumCaseParameterListSyntax.Element {
     TupleExprSyntax(
       leftParen: .leftParenToken(trailingTrivia: .newline),
       elements: LabeledExprListSyntax {
-        if let name = secondName ?? firstName {
+        if let name = name {
           /// key: ToolInputSchemaCaseKey.AssociatedValue<case>.name,
           LabeledExprSyntax(
             label: "key",
@@ -639,6 +761,20 @@ extension EnumCaseParameterListSyntax.Element {
       },
       rightParen: .rightParenToken(leadingTrivia: .newline)
     )
+  }
+
+  fileprivate var name: TokenSyntax? {
+    switch secondName {
+    case .wildcardToken(), nil:
+      switch firstName {
+      case .wildcardToken(), nil:
+        return nil
+      case let name:
+        return name
+      }
+    case let name?:
+      return name
+    }
   }
 
 }
