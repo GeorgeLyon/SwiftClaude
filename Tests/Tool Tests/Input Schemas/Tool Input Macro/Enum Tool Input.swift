@@ -69,19 +69,20 @@ struct EnumToolInputTests {
               "type" : "string"
             },
             "fourth" : {
-              "items" : false,
-              "minItems" : 2,
-              "prefixItems" : [
-                {
-                  "description" : "x",
+              "additionalProperties" : false,
+              "properties" : {
+                "x" : {
                   "type" : "string"
                 },
-                {
-                  "description" : "y",
+                "y" : {
                   "type" : "integer"
                 }
+              },
+              "required" : [
+                "x",
+                "y"
               ],
-              "type" : "array"
+              "type" : "object"
             },
             "second" : {
               "type" : "integer"
