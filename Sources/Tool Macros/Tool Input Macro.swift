@@ -414,7 +414,7 @@ extension EnumDeclSyntax {
               label: "cases",
               colon: .colonToken(),
               expression: TupleExprSyntax(
-                leftParen: .leftParenToken(trailingTrivia: .newline),
+                leftParen: .leftParenToken(),
                 elements: LabeledExprListSyntax {
                   for caseDecl in caseDecls {
                     let descriptionArgument = caseDecl.descriptionArgument
@@ -422,8 +422,7 @@ extension EnumDeclSyntax {
                       LabeledExprSyntax(
                         expression: element.enumSchemaCaseArgument(
                           descriptionArgument: descriptionArgument
-                        ),
-                        trailingComma: .commaToken(trailingTrivia: .newline)
+                        )
                       )
                     }
                   }
@@ -472,13 +471,58 @@ extension EnumDeclSyntax {
                 }
               )
             )
-          }
+          },
+          rightParen: .rightParenToken(leadingTrivia: .newline)
+
         )
       )
     }
 
+    let codingKey = InheritanceClauseSyntax {
+      InheritedTypeSyntax(
+        type: MemberTypeSyntax(
+          baseType: IdentifierTypeSyntax(name: "Swift"),
+          name: "CodingKey"
+        )
+      )
+    }
+    let caseKey = EnumDeclSyntax(
+      modifiers: .private,
+      name: "ToolInputSchemaCaseKey",
+      inheritanceClause: codingKey,
+      memberBlock: MemberBlockSyntax {
+        for caseDecl in caseDecls {
+          for element in caseDecl.elements {
+            EnumCaseDeclSyntax {
+              EnumCaseElementSyntax(
+                name: element.name
+              )
+            }
+
+            if let parameters = element.parameterClause?.parameters {
+              EnumDeclSyntax(
+                modifiers: .private,
+                name: "AssociatedValuesKey_\(element.name)",
+                inheritanceClause: codingKey,
+                memberBlock: MemberBlockSyntax {
+                  for parameter in parameters {
+                    if let name = parameter.name {
+                      EnumCaseDeclSyntax {
+                        EnumCaseElementSyntax(name: name)
+                      }
+                    }
+                  }
+                }
+              )
+            }
+          }
+        }
+      }
+    )
+
     return MemberBlockItemListSyntax {
       toolInputSchemaProperty
+      caseKey
     }
   }
 
@@ -502,7 +546,7 @@ extension EnumCaseElementListSyntax.Element {
               arguments: LabeledExprListSyntax {
                 let associatedValuesKey = MemberAccessExprSyntax(
                   base: DeclReferenceExprSyntax(baseName: "ToolInputSchemaCaseKey"),
-                  name: "AssociatedValue\(name)"
+                  name: "AssociatedValuesKey_\(name)"
                 )
 
                 /// values: (…)
@@ -536,7 +580,7 @@ extension EnumCaseElementListSyntax.Element {
                   )
                 )
               },
-              rightParen: .rightParenToken()
+              rightParen: .rightParenToken(leadingTrivia: .newline)
             )
           )
         )
@@ -548,7 +592,7 @@ extension EnumCaseElementListSyntax.Element {
     descriptionArgument: LabeledExprSyntax
   ) -> TupleExprSyntax {
     TupleExprSyntax(
-      leftParen: .leftParenToken(trailingTrivia: .newline),
+      leftParen: .leftParenToken(leadingTrivia: .newline, trailingTrivia: .newline),
       elements: LabeledExprListSyntax {
         /// key: ToolInputSchemaCaseKey.first,
         LabeledExprSyntax(
@@ -759,7 +803,7 @@ extension EnumCaseParameterListSyntax.Element {
         )
 
       },
-      rightParen: .rightParenToken(leadingTrivia: .newline)
+      rightParen: .rightParenToken()
     )
   }
 
