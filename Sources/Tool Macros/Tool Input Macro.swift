@@ -56,7 +56,7 @@ extension DeclGroupSyntax {
     -> MemberBlockItemListSyntax
   {
     if let structDecl = self.as(StructDeclSyntax.self) {
-      try structDecl.toolInputMembers
+      try structDecl.toolInputMembers(in: context)
     } else if let enumDecl = self.as(EnumDeclSyntax.self) {
       enumDecl.toolInputMembers(in: context)
     } else {
@@ -74,164 +74,168 @@ extension DeclGroupSyntax {
 
 extension StructDeclSyntax {
 
-  fileprivate var toolInputMembers: MemberBlockItemListSyntax {
-    get throws {
-      let storedProperties = try self.storedProperties
+  fileprivate func toolInputMembers(in context: MacroExpansionContext) throws
+    -> MemberBlockItemListSyntax
+  {
+    let propertyKeyName = context.makeUniqueName("PropertyKey")
+    let storedProperties = try self.storedProperties
 
-      /// var toolInputSchema: some ToolInput.Schema<Self> { … }
-      let toolInputSchemaProperty: VariableDeclSyntax = toolInputSchemaProperty {
-        FunctionCallExprSyntax(
-          calledExpression: MemberAccessExprSyntax(
-            base: DeclReferenceExprSyntax(baseName: "ToolInput"),
-            name: "structSchema"
-          ),
-          leftParen: .leftParenToken(trailingTrivia: .newline),
-          arguments: LabeledExprListSyntax {
-            /// representing: Self.self
-            LabeledExprSyntax(
-              label: "representing",
-              colon: .colonToken(),
-              expression: MemberAccessExprSyntax(
-                base: DeclReferenceExprSyntax(baseName: "Self"),
-                name: "self"
-              ),
-              trailingComma: .commaToken(trailingTrivia: .newline)
-            )
-
-            /// description: ...
-            descriptionArgument
-
-            /// keyedBy: ToolInputSchemaPropertyKey.self
-            LabeledExprSyntax(
-              label: "keyedBy",
-              colon: .colonToken(),
-              expression: MemberAccessExprSyntax(
-                base: DeclReferenceExprSyntax(
-                  baseName: "ToolInputSchemaPropertyKey"
-                ),
-                name: "self"
-              ),
-              trailingComma: .commaToken(trailingTrivia: .newline)
-            )
-
-            /// properties: ( ... )
-            LabeledExprSyntax(
-              label: "properties",
-              colon: .colonToken(),
-              expression: TupleExprSyntax(
-                elements: LabeledExprListSyntax {
-                  for property in storedProperties {
-                    LabeledExprSyntax(
-                      expression: property.structSchemaPropertyArgument
-                    )
-                  }
-                },
-                rightParen: .rightParenToken(leadingTrivia: .newline)
-              ),
-              trailingComma: .commaToken(trailingTrivia: .newline)
-            )
-
-            /// initializer: Self.init(structSchemaDecoder:)
-            LabeledExprSyntax(
-              label: "initializer",
-              colon: .colonToken(),
-              expression: MemberAccessExprSyntax(
-                base: DeclReferenceExprSyntax(
-                  baseName: "Self"
-                ),
-                declName: DeclReferenceExprSyntax(
-                  baseName: "init",
-                  argumentNames: DeclNameArgumentsSyntax(
-                    arguments: DeclNameArgumentListSyntax {
-                      DeclNameArgumentSyntax(name: "structSchemaDecoder")
-                    }
-                  )
-                )
-              ),
-              trailingTrivia: .newline
-            )
-          },
-          rightParen: .rightParenToken()
-        )
-      }
-
-      /// private enum ToolInputSchemaPropertyKey: CodingKey { … }
-      let propertyKeyEnum =
-        EnumDeclSyntax(
-          modifiers: .private,
-          name: "ToolInputSchemaPropertyKey",
-          inheritanceClause: InheritanceClauseSyntax(
-            colon: .colonToken(),
-            inheritedTypes: InheritedTypeListSyntax {
-              InheritedTypeSyntax(
-                type: MemberTypeSyntax(
-                  baseType: IdentifierTypeSyntax(name: "Swift"),
-                  name: "CodingKey"
-                )
-              )
-            }
-          ),
-          memberBlock: MemberBlockSyntax(
-            membersBuilder: {
-              for property in storedProperties {
-                EnumCaseDeclSyntax {
-                  EnumCaseElementSyntax(name: property.name)
-                }
-              }
-            }
-          )
-        )
-
-      let initializer = InitializerDeclSyntax(
-        modifiers: .private,
-        signature: FunctionSignatureSyntax(
-          parameterClause: FunctionParameterClauseSyntax(
-            parameters: FunctionParameterListSyntax {
-              FunctionParameterSyntax(
-                firstName: "structSchemaDecoder",
-                type: MemberTypeSyntax(
-                  baseType: IdentifierTypeSyntax(name: "ToolInput"),
-                  name: "StructSchemaDecoder",
-                  genericArgumentClause: GenericArgumentClauseSyntax {
-                    for property in storedProperties {
-                      GenericArgumentSyntax(
-                        argument: property.type
-                      )
-                    }
-                  }
-                )
-              )
-            }
-          )
+    /// var toolInputSchema: some ToolInput.Schema<Self> { … }
+    let toolInputSchemaProperty: VariableDeclSyntax = toolInputSchemaProperty {
+      FunctionCallExprSyntax(
+        calledExpression: MemberAccessExprSyntax(
+          base: DeclReferenceExprSyntax(baseName: "ToolInput"),
+          name: "structSchema"
         ),
-        body: CodeBlockSyntax {
-          /// self.propertyName = structSchemaDecoder.propertyValues.0
-          for (offset, property) in storedProperties.enumerated() {
-            InfixOperatorExprSyntax(
-              leftOperand: MemberAccessExprSyntax(
-                base: DeclReferenceExprSyntax(baseName: "self"),
-                name: property.name
+        leftParen: .leftParenToken(trailingTrivia: .newline),
+        arguments: LabeledExprListSyntax {
+          /// representing: Self.self
+          LabeledExprSyntax(
+            label: "representing",
+            colon: .colonToken(),
+            expression: MemberAccessExprSyntax(
+              base: DeclReferenceExprSyntax(baseName: "Self"),
+              name: "self"
+            ),
+            trailingComma: .commaToken(trailingTrivia: .newline)
+          )
+
+          /// description: ...
+          descriptionArgument
+
+          /// keyedBy: propertyKey.self
+          LabeledExprSyntax(
+            label: "keyedBy",
+            colon: .colonToken(),
+            expression: MemberAccessExprSyntax(
+              base: DeclReferenceExprSyntax(
+                baseName: propertyKeyName
               ),
-              operator: AssignmentExprSyntax(),
-              rightOperand: MemberAccessExprSyntax(
-                base: MemberAccessExprSyntax(
-                  base: DeclReferenceExprSyntax(baseName: "structSchemaDecoder"),
-                  name: "propertyValues"
-                ),
-                name: "\(raw: offset)"
+              name: "self"
+            ),
+            trailingComma: .commaToken(trailingTrivia: .newline)
+          )
+
+          /// properties: ( ... )
+          LabeledExprSyntax(
+            label: "properties",
+            colon: .colonToken(),
+            expression: TupleExprSyntax(
+              elements: LabeledExprListSyntax {
+                for property in storedProperties {
+                  LabeledExprSyntax(
+                    expression: property.structSchemaPropertyArgument(
+                      propertyKeyName: propertyKeyName
+                    )
+                  )
+                }
+              },
+              rightParen: .rightParenToken(leadingTrivia: .newline)
+            ),
+            trailingComma: .commaToken(trailingTrivia: .newline)
+          )
+
+          /// initializer: Self.init(structSchemaDecoder:)
+          LabeledExprSyntax(
+            label: "initializer",
+            colon: .colonToken(),
+            expression: MemberAccessExprSyntax(
+              base: DeclReferenceExprSyntax(
+                baseName: "Self"
+              ),
+              declName: DeclReferenceExprSyntax(
+                baseName: "init",
+                argumentNames: DeclNameArgumentsSyntax(
+                  arguments: DeclNameArgumentListSyntax {
+                    DeclNameArgumentSyntax(name: "structSchemaDecoder")
+                  }
+                )
+              )
+            ),
+            trailingTrivia: .newline
+          )
+        },
+        rightParen: .rightParenToken()
+      )
+    }
+
+    /// private enum ToolInputSchemaPropertyKey: CodingKey { … }
+    let propertyKeyEnum =
+      EnumDeclSyntax(
+        modifiers: .private,
+        name: propertyKeyName,
+        inheritanceClause: InheritanceClauseSyntax(
+          colon: .colonToken(),
+          inheritedTypes: InheritedTypeListSyntax {
+            InheritedTypeSyntax(
+              type: MemberTypeSyntax(
+                baseType: IdentifierTypeSyntax(name: "Swift"),
+                name: "CodingKey"
               )
             )
           }
-        }
-
+        ),
+        memberBlock: MemberBlockSyntax(
+          membersBuilder: {
+            for property in storedProperties {
+              EnumCaseDeclSyntax {
+                EnumCaseElementSyntax(name: property.name)
+              }
+            }
+          }
+        )
       )
 
-      return MemberBlockItemListSyntax {
-        toolInputSchemaProperty
-        propertyKeyEnum
-        initializer
+    let initializer = InitializerDeclSyntax(
+      modifiers: .private,
+      signature: FunctionSignatureSyntax(
+        parameterClause: FunctionParameterClauseSyntax(
+          parameters: FunctionParameterListSyntax {
+            FunctionParameterSyntax(
+              firstName: "structSchemaDecoder",
+              type: MemberTypeSyntax(
+                baseType: IdentifierTypeSyntax(name: "ToolInput"),
+                name: "StructSchemaDecoder",
+                genericArgumentClause: GenericArgumentClauseSyntax {
+                  for property in storedProperties {
+                    GenericArgumentSyntax(
+                      argument: property.type
+                    )
+                  }
+                }
+              )
+            )
+          }
+        )
+      ),
+      body: CodeBlockSyntax {
+        /// self.propertyName = structSchemaDecoder.propertyValues.0
+        for (offset, property) in storedProperties.enumerated() {
+          InfixOperatorExprSyntax(
+            leftOperand: MemberAccessExprSyntax(
+              base: DeclReferenceExprSyntax(baseName: "self"),
+              name: property.name
+            ),
+            operator: AssignmentExprSyntax(),
+            rightOperand: MemberAccessExprSyntax(
+              base: MemberAccessExprSyntax(
+                base: DeclReferenceExprSyntax(baseName: "structSchemaDecoder"),
+                name: "propertyValues"
+              ),
+              name: "\(raw: offset)"
+            )
+          )
+        }
       }
+
+    )
+
+    return MemberBlockItemListSyntax {
+      toolInputSchemaProperty
+      propertyKeyEnum
+      initializer
     }
+
   }
 
 }
@@ -297,7 +301,9 @@ extension StructDeclSyntax {
 
 extension StructDeclSyntax.StoredProperty {
 
-  fileprivate var structSchemaPropertyArgument: some ExprSyntaxProtocol {
+  fileprivate func structSchemaPropertyArgument(propertyKeyName: TokenSyntax)
+    -> some ExprSyntaxProtocol
+  {
     TupleExprSyntax(
       leftParen: .leftParenToken(leadingTrivia: .newline, trailingTrivia: .newline),
       elements: LabeledExprListSyntax {
@@ -342,13 +348,13 @@ extension StructDeclSyntax.StoredProperty {
           trailingComma: .commaToken(trailingTrivia: .newline)
         )
 
-        /// key: ToolInputSchemaPropertyKey.propertyName
+        /// key: propertyKey.propertyName
         LabeledExprSyntax(
           label: "key",
           colon: .colonToken(),
           expression: MemberAccessExprSyntax(
             base: DeclReferenceExprSyntax(
-              baseName: "ToolInputSchemaPropertyKey"
+              baseName: propertyKeyName
             ),
             name: name
           ),

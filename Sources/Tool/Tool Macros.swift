@@ -14,7 +14,7 @@ public macro Tool(name: String? = nil) =
 @attached(
   extension,
   conformances: ToolInput.SchemaCodable,
-  names: named(toolInputSchema), named(ToolInputSchemaCaseKey)
+  names: named(toolInputSchema), named(init)
 )
 public macro ToolInput() =
   #externalMacro(

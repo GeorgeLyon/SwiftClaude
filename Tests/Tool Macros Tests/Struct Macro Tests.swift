@@ -37,12 +37,12 @@ private struct StructMacroTests {
             ToolInput.structSchema(
               representing: Self.self,
               description: nil,
-              keyedBy: ToolInputSchemaPropertyKey.self,
+              keyedBy: __macro_local_11PropertyKeyfMu_.self,
               properties: (
                 (
                   description: nil,
                   keyPath: \Self.anInteger,
-                  key: ToolInputSchemaPropertyKey.anInteger,
+                  key: __macro_local_11PropertyKeyfMu_.anInteger,
                   schema: ToolInput.schema(representing: Int.self)
                 ),
                 (
@@ -50,7 +50,7 @@ private struct StructMacroTests {
                   An (x, y) coordinate
                   """,
                   keyPath: \Self.aCoordinate,
-                  key: ToolInputSchemaPropertyKey.aCoordinate,
+                  key: __macro_local_11PropertyKeyfMu_.aCoordinate,
                   schema: ToolInput.schema(representing: (Int, Int).self)
                 ),
                 (
@@ -58,7 +58,7 @@ private struct StructMacroTests {
                   Crazy Declaration
                   """,
                   keyPath: \Self.c,
-                  key: ToolInputSchemaPropertyKey.c,
+                  key: __macro_local_11PropertyKeyfMu_.c,
                   schema: ToolInput.schema(representing: String.self)
                 ),
                 (
@@ -66,7 +66,7 @@ private struct StructMacroTests {
                   Crazy Declaration
                   """,
                   keyPath: \Self.b,
-                  key: ToolInputSchemaPropertyKey.b,
+                  key: __macro_local_11PropertyKeyfMu_.b,
                   schema: ToolInput.schema(representing: Bool.self)
                 ),
                 (
@@ -74,14 +74,14 @@ private struct StructMacroTests {
                   Crazy Declaration
                   """,
                   keyPath: \Self.a,
-                  key: ToolInputSchemaPropertyKey.a,
+                  key: __macro_local_11PropertyKeyfMu_.a,
                   schema: ToolInput.schema(representing: Bool.self)
                 )
               ),
               initializer: Self.init(structSchemaDecoder:)
             )
           }
-          private enum ToolInputSchemaPropertyKey: Swift.CodingKey {
+          private enum __macro_local_11PropertyKeyfMu_: Swift.CodingKey {
             case anInteger
             case aCoordinate
             case c
