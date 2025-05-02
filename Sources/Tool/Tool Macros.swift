@@ -13,7 +13,8 @@ public macro Tool(name: String? = nil) =
 @attached(extension)
 @attached(
   extension,
-  conformances: ToolInput.SchemaCodable
+  conformances: ToolInput.SchemaCodable,
+  names: named(toolInputSchema), named(ToolInputSchemaCaseKey)
 )
 public macro ToolInput() =
   #externalMacro(

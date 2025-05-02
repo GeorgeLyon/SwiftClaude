@@ -63,8 +63,17 @@ extension SyntaxProtocol {
         }
       }
       .map { (rawComment: Substring) -> Substring in
-        rawComment
-          .trimmingPrefix { $0.isWhitespace }
+        let comment =
+          if let lastNonWhitespaceCharacter =
+            rawComment
+            .lastIndex(where: { !$0.isWhitespace })
+          {
+            rawComment[...lastNonWhitespaceCharacter]
+          } else {
+            rawComment
+          }
+
+        return comment.trimmingPrefix { $0.isWhitespace }
       }
       .joined(separator: "\n")
     return comment.isEmpty ? nil : comment

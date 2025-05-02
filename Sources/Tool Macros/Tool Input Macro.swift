@@ -14,7 +14,7 @@ struct ToolInputMacro: ExtensionMacro {
   ) throws -> [ExtensionDeclSyntax] {
     do {
       return try [
-        .toolInputConformance(for: declaration, of: type)
+        .toolInputConformance(for: declaration, of: type, in: context)
       ]
     } catch let error as DiagnosticError {
       context.diagnose(error.diagnostic)
@@ -30,10 +30,9 @@ extension ExtensionDeclSyntax {
 
   fileprivate static func toolInputConformance(
     for declaration: some DeclGroupSyntax,
-    of type: some TypeSyntaxProtocol
+    of type: some TypeSyntaxProtocol,
+    in context: MacroExpansionContext
   ) throws -> ExtensionDeclSyntax {
-    let memberModifiers = declaration.accessModifiersForRequiredMembers
-
     return try ExtensionDeclSyntax(
       extendedType: type,
       inheritanceClause: InheritanceClauseSyntax {
@@ -45,17 +44,27 @@ extension ExtensionDeclSyntax {
         )
       }
     ) {
-      if let structDecl = declaration.as(StructDeclSyntax.self) {
-        try structDecl.toolInputMembers
-      } else if let enumDecl = declaration.as(EnumDeclSyntax.self) {
-        enumDecl.toolInputMembers
-      } else {
-        throw DiagnosticError(
-          node: declaration,
-          severity: .error,
-          message: "Unsupported declaration of kind: \(declaration.kind)"
-        )
-      }
+      try declaration.toolInputMembers(in: context)
+    }
+  }
+
+}
+
+extension DeclGroupSyntax {
+
+  fileprivate func toolInputMembers(in context: MacroExpansionContext) throws
+    -> MemberBlockItemListSyntax
+  {
+    if let structDecl = self.as(StructDeclSyntax.self) {
+      try structDecl.toolInputMembers
+    } else if let enumDecl = self.as(EnumDeclSyntax.self) {
+      enumDecl.toolInputMembers(in: context)
+    } else {
+      throw DiagnosticError(
+        node: self,
+        severity: .error,
+        message: "Unsupported declaration of kind: \(self.kind)"
+      )
     }
   }
 
@@ -70,7 +79,7 @@ extension StructDeclSyntax {
       let storedProperties = try self.storedProperties
 
       /// var toolInputSchema: some ToolInput.Schema<Self> { … }
-      let toolInputSchemaProperty: VariableDeclSyntax = .toolInputSchema {
+      let toolInputSchemaProperty: VariableDeclSyntax = toolInputSchemaProperty {
         FunctionCallExprSyntax(
           calledExpression: MemberAccessExprSyntax(
             base: DeclReferenceExprSyntax(baseName: "ToolInput"),
@@ -197,7 +206,7 @@ extension StructDeclSyntax {
         ),
         body: CodeBlockSyntax {
           /// self.propertyName = structSchemaDecoder.propertyValues.0
-          for (index, property) in storedProperties.enumerated() {
+          for (offset, property) in storedProperties.enumerated() {
             InfixOperatorExprSyntax(
               leftOperand: MemberAccessExprSyntax(
                 base: DeclReferenceExprSyntax(baseName: "self"),
@@ -209,7 +218,7 @@ extension StructDeclSyntax {
                   base: DeclReferenceExprSyntax(baseName: "structSchemaDecoder"),
                   name: "propertyValues"
                 ),
-                name: "\(raw: index)"
+                name: "\(raw: offset)"
               )
             )
           }
@@ -362,15 +371,17 @@ extension StructDeclSyntax.StoredProperty {
 
 extension EnumDeclSyntax {
 
-  var toolInputMembers: MemberBlockItemListSyntax {
+  func toolInputMembers(in context: MacroExpansionContext) -> MemberBlockItemListSyntax {
+    let caseKeyName = context.makeUniqueName("CaseKey")
+
     let caseDecls = memberBlock
       .members
       .compactMap { $0.decl.as(EnumCaseDeclSyntax.self) }
 
-    let toolInputSchemaProperty: VariableDeclSyntax = .toolInputSchema {
+    let toolInputSchemaProperty: VariableDeclSyntax = toolInputSchemaProperty {
       /// let <case>AssociatedValuesSchema = ToolInput.enumCaseAssociatedValuesSchema(…)
       for caseDeclElement in caseDecls.flatMap(\.elements) {
-        caseDeclElement.associatedValuesSchema
+        caseDeclElement.associatedValuesSchema(caseKeyName: caseKeyName)
       }
 
       /// return ToolInput.enumSchema(…)
@@ -401,9 +412,7 @@ extension EnumDeclSyntax {
               label: "keyedBy",
               colon: .colonToken(),
               expression: MemberAccessExprSyntax(
-                base: DeclReferenceExprSyntax(
-                  baseName: "ToolInputSchemaCaseKey"
-                ),
+                base: DeclReferenceExprSyntax(baseName: caseKeyName),
                 name: "self"
               ),
               trailingComma: .commaToken(trailingTrivia: .newline)
@@ -421,7 +430,8 @@ extension EnumDeclSyntax {
                     for element in caseDecl.elements {
                       LabeledExprSyntax(
                         expression: element.enumSchemaCaseArgument(
-                          descriptionArgument: descriptionArgument
+                          descriptionArgument: descriptionArgument,
+                          caseKeyName: caseKeyName
                         )
                       )
                     }
@@ -451,7 +461,7 @@ extension EnumDeclSyntax {
                       )
                       for element in caseDecls.flatMap(\.elements) {
                         ClosureShorthandParameterSyntax(
-                          name: "\(element.name)Encoder"
+                          name: "\(element.name.trimmed)Encoder"
                         )
                       }
                     },
@@ -463,7 +473,7 @@ extension EnumDeclSyntax {
                     cases: SwitchCaseListSyntax {
                       for caseDecl in caseDecls {
                         for element in caseDecl.elements {
-                          element.switchCase(encoder: "\(element.name)Encoder")
+                          element.switchCase(encoderName: "\(element.name.trimmed)Encoder")
                         }
                       }
                     }
@@ -486,9 +496,9 @@ extension EnumDeclSyntax {
         )
       )
     }
-    let caseKey = EnumDeclSyntax(
+    let caseKeyDefinition = EnumDeclSyntax(
       modifiers: .private,
-      name: "ToolInputSchemaCaseKey",
+      name: caseKeyName,
       inheritanceClause: codingKey,
       memberBlock: MemberBlockSyntax {
         for caseDecl in caseDecls {
@@ -499,12 +509,11 @@ extension EnumDeclSyntax {
               )
             }
 
-            if let parameters = element.parameterClause?.parameters {
-              EnumDeclSyntax(
-                modifiers: .private,
-                name: "AssociatedValuesKey_\(element.name)",
-                inheritanceClause: codingKey,
-                memberBlock: MemberBlockSyntax {
+            EnumDeclSyntax(
+              name: "AssociatedValuesKey_\(element.name)",
+              inheritanceClause: codingKey,
+              memberBlock: MemberBlockSyntax {
+                if let parameters = element.parameterClause?.parameters {
                   for parameter in parameters {
                     if let name = parameter.name {
                       EnumCaseDeclSyntax {
@@ -513,8 +522,8 @@ extension EnumDeclSyntax {
                     }
                   }
                 }
-              )
-            }
+              }
+            )
           }
         }
       }
@@ -522,7 +531,7 @@ extension EnumDeclSyntax {
 
     return MemberBlockItemListSyntax {
       toolInputSchemaProperty
-      caseKey
+      caseKeyDefinition
     }
   }
 
@@ -530,12 +539,13 @@ extension EnumDeclSyntax {
 
 extension EnumCaseElementListSyntax.Element {
 
-  fileprivate var associatedValuesSchema: VariableDeclSyntax {
+  fileprivate func associatedValuesSchema(caseKeyName: TokenSyntax) -> VariableDeclSyntax {
     VariableDeclSyntax(
       bindingSpecifier: .keyword(.let),
       bindings: PatternBindingListSyntax {
         PatternBindingSyntax(
-          pattern: IdentifierPatternSyntax(identifier: "\(name)AssociatedValuesSchema"),
+          pattern: IdentifierPatternSyntax(
+            identifier: "\(name.trimmed)AssociatedValuesSchema"),
           initializer: InitializerClauseSyntax(
             value: FunctionCallExprSyntax(
               calledExpression: MemberAccessExprSyntax(
@@ -545,7 +555,7 @@ extension EnumCaseElementListSyntax.Element {
               leftParen: .leftParenToken(trailingTrivia: .newline),
               arguments: LabeledExprListSyntax {
                 let associatedValuesKey = MemberAccessExprSyntax(
-                  base: DeclReferenceExprSyntax(baseName: "ToolInputSchemaCaseKey"),
+                  base: DeclReferenceExprSyntax(baseName: caseKeyName),
                   name: "AssociatedValuesKey_\(name)"
                 )
 
@@ -570,8 +580,9 @@ extension EnumCaseElementListSyntax.Element {
                   )
                 )
 
-                /// keyedBy: ToolInputSchemaCaseKey.AssociatedValue<case>.self
+                /// keyedBy: caseKey.AssociatedValue<case>.self
                 LabeledExprSyntax(
+                  leadingTrivia: .newline,
                   label: "keyedBy",
                   colon: .colonToken(),
                   expression: MemberAccessExprSyntax(
@@ -589,17 +600,18 @@ extension EnumCaseElementListSyntax.Element {
   }
 
   fileprivate func enumSchemaCaseArgument(
-    descriptionArgument: LabeledExprSyntax
+    descriptionArgument: LabeledExprSyntax,
+    caseKeyName: TokenSyntax
   ) -> TupleExprSyntax {
     TupleExprSyntax(
       leftParen: .leftParenToken(leadingTrivia: .newline, trailingTrivia: .newline),
       elements: LabeledExprListSyntax {
-        /// key: ToolInputSchemaCaseKey.first,
+        /// key: caseKey.first,
         LabeledExprSyntax(
           label: "key",
           colon: .colonToken(),
           expression: MemberAccessExprSyntax(
-            base: DeclReferenceExprSyntax(baseName: "ToolInputSchemaCaseKey"),
+            base: DeclReferenceExprSyntax(baseName: caseKeyName),
             name: name
           ),
           trailingComma: .commaToken(trailingTrivia: .newline)
@@ -612,7 +624,8 @@ extension EnumCaseElementListSyntax.Element {
         LabeledExprSyntax(
           label: "associatedValuesSchema",
           colon: .colonToken(),
-          expression: DeclReferenceExprSyntax(baseName: "\(name)AssociatedValuesSchema"),
+          expression: DeclReferenceExprSyntax(
+            baseName: "\(name.trimmed)AssociatedValuesSchema"),
           trailingComma: .commaToken(trailingTrivia: .newline)
         )
 
@@ -675,7 +688,7 @@ extension EnumCaseElementListSyntax.Element {
     )
   }
 
-  fileprivate func switchCase(encoder: TokenSyntax) -> SwitchCaseSyntax {
+  fileprivate func switchCase(encoderName: TokenSyntax) -> SwitchCaseSyntax {
     SwitchCaseSyntax(
       /// case .enumCase…
       label: .case(
@@ -726,7 +739,7 @@ extension EnumCaseElementListSyntax.Element {
         /// enumCaseEncoder(…)
         TryExprSyntax(
           expression: FunctionCallExprSyntax(
-            calledExpression: DeclReferenceExprSyntax(baseName: "\(name)Encoder"),
+            calledExpression: DeclReferenceExprSyntax(baseName: encoderName),
             leftParen: .leftParenToken(),
             arguments: LabeledExprListSyntax {
               LabeledExprSyntax(
@@ -825,15 +838,19 @@ extension EnumCaseParameterListSyntax.Element {
 
 // MARK: Shared
 
-extension VariableDeclSyntax {
+extension DeclGroupSyntax {
 
-  fileprivate static func toolInputSchema(
+  fileprivate func toolInputSchemaProperty(
     @CodeBlockItemListBuilder _ builder: () -> CodeBlockItemListSyntax
   )
-    -> Self
+    -> VariableDeclSyntax
   {
     VariableDeclSyntax(
       modifiers: DeclModifierListSyntax {
+        if let publicModifier = modifiers.first(where: { $0.name == "public" }) {
+          publicModifier
+        }
+
         DeclModifierSyntax(name: .keyword(.static))
       },
       bindingSpecifier: .keyword(.var)
