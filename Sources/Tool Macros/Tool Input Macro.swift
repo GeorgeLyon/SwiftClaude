@@ -470,7 +470,7 @@ extension EnumDeclSyntax {
                           name: "\(element.name.trimmed)Encoder"
                         )
                       }
-                    },
+                    }
                   )
                 ),
                 statements: CodeBlockItemListSyntax {
@@ -650,7 +650,7 @@ extension EnumCaseElementListSyntax.Element {
               parameterClause: .simpleInput(
                 ClosureShorthandParameterListSyntax {
                   ClosureShorthandParameterSyntax(name: "values")
-                },
+                }
               )
             ),
             statements: CodeBlockItemListSyntax {
