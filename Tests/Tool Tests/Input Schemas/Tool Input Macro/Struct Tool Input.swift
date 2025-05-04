@@ -3,10 +3,15 @@ import Testing
 @testable import Tool
 
 #if os(macOS)
+  /// A person object
   @ToolInput
   private struct Person {
     let name: String
+
+    /// The person's age
     let age: Int
+
+    // Whether the person is active
     let isActive: Bool?
   }
 

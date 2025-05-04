@@ -14,6 +14,7 @@ private struct StructMacroTests {
 
     assertMacroExpansion(
       """
+      /// A tool input struct
       @ToolInput
       struct ToolInputStruct {
         let anInteger: Int
@@ -36,7 +37,7 @@ private struct StructMacroTests {
           static var toolInputSchema: some ToolInput.Schema<Self> {
             ToolInput.structSchema(
               representing: Self.self,
-              description: nil,
+              description: "A tool input struct",
               keyedBy: __macro_local_11PropertyKeyfMu_.self,
               properties: (
                 (
