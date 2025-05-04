@@ -313,9 +313,11 @@ extension StructDeclSyntax.StoredProperty {
             label: "description",
             colon: .colonToken(),
             expression: StringLiteralExprSyntax(
+              openDelimiter: .rawStringPoundDelimiter("#"),
               openingQuote: .multilineStringQuoteToken(),
               content: description,
-              closingQuote: .multilineStringQuoteToken()
+              closingQuote: .multilineStringQuoteToken(),
+              closeDelimiter: .rawStringPoundDelimiter("#")
             ),
             trailingComma: .commaToken(trailingTrivia: .newline)
           )
@@ -933,9 +935,11 @@ extension SyntaxProtocol {
         label: "description",
         colon: .colonToken(),
         expression: StringLiteralExprSyntax(
+          openDelimiter: .rawStringPoundDelimiter("#"),
           openingQuote: .multilineStringQuoteToken(),
           content: comment,
-          closingQuote: .multilineStringQuoteToken()
+          closingQuote: .multilineStringQuoteToken(),
+          closeDelimiter: .rawStringPoundDelimiter("#")
         ),
         trailingComma: .commaToken(trailingTrivia: .newline)
       )

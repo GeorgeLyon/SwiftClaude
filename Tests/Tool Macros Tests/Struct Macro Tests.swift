@@ -24,7 +24,8 @@ private struct StructMacroTests {
         let a, b: Bool, c: String
       }
       """,
-      expandedSource: #"""
+      expandedSource: ##"""
+        /// A tool input struct
         struct ToolInputStruct {
           let anInteger: Int
           /// An (x, y) coordinate
@@ -37,7 +38,9 @@ private struct StructMacroTests {
           static var toolInputSchema: some ToolInput.Schema<Self> {
             ToolInput.structSchema(
               representing: Self.self,
-              description: "A tool input struct",
+              description: #"""
+              A tool input struct
+              """#,
               keyedBy: __macro_local_11PropertyKeyfMu_.self,
               properties: (
                 (
@@ -47,33 +50,33 @@ private struct StructMacroTests {
                   schema: ToolInput.schema(representing: Int.self)
                 ),
                 (
-                  description: """
+                  description: #"""
                   An (x, y) coordinate
-                  """,
+                  """#,
                   keyPath: \Self.aCoordinate,
                   key: __macro_local_11PropertyKeyfMu_.aCoordinate,
                   schema: ToolInput.schema(representing: (Int, Int).self)
                 ),
                 (
-                  description: """
+                  description: #"""
                   Crazy Declaration
-                  """,
+                  """#,
                   keyPath: \Self.c,
                   key: __macro_local_11PropertyKeyfMu_.c,
                   schema: ToolInput.schema(representing: String.self)
                 ),
                 (
-                  description: """
+                  description: #"""
                   Crazy Declaration
-                  """,
+                  """#,
                   keyPath: \Self.b,
                   key: __macro_local_11PropertyKeyfMu_.b,
                   schema: ToolInput.schema(representing: Bool.self)
                 ),
                 (
-                  description: """
+                  description: #"""
                   Crazy Declaration
-                  """,
+                  """#,
                   keyPath: \Self.a,
                   key: __macro_local_11PropertyKeyfMu_.a,
                   schema: ToolInput.schema(representing: Bool.self)
@@ -97,7 +100,7 @@ private struct StructMacroTests {
             self.a = structSchemaDecoder.propertyValues.4
           }
         }
-        """#,
+        """##,
       macroSpecs: macroSpecs,
       indentationWidth: .spaces(2),
       failureHandler: {
