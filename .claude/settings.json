@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(swift test:*)",
+      "Bash(swift test:*)"
+    ],
+    "deny": []
+  }
+}
