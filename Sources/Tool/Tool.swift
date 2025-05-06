@@ -13,7 +13,7 @@ public protocol Tool {
 
 }
 
-public struct ToolDefinition<ConcreteTool: Tool> {
+public struct ToolDefinition<ConcreteTool: Tool>: Sendable {
 
   public init(
     name: String,

@@ -29,14 +29,8 @@
   "customizations": {
     "vscode": {
       "extensions": [
-        "swiftlang.swift-vscode",
-        "vadimcn.vscode-lldb"
-      ],
-      "settings": {
-        "files.exclude": {
-          // ".claude-code": true
-        }
-      }
+        "swiftlang.swift-vscode"
+      ]
     }
   }
 }
