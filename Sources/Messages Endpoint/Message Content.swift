@@ -1,4 +1,5 @@
 public import ClaudeClient
+public import Tool
 
 public import struct Foundation.Data
 
@@ -167,16 +168,16 @@ extension ClaudeClient.MessagesEndpoint.Request.Message.Content {
       )
     }
 
-    public static func toolUse(
+    public static func toolUse<UsedTool: Tool>(
       id: ClaudeClient.MessagesEndpoint.ToolUse.ID,
-      name: String,
-      input: Encodable & Sendable
+      tool: UsedTool,
+      input: UsedTool.Input
     ) -> Block {
       Block(
         ToolUse(
           id: id,
-          name: name,
-          input: AnyEncodable(input)
+          tool: tool,
+          input: input
         )
       )
     }
@@ -219,12 +220,25 @@ extension ClaudeClient.MessagesEndpoint.Request.Message.Content {
 
       let text: String
     }
-    private struct ToolUse: Encodable, Sendable {
+    private struct ToolUse<UsedTool: Tool>: Encodable, Sendable {
+      init(
+        id: ClaudeClient.MessagesEndpoint.ToolUse.ID,
+        tool: UsedTool,
+        input: UsedTool.Input,
+      ) {
+        self.id = id
+        self.name = tool.definition.name
+        self.input = ToolInput.EncodableAdaptor(
+          schema: tool.definition.schema,
+          value: input
+        )
+      }
+
       private let type = "tool_use"
 
-      let id: ClaudeClient.MessagesEndpoint.ToolUse.ID
-      let name: String
-      let input: AnyEncodable
+      private let id: ClaudeClient.MessagesEndpoint.ToolUse.ID
+      private let name: String
+      private let input: ToolInput.EncodableAdaptor<UsedTool.Definition.Schema>
     }
     private struct ToolResult: Encodable, Sendable {
       private let type = "tool_result"

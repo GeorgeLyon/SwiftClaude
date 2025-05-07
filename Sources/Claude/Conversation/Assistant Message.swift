@@ -566,7 +566,7 @@ extension Claude.ConversationAssistantMessage {
         assistantContent.append(
           .toolUse(
             id: toolUse.id,
-            name: toolUse.toolName,
+            tool: toolUse.tool,
             input: input
           )
         )
@@ -630,9 +630,11 @@ extension Claude.ConversationAssistantMessage {
     return messages
   }
 
-  private struct IncompleteMessage: Error {}
-
 }
+
+// MARK: - Errors
+
+private struct IncompleteMessage: Error {}
 
 // MARK: - Implementation Details
 
@@ -641,9 +643,9 @@ private typealias MessageID = ClaudeClient.MessagesEndpoint.Response.Event.Messa
 private protocol PrivateToolUseProtocol<Output>: Claude.ToolUseProtocol {
   associatedtype Output
 
-  func currentEncodableInput(
+  func contentBlock(
     inputDecodingFailureEncodingStrategy: Claude.ToolInputDecodingFailureEncodingStrategy
-  ) -> (Encodable & Sendable)?
+  ) throws -> ClaudeClient.MessagesEndpoint.Request.Message.Content.Block
 
   var invocationResult: Result<Output, Error>? { get }
 
@@ -652,9 +654,23 @@ private protocol PrivateToolUseProtocol<Output>: Claude.ToolUseProtocol {
 
 extension Claude.ToolUse: PrivateToolUseProtocol {
 
+  func contentBlock(
+    inputDecodingFailureEncodingStrategy: Claude.ToolInputDecodingFailureEncodingStrategy
+  ) throws -> ClaudeClient.MessagesEndpoint.Request.Message.Content.Block {
+
+    guard let input = try currentInput else {
+      throw IncompleteMessage()
+    }
+    .toolUse(
+      id: id,
+      tool: concreteTool,
+      input: currentInput
+    )
+  }
+
 }
 
-extension Claude.ToolWithContextProtocol {
+extension Claude.Tool {
 
   /// Un-type-erase the tool and context
   fileprivate func toolUseAndBlock<Conversation: Claude.Conversation>(
@@ -665,7 +681,7 @@ extension Claude.ToolWithContextProtocol {
     isolation: isolated Actor
   ) throws -> (any PrivateToolUseProtocol<Output>, Conversation.ToolUseBlock)
   where Conversation.ToolUseBlock.Output == Output {
-    let toolUse = Claude.ToolUse<Tool>(
+    let toolUse = Claude.ToolUse<Self>(
       id: id,
       toolWithContext: self,
       inputDecoder: Claude.ToolInputDecoder(

@@ -1,311 +1,14 @@
 public import ClaudeClient
 public import ClaudeMessagesEndpoint
-
-private import struct Foundation.Data
-
-#if canImport(ClaudeToolInput)
-  public import ClaudeToolInput
-#endif
+public import Tool
 
 // MARK: - Tool
 
 extension Claude {
 
-  /// You should not implement this protocol directly.
-  /// Instead, use the `@Tool` macro.
-  public protocol Tool<Output> {
-    var definition: ToolDefinition<Self> { get }
-
-    associatedtype Input
-    associatedtype Output
-    associatedtype Failure: Swift.Error
-
-    /// Invoke the tool
-    func invoke(
-      with input: Input,
-      in context: ToolInvocationContext<Self>,
-      isolation: isolated Actor
-    ) async throws(Failure) -> Output
-
-    static func decodeInput(
-      for tool: Self,
-      from payload: Claude.ToolInputDecoder<Self>.Payload,
-      using decoder: Claude.ToolInputDecoder<Self>,
-      isolation: isolated Actor
-    ) async throws -> Input
-
-    static func encodeInput(
-      _ input: Input,
-      to encoder: inout ToolInputEncoder<Self>
-    )
-
-  }
+  public typealias Tool = _ImplementationDetails._Tool
 
 }
-
-extension Claude.Tool {
-
-  /// This is phrased weirdly because we want the return value to be `sending` but also want to return `toolWithContext`.
-  func messagesRequestToolDefinition(
-    for model: Claude.Model,
-    imagePreprocessingMode: Claude.Image.PreprocessingMode
-  ) throws -> (
-    element: ClaudeClient.MessagesEndpoint.Request.ToolDefinitions.Element,
-    toolWithContext: any Claude.ToolWithContextProtocol<Output>
-  ) {
-    switch definition.kind {
-    #if canImport(ClaudeToolInput)
-      case let .userDefined(name, description, toolInput):
-        return (
-          element: .tool(
-            name: name,
-            description: description,
-            inputSchema: toolInput.encodablToolInputSchema
-          ),
-          toolWithContext: Claude.ConcereteToolWithContext(
-            toolName: name,
-            tool: self,
-            context: Claude.ToolInvocationContext<Self>(
-              requestModel: model,
-              requestImagePreprocessingMode: imagePreprocessingMode
-            )
-          )
-        )
-    #endif
-    case let .computer(displaySize, displayNumber):
-      let adjustedDisplaySize = try model.vision.recommendedSize(
-        forSourceImageOfSize: displaySize,
-        preprocessingMode: imagePreprocessingMode
-      )
-      let definition = ClaudeClient.MessagesEndpoint.Request.AnthropicToolDefinition.computer(
-        displaySize: adjustedDisplaySize,
-        displayNumber: displayNumber
-      )
-      return (
-        element: .tool(definition),
-        toolWithContext: Claude.ConcereteToolWithContext(
-          toolName: definition.name,
-          tool: self,
-          context: Claude.ToolInvocationContext<Self>(
-            requestModel: model,
-            requestImagePreprocessingMode: imagePreprocessingMode
-          )
-        )
-      )
-    }
-  }
-
-}
-
-#if canImport(ClaudeToolInput)
-
-  extension ToolInput {
-    fileprivate static var encodablToolInputSchema: any Encodable & Sendable {
-      ToolInputStaticSchemaEncodingContainer<Self>()
-    }
-  }
-
-  private struct ToolInputStaticSchemaEncodingContainer<ToolInput: ClaudeToolInput.ToolInput>:
-    Encodable, Sendable
-  {
-    func encode(to encoder: any Encoder) throws {
-      try ToolInputSchemaEncodingContainer(schema: ToolInput.toolInputSchema)
-        .encode(to: encoder)
-    }
-  }
-
-#endif
-
-// MARK: Tool Definition
-
-extension Claude {
-
-  public struct ToolDefinition<Tool: Claude.Tool> {
-
-    typealias Output = Tool.Output
-
-    static func computer(
-      displaySize: Claude.Image.Size,
-      displayNumber: Int? = nil
-    ) -> ToolDefinition
-    where Tool: Claude.Beta.ComputerTool {
-      ToolDefinition(
-        kind: .computer(
-          displaySize: displaySize,
-          displayNumber: displayNumber
-        )
-      )
-    }
-
-    enum Kind {
-      #if canImport(ClaudeToolInput)
-        case userDefined(
-          name: String,
-          description: String,
-          toolInput: any ToolInput.Type
-        )
-      #endif
-      case computer(
-        displaySize: Claude.Image.Size,
-        displayNumber: Int?
-      )
-    }
-    let kind: Kind
-
-  }
-
-}
-
-#if canImport(ClaudeToolInput)
-
-  extension Claude.ToolDefinition {
-
-    public static func userDefined(
-      tool: Tool.Type,
-      name: String,
-      description: String
-    ) -> Self
-    where
-      Tool.Input: ToolInput
-    {
-      Self(
-        kind: .userDefined(
-          name: name,
-          description: description,
-          toolInput: Tool.Input.self
-        )
-      )
-    }
-
-  }
-
-#endif
-
-// MARK: Tool Input
-
-/// We use a custom encoder and decoder to discourage folks from depending on the encoding/decoding behavior of tool inputs as we may change it in the future.
-extension Claude {
-
-  public struct ToolInputDecoder<Tool: Claude.Tool> {
-
-    public struct Payload {
-      init(json: String) {
-        self.json = json
-      }
-      fileprivate let json: String
-    }
-
-    init(
-      client: ClaudeClient,
-      context: ToolInvocationContext<Tool>
-    ) {
-      self.client = client
-      self.context = context
-    }
-
-    let context: ToolInvocationContext<Tool>
-
-    #if canImport(ClaudeToolInput)
-
-      func decodeInput(
-        from payload: Payload,
-        isolation: isolated Actor = #isolation
-      ) async throws -> Tool.Input
-      where Tool.Input: ToolInput {
-        let data = Data(payload.json.utf8)
-        return try await client.decode(
-          ToolInputDecodableContainer<Tool.Input>.self,
-          fromResponseData: data
-        ).toolInput
-      }
-
-    #endif
-
-    func decodeInput<Input: Decodable>(
-      of type: Input.Type = Input.self,
-      from payload: Payload,
-      isolation: isolated Actor = #isolation
-    ) async throws -> Input {
-      let data = Data(payload.json.utf8)
-      return try await client.decode(type, fromResponseData: data)
-    }
-
-    private let client: ClaudeClient
-  }
-
-  public struct ToolInputEncoder<Tool: Claude.Tool> {
-
-    static func encode(_ input: Tool.Input) throws -> Encodable & Sendable {
-      var encoder = ToolInputEncoder()
-      Tool.encodeInput(input, to: &encoder)
-      guard let value = encoder.toolInput else {
-        assertionFailure()
-        throw EncodingFailed()
-      }
-      return value
-    }
-
-    mutating func encode(_ input: Encodable & Sendable) {
-      self.toolInput = input
-    }
-
-    fileprivate var toolInput: (Encodable & Sendable)?
-
-    private struct EncodingFailed: Error {
-
-    }
-  }
-
-  /// Specifies how to encode input decoding failures when
-  public struct ToolInputDecodingFailureEncodingStrategy {
-
-    public static var encodeErrorInPlaceOfInput: Self {
-      Self(kind: .encodeErrorInPlaceOfInput)
-    }
-
-    func encode(_ error: Error) -> Encodable & Sendable {
-      switch kind {
-      case .encodeErrorInPlaceOfInput:
-        return Failure(error: "\(error)")
-      }
-    }
-
-    private enum Kind {
-      case encodeErrorInPlaceOfInput
-    }
-    private let kind: Kind
-
-    private struct Failure: Encodable {
-      let error: String
-    }
-  }
-
-}
-
-#if canImport(ClaudeToolInput)
-
-  extension Claude.Tool where Input: ToolInput {
-
-    public static func encodeInput(
-      _ input: Input,
-      to encoder: inout Claude.ToolInputEncoder<Self>
-    ) {
-      assert(encoder.toolInput == nil)
-      encoder.toolInput = ToolInputEncodableContainer(toolInput: input)
-    }
-
-    public static func decodeInput(
-      for tool: Self,
-      from payload: Claude.ToolInputDecoder<Self>.Payload,
-      using decoder: Claude.ToolInputDecoder<Self>,
-      isolation: isolated Actor
-    ) async throws -> Input {
-      try await decoder.decodeInput(from: payload)
-    }
-
-  }
-
-#endif
 
 // MARK: Tool Results
 
@@ -328,53 +31,6 @@ extension Claude {
 
 }
 
-// MARK: Tool Invocation Context
-
-extension Claude {
-
-  public struct ToolInvocationContext<Tool: Claude.Tool> {
-
-    /// The model responsible for making the tool use request
-    let requestModel: Model
-
-    /// The image preprocessing mode used to make the original request
-    let requestImagePreprocessingMode: Image.PreprocessingMode
-
-  }
-
-  protocol ConcreteToolWithContextProtocol<Tool> {
-    var toolName: String { get }
-
-    associatedtype Tool: Claude.Tool
-    var tool: Tool { get }
-    var context: ToolInvocationContext<Tool> { get }
-  }
-
-  /// Protocol to use when you have a heterogenous list of tools, such as when iterating over content blocks
-  protocol ToolWithContextProtocol<Output>: ConcreteToolWithContextProtocol
-  where Output == Tool.Output {
-    associatedtype Output
-  }
-
-  private struct ConcereteToolWithContext<Tool: Claude.Tool>: ToolWithContextProtocol {
-    typealias Output = Tool.Output
-    let toolName: String
-    let tool: Tool
-    let context: ToolInvocationContext<Tool>
-
-    fileprivate init(
-      toolName: String,
-      tool: Tool,
-      context: ToolInvocationContext<Tool>
-    ) {
-      self.toolName = toolName
-      self.tool = tool
-      self.context = context
-    }
-  }
-
-}
-
 // MARK: - Tools
 
 public typealias Tools = Claude.Tools
@@ -388,15 +44,15 @@ extension Claude {
     }
 
     public init(_ tool: any Tool<Output>) {
-      elements = [.tool(tool)]
+      elements = [.clientDefinedTool(tool)]
     }
 
     public init(_ tools: [any Tool<Output>]) {
-      elements = tools.map(Element.tool)
+      elements = tools.map(Element.clientDefinedTool)
     }
 
     public init(arrayLiteral tools: any Tool<Output>...) {
-      elements = tools.map(Element.tool)
+      elements = tools.map(Element.clientDefinedTool)
     }
 
     public init(_ cacheBreakpoint: CacheBreakpoint) {
@@ -407,7 +63,7 @@ extension Claude {
       _ tool: any Tool<Output>,
       cacheBreakpoint: CacheBreakpoint? = nil
     ) {
-      elements.append(.tool(tool))
+      elements.append(.clientDefinedTool(tool))
       if let cacheBreakpoint {
         append(cacheBreakpoint)
       }
@@ -424,11 +80,11 @@ extension Claude {
     }
 
     enum Element {
-      case tool(any Tool<Output>)
+      case clientDefinedTool(any Tool<Output>)
       case cacheBreakpoint(CacheBreakpoint)
 
       var tool: (any Tool<Output>)? {
-        guard case .tool(let tool) = self else { return nil }
+        guard case .clientDefinedTool(let tool) = self else { return nil }
         return tool
       }
     }
@@ -485,27 +141,22 @@ extension Claude.Tools {
 
 extension Claude.Tools {
 
-  func compile(
-    for model: Claude.Model,
-    imagePreprocessingMode: Claude.Image.PreprocessingMode
-  ) throws -> (ToolKit<Output>, ClaudeClient.MessagesEndpoint.Request.ToolDefinitions) {
-    var toolsByName: [String: any Claude.ToolWithContextProtocol<Output>] = [:]
+  func compile() throws -> (ToolKit<Output>, ClaudeClient.MessagesEndpoint.Request.ToolDefinitions)
+  {
+    var toolsByName: [String: any Tool<Output>] = [:]
     var toolDefinitions = ClaudeClient.MessagesEndpoint.Request.ToolDefinitions()
 
     for element in elements {
       switch element {
       case .cacheBreakpoint(let breakpoint):
         toolDefinitions.elements.append(.cacheBreakpoint(breakpoint))
-      case .tool(let tool):
-        let (definition, toolWithContext) = try tool.messagesRequestToolDefinition(
-          for: model,
-          imagePreprocessingMode: imagePreprocessingMode
-        )
-        let name = toolWithContext.toolName
-        guard toolsByName.updateValue(toolWithContext, forKey: name) == nil else {
+      case .clientDefinedTool(let tool):
+        let definition = tool.definition
+        let name = definition.name
+        guard toolsByName.updateValue(tool, forKey: name) == nil else {
           throw MultipleToolsWithSameName(name: name)
         }
-        toolDefinitions.elements.append(definition)
+        toolDefinitions.elements.append(.tool(definition))
       }
     }
 
@@ -523,7 +174,7 @@ extension Claude.Tools {
 
 struct ToolKit<Output> {
 
-  func tool(named name: String) throws -> any Claude.ToolWithContextProtocol<Output> {
+  func tool(named name: String) throws -> any Tool<Output> {
     guard let tool = toolsByName[name] else {
       throw UnknownTool(name: name)
     }
@@ -531,12 +182,12 @@ struct ToolKit<Output> {
   }
 
   fileprivate init(
-    toolsByName: [String: any Claude.ToolWithContextProtocol<Output>]
+    toolsByName: [String: any Tool<Output>]
   ) {
     self.toolsByName = toolsByName
   }
 
-  private let toolsByName: [String: any Claude.ToolWithContextProtocol<Output>]
+  private let toolsByName: [String: any Tool<Output>]
 
   private struct UnknownTool: Error {
     let name: String
@@ -544,66 +195,40 @@ struct ToolKit<Output> {
 
 }
 
-// MARK: - Macros Boilerplate
-
-#if canImport(ClaudeToolInput)
-
-  @attached(extension)
-  @attached(
-    extension,
-    conformances: Claude.Tool,
-    names: named(definition), named(Input), named(invoke)
-  )
-  public macro Tool(name: String? = nil) =
-    #externalMacro(
-      module: "ClaudeMacros",
-      type: "ToolMacro"
-    )
-
-  @attached(extension)
-  @attached(
-    extension,
-    conformances: Claude.ToolInput,
-    names:
-      named(ToolInputSchema),
-    named(toolInputSchema),
-    named(init(toolInputSchemaDescribedValue:)),
-    named(toolInputSchemaDescribedValue)
-  )
-  public macro ToolInput() =
-    #externalMacro(
-      module: "ClaudeMacros",
-      type: "ToolInputMacro"
-    )
-
-  /// Expose types referenced by macro expansion
-  extension Claude {
-
-    /// Compound Schemas
-    public typealias ToolInput = ClaudeToolInput.ToolInput
-    public typealias ToolInputSchema = ClaudeToolInput.ToolInputSchema
-    public typealias ToolInputKeyedTupleSchema = ClaudeToolInput.ToolInputKeyedTupleSchema
-    public typealias ToolInputEnumSchema = ClaudeToolInput.ToolInputEnumSchema
-
-    /// Primitive Schemas
-    public typealias ToolInputStringSchema = ClaudeToolInput.ToolInputStringSchema
-    public typealias ToolInputNumberSchema = ClaudeToolInput.ToolInputNumberSchema
-    public typealias ToolInputIntegerSchema = ClaudeToolInput.ToolInputIntegerSchema
-    public typealias ToolInputBoolSchema = ClaudeToolInput.ToolInputBoolSchema
-    public typealias ToolInputVoidSchema = ClaudeToolInput.ToolInputVoidSchema
-
-    /// Miscellaneous types
-    public typealias ToolInputSchemaKey = ClaudeToolInput.ToolInputSchemaKey
-    public typealias ToolInputEnumNoCaseSpecified = ClaudeToolInput.ToolInputEnumNoCaseSpecified
-
-  }
-
-#endif
-
 // MARK: - Errors
 
 extension Claude {
 
+  /// Specifies how to encode input decoding failures
+  public struct ToolInputDecodingFailureEncodingStrategy {
+
+    public static var encodeErrorInPlaceOfInput: Self {
+      Self(kind: .encodeErrorInPlaceOfInput)
+    }
+
+    func encode(_ error: Error) -> Encodable & Sendable {
+      switch kind {
+      case .encodeErrorInPlaceOfInput:
+        return Failure(error: "\(error)")
+      }
+    }
+
+    private enum Kind {
+      case encodeErrorInPlaceOfInput
+    }
+    private let kind: Kind
+
+    private struct Failure: Encodable {
+      let error: String
+    }
+  }
+
   struct ToolUseUnavailable: Error {}
 
+}
+
+// MARK: - Implementation Details
+
+extension Claude._ImplementationDetails {
+  public typealias _Tool = Tool
 }

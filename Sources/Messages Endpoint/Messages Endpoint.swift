@@ -196,9 +196,9 @@ extension ClaudeClient.MessagesEndpoint.Request {
           )
         )
       }
-      
-      public static func tool<T>(
-        _ definition: ToolDefinition<T>
+
+      public static func tool(
+        _ definition: any ToolDefinition
       ) -> Self {
         return Self(component: .clientDefinedTool(AnyEncodable(definition)))
       }

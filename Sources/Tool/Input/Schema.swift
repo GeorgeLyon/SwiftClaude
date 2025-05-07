@@ -14,8 +14,7 @@ public enum ToolInput {
     Value.toolInputSchema
   }
 
-  /// A Schema representing a value
-  /// Users should not conform their own types to `Schema`, instead they should rely on the `ToolInput.schema(representing:)` family of methods to construct the appropriate schema for their values.
+  /// A Schema describing the shape of a tool input
   public protocol Schema<Value>: Sendable {
 
     associatedtype Value
