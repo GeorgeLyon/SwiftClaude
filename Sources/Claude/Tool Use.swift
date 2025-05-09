@@ -350,7 +350,7 @@ extension Claude.ToolUse {
       }
 
       input = try await Tool.decodeInput(
-        for: toolWithContext.tool,
+        for: tool,
         from: .init(json: json),
         using: inputDecoder,
         isolation: isolation
@@ -373,14 +373,13 @@ extension Claude.ToolUse {
         }
 
         /// Strongly reference `tool` but not `self`
-        guard let toolWithContext = self?.toolWithContext else {
+        guard let tool = self?.tool else {
           /// Since `self` is `nil`, no further action is required
           return
         }
 
-        let output = try await toolWithContext.tool.invoke(
+        let output = try await tool.invoke(
           with: input,
-          in: toolWithContext.context,
           isolation: isolation
         )
         self?.currentOutput = output
