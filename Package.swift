@@ -145,7 +145,6 @@ extension Array where Element == Platform {
 
 extension Array where Element == SwiftSetting {
   fileprivate static let claude: [SwiftSetting] = [
-    .enableUpcomingFeature("InternalImportsByDefault"),
-    .enableUpcomingFeature("AsyncCallerExecution"),
+    .enableUpcomingFeature("InternalImportsByDefault")
   ]
 }

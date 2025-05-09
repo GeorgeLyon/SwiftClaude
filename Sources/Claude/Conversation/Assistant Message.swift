@@ -56,10 +56,7 @@ extension Claude {
       let toolKit: ToolKit<Conversation.ToolOutput>?
       let toolDefinitions: ClaudeClient.MessagesEndpoint.Request.ToolDefinitions?
       if let tools = tools {
-        (toolKit, toolDefinitions) = try tools.compile(
-          for: model,
-          imagePreprocessingMode: imagePreprocessingMode
-        )
+        (toolKit, toolDefinitions) = try tools.compile()
       } else {
         toolKit = nil
         toolDefinitions = nil
@@ -556,18 +553,9 @@ extension Claude.ConversationAssistantMessage {
       case .textBlock(let textBlock):
         assistantContent.append(textBlock.currentText)
       case .toolUseBlock(_, let toolUse):
-        guard
-          let input = toolUse.currentEncodableInput(
-            inputDecodingFailureEncodingStrategy: toolInputDecodingFailureEncodingStrategy
-          )
-        else {
-          throw IncompleteMessage()
-        }
         assistantContent.append(
-          .toolUse(
-            id: toolUse.id,
-            tool: toolUse.tool,
-            input: input
+          try toolUse.contentBlock(
+            inputDecodingFailureEncodingStrategy: toolInputDecodingFailureEncodingStrategy
           )
         )
 
@@ -657,14 +645,13 @@ extension Claude.ToolUse: PrivateToolUseProtocol {
   func contentBlock(
     inputDecodingFailureEncodingStrategy: Claude.ToolInputDecodingFailureEncodingStrategy
   ) throws -> ClaudeClient.MessagesEndpoint.Request.Message.Content.Block {
-
     guard let input = try currentInput else {
       throw IncompleteMessage()
     }
-    .toolUse(
+    return .toolUse(
       id: id,
       tool: concreteTool,
-      input: currentInput
+      input: input
     )
   }
 
@@ -683,11 +670,8 @@ extension Claude.Tool {
   where Conversation.ToolUseBlock.Output == Output {
     let toolUse = Claude.ToolUse<Self>(
       id: id,
-      toolWithContext: self,
-      inputDecoder: Claude.ToolInputDecoder(
-        client: client,
-        context: context
-      ),
+      tool: self,
+      client: client,
       invocationStrategy: invocationStrategy
     )
     return (toolUse, try Conversation.toolUseBlock(for: toolUse))
