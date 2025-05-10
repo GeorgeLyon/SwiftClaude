@@ -26,6 +26,8 @@ let package = Package(
     .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
     .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "600.0.1"),
     .package(url: "https://github.com/apple/swift-async-algorithms", from: "1.0.0"),
+    .package(url: "https://github.com/apple/swift-algorithms", from: "1.2.0"),
+    .package(url: "https://github.com/apple/swift-collections.git", from: "1.1.0"),
   ],
   targets: [
     // .target(
@@ -137,6 +139,10 @@ let package = Package(
 
     .target(
       name: "JSONKit",
+      dependencies: [
+        .product(name: "Algorithms", package: "swift-algorithms"),
+        .product(name: "Collections", package: "swift-collections"),
+      ],
       path: "Sources/JSON Kit",
       swiftSettings: .claude
     ),
