@@ -1,188 +1,221 @@
 import Collections
 
-extension JSON {
-
-  struct Value: ~Copyable {
-
-    struct StringReader {
-      fileprivate let stream: AsyncThrowingStream<String, Swift.Error>
-    }
-    consuming func read<T>(
-      string: (StringReader) throws -> T
-    ) async throws -> T {
-      try await stream.skipWhitespace()
-
-      let firstByte = try await stream.readByte()
-      let firstScalar = UnicodeScalar(firstByte)
-      switch firstScalar {
-      case "\"":
-        let fragments = AsyncThrowingStream<String, Swift.Error>.makeStream()
-        do {
-          let result = try string(StringReader(stream: fragments.stream))
-          var buffer = ""
-          Task {
-            do {
-              try await stream.readStringFragments { fragment in
-                buffer.unicodeScalars.append(contentsOf: fragment)
-                var string = buffer
-                if let lastCharacter = string.popLast() {
-                  /// Charaters may be modified by subsequent unicode code points, so we don't yield the last character until the string is complete.
-                  buffer = String(lastCharacter)
-                } else {
-                  buffer = ""
-                }
-                fragments.continuation.yield(string)
-              }
-              if !buffer.isEmpty {
-                fragments.continuation.yield(buffer)
-              }
-              fragments.continuation.finish()
-            } catch {
-              fragments.continuation.finish(throwing: error)
-            }
-          }
-          return result
-        } catch {
-          fragments.continuation.finish(throwing: error)
-          throw error
-        }
-
-      default:
-        throw Error.unexpectedByte(firstByte)
-      }
-
-    }
-
-    private var stream: ByteStream
-
-  }
-
-}
-
 // MARK: - String Fragments
 
-extension JSON.ByteStream {
+extension JSON {
 
-  fileprivate mutating func readStringFragments(
-    _ readStringFragment: ([UnicodeScalar]) -> Void,
-    isolation: isolated (any Actor)? = #isolation
-  ) async throws {
-    var reader = reader()
+  struct StringFragmentReader: ~Copyable {
 
-    do {
-      var isEscaped = false
-      readingString: while true {
+    mutating func readNextFragment() async throws -> String? {
+      while let next = try await componentReader.readNextComponent() {
+        guard !next.isEmpty else { continue }
 
-        /// Handle escaped characters
-        if isEscaped {
-          let escapedScalar = try await UnicodeScalar(reader.readByte())
-          switch escapedScalar {
-          /// Ignored characters
-          case "b", "r", "f":
-            break
-          /// Verbatim characters
-          case "\"", "\\", "/":
-            readStringFragment([escapedScalar])
-          /// Escaped characters
-          case "n":
-            readStringFragment(["\n"])
-          case "t":
-            readStringFragment(["\t"])
-          case "u":
-            let escapeSequence = String(
-              String.UnicodeScalarView(
-                try await reader.readBytes(count: 4)
-                  .map(UnicodeScalar.init)
-              )
-            )
+        /// The last grapheme cluster in a string can be modified by subsequent unicode scalars.
+        /// If we have the string `fac` we can't know whether the string being streamed is `facts` or `façade`.
+        /// Emojis can also be modified by a `ZWJ`.
+        /// To avoid confusion, we buffer the last grapheme cluster while streaming
+        var fragment = trailingGraphemeCluster
+        fragment.unicodeScalars.append(contentsOf: next)
+        if let lastCharacter = fragment.popLast() {
+          trailingGraphemeCluster = String(lastCharacter)
+        } else {
+          trailingGraphemeCluster = String()
+        }
+        return fragment
+      }
 
-            guard
-              let intValue = Int(escapeSequence, radix: 16)
-            else {
-              throw Error.invalidUnicodeEscapeSequence(escapeSequence)
-            }
+      /// Reading is complete
+      if trailingGraphemeCluster.isEmpty {
+        return nil
+      } else {
+        let lastFragment = trailingGraphemeCluster
+        trailingGraphemeCluster = String()
+        return lastFragment
+      }
+    }
 
-            switch intValue {
+    init(stream: consuming ByteStream) {
+      componentReader = StringComponentReader(stream: stream)
+    }
 
-            /// Handle UTF-16 surrogate pairs
-            /// Details in Section 2 of https://www.ietf.org/rfc/rfc2781.txt
-            case 0xDC00...0xDFFF:
-              /// Low surrogate value without corresponding high surrogate value
-              throw Error.invalidUnicodeEscapeSequence(escapeSequence)
-            case 0xD800...0xDBFF:
-              // This is a high surrogate pair any must be immediately followed by a low surrogate pair
-              let remainingBytes = String(
+    private var trailingGraphemeCluster: String = .init()
+    private var componentReader: StringComponentReader
+
+    private struct StringComponentReader: ~Copyable {
+      mutating func readNextComponent() async throws -> [UnicodeScalar]? {
+        guard !isComplete else {
+          return nil
+        }
+
+        /// Ensure we have at least one byte in the buffer
+        try await stream.ensureBytesAvailableForReading(count: 1)
+
+        var reader = stream.reader()
+
+        do {
+          let fragment: [UnicodeScalar]?
+
+          /// Handle escaped characters
+          if isNextByteEscaped {
+            let escapedScalar = try await UnicodeScalar(reader.readByte())
+            switch escapedScalar {
+            /// Ignored characters
+            case "b", "r", "f":
+              fragment = []
+            /// Verbatim characters
+            case "\"", "\\", "/":
+              fragment = [escapedScalar]
+            /// Escaped characters
+            case "n":
+              fragment = ["\n"]
+            case "t":
+              fragment = ["\t"]
+            case "u":
+              let escapeSequence = String(
                 String.UnicodeScalarView(
-                  try await reader.readBytes(count: 6)
+                  try await reader.readBytes(count: 4)
                     .map(UnicodeScalar.init)
                 )
               )
 
-              guard remainingBytes.prefix(2) == "\\u" else {
-                throw Error.invalidUnicodeEscapeSequence(escapeSequence + remainingBytes)
-              }
-
               guard
-                let lowIntValue = Int(remainingBytes.dropFirst(2)),
-                (0xDC00...0xDFFF).contains(lowIntValue),
-                let scalar = UnicodeScalar(
-                  [
-                    0x10000,
-                    ((intValue - 0xD800) << 10),
-                    lowIntValue - 0xDC00,
-                  ].reduce(0, +)
-                )
+                let intValue = Int(escapeSequence, radix: 16)
               else {
-                throw Error.invalidUnicodeEscapeSequence(escapeSequence + remainingBytes)
+                throw Error.invalidUnicodeEscapeSequence(escapeSequence)
               }
 
-              readStringFragment([scalar])
+              switch intValue {
 
-            default:
-              guard let scalar = UnicodeScalar(intValue) else {
-                throw Error.invalidUnicodeScalar(intValue)
+              /// Handle UTF-16 surrogate pairs
+              /// Details in Section 2 of https://www.ietf.org/rfc/rfc2781.txt
+              case 0xDC00...0xDFFF:
+                /// Low surrogate value without corresponding high surrogate value
+                throw Error.invalidUnicodeEscapeSequence(escapeSequence)
+              case 0xD800...0xDBFF:
+                // This is a high surrogate pair any must be immediately followed by a low surrogate pair
+                let remainingBytes = String(
+                  String.UnicodeScalarView(
+                    try await reader.readBytes(count: 6)
+                      .map(UnicodeScalar.init)
+                  )
+                )
+
+                guard remainingBytes.prefix(2) == "\\u" else {
+                  throw Error.invalidUnicodeEscapeSequence(escapeSequence + remainingBytes)
+                }
+
+                guard
+                  let lowIntValue = Int(remainingBytes.dropFirst(2)),
+                  (0xDC00...0xDFFF).contains(lowIntValue),
+                  let scalar = UnicodeScalar(
+                    [
+                      0x10000,
+                      ((intValue - 0xD800) << 10),
+                      lowIntValue - 0xDC00,
+                    ].reduce(0, +)
+                  )
+                else {
+                  throw Error.invalidUnicodeEscapeSequence(escapeSequence + remainingBytes)
+                }
+
+                fragment = [scalar]
+
+              default:
+                guard let scalar = UnicodeScalar(intValue) else {
+                  throw Error.invalidUnicodeScalar(intValue)
+                }
+
+                fragment = [scalar]
               }
 
-              readStringFragment([scalar])
-            }
-
-          default:
-            throw Error.invalidEscapeSequence(String(escapedScalar))
-          }
-          isEscaped = false
-        } else if !isEscaped {
-          /// Fast path for unescaped string fragments
-          let readBytes = try await reader.readBytes(
-            fetchMoreDataIfNeeded: false
-          ) { byte in
-            switch UnicodeScalar(byte) {
-            case "\"", "\\":
-              return true
             default:
-              return false
+              throw Error.invalidEscapeSequence(String(escapedScalar))
+            }
+
+            isNextByteEscaped = false
+          } else {
+
+            /// Read a string fragment
+            let (readBytes, result) = try await reader.readAvailableBytes(
+              until: { byte -> ControlCharacter? in
+                switch UnicodeScalar(byte) {
+                case "\"":
+                  return .end
+                case "\\":
+                  return .escape
+                default:
+                  return nil
+                }
+              }
+            )
+
+            if readBytes.isEmpty {
+              switch result {
+              case .exhaustedReadableBytes:
+                /// At the top of this function we ensure that we have at least one byte available for reading, so it should be impossible to exhaust the readable bytes and have `readBytes` be empty.
+                assertionFailure()
+                fragment = []
+              case .stopped(let controlCaracter):
+                /// We need to actually read the control character, since `readAvailableBytes` only marks the bytes before the stopCondition passes as read.
+                let controlScalar = try await reader.readByte(fetchMoreDataIfNeeded: false)
+                  .map(UnicodeScalar.init)
+                switch controlCaracter {
+                case .end:
+                  assert(controlScalar == "\"")
+                  isComplete = true
+                  fragment = nil
+                case .escape:
+                  assert(controlScalar == "\\")
+                  isNextByteEscaped = true
+                  fragment = []
+                }
+              }
+            } else {
+              fragment = readBytes.map(UnicodeScalar.init)
             }
           }
-          if !readBytes.isEmpty {
-            readStringFragment(readBytes.map(UnicodeScalar.init))
-          }
 
-          let nextScalar = UnicodeScalar(try await reader.readByte())
-          switch nextScalar {
-          case "\"":
-            break readingString
-          case "\\":
-            isEscaped = true
-          default:
-            readStringFragment([nextScalar])
-          }
+          self = StringComponentReader(
+            isComplete: isComplete,
+            isNextByteEscaped: isNextByteEscaped,
+            stream: reader.finish(commit: true)
+          )
+          return fragment
+        } catch {
+          self = StringComponentReader(
+            isComplete: isComplete,
+            isNextByteEscaped: isNextByteEscaped,
+            stream: reader.finish(commit: false)
+          )
+          throw error
         }
-
       }
 
-      self = reader.finish(commit: true)
-    } catch {
-      self = reader.finish(commit: false)
-      throw error
+      fileprivate init(
+        stream: consuming JSON.ByteStream
+      ) {
+        self.isComplete = false
+        self.isNextByteEscaped = false
+        self.stream = stream
+      }
+      private init(
+        isComplete: Bool,
+        isNextByteEscaped: Bool,
+        stream: consuming JSON.ByteStream
+      ) {
+        assert(!(isComplete && isNextByteEscaped))
+        self.isComplete = isComplete
+        self.isNextByteEscaped = isNextByteEscaped
+        self.stream = stream
+      }
+      private var isComplete: Bool
+      private var isNextByteEscaped: Bool
+      private var stream: JSON.ByteStream
+
+      private enum ControlCharacter {
+        case end
+        case escape
+      }
     }
   }
 
@@ -190,10 +223,46 @@ extension JSON.ByteStream {
 
 // MARK: - Data Stream
 
-enum JSON<Fragment: Sequence, Fragments: AsyncSequence<Fragment, Swift.Error>>
-where Fragment.Element == UInt8 {
+enum JSON<Fragment: Sequence & Sendable>
+where
+  Fragment.Element == UInt8
+{
 
   struct ByteStream: ~Copyable, Sendable {
+
+    struct StreamContinuationPair: ~Copyable {
+      consuming func stream() -> ByteStream {
+        _stream
+      }
+      fileprivate let _stream: ByteStream
+      let continuation: Continuation
+    }
+    static func makeStream() -> StreamContinuationPair {
+      let (fragments, continuation) = Fragments.makeStream()
+      return StreamContinuationPair(
+        _stream: ByteStream(fragments: fragments),
+        continuation: Continuation(wrapped: continuation)
+      )
+    }
+
+    struct Continuation: Sendable {
+
+      fileprivate init(
+        wrapped: Fragments.Continuation
+      ) {
+        self.wrapped = wrapped
+      }
+
+      func yield(_ fragment: Fragment) {
+        wrapped.yield(fragment)
+      }
+
+      func finish(throwing error: Swift.Error? = nil) {
+        wrapped.finish(throwing: error)
+      }
+
+      private let wrapped: Fragments.Continuation
+    }
 
     mutating func skipWhitespace(
       isolation: isolated (any Actor)? = #isolation
@@ -260,9 +329,15 @@ where Fragment.Element == UInt8 {
       }
     }
 
+    private init(
+      fragments: Fragments
+    ) {
+      self.fragments = FragmentsIterator(fragments: fragments)
+    }
+
     /// This is the fundamental primitive for reading data from a stream
     /// Declared inside of `ByteStream` because it accesses private state
-    private struct Reader: ~Copyable {
+    fileprivate struct Reader: ~Copyable {
 
       mutating func readByte(
         isolation: isolated (any Actor)? = #isolation
@@ -292,60 +367,78 @@ where Fragment.Element == UInt8 {
         fetchMoreDataIfNeeded: Bool,
         isolation: isolated (any Actor)? = #isolation
       ) async throws -> Slice<Deque<UInt8>>? {
-        if stream.buffer.count < readByteCount + count {
+        let endIndex = readEndIndex + count
+        if stream.buffer.endIndex < endIndex {
           if fetchMoreDataIfNeeded {
-            return nil
+            try await stream.ensureBytesAvailableForReading(count: endIndex)
           } else {
-            try await stream.ensureBytesAvailableForReading(count: readByteCount + count)
+            return nil
           }
         }
-        readByteCount += count
-        return stream.buffer[readByteCount..<(readByteCount + count)]
+        let bytes = stream.buffer[readEndIndex..<endIndex]
+        readEndIndex = endIndex
+        return bytes
       }
 
-      mutating func readBytes(
-        fetchMoreDataIfNeeded: Bool,
-        until testCondition: (UInt8) throws -> Bool,
+      enum ReadAvailableBytesResult<T> {
+        case exhaustedReadableBytes
+        case stopped(T)
+      }
+      mutating func readAvailableBytes<T>(
+        until stopCondition: (UInt8) throws -> T?,
         isolation: isolated (any Actor)? = #isolation
-      ) async throws -> Slice<Deque<UInt8>> {
+      ) async throws -> (readBytes: Slice<Deque<UInt8>>, result: ReadAvailableBytesResult<T>) {
         while true {
-          for index in stream.buffer[readByteCount...].indices {
-            if try testCondition(stream.buffer[index]) {
-              readByteCount = index
-              return stream.buffer[readByteCount..<index]
+          for index in stream.buffer[readEndIndex...].indices {
+            if let stopResult = try stopCondition(stream.buffer[index]) {
+              let readBytes = stream.buffer[readEndIndex..<index]
+              readEndIndex = index
+              return (readBytes, .stopped(stopResult))
             }
           }
-
-          if fetchMoreDataIfNeeded {
-            try await stream.ensureBytesAvailableForReading(count: 1)
-          } else {
-            break
-          }
         }
-
-        readByteCount = stream.buffer.count
-        return stream.buffer[readByteCount...]
+        let readBytes = stream.buffer[readEndIndex...]
+        readEndIndex = stream.buffer.endIndex
+        return (readBytes, .exhaustedReadableBytes)
       }
 
       init(stream: consuming ByteStream) {
+        self.readEndIndex = stream.buffer.startIndex
         self.stream = stream
       }
       consuming func finish(commit: Bool) -> ByteStream {
         if commit {
-          stream.buffer.removeFirst(readByteCount)
+          stream.buffer.removeSubrange(stream.buffer.startIndex..<readEndIndex)
         }
         return stream
       }
 
-      private var readByteCount = 0
+      private var readEndIndex: Buffer.Index
       private var stream: ByteStream
     }
-    private consuming func reader() -> Reader {
+    fileprivate consuming func reader() -> Reader {
       Reader(stream: self)
     }
 
-    private var buffer: Deque<UInt8> = .init()
-    private var fragments: Fragments.AsyncIterator
+    fileprivate typealias Fragments = AsyncThrowingStream<Fragment, Swift.Error>
+    fileprivate typealias Buffer = Deque<UInt8>
+
+    private var buffer: Buffer = .init()
+    private var fragments: FragmentsIterator
+
+    /// While it is usually unsafe to send an `AsyncIterator` we have a reasonable assurance that it will only ever be used serially.
+    /// If `ByteStream` is sent from one isolation domain to another, we are guaranteed that it is no longer used in the original isolation domain since that would require a copy, and `ByteStream` is `~Copyable`.
+    private struct FragmentsIterator: @unchecked Sendable {
+      init(fragments: Fragments) {
+        self.fragments = fragments.makeAsyncIterator()
+      }
+      mutating func next(
+        isolation: isolated (any Actor)? = #isolation
+      ) async throws -> Fragment? {
+        try await fragments.next(isolation: isolation)
+      }
+      private var fragments: Fragments.AsyncIterator
+    }
   }
 
 }
