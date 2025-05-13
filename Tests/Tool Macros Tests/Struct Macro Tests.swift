@@ -6,7 +6,7 @@ import Testing
 
 @testable import ToolMacros
 
-@Suite("Struct")
+@Suite("@ToolInput Struct")
 private struct StructMacroTests {
 
   @Test

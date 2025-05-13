@@ -6,7 +6,7 @@ import Testing
 
 @testable import ToolMacros
 
-@Suite("Enum")
+@Suite("@ToolInput Enum")
 private struct EnumMacroTests {
 
   @Test
