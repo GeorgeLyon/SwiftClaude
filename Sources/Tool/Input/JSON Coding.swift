@@ -1,8 +1,8 @@
-import Foundation
+public import Foundation
 
 extension JSONDecoder {
 
-  func decodeValue<Schema: ToolInput.Schema>(
+  public func decodeValue<Schema: ToolInput.Schema>(
     using schema: Schema,
     from data: Data
   ) throws -> Schema.Value {

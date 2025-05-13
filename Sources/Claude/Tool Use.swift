@@ -5,6 +5,8 @@ public import Tool
 
 public typealias ToolUseProtocol = Claude.ToolUseProtocol
 
+private import struct Foundation.Data
+
 extension Claude {
 
   public protocol ToolUseProtocol<Output>: Identifiable {
@@ -349,11 +351,9 @@ extension Claude.ToolUse {
         json = currentInputJSON
       }
 
-      input = try await Tool.decodeInput(
-        for: tool,
-        from: .init(json: json),
-        using: inputDecoder,
-        isolation: isolation
+      input = try await client.decodeValue(
+        using: concreteTool.definition.schema,
+        fromResponseData: Data(json.utf8)
       )
       streamingResult = .success(())
       inputDecodingResult = .success(input)
@@ -373,7 +373,7 @@ extension Claude.ToolUse {
         }
 
         /// Strongly reference `tool` but not `self`
-        guard let tool = self?.tool else {
+        guard let tool = self?.concreteTool else {
           /// Since `self` is `nil`, no further action is required
           return
         }
@@ -399,4 +399,10 @@ extension Claude.ToolUse {
 
   }
 
+}
+
+// MARK: - Implementation Details
+
+extension ClaudeClient {
+  
 }

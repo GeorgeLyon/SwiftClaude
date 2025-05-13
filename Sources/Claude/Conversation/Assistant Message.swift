@@ -2,6 +2,7 @@ private import AsyncAlgorithms
 public import ClaudeClient
 public import ClaudeMessagesEndpoint
 public import Observation
+private import Tool
 
 // MARK: - Messages
 
@@ -650,8 +651,11 @@ extension Claude.ToolUse: PrivateToolUseProtocol {
     }
     return .toolUse(
       id: id,
-      tool: concreteTool,
-      input: input
+      name: concreteTool.definition.name,
+      input: ToolInput.EncodableAdaptor(
+        schema: concreteTool.definition.schema,
+        value: input
+      )
     )
   }
 

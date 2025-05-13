@@ -1,6 +1,7 @@
 import HTTPTypes
 
 package import struct Foundation.Data
+package import Tool
 
 public actor ClaudeClient {
 
@@ -83,6 +84,13 @@ public actor ClaudeClient {
     fromResponseData data: Data
   ) throws -> sending T {
     try responseBodyDecoder.decode(type, from: data)
+  }
+  
+  package func decodeValue<Schema: ToolInput.Schema>(
+    using schema: Schema,
+    fromResponseData data: Data
+  ) throws -> sending Schema.Value {
+    try responseBodyDecoder.decodeValue(using: schema, fromResponseData: data)
   }
 
   private enum ContentType: String {

@@ -1,6 +1,7 @@
 import struct Foundation.Data
 import class Foundation.JSONDecoder
 import class Foundation.JSONEncoder
+import Tool
 
 struct RequestBodyEncoder {
 
@@ -33,7 +34,14 @@ struct ResponseBodyDecoder {
   func decode<T: Decodable>(_ type: T.Type, from data: Data) throws -> sending T {
     try decoder.decode(type, from: data)
   }
-
+  
+  func decodeValue<Schema: ToolInput.Schema>(
+    using schema: Schema,
+    fromResponseData data: Data
+  ) throws -> sending Schema.Value {
+    try decoder.decodeValue(using: schema, from: data)
+  }
+  
   private init(decoder: JSONDecoder) {
     self.decoder = decoder
   }
