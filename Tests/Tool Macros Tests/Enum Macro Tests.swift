@@ -16,7 +16,7 @@ private struct EnumMacroTests {
       """
       @ToolInput
       enum ToolInputEnum {
-        case simple
+        case `simple`
         /// A case with a single associated value
         case singleAssociatedValue(Int)
         // Multiple associated values without a name

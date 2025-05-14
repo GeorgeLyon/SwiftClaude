@@ -12,19 +12,16 @@ struct ToolInputMacro: ExtensionMacro {
     conformingTo protocols: [TypeSyntax],
     in context: some MacroExpansionContext
   ) throws -> [ExtensionDeclSyntax] {
-    do {
-      return try [
-        .toolInputConformance(for: declaration, of: type, in: context)
+    try DiagnosticError.diagnose(in: context) {
+      [
+        try .toolInputConformance(for: declaration, of: type, in: context)
       ]
-    } catch let error as DiagnosticError {
-      context.diagnose(error.diagnostic)
-      return []
     }
   }
 
 }
 
-// MARK: - Implementation Details
+// MARK: - Implementation
 
 extension ExtensionDeclSyntax {
 
@@ -77,11 +74,28 @@ extension StructDeclSyntax {
   fileprivate func toolInputMembers(in context: MacroExpansionContext) throws
     -> MemberBlockItemListSyntax
   {
+    Self.toolInputMembers(
+      for: try storedProperties,
+      description: comment,
+      isPublic: modifiers.contains(where: \.isPublic),
+      in: context
+    )
+  }
+
+  static func toolInputMembers(
+    for storedProperties: some Sequence<StoredProperty>,
+    description: String?,
+    isPublic: Bool,
+    in context: MacroExpansionContext
+  )
+    -> MemberBlockItemListSyntax
+  {
     let propertyKeyName = context.makeUniqueName("PropertyKey")
-    let storedProperties = try self.storedProperties
 
     /// var toolInputSchema: some ToolInput.Schema<Self> { … }
-    let toolInputSchemaProperty: VariableDeclSyntax = toolInputSchemaProperty {
+    let toolInputSchemaProperty: VariableDeclSyntax = .toolInputSchemaProperty(
+      isPublic: isPublic
+    ) {
       FunctionCallExprSyntax(
         calledExpression: MemberAccessExprSyntax(
           base: DeclReferenceExprSyntax(baseName: "ToolInput"),
@@ -101,7 +115,7 @@ extension StructDeclSyntax {
           )
 
           /// description: ...
-          descriptionArgument
+          LabeledExprSyntax.descriptionArgument(description)
 
           /// keyedBy: propertyKey.self
           LabeledExprSyntax(
@@ -244,7 +258,7 @@ extension StructDeclSyntax {
 
 extension StructDeclSyntax {
 
-  fileprivate struct StoredProperty {
+  struct StoredProperty {
     let name: TokenSyntax
     let type: TypeSyntax
     let comment: String?
@@ -386,10 +400,24 @@ extension EnumDeclSyntax {
       .members
       .compactMap { $0.decl.as(EnumCaseDeclSyntax.self) }
 
-    let toolInputSchemaProperty: VariableDeclSyntax = toolInputSchemaProperty {
-      /// let <case>AssociatedValuesSchema = ToolInput.enumCaseAssociatedValuesSchema(…)
-      for caseDeclElement in caseDecls.flatMap(\.elements) {
-        caseDeclElement.associatedValuesSchema(caseKeyName: caseKeyName)
+    let toolInputSchemaProperty: VariableDeclSyntax = .toolInputSchemaProperty(
+      isPublic: modifiers.contains(where: \.isPublic)
+    ) {
+      for (caseDeclOffset, caseDecl) in caseDecls.enumerated() {
+        for (elementOffset, element) in caseDecl.elements.enumerated() {
+          VariableDeclSyntax(
+            bindingSpecifier: .keyword(.let),
+            bindings: PatternBindingListSyntax {
+              PatternBindingSyntax(
+                pattern: IdentifierPatternSyntax(
+                  identifier: "associatedValuesSchema_\(raw: caseDeclOffset)_\(raw: elementOffset)"),
+                initializer: InitializerClauseSyntax(
+                  value: element.associatedValuesSchema(caseKeyName: caseKeyName)
+                )
+              )
+            }
+          )
+        }
       }
 
       /// return ToolInput.enumSchema(…)
@@ -433,13 +461,17 @@ extension EnumDeclSyntax {
               expression: TupleExprSyntax(
                 leftParen: .leftParenToken(),
                 elements: LabeledExprListSyntax {
-                  for caseDecl in caseDecls {
+                  for (caseDeclOffset, caseDecl) in caseDecls.enumerated() {
                     let descriptionArgument = caseDecl.descriptionArgument
-                    for element in caseDecl.elements {
+                    for (elementOffset, element) in caseDecl.elements.enumerated() {
                       LabeledExprSyntax(
                         expression: element.enumSchemaCaseArgument(
                           descriptionArgument: descriptionArgument,
-                          caseKeyName: caseKeyName
+                          caseKeyName: caseKeyName,
+                          associatedValuesSchema: DeclReferenceExprSyntax(
+                            baseName:
+                              "associatedValuesSchema_\(raw: caseDeclOffset)_\(raw: elementOffset)"
+                          )
                         )
                       )
                     }
@@ -467,9 +499,9 @@ extension EnumDeclSyntax {
                       ClosureShorthandParameterSyntax(
                         name: "value"
                       )
-                      for element in caseDecls.flatMap(\.elements) {
+                      for (offset, _) in caseDecls.flatMap(\.elements).enumerated() {
                         ClosureShorthandParameterSyntax(
-                          name: "\(element.name.trimmed)Encoder"
+                          name: "encoder_\(raw: offset)"
                         )
                       }
                     }
@@ -479,10 +511,8 @@ extension EnumDeclSyntax {
                   SwitchExprSyntax(
                     subject: DeclReferenceExprSyntax(baseName: "value"),
                     cases: SwitchCaseListSyntax {
-                      for caseDecl in caseDecls {
-                        for element in caseDecl.elements {
-                          element.switchCase(encoderName: "\(element.name.trimmed)Encoder")
-                        }
+                      for (offset, element) in caseDecls.flatMap(\.elements).enumerated() {
+                        element.switchCase(encoderName: "encoder_\(raw: offset)")
                       }
                     }
                   )
@@ -509,31 +539,36 @@ extension EnumDeclSyntax {
       name: caseKeyName,
       inheritanceClause: codingKey,
       memberBlock: MemberBlockSyntax {
-        for caseDecl in caseDecls {
-          for element in caseDecl.elements {
-            EnumCaseDeclSyntax {
-              EnumCaseElementSyntax(
-                name: element.name
-              )
-            }
+        for element in caseDecls.flatMap(\.elements) {
+          EnumCaseDeclSyntax {
+            EnumCaseElementSyntax(
+              name: element.name
+            )
+          }
+        }
 
-            EnumDeclSyntax(
-              name: "AssociatedValuesKey_\(element.name)",
-              inheritanceClause: codingKey,
-              memberBlock: MemberBlockSyntax {
-                if let parameters = element.parameterClause?.parameters {
-                  for parameter in parameters {
-                    if let name = parameter.name {
-                      EnumCaseDeclSyntax {
-                        EnumCaseElementSyntax(name: name)
+        EnumDeclSyntax(
+          name: "AssociatedValuesKey",
+          memberBlock: MemberBlockSyntax {
+            for element in caseDecls.flatMap(\.elements) {
+              EnumDeclSyntax(
+                name: element.name,
+                inheritanceClause: codingKey,
+                memberBlock: MemberBlockSyntax {
+                  if let parameters = element.parameterClause?.parameters {
+                    for parameter in parameters {
+                      if let name = parameter.name {
+                        EnumCaseDeclSyntax {
+                          EnumCaseElementSyntax(name: name)
+                        }
                       }
                     }
                   }
                 }
-              }
-            )
+              )
+            }
           }
-        }
+        )
       }
     )
 
@@ -547,71 +582,58 @@ extension EnumDeclSyntax {
 
 extension EnumCaseElementListSyntax.Element {
 
-  fileprivate func associatedValuesSchema(caseKeyName: TokenSyntax) -> VariableDeclSyntax {
-    VariableDeclSyntax(
-      bindingSpecifier: .keyword(.let),
-      bindings: PatternBindingListSyntax {
-        PatternBindingSyntax(
-          pattern: IdentifierPatternSyntax(
-            identifier: "\(name.trimmed)AssociatedValuesSchema"),
-          initializer: InitializerClauseSyntax(
-            value: FunctionCallExprSyntax(
-              calledExpression: MemberAccessExprSyntax(
-                base: DeclReferenceExprSyntax(baseName: "ToolInput"),
-                name: "enumCaseAssociatedValuesSchema"
-              ),
-              leftParen: .leftParenToken(trailingTrivia: .newline),
-              arguments: LabeledExprListSyntax {
-                let associatedValuesKey = MemberAccessExprSyntax(
-                  base: DeclReferenceExprSyntax(baseName: caseKeyName),
-                  name: "AssociatedValuesKey_\(name)"
-                )
+  fileprivate func associatedValuesSchema(caseKeyName: TokenSyntax) -> FunctionCallExprSyntax {
+    let associatedValuesKey = associatedValuesKey(caseKeyName: caseKeyName)
+    return FunctionCallExprSyntax(
+      calledExpression: MemberAccessExprSyntax(
+        base: DeclReferenceExprSyntax(baseName: "ToolInput"),
+        name: "enumCaseAssociatedValuesSchema"
+      ),
+      leftParen: .leftParenToken(trailingTrivia: .newline),
+      arguments: LabeledExprListSyntax {
 
-                /// values: (…)
-                LabeledExprSyntax(
-                  label: "values",
-                  colon: .colonToken(),
-                  expression: TupleExprSyntax(
-                    leftParen: .leftParenToken(trailingTrivia: .newline),
-                    elements: LabeledExprListSyntax {
-                      if let parameters = parameterClause?.parameters {
-                        for parameter in parameters {
-                          LabeledExprSyntax(
-                            expression: parameter.associatedValuesSchemaArgument(
-                              key: associatedValuesKey
-                            )
-                          )
-                        }
-                      }
-                    },
-                    rightParen: .rightParenToken(leadingTrivia: .newline)
+        /// values: (…)
+        LabeledExprSyntax(
+          label: "values",
+          colon: .colonToken(),
+          expression: TupleExprSyntax(
+            leftParen: .leftParenToken(trailingTrivia: .newline),
+            elements: LabeledExprListSyntax {
+              if let parameters = parameterClause?.parameters {
+                for parameter in parameters {
+                  LabeledExprSyntax(
+                    expression: parameter.associatedValuesSchemaArgument(
+                      key: associatedValuesKey
+                    )
                   )
-                )
-
-                /// keyedBy: caseKey.AssociatedValue<case>.self
-                LabeledExprSyntax(
-                  leadingTrivia: .newline,
-                  label: "keyedBy",
-                  colon: .colonToken(),
-                  expression: MemberAccessExprSyntax(
-                    base: associatedValuesKey,
-                    name: "self"
-                  )
-                )
-              },
-              rightParen: .rightParenToken(leadingTrivia: .newline)
-            )
+                }
+              }
+            },
+            rightParen: .rightParenToken(leadingTrivia: .newline)
           )
         )
-      }
+
+        /// keyedBy: caseKey.AssociatedValue<case>.self
+        LabeledExprSyntax(
+          leadingTrivia: .newline,
+          label: "keyedBy",
+          colon: .colonToken(),
+          expression: MemberAccessExprSyntax(
+            base: associatedValuesKey,
+            name: "self"
+          )
+        )
+      },
+      rightParen: .rightParenToken(leadingTrivia: .newline)
     )
   }
 
   fileprivate func enumSchemaCaseArgument(
     descriptionArgument: LabeledExprSyntax,
-    caseKeyName: TokenSyntax
+    caseKeyName: TokenSyntax,
+    associatedValuesSchema: some ExprSyntaxProtocol
   ) -> TupleExprSyntax {
-    TupleExprSyntax(
+    return TupleExprSyntax(
       leftParen: .leftParenToken(leadingTrivia: .newline, trailingTrivia: .newline),
       elements: LabeledExprListSyntax {
         /// key: caseKey.first,
@@ -628,12 +650,11 @@ extension EnumCaseElementListSyntax.Element {
         /// description: "A string",
         descriptionArgument
 
-        /// associatedValuesSchema: associatedValues_first,
+        /// associatedValuesSchema:,
         LabeledExprSyntax(
           label: "associatedValuesSchema",
           colon: .colonToken(),
-          expression: DeclReferenceExprSyntax(
-            baseName: "\(name.trimmed)AssociatedValuesSchema"),
+          expression: associatedValuesSchema,
           trailingComma: .commaToken(trailingTrivia: .newline)
         )
 
@@ -693,6 +714,16 @@ extension EnumCaseElementListSyntax.Element {
         )
       },
       rightParen: .rightParenToken(leadingTrivia: .newline)
+    )
+  }
+
+  private func associatedValuesKey(caseKeyName: TokenSyntax) -> some ExprSyntaxProtocol {
+    MemberAccessExprSyntax(
+      base: MemberAccessExprSyntax(
+        base: DeclReferenceExprSyntax(baseName: caseKeyName),
+        name: "AssociatedValuesKey"
+      ),
+      name: name
     )
   }
 
@@ -846,17 +877,18 @@ extension EnumCaseParameterListSyntax.Element {
 
 // MARK: Shared
 
-extension DeclGroupSyntax {
+extension VariableDeclSyntax {
 
-  fileprivate func toolInputSchemaProperty(
+  fileprivate static func toolInputSchemaProperty(
+    isPublic: Bool,
     @CodeBlockItemListBuilder _ builder: () -> CodeBlockItemListSyntax
   )
     -> VariableDeclSyntax
   {
     VariableDeclSyntax(
       modifiers: DeclModifierListSyntax {
-        if let publicModifier = modifiers.first(where: { $0.name == "public" }) {
-          publicModifier
+        if isPublic {
+          DeclModifierSyntax(name: "public")
         }
 
         DeclModifierSyntax(name: .keyword(.static))
@@ -918,6 +950,12 @@ extension TypeSyntax {
 
 extension DeclModifierListSyntax {
 
+  fileprivate static var `public`: Self {
+    DeclModifierListSyntax {
+      DeclModifierSyntax(name: .keyword(.public))
+    }
+  }
+
   fileprivate static var `private`: Self {
     DeclModifierListSyntax {
       DeclModifierSyntax(name: .keyword(.private))
@@ -926,18 +964,34 @@ extension DeclModifierListSyntax {
 
 }
 
+extension DeclModifierSyntax {
+
+  fileprivate var isPublic: Bool {
+    name == .keyword(.public)
+  }
+
+}
+
 extension SyntaxProtocol {
 
   fileprivate var descriptionArgument: LabeledExprSyntax {
+    return .descriptionArgument(comment)
+  }
+
+}
+
+extension SyntaxProtocol where Self == LabeledExprSyntax {
+
+  fileprivate static func descriptionArgument(_ description: String?) -> Self {
     /// description: ...
-    if let comment {
+    if let description {
       LabeledExprSyntax(
         label: "description",
         colon: .colonToken(),
         expression: StringLiteralExprSyntax(
           openDelimiter: .rawStringPoundDelimiter("#"),
           openingQuote: .multilineStringQuoteToken(),
-          content: comment,
+          content: description,
           closingQuote: .multilineStringQuoteToken(),
           closeDelimiter: .rawStringPoundDelimiter("#")
         ),

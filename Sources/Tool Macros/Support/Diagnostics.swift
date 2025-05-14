@@ -1,7 +1,21 @@
 import SwiftDiagnostics
 import SwiftSyntax
+import SwiftSyntaxMacros
 
 struct DiagnosticError: Error {
+  
+  static func diagnose<T>(
+    in context: some MacroExpansionContext,
+    _ body: () throws -> T
+  ) throws -> T {
+    do {
+      return try body()
+    } catch let error as DiagnosticError {
+      context.diagnose(error.diagnostic)
+      throw error
+    }
+  }
+  
   init(
     node: SyntaxProtocol,
     severity: DiagnosticSeverity,
@@ -15,13 +29,18 @@ struct DiagnosticError: Error {
       )
     )
   }
-  init(node: SyntaxProtocol, message: DiagnosticMessage) {
+  init(
+    node: SyntaxProtocol,
+    message: DiagnosticMessage
+  ) {
     self.diagnostic = Diagnostic(node: node, message: message)
   }
-  let diagnostic: Diagnostic
+  
+  private let diagnostic: Diagnostic
 }
 
 struct DiagnosticMessage: Identifiable, SwiftDiagnostics.DiagnosticMessage {
+  
   init(
     severity: DiagnosticSeverity,
     message: String,
@@ -33,15 +52,14 @@ struct DiagnosticMessage: Identifiable, SwiftDiagnostics.DiagnosticMessage {
     self.id = ID(fileID: fileID, line: line)
   }
 
-  let severity: DiagnosticSeverity
-  let message: String
-
   struct ID: Hashable {
     let fileID: String
     let line: Int
   }
   let id: ID
-
+  
+  let severity: DiagnosticSeverity
+  let message: String
   var diagnosticID: MessageID {
     MessageID(domain: #fileID, id: "\(id.fileID):\(id.line)")
   }

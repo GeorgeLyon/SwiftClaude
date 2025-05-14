@@ -1,4 +1,3 @@
-@attached(extension)
 @attached(
   extension,
   conformances: Tool,
@@ -10,7 +9,6 @@ public macro Tool(name: String? = nil) =
     type: "ToolMacro"
   )
 
-@attached(extension)
 @attached(
   extension,
   conformances: ToolInput.SchemaCodable,
@@ -22,26 +20,13 @@ public macro ToolInput() =
     type: "ToolInputMacro"
   )
 
-@attached(extension)
 @attached(
-extension,
-conformances: Tool,
-names: named(description), named(invoke)
+  extension,
+  conformances: Tool,
+  names: named(description), named(invoke)
 )
 public macro Tool() =
-#externalMacro(
-  module: "ToolMacros",
-  type: "ToolMacro"
-)
-
-@attached(extension)
-@attached(
-extension,
-conformances: ToolInput.SchemaCodable,
-names: named(toolInputSchema), named(init)
-)
-public macro Action() =
-#externalMacro(
-  module: "ToolMacros",
-  type: "ActionMacro"
-)
+  #externalMacro(
+    module: "ToolMacros",
+    type: "ToolMacro"
+  )

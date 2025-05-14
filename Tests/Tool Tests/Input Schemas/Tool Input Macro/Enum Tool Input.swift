@@ -10,8 +10,7 @@ struct EnumToolInputTests {
   enum TestEnum: Equatable {
     // A string
     case first(String)
-    
-    case second(x: Int)
+    case `continue`(x: Int)
     case third(String, x: Int)
     case fourth(x: String, y: Int)
     case fifth
@@ -61,6 +60,9 @@ struct EnumToolInputTests {
           "maxProperties" : 1,
           "minProperties" : 1,
           "properties" : {
+            "continue" : {
+              "type" : "integer"
+            },
             "fifth" : {
               "type" : "null"
             },
@@ -83,9 +85,6 @@ struct EnumToolInputTests {
                 "y"
               ],
               "type" : "object"
-            },
-            "second" : {
-              "type" : "integer"
             },
             "third" : {
               "items" : false,

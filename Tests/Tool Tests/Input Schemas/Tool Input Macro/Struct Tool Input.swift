@@ -5,7 +5,7 @@ import Testing
 /// A person object
 @ToolInput
 private struct Person {
-  let name: String
+  let `name`: String
 
   /// The person's age
   let age: Int

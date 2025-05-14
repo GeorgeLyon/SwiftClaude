@@ -18,49 +18,67 @@ private struct ToolMacroTests {
       @Tool
       struct MyTool {
         
-        /// Perform an action with two arguments
-        @Action
-        func performAction(
-          with argument1: String, 
-          and argument2: Int
-        ) async throws -> ToolResultContent
-        
-        /// Perform an action with no arguments
-        @Action
-        func performOtherAction()
-      
-        @Action
-        func performThirdAction(_ x: Int, _ y: Int) -> String
-            
-        @Action
-        func performSingleArgumentAction(_ x: Bool) -> String
-      
       }
       """,
       expandedSource: ##"""
-        /// A tool with a single action
-        @Tool
-        struct MyTool {
-          
-          /// Perform an action with two arguments
-          @Action
-          func performAction(
-            with argument1: String, 
-            and argument2: Int
-          ) async throws -> ToolResultContent
-          
-          /// Perform an action with no arguments
-          @Action
-          func performOtherAction()
-        
-          @Action
-          func performThirdAction(_ x: Int, _ y: Int) -> String
+          /// A tool with a single action
+          @Tool
+          struct MyTool {
+            
+            /// Perform an action with two arguments
+            @Action
+            func performAction(
+              with argument1: String,
+              and argument2: Int
+            ) async throws -> Int {
+              fatalError()
+            }
+            
+            /// Perform an action with no arguments
+            @Action
+            func performOtherAction() {
               
-          @Action
-          func performSingleArgumentAction(_ x: Bool) -> String
-        
-        }
-        """##,
+            }
+          
+            @Action
+            func performThirdAction(_ x: Int, _ y: Int) -> String {
+              fatalError()
+            }
+                
+            @Action
+            func performSingleArgumentAction(_ x: Bool) -> String {
+              fatalError()
+            }
+          
+          }
+        """##
+        //        + ##"""
+        //        extension MyTool: Tool {
+        //
+        //            struct Input: ToolInput {
+        //
+        //              fileprivate invoke(on tool: MyTool) -> Output {
+        //                switch invocation {
+        //                  case .performAction:
+        //                  case .performOtherAction:
+        //                  case .performThirdAction:
+        //                  case .performSingleArgumentAction:
+        //                }
+        //              }
+        //
+        //              private enum Invocation {
+        //                case performAction(with argument1: String, and argument2: Int)
+        //                case performOtherAction
+        //                case performThirdAction(_ x: Int, _ y: Int)
+        //                case performSingleArgumentAction(_ x: Bool)
+        //              }
+        //              private let invocation: Invocation
+        //
+        //            }
+        //
+        //        }
+        //        """##
+      ,
       macroSpecs: macroSpecs,
       indentationWidth: .spaces(2),
       failureHandler: {
