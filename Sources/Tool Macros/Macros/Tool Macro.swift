@@ -46,18 +46,220 @@ extension ExtensionDeclSyntax {
 
 extension DeclGroupSyntax {
 
-  fileprivate func toolMembers(in context: MacroExpansionContext) throws
+  fileprivate func toolMembers(
+    in context: MacroExpansionContext
+  ) throws
     -> MemberBlockItemListSyntax
   {
-    let function = try toolInvocationFunction
-    var storedProperties = function
+    let toolTypeName = context.makeUniqueName("Tool")
+
+    let isPublic = modifiers.contains(where: \.isPublic)
+
+    let invokeFunction = try toolInvocationFunction
+
+    let isolationParameter = FunctionParameterSyntax(
+      firstName: "isolation",
+      type: AttributedTypeSyntax(
+        specifiers: TypeSpecifierListSyntax {
+          SimpleTypeSpecifierSyntax(
+            specifier: .keyword(SwiftSyntax.Keyword.isolated)
+          )
+        },
+        baseType: IdentifierTypeSyntax(name: "Actor")
+      )
+    )
+
+    let storedProperties: [StructDeclSyntax.StoredProperty] =
+      try invokeFunction
       .signature
       .parameterClause
       .parameters
       .map { parameter in
-        fatalError()
+        guard let identifier = (parameter.secondName ?? parameter.firstName).identifier else {
+          throw DiagnosticError(
+            node: parameter,
+            severity: .error,
+            message: "All parameters must be named")
+        }
+        return StructDeclSyntax.StoredProperty(
+          name: .identifier(identifier.name),
+          type: parameter.type,
+          comment: nil
+        )
       }
-    fatalError()
+
+    let inputInvocationTrampoline = FunctionDeclSyntax(
+      modifiers: DeclModifierListSyntax {
+        DeclModifierSyntax(name: .keyword(.fileprivate))
+      },
+      name: context.makeUniqueName("invoke"),
+      signature: FunctionSignatureSyntax(
+        parameterClause: FunctionParameterClauseSyntax(
+          parameters: FunctionParameterListSyntax {
+            FunctionParameterSyntax(
+              firstName: "tool",
+              type: IdentifierTypeSyntax(name: toolTypeName)
+            )
+            isolationParameter
+          },
+        ),
+        effectSpecifiers: FunctionEffectSpecifiersSyntax(
+          asyncSpecifier: .keyword(.async),
+          throwsClause: invokeFunction.signature.effectSpecifiers?.throwsClause
+        ),
+        returnClause: ReturnClauseSyntax(
+          arrow: .arrowToken(),
+          type: MemberTypeSyntax(
+            baseType: IdentifierTypeSyntax(name: toolTypeName),
+            name: "Output"
+          )
+        )
+      ),
+      body: try CodeBlockSyntax {
+        try invokeFunction.callExpr(
+          on: DeclReferenceExprSyntax(baseName: "tool"),
+          arguments: storedProperties.map { property in
+            MemberAccessExprSyntax(
+              base: DeclReferenceExprSyntax(baseName: "self"),
+              name: property.name
+            )
+          }
+        )
+      }
+    )
+
+    return try MemberBlockItemListSyntax {
+      /// `var definition: some ToolDefinition<Schema> { … }`
+      toolDefinition
+
+      /// `func invoke(with input: Input, isolation: isolated Actor)`
+      FunctionDeclSyntax(
+        modifiers: DeclModifierListSyntax {
+          if isPublic {
+            DeclModifierSyntax(name: .keyword(.public))
+          }
+        },
+        name: "invoke",
+        signature: FunctionSignatureSyntax(
+          parameterClause: FunctionParameterClauseSyntax {
+            FunctionParameterSyntax(
+              firstName: "with",
+              secondName: "input",
+              type: IdentifierTypeSyntax(name: "Input")
+            )
+            isolationParameter
+          },
+          effectSpecifiers: FunctionEffectSpecifiersSyntax(
+            asyncSpecifier: .keyword(.async),
+            throwsClause: invokeFunction.signature.effectSpecifiers?.throwsClause
+          ),
+          returnClause: invokeFunction.signature.returnClause
+        ),
+        body: try CodeBlockSyntax {
+          try inputInvocationTrampoline.callExpr(
+            on: DeclReferenceExprSyntax(baseName: "input"),
+            arguments: [
+              DeclReferenceExprSyntax(baseName: "self")
+            ]
+          )
+        }
+      )
+
+      /// struct Input: ToolInput.SchemaCodable { … }
+      StructDeclSyntax.toolInput(
+        description: comment,
+        name: "Input",
+        isPublic: isPublic,
+        storedProperties: storedProperties,
+        additionalMembers: MemberBlockItemListSyntax {
+          inputInvocationTrampoline
+        },
+        in: context
+      )
+
+      /// typealias `Self` so we can reference it inside of `Input` even if this is nested in a different type
+      TypeAliasDeclSyntax(
+        name: toolTypeName,
+        initializer: TypeInitializerClauseSyntax(
+          value: IdentifierTypeSyntax(name: "Self")
+        )
+      )
+
+    }
+  }
+
+  private var toolDefinition: VariableDeclSyntax {
+    VariableDeclSyntax(
+      modifiers: DeclModifierListSyntax {
+        if modifiers.contains(where: \.isPublic) {
+          DeclModifierSyntax(name: "public")
+        }
+      },
+      bindingSpecifier: .keyword(.var),
+      bindings: PatternBindingListSyntax {
+        PatternBindingSyntax(
+          pattern: IdentifierPatternSyntax(identifier: "definition"),
+          typeAnnotation: TypeAnnotationSyntax(
+            type: SomeOrAnyTypeSyntax(
+              someOrAnySpecifier: .keyword(.some),
+              constraint: IdentifierTypeSyntax(
+                name: "ToolDefinition",
+                genericArgumentClause: GenericArgumentClauseSyntax {
+                  GenericArgumentSyntax(
+                    argument: IdentifierTypeSyntax(name: "Input")
+                  )
+                }
+              )
+            )
+          ),
+          accessorBlock: AccessorBlockSyntax(
+            leftBrace: .leftBraceToken(trailingTrivia: .newline),
+            accessors: .getter(
+              CodeBlockItemListSyntax {
+                FunctionCallExprSyntax(
+                  calledExpression: DeclReferenceExprSyntax(
+                    baseName: "ClientDefinedToolDefinition"),
+                  leftParen: .leftParenToken(trailingTrivia: .newline),
+                  arguments: LabeledExprListSyntax {
+                    LabeledExprSyntax(
+                      label: "name",
+                      expression: StringLiteralExprSyntax(
+                        openingQuote: .stringQuoteToken(),
+                        segments: StringLiteralSegmentListSyntax {
+                          StringSegmentSyntax(content: .stringSegment(""))
+                          ExpressionSegmentSyntax(
+                            expressions: LabeledExprListSyntax {
+                              LabeledExprSyntax(
+                                expression: MemberAccessExprSyntax(
+                                  base: DeclReferenceExprSyntax(baseName: "Self"),
+                                  name: "self"
+                                )
+                              )
+                            }
+                          )
+                          StringSegmentSyntax(content: .stringSegment(""))
+                        },
+                        closingQuote: .stringQuoteToken()
+                      )
+                    )
+                    descriptionArgument
+                    LabeledExprSyntax(
+                      label: "inputSchema",
+                      expression: MemberAccessExprSyntax(
+                        base: DeclReferenceExprSyntax(baseName: "Input"),
+                        name: "toolInputSchema"
+                      )
+                    )
+                  },
+                  rightParen: .rightParenToken(leadingTrivia: .newline)
+                )
+              }
+            ),
+            rightBrace: .rightBraceToken(trailingTrivia: .newline)
+          )
+        )
+      }
+    )
   }
 
   private var toolInvocationFunction: FunctionDeclSyntax {
@@ -81,6 +283,134 @@ extension DeclGroupSyntax {
         )
       }
       return function
+    }
+  }
+
+}
+
+extension FunctionDeclSyntax {
+
+  func callExpr<Argument: ExprSyntaxProtocol>(
+    on callee: some ExprSyntaxProtocol,
+    arguments: [Argument],
+  ) throws -> some ExprSyntaxProtocol {
+    let effectSpecifiers = signature.effectSpecifiers
+
+    let isAsync =
+      switch effectSpecifiers?.asyncSpecifier?.tokenKind {
+      case .keyword(.async):
+        true
+      case .none:
+        false
+      case .some(let kind):
+        throw DiagnosticError(
+          node: self,
+          severity: .error,
+          message: "`\(kind)` is not supported"
+        )
+      }
+    let isThrows =
+      switch effectSpecifiers?.throwsClause?.throwsSpecifier.tokenKind {
+      case .keyword(.throws):
+        true
+      case .none:
+        false
+      case .some(let kind):
+        throw DiagnosticError(
+          node: self,
+          severity: .error,
+          message: "`\(kind)` is not supported"
+        )
+      }
+
+    let functionCall: FunctionCallExprSyntax
+    do {
+      var labeledArguments = LabeledExprListSyntax()
+      var arguments = arguments.makeIterator()
+      for (offset, parameter) in signature.parameterClause.parameters.enumerated() {
+        let expr: ExprSyntax
+
+        if parameter.type.isIsolated {
+          expr = ExprSyntax(
+            MacroExpansionExprSyntax(
+              macroName: "isolation",
+              arguments: LabeledExprListSyntax {
+
+              }
+            )
+          )
+        } else {
+          guard let argument = arguments.next() else {
+            let name = parameter.firstName.identifier?.name ?? "\(offset)"
+            throw DiagnosticError(
+              node: self,
+              severity: .error,
+              message: "Internal Error: Missing argument for parameter `\(name)`"
+            )
+          }
+          expr = ExprSyntax(argument)
+        }
+
+        let labledExpr: LabeledExprSyntax
+        if let label = parameter.firstName.identifier {
+          labledExpr = LabeledExprSyntax(
+            label: .identifier(label.name),
+            colon: .colonToken(),
+            expression: expr,
+            trailingComma: .commaToken(trailingTrivia: .newline)
+          )
+        } else {
+          labledExpr = LabeledExprSyntax(
+            expression: expr,
+            trailingComma: .commaToken(trailingTrivia: .newline)
+          )
+        }
+        labeledArguments.append(labledExpr)
+      }
+      guard arguments.next() == nil else {
+        throw DiagnosticError(
+          node: self,
+          severity: .error,
+          message: "Internal Error: More arguments provided than parameters"
+        )
+      }
+
+      functionCall = FunctionCallExprSyntax(
+        calledExpression: MemberAccessExprSyntax(
+          base: callee,
+          name: name
+        ),
+        leftParen: .leftParenToken(trailingTrivia: .newline),
+        arguments: labeledArguments,
+        rightParen: .rightParenToken(leadingTrivia: .newline)
+      )
+    }
+
+    return switch (isAsync, isThrows) {
+    case (true, true):
+      ExprSyntax(TryExprSyntax(expression: AwaitExprSyntax(expression: functionCall)))
+    case (true, false):
+      ExprSyntax(AwaitExprSyntax(expression: functionCall))
+    case (false, true):
+      ExprSyntax(TryExprSyntax(expression: functionCall))
+    case (false, false):
+      ExprSyntax(functionCall)
+    }
+  }
+
+}
+
+extension TypeSyntax {
+
+  var isIsolated: Bool {
+    guard let type = self.as(AttributedTypeSyntax.self) else {
+      return false
+    }
+    return type.specifiers.contains { specifier in
+      guard let specifier = specifier.as(SimpleTypeSpecifierSyntax.self) else {
+        return false
+      }
+      return specifier.specifier.tokenKind == .keyword(.isolated)
     }
   }
 

@@ -82,7 +82,66 @@ extension StructDeclSyntax {
     )
   }
 
-  static func toolInputMembers(
+  static func toolInput(
+    description: String?,
+    name: TokenSyntax,
+    isPublic: Bool,
+    storedProperties: [StoredProperty],
+    additionalMembers: MemberBlockItemListSyntax,
+    in context: MacroExpansionContext
+  ) -> StructDeclSyntax {
+    StructDeclSyntax(
+      modifiers: DeclModifierListSyntax {
+        if isPublic {
+          DeclModifierSyntax(name: .keyword(.public))
+        }
+      },
+      name: name,
+      inheritanceClause: InheritanceClauseSyntax {
+        InheritedTypeSyntax(
+          type: MemberTypeSyntax(
+            baseType: IdentifierTypeSyntax(name: "ToolInput"),
+            name: "SchemaCodable"
+          )
+        )
+      },
+      memberBlock: MemberBlockSyntax {
+
+        for storedProperty in storedProperties {
+          VariableDeclSyntax.init(
+            leadingTrivia: storedProperty.comment.map { Trivia.blockComment($0) } ?? [],
+            modifiers: DeclModifierListSyntax {
+              DeclModifierSyntax(name: .keyword(.private))
+            },
+            .let,
+            name: PatternSyntax(
+              IdentifierPatternSyntax(
+                identifier: storedProperty.name
+              )
+            ),
+            type: TypeAnnotationSyntax(
+              type: storedProperty.type
+            )
+          )
+        }
+
+        toolInputMembers(
+          for: storedProperties,
+          description: description,
+          isPublic: isPublic,
+          in: context
+        )
+
+        for member in additionalMembers {
+          member
+        }
+
+      }
+    )
+
+  }
+
+  fileprivate static func toolInputMembers(
     for storedProperties: some Sequence<StoredProperty>,
     description: String?,
     isPublic: Bool,
@@ -406,16 +465,15 @@ extension EnumDeclSyntax {
       for (caseDeclOffset, caseDecl) in caseDecls.enumerated() {
         for (elementOffset, element) in caseDecl.elements.enumerated() {
           VariableDeclSyntax(
-            bindingSpecifier: .keyword(.let),
-            bindings: PatternBindingListSyntax {
-              PatternBindingSyntax(
-                pattern: IdentifierPatternSyntax(
-                  identifier: "associatedValuesSchema_\(raw: caseDeclOffset)_\(raw: elementOffset)"),
-                initializer: InitializerClauseSyntax(
-                  value: element.associatedValuesSchema(caseKeyName: caseKeyName)
-                )
+            .let,
+            name: PatternSyntax(
+              IdentifierPatternSyntax(
+                identifier: "associatedValuesSchema_\(raw: caseDeclOffset)_\(raw: elementOffset)"
               )
-            }
+            ),
+            initializer: InitializerClauseSyntax(
+              value: element.associatedValuesSchema(caseKeyName: caseKeyName)
+            )
           )
         }
       }
@@ -890,34 +948,34 @@ extension VariableDeclSyntax {
         if isPublic {
           DeclModifierSyntax(name: "public")
         }
-
         DeclModifierSyntax(name: .keyword(.static))
       },
-      bindingSpecifier: .keyword(.var)
-    ) {
-      PatternBindingSyntax(
-        pattern: IdentifierPatternSyntax(identifier: "toolInputSchema"),
-        typeAnnotation: TypeAnnotationSyntax(
-          type: SomeOrAnyTypeSyntax(
-            someOrAnySpecifier: .keyword(.some),
-            constraint: MemberTypeSyntax(
-              baseType: IdentifierTypeSyntax(name: "ToolInput"),
-              name: "Schema",
-              genericArgumentClause: GenericArgumentClauseSyntax {
-                GenericArgumentSyntax(
-                  argument: IdentifierTypeSyntax(name: "Self")
-                )
-              }
+      bindingSpecifier: .keyword(.var),
+      bindings: PatternBindingListSyntax {
+        PatternBindingSyntax(
+          pattern: IdentifierPatternSyntax(identifier: "toolInputSchema"),
+          typeAnnotation: TypeAnnotationSyntax(
+            type: SomeOrAnyTypeSyntax(
+              someOrAnySpecifier: .keyword(.some),
+              constraint: MemberTypeSyntax(
+                baseType: IdentifierTypeSyntax(name: "ToolInput"),
+                name: "Schema",
+                genericArgumentClause: GenericArgumentClauseSyntax {
+                  GenericArgumentSyntax(
+                    argument: IdentifierTypeSyntax(name: "Self")
+                  )
+                }
+              )
+            )
+          ),
+          accessorBlock: AccessorBlockSyntax(
+            accessors: .getter(
+              CodeBlockItemListSyntax(itemsBuilder: builder)
             )
           )
-        ),
-        accessorBlock: AccessorBlockSyntax(
-          accessors: .getter(
-            CodeBlockItemListSyntax(itemsBuilder: builder)
-          )
         )
-      )
-    }
+      }
+    )
   }
 
 }
@@ -944,67 +1002,6 @@ extension TypeSyntax {
       rightParen: .rightParenToken(),
       trailingTrivia: .newline
     )
-  }
-
-}
-
-extension DeclModifierListSyntax {
-
-  fileprivate static var `public`: Self {
-    DeclModifierListSyntax {
-      DeclModifierSyntax(name: .keyword(.public))
-    }
-  }
-
-  fileprivate static var `private`: Self {
-    DeclModifierListSyntax {
-      DeclModifierSyntax(name: .keyword(.private))
-    }
-  }
-
-}
-
-extension DeclModifierSyntax {
-
-  fileprivate var isPublic: Bool {
-    name == .keyword(.public)
-  }
-
-}
-
-extension SyntaxProtocol {
-
-  fileprivate var descriptionArgument: LabeledExprSyntax {
-    return .descriptionArgument(comment)
-  }
-
-}
-
-extension SyntaxProtocol where Self == LabeledExprSyntax {
-
-  fileprivate static func descriptionArgument(_ description: String?) -> Self {
-    /// description: ...
-    if let description {
-      LabeledExprSyntax(
-        label: "description",
-        colon: .colonToken(),
-        expression: StringLiteralExprSyntax(
-          openDelimiter: .rawStringPoundDelimiter("#"),
-          openingQuote: .multilineStringQuoteToken(),
-          content: description,
-          closingQuote: .multilineStringQuoteToken(),
-          closeDelimiter: .rawStringPoundDelimiter("#")
-        ),
-        trailingComma: .commaToken(trailingTrivia: .newline)
-      )
-    } else {
-      LabeledExprSyntax(
-        label: "description",
-        colon: .colonToken(),
-        expression: NilLiteralExprSyntax(),
-        trailingComma: .commaToken(trailingTrivia: .newline)
-      )
-    }
   }
 
 }

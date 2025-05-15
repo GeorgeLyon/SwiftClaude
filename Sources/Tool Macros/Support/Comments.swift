@@ -1,8 +1,42 @@
 import SwiftSyntax
 import SwiftSyntaxBuilder
 
+extension SyntaxProtocol where Self == LabeledExprSyntax {
+
+  static func descriptionArgument(_ description: String?) -> Self {
+    /// description: ...
+    if let description {
+      LabeledExprSyntax(
+        label: "description",
+        colon: .colonToken(),
+        expression: StringLiteralExprSyntax(
+          openDelimiter: .rawStringPoundDelimiter("#"),
+          openingQuote: .multilineStringQuoteToken(),
+          content: description,
+          closingQuote: .multilineStringQuoteToken(),
+          closeDelimiter: .rawStringPoundDelimiter("#")
+        ),
+        trailingComma: .commaToken(trailingTrivia: .newline)
+      )
+    } else {
+      LabeledExprSyntax(
+        label: "description",
+        colon: .colonToken(),
+        expression: NilLiteralExprSyntax(),
+        trailingComma: .commaToken(trailingTrivia: .newline)
+      )
+    }
+  }
+
+}
+
+
 extension SyntaxProtocol {
 
+  var descriptionArgument: LabeledExprSyntax {
+    return .descriptionArgument(comment)
+  }
+  
   var comment: String? {
     let comment =
       leadingTrivia
@@ -48,5 +82,7 @@ extension SyntaxProtocol {
       .joined(separator: "\n")
     return comment.isEmpty ? nil : comment
   }
+  
+  
 
 }

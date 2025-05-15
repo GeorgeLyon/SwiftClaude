@@ -653,7 +653,7 @@ extension Claude.ToolUse: PrivateToolUseProtocol {
       id: id,
       name: concreteTool.definition.name,
       input: ToolInput.EncodableAdaptor(
-        schema: concreteTool.definition.schema,
+        schema: concreteTool.definition.inputSchema,
         value: input
       )
     )

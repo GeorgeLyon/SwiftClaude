@@ -35,12 +35,12 @@ public protocol ToolDefinition<Input>: Encodable & Sendable {
 
   associatedtype Input
 
-  associatedtype Schema: ToolInput.Schema where Schema.Value == Input
-  var schema: Schema { get }
+  associatedtype InputSchema: ToolInput.Schema where InputSchema.Value == Input
+  var inputSchema: InputSchema { get }
 
 }
 
-public struct ClientDefinedToolDefinition<InputSchema: ToolInput.Schema>: Sendable {
+public struct ClientDefinedToolDefinition<InputSchema: ToolInput.Schema>: ToolDefinition {
 
   public init(
     name: String,
@@ -52,9 +52,11 @@ public struct ClientDefinedToolDefinition<InputSchema: ToolInput.Schema>: Sendab
     self.inputSchema = inputSchema
   }
 
-  private let name: String
+  public let name: String
+  
   private let description: String?
-  private let inputSchema: InputSchema
+  
+  public let inputSchema: InputSchema
 
 }
 

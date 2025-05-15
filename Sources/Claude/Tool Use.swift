@@ -352,7 +352,7 @@ extension Claude.ToolUse {
       }
 
       input = try await client.decodeValue(
-        using: concreteTool.definition.schema,
+        using: concreteTool.definition.inputSchema,
         fromResponseData: Data(json.utf8)
       )
       streamingResult = .success(())

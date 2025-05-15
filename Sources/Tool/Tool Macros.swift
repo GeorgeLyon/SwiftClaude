@@ -3,7 +3,7 @@
   conformances: Tool,
   names: named(definition), named(Input), named(invoke)
 )
-public macro Tool(name: String? = nil) =
+public macro Tool() =
   #externalMacro(
     module: "ToolMacros",
     type: "ToolMacro"
@@ -18,15 +18,4 @@ public macro ToolInput() =
   #externalMacro(
     module: "ToolMacros",
     type: "ToolInputMacro"
-  )
-
-@attached(
-  extension,
-  conformances: Tool,
-  names: named(description), named(invoke)
-)
-public macro Tool() =
-  #externalMacro(
-    module: "ToolMacros",
-    type: "ToolMacro"
   )
