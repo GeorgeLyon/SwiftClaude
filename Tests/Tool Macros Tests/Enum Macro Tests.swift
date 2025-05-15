@@ -29,7 +29,7 @@ private struct EnumMacroTests {
       """,
       expandedSource: ##"""
         enum ToolInputEnum {
-          case simple
+          case `simple`
           /// A case with a single associated value
           case singleAssociatedValue(Int)
           // Multiple associated values without a name
@@ -42,62 +42,62 @@ private struct EnumMacroTests {
 
         extension ToolInputEnum: ToolInput.SchemaCodable {
           static var toolInputSchema: some ToolInput.Schema<Self> {
-            let simpleAssociatedValuesSchema = ToolInput.enumCaseAssociatedValuesSchema(
+            let associatedValuesSchema_0_0 = ToolInput.enumCaseAssociatedValuesSchema(
               values: (
 
               ),
-              keyedBy: __macro_local_7CaseKeyfMu_.AssociatedValuesKey_simple.self
+              keyedBy: __macro_local_7CaseKeyfMu_.AssociatedValuesKey.`simple`.self
             )
-            let singleAssociatedValueAssociatedValuesSchema = ToolInput.enumCaseAssociatedValuesSchema(
+            let associatedValuesSchema_1_0 = ToolInput.enumCaseAssociatedValuesSchema(
               values: (
                 (
-                  key: __macro_local_7CaseKeyfMu_.AssociatedValuesKey_singleAssociatedValue?.none,
+                  key: __macro_local_7CaseKeyfMu_.AssociatedValuesKey.singleAssociatedValue?.none,
                   schema: ToolInput.schema(representing: Int.self)
                 )
               ),
-              keyedBy: __macro_local_7CaseKeyfMu_.AssociatedValuesKey_singleAssociatedValue.self
+              keyedBy: __macro_local_7CaseKeyfMu_.AssociatedValuesKey.singleAssociatedValue.self
             )
-            let mutlipleUnnamedAssociatedValuesAssociatedValuesSchema = ToolInput.enumCaseAssociatedValuesSchema(
+            let associatedValuesSchema_2_0 = ToolInput.enumCaseAssociatedValuesSchema(
               values: (
                 (
-                  key: __macro_local_7CaseKeyfMu_.AssociatedValuesKey_mutlipleUnnamedAssociatedValues?.none,
+                  key: __macro_local_7CaseKeyfMu_.AssociatedValuesKey.mutlipleUnnamedAssociatedValues?.none,
                   schema: ToolInput.schema(representing: Int.self)
                 ), (
-                  key: __macro_local_7CaseKeyfMu_.AssociatedValuesKey_mutlipleUnnamedAssociatedValues?.none,
+                  key: __macro_local_7CaseKeyfMu_.AssociatedValuesKey.mutlipleUnnamedAssociatedValues?.none,
                   schema: ToolInput.schema(representing: String.self)
                 )
               ),
-              keyedBy: __macro_local_7CaseKeyfMu_.AssociatedValuesKey_mutlipleUnnamedAssociatedValues.self
+              keyedBy: __macro_local_7CaseKeyfMu_.AssociatedValuesKey.mutlipleUnnamedAssociatedValues.self
             )
-            let multipleNamedAssociatedValuesAssociatedValuesSchema = ToolInput.enumCaseAssociatedValuesSchema(
+            let associatedValuesSchema_3_0 = ToolInput.enumCaseAssociatedValuesSchema(
               values: (
                 (
-                  key: __macro_local_7CaseKeyfMu_.AssociatedValuesKey_multipleNamedAssociatedValues.a,
+                  key: __macro_local_7CaseKeyfMu_.AssociatedValuesKey.multipleNamedAssociatedValues.a,
                   schema: ToolInput.schema(representing: Int.self)
                 ), (
-                  key: __macro_local_7CaseKeyfMu_.AssociatedValuesKey_multipleNamedAssociatedValues.b,
+                  key: __macro_local_7CaseKeyfMu_.AssociatedValuesKey.multipleNamedAssociatedValues.b,
                   schema: ToolInput.schema(representing: String.self)
                 ), (
-                  key: __macro_local_7CaseKeyfMu_.AssociatedValuesKey_multipleNamedAssociatedValues.c,
+                  key: __macro_local_7CaseKeyfMu_.AssociatedValuesKey.multipleNamedAssociatedValues.c,
                   schema: ToolInput.schema(representing: Bool.self)
                 )
               ),
-              keyedBy: __macro_local_7CaseKeyfMu_.AssociatedValuesKey_multipleNamedAssociatedValues.self
+              keyedBy: __macro_local_7CaseKeyfMu_.AssociatedValuesKey.multipleNamedAssociatedValues.self
             )
-            let mixedAssociatedValuesAssociatedValuesSchema = ToolInput.enumCaseAssociatedValuesSchema(
+            let associatedValuesSchema_4_0 = ToolInput.enumCaseAssociatedValuesSchema(
               values: (
                 (
-                  key: __macro_local_7CaseKeyfMu_.AssociatedValuesKey_mixedAssociatedValues?.none,
+                  key: __macro_local_7CaseKeyfMu_.AssociatedValuesKey.mixedAssociatedValues?.none,
                   schema: ToolInput.schema(representing: Int.self)
                 ), (
-                  key: __macro_local_7CaseKeyfMu_.AssociatedValuesKey_mixedAssociatedValues.b,
+                  key: __macro_local_7CaseKeyfMu_.AssociatedValuesKey.mixedAssociatedValues.b,
                   schema: ToolInput.schema(representing: String.self)
                 ), (
-                  key: __macro_local_7CaseKeyfMu_.AssociatedValuesKey_mixedAssociatedValues.c,
+                  key: __macro_local_7CaseKeyfMu_.AssociatedValuesKey.mixedAssociatedValues.c,
                   schema: ToolInput.schema(representing: Bool.self)
                 )
               ),
-              keyedBy: __macro_local_7CaseKeyfMu_.AssociatedValuesKey_mixedAssociatedValues.self
+              keyedBy: __macro_local_7CaseKeyfMu_.AssociatedValuesKey.mixedAssociatedValues.self
             )
             return ToolInput.enumSchema(
               representing: Self.self,
@@ -105,11 +105,11 @@ private struct EnumMacroTests {
               keyedBy: __macro_local_7CaseKeyfMu_.self,
               cases: (
                 (
-                  key: __macro_local_7CaseKeyfMu_.simple,
+                  key: __macro_local_7CaseKeyfMu_.`simple`,
                   description: nil,
-                  associatedValuesSchema: simpleAssociatedValuesSchema,
+                  associatedValuesSchema: associatedValuesSchema_0_0,
                   initializer: { @Sendable values in
-                    .simple
+                    .`simple`
                   }
                 ),
                 (
@@ -117,7 +117,7 @@ private struct EnumMacroTests {
                   description: #"""
                   A case with a single associated value
                   """#,
-                  associatedValuesSchema: singleAssociatedValueAssociatedValuesSchema,
+                  associatedValuesSchema: associatedValuesSchema_1_0,
                   initializer: { @Sendable values in
                     .singleAssociatedValue(values)
                   }
@@ -127,7 +127,7 @@ private struct EnumMacroTests {
                   description: #"""
                   Multiple associated values without a name
                   """#,
-                  associatedValuesSchema: mutlipleUnnamedAssociatedValuesAssociatedValuesSchema,
+                  associatedValuesSchema: associatedValuesSchema_2_0,
                   initializer: { @Sendable values in
                     .mutlipleUnnamedAssociatedValues(values.0, values.1)
                   }
@@ -137,7 +137,7 @@ private struct EnumMacroTests {
                   description: #"""
                   Multiple associated values with a name
                   """#,
-                  associatedValuesSchema: multipleNamedAssociatedValuesAssociatedValuesSchema,
+                  associatedValuesSchema: associatedValuesSchema_3_0,
                   initializer: { @Sendable values in
                     .multipleNamedAssociatedValues(a: values.0, b: values.1, c: values.2)
                   }
@@ -147,48 +147,50 @@ private struct EnumMacroTests {
                   description: #"""
                   Multiple associated values with some named and some unnamed
                   """#,
-                  associatedValuesSchema: mixedAssociatedValuesAssociatedValuesSchema,
+                  associatedValuesSchema: associatedValuesSchema_4_0,
                   initializer: { @Sendable values in
                     .mixedAssociatedValues(values.0, b: values.1, c: values.2)
                   }
                 )
               ),
-              encodeValue: { @Sendable value, simpleEncoder, singleAssociatedValueEncoder, mutlipleUnnamedAssociatedValuesEncoder, multipleNamedAssociatedValuesEncoder, mixedAssociatedValuesEncoder in
+              encodeValue: { @Sendable value, encoder_0, encoder_1, encoder_2, encoder_3, encoder_4 in
                 switch value {
-                case .simple:
-                  try simpleEncoder(())
+                case .`simple`:
+                  try encoder_0(())
                 case .singleAssociatedValue(let _0):
-                  try singleAssociatedValueEncoder((_0))
+                  try encoder_1((_0))
                 case .mutlipleUnnamedAssociatedValues(let _0, let _1):
-                  try mutlipleUnnamedAssociatedValuesEncoder((_0, _1))
+                  try encoder_2((_0, _1))
                 case .multipleNamedAssociatedValues(let a, let b, let c):
-                  try multipleNamedAssociatedValuesEncoder((a, b, c))
+                  try encoder_3((a, b, c))
                 case .mixedAssociatedValues(let _0, let b, let c):
-                  try mixedAssociatedValuesEncoder((_0, b, c))
+                  try encoder_4((_0, b, c))
                 }
               }
             )
           }
           private enum __macro_local_7CaseKeyfMu_: Swift.CodingKey {
-            case simple
-            enum AssociatedValuesKey_simple: Swift.CodingKey {
-            }
+            case `simple`
             case singleAssociatedValue
-            enum AssociatedValuesKey_singleAssociatedValue: Swift.CodingKey {
-            }
             case mutlipleUnnamedAssociatedValues
-            enum AssociatedValuesKey_mutlipleUnnamedAssociatedValues: Swift.CodingKey {
-            }
             case multipleNamedAssociatedValues
-            enum AssociatedValuesKey_multipleNamedAssociatedValues: Swift.CodingKey {
-              case a
-              case b
-              case c
-            }
             case mixedAssociatedValues
-            enum AssociatedValuesKey_mixedAssociatedValues: Swift.CodingKey {
-              case b
-              case c
+            enum AssociatedValuesKey {
+              enum `simple`: Swift.CodingKey {
+              }
+              enum singleAssociatedValue: Swift.CodingKey {
+              }
+              enum mutlipleUnnamedAssociatedValues: Swift.CodingKey {
+              }
+              enum multipleNamedAssociatedValues: Swift.CodingKey {
+                case a
+                case b
+                case c
+              }
+              enum mixedAssociatedValues: Swift.CodingKey {
+                case b
+                case c
+              }
             }
           }
         }

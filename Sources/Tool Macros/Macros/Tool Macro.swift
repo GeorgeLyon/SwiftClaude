@@ -375,6 +375,13 @@ extension FunctionDeclSyntax {
         )
       }
 
+      /// Remvoe last trailing comma
+      do {
+        if let lastIndex = labeledArguments.indices.last {
+          labeledArguments[lastIndex].trailingComma = nil
+        }
+      }
+
       functionCall = FunctionCallExprSyntax(
         calledExpression: MemberAccessExprSyntax(
           base: callee,
