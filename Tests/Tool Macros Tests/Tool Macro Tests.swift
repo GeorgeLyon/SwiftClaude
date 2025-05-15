@@ -16,7 +16,7 @@ private struct ToolMacroTests {
       """
       /// A tool with a single action
       @Tool
-      struct MyTool {
+      actor MyTool {
         func invoke(_ a: Int, b: String, `c`: Bool) {}
       }
       """,
@@ -29,7 +29,8 @@ private struct ToolMacroTests {
         extension MyTool: Tool {
           var definition: some ToolDefinition<Input> {
             ClientDefinedToolDefinition(
-              name: "\(Self.self)", description: #"""
+              name: "\(Self.self)",
+              description: #"""
               A tool with a single action
               """#,
               inputSchema: Input.toolInputSchema
