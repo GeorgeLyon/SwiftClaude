@@ -27,6 +27,9 @@ jobs:
     runs-on: macos-15
     
     name: Build and Test (${{ matrix.xcode-configuration.name }}, ${{ matrix.build-configuration }})
+    
+    env:
+      CODE_SIGN_ENTITLEMENTS_MODIFIER: " (Continuous Integration)"
 
     steps:
       - name: Checkout
@@ -38,33 +41,33 @@ jobs:
       - name: Build
         run: |
           xcrun xcodebuild clean build \
-            CODE_SIGNING_REQUIRED=NO \
             -workspace SwiftClaude.xcworkspace \
             -scheme SwiftClaudeApp \
             -derivedDataPath ".build/Xcode.noindex/DerivedData" \
             -configuration "${{ matrix.build-configuration }}" \
-            -destination "${{ matrix.xcode-configuration.destination }}"
+            -destination "${{ matrix.xcode-configuration.destination }}" \
+            -xcconfig ".xcode/Configutations/Continuous Integration.xcconfig"
 
       - name: SwiftPM Tests
         if: matrix.build-configuration == 'Debug'
         run: |
           xcrun xcodebuild test \
-            CODE_SIGNING_REQUIRED=NO \
             -workspace SwiftClaude.xcworkspace \
             -scheme SwiftClaudeAppPackage \
             -derivedDataPath ".build/Xcode.noindex/DerivedData" \
             -configuration "${{ matrix.build-configuration }}" \
-            -destination "${{ matrix.xcode-configuration.destination }}"
+            -destination "${{ matrix.xcode-configuration.destination }}" \
+            -xcconfig ".xcode/Configutations/Continuous Integration.xcconfig"
 
       - name: UI Tests
         run: |
           xcrun xcodebuild test \
-            CODE_SIGNING_REQUIRED=NO \
             -workspace SwiftClaude.xcworkspace \
             -scheme SwiftClaudeAppUITests \
             -derivedDataPath ".build/Xcode.noindex/DerivedData" \
             -configuration "${{ matrix.build-configuration }}" \
-            -destination "${{ matrix.xcode-configuration.destination }}"
+            -destination "${{ matrix.xcode-configuration.destination }}" \
+            -xcconfig ".xcode/Configurations/Continuous Integration.xcconfig"
 
       - name: Upload Test Results
         uses: actions/upload-artifact@v4
