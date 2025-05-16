@@ -46,7 +46,7 @@ jobs:
             -derivedDataPath ".build/Xcode.noindex/DerivedData" \
             -configuration "${{ matrix.build-configuration }}" \
             -destination "${{ matrix.xcode-configuration.destination }}" \
-            -xcconfig ".xcode/Configutations/Continuous Integration.xcconfig"
+            -xcconfig ".xcode/Configurations/Continuous Integration.xcconfig"
 
       - name: SwiftPM Tests
         if: matrix.build-configuration == 'Debug'
@@ -57,7 +57,7 @@ jobs:
             -derivedDataPath ".build/Xcode.noindex/DerivedData" \
             -configuration "${{ matrix.build-configuration }}" \
             -destination "${{ matrix.xcode-configuration.destination }}" \
-            -xcconfig ".xcode/Configutations/Continuous Integration.xcconfig"
+            -xcconfig ".xcode/Configurations/Continuous Integration.xcconfig"
 
       - name: UI Tests
         run: |
