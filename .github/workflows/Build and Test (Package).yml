@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         xcode-version:
-          - "16"
+          - "16.3"
         build-configuration:
           - "debug"
           - "release"
