@@ -60,6 +60,7 @@ jobs:
             -xcconfig ".xcode/Configurations/Continuous Integration.xcconfig"
 
       - name: UI Tests
+        if: matrix.build-configuration == 'Debug'
         run: |
           xcrun xcodebuild test \
             -workspace SwiftClaude.xcworkspace \
