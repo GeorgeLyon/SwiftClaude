@@ -101,7 +101,7 @@ extension Claude {
       }
 
       fileprivate enum Kind {
-        
+
         case text(String)
 
         case toolUse(

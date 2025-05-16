@@ -4,48 +4,46 @@ import Testing
 
 #if os(macOS)
 
-@Tool
-struct MyNotNestedTool {
-  func invoke(_ a: Int, b: String, `c`: Bool) {}
-}
-
-
-@Suite("Tool")
-struct ToolTest {
-
   @Tool
-  struct MyTool {
+  struct MyNotNestedTool {
     func invoke(_ a: Int, b: String, `c`: Bool) {}
   }
-  
-  enum Namespace {
+
+  @Suite("Tool")
+  struct ToolTest {
+
     @Tool
-    struct MyAbsurdlyNestedTool  {
+    struct MyTool {
       func invoke(_ a: Int, b: String, `c`: Bool) {}
     }
-  }
 
+    enum Namespace {
+      @Tool
+      struct MyAbsurdlyNestedTool {
+        func invoke(_ a: Int, b: String, `c`: Bool) {}
+      }
+    }
 
-  @Tool
-  class MyClassTool  {
-    func invoke(_ a: Int, b: String, `c`: Bool) {}
-  }
+    @Tool
+    class MyClassTool {
+      func invoke(_ a: Int, b: String, `c`: Bool) {}
+    }
 
-  @Tool
-  final class MyFinalClassTool  {
-    func invoke(_ a: Int, b: String, `c`: Bool) {}
-  }
+    @Tool
+    final class MyFinalClassTool {
+      func invoke(_ a: Int, b: String, `c`: Bool) {}
+    }
 
-  @Tool
-  actor MyActorTool {
-    func invoke(_ a: Int, b: String, `c`: Bool) {}
-  }
-  
-  @Test
-  func testCompilation() {
-    /// These examples just need to compile
-  }
+    @Tool
+    actor MyActorTool {
+      func invoke(_ a: Int, b: String, `c`: Bool) {}
+    }
 
-}
+    @Test
+    func testCompilation() {
+      /// These examples just need to compile
+    }
+
+  }
 
 #endif

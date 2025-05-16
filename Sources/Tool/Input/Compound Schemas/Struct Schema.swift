@@ -35,7 +35,7 @@ extension ToolInput {
   }
 
   public struct StructSchemaDecoder<each PropertyValue> {
-    
+
     /// Includes an additional `Void` element at the end because single-element-tuples are cursed
     public let propertyValues: (repeat each PropertyValue)
 

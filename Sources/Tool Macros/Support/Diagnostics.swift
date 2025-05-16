@@ -3,7 +3,7 @@ import SwiftSyntax
 import SwiftSyntaxMacros
 
 struct DiagnosticError: Error {
-  
+
   static func diagnose<T>(
     in context: some MacroExpansionContext,
     _ body: () throws -> T
@@ -15,7 +15,7 @@ struct DiagnosticError: Error {
       throw error
     }
   }
-  
+
   init(
     node: SyntaxProtocol,
     severity: DiagnosticSeverity,
@@ -35,12 +35,12 @@ struct DiagnosticError: Error {
   ) {
     self.diagnostic = Diagnostic(node: node, message: message)
   }
-  
+
   private let diagnostic: Diagnostic
 }
 
 struct DiagnosticMessage: Identifiable, SwiftDiagnostics.DiagnosticMessage {
-  
+
   init(
     severity: DiagnosticSeverity,
     message: String,
@@ -57,7 +57,7 @@ struct DiagnosticMessage: Identifiable, SwiftDiagnostics.DiagnosticMessage {
     let line: Int
   }
   let id: ID
-  
+
   let severity: DiagnosticSeverity
   let message: String
   var diagnosticID: MessageID {

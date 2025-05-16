@@ -30,13 +30,12 @@ extension SyntaxProtocol where Self == LabeledExprSyntax {
 
 }
 
-
 extension SyntaxProtocol {
 
   var descriptionArgument: LabeledExprSyntax {
     return .descriptionArgument(comment)
   }
-  
+
   var comment: String? {
     let comment =
       leadingTrivia
@@ -82,7 +81,5 @@ extension SyntaxProtocol {
       .joined(separator: "\n")
     return comment.isEmpty ? nil : comment
   }
-  
-  
 
 }

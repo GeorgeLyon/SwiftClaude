@@ -49,48 +49,52 @@ struct ArraySchemaTests {
         """
     )
   }
-  
+
   @Test
   private func testValueDecoding() throws {
     let stringSchema = ToolInput.schema(representing: [String].self)
     #expect(
-      stringSchema.value(fromJSON: """
-        [
-          "foo",
-          "bar",
-          "baz"
-        ]
-        """) == ["foo", "bar", "baz"]
+      stringSchema.value(
+        fromJSON: """
+          [
+            "foo",
+            "bar",
+            "baz"
+          ]
+          """) == ["foo", "bar", "baz"]
     )
-    
+
     let intSchema = ToolInput.schema(representing: [Int].self)
     #expect(
-      intSchema.value(fromJSON: """
-        [
-          1,
-          2,
-          3
-        ]
-        """) == [1, 2, 3]
+      intSchema.value(
+        fromJSON: """
+          [
+            1,
+            2,
+            3
+          ]
+          """) == [1, 2, 3]
     )
-    
+
     let doubleSchema = ToolInput.schema(representing: [Double].self)
     #expect(
-      doubleSchema.value(fromJSON: """
-        [
+      doubleSchema.value(
+        fromJSON: """
+          [
 
-        ]
-        """) == []
+          ]
+          """) == []
     )
-    
+
     #expect(
-      doubleSchema.value(fromJSON: """
-        [
-          1.5,
-          2.25,
-          3.75
-        ]
-        """) == [1.5, 2.25, 3.75]
+      doubleSchema.value(
+        fromJSON: """
+          [
+            1.5,
+            2.25,
+            3.75
+          ]
+          """) == [1.5, 2.25, 3.75]
     )
   }
 

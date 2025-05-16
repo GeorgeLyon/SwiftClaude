@@ -3,9 +3,9 @@ public import ClaudeMessagesEndpoint
 public import Observation
 public import Tool
 
-public typealias ToolUseProtocol = Claude.ToolUseProtocol
-
 private import struct Foundation.Data
+
+public typealias ToolUseProtocol = Claude.ToolUseProtocol
 
 extension Claude {
 
@@ -404,5 +404,5 @@ extension Claude.ToolUse {
 // MARK: - Implementation Details
 
 extension ClaudeClient {
-  
+
 }

@@ -53,9 +53,9 @@ public struct ClientDefinedToolDefinition<InputSchema: ToolInput.Schema>: ToolDe
   }
 
   public let name: String
-  
+
   private let description: String?
-  
+
   public let inputSchema: InputSchema
 
 }

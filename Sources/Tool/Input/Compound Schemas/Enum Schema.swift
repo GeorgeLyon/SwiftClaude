@@ -296,7 +296,7 @@ private struct StandardEnumSchema<
     to encoder: ToolInput.SchemaEncoder<Self>
   ) throws {
     var container = encoder.wrapped.container(keyedBy: SchemaCodingKey.self)
-    
+
     var possibleValues: [String] = []
     var valueDescriptions: [String] = []
     for `case` in repeat each cases {
