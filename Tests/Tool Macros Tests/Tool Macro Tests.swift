@@ -22,12 +22,12 @@ private struct ToolMacroTests {
       """,
       expandedSource: ##"""
         /// A tool with a single action
-        struct MyTool {
+        actor MyTool {
           func invoke(_ a: Int, b: String, `c`: Bool) {}
         }
 
         extension MyTool: Tool {
-          var definition: some ToolDefinition<Input> {
+          nonisolated var definition: some ToolDefinition<Input> {
             ClientDefinedToolDefinition(
               name: "\(Self.self)",
               description: #"""
@@ -87,14 +87,14 @@ private struct ToolMacroTests {
               self.c = structSchemaDecoder.propertyValues.2
             }
             fileprivate func __macro_local_6invokefMu_(tool: __macro_local_4ToolfMu_, isolation: isolated Actor) async -> __macro_local_4ToolfMu_.Output {
-              tool.invoke(
+              await tool.invoke(
                 self.a,
                 b: self.b,
                 c: self.c
               )
             }
           }
-          typealias __macro_local_4ToolfMu_ = Self
+          typealias __macro_local_4ToolfMu_ = MyTool
         }
         """##,
       macroSpecs: macroSpecs,
