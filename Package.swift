@@ -16,11 +16,7 @@ let package = Package(
     .library(
       name: "SwiftClaude",
       targets: ["Claude"]
-    ),
-    .library(
-      name: "Tool",
-      targets: ["Tool"]
-    ),
+    )
   ],
   dependencies: [
     .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
@@ -57,8 +53,7 @@ let package = Package(
       name: "Claude",
       dependencies: [
         "ClaudeMessagesEndpoint",
-        .target(name: "ClaudeToolInput", condition: .when(platforms: .supportToolInput)),
-        .target(name: "ClaudeMacros", condition: .when(platforms: .supportToolInput)),
+        .target(name: "Tool", condition: .when(platforms: .supportToolInput)),
         .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
       ],
       swiftSettings: .claude
@@ -68,39 +63,6 @@ let package = Package(
       dependencies: ["Claude"],
       path: "Tests/Claude Tests"
     ),
-
-    .target(
-      name: "ClaudeToolInput",
-      path: "Sources/Tool Input"
-    ),
-    .testTarget(
-      name: "ClaudeToolInputTests",
-      dependencies: ["ClaudeToolInput"],
-      path: "Tests/Tool Input Tests"
-    ),
-
-    .macro(
-      name: "ClaudeMacros",
-      dependencies: [
-        .product(name: "SwiftSyntax", package: "swift-syntax"),
-        .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
-        .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
-        .product(name: "SwiftDiagnostics", package: "swift-syntax"),
-      ],
-      path: "Sources/Macros"
-    ),
-    .testTarget(
-      name: "ClaudeMacrosTests",
-      dependencies: [
-        "Claude",
-        "ClaudeMacros",
-        .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
-        .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
-      ],
-      path: "Tests/Macros Tests"
-    ),
-
-    // MARK: - New Tool Targets
 
     .target(
       name: "Tool",
