@@ -142,7 +142,7 @@ extension StructDeclSyntax {
   }
 
   fileprivate static func toolInputMembers(
-    for storedProperties: some Sequence<StoredProperty>,
+    for storedProperties: some Collection<StoredProperty>,
     description: String?,
     isPublic: Bool,
     in context: MacroExpansionContext
@@ -282,22 +282,39 @@ extension StructDeclSyntax {
         )
       ),
       body: CodeBlockSyntax {
-        /// self.propertyName = structSchemaDecoder.propertyValues.0
-        for (offset, property) in storedProperties.enumerated() {
-          InfixOperatorExprSyntax(
-            leftOperand: MemberAccessExprSyntax(
-              base: DeclReferenceExprSyntax(baseName: "self"),
-              name: property.name
-            ),
-            operator: AssignmentExprSyntax(),
-            rightOperand: MemberAccessExprSyntax(
-              base: MemberAccessExprSyntax(
+        if storedProperties.count == 1 {
+          /// Single-element tuples are cursed, so we need to special-case this
+          for property in storedProperties {
+            InfixOperatorExprSyntax(
+              leftOperand: MemberAccessExprSyntax(
+                base: DeclReferenceExprSyntax(baseName: "self"),
+                name: property.name
+              ),
+              operator: AssignmentExprSyntax(),
+              rightOperand: MemberAccessExprSyntax(
                 base: DeclReferenceExprSyntax(baseName: "structSchemaDecoder"),
                 name: "propertyValues"
-              ),
-              name: "\(raw: offset)"
+              )
             )
-          )
+          }
+        } else {
+          /// self.propertyName = structSchemaDecoder.propertyValues.n
+          for (offset, property) in storedProperties.enumerated() {
+            InfixOperatorExprSyntax(
+              leftOperand: MemberAccessExprSyntax(
+                base: DeclReferenceExprSyntax(baseName: "self"),
+                name: property.name
+              ),
+              operator: AssignmentExprSyntax(),
+              rightOperand: MemberAccessExprSyntax(
+                base: MemberAccessExprSyntax(
+                  base: DeclReferenceExprSyntax(baseName: "structSchemaDecoder"),
+                  name: "propertyValues"
+                ),
+                name: "\(raw: offset)"
+              )
+            )
+          }
         }
       }
 
@@ -323,7 +340,7 @@ extension StructDeclSyntax {
     let comment: String?
   }
 
-  fileprivate var storedProperties: some Sequence<StoredProperty> {
+  fileprivate var storedProperties: some Collection<StoredProperty> {
     get throws {
       var storedProperties: [StoredProperty] = []
       for member in memberBlock.members {

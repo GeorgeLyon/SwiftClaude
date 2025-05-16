@@ -16,9 +16,9 @@ struct ContentView: View {
         Tab("Haiku Generator", systemImage: "sparkles.rectangle.stack") {
           HaikuGenerator(claude: claude)
         }
-        Tab("Computer Use Demo", systemImage: "desktopcomputer") {
-          ComputerUseDemo(claude: claude)
-        }
+//        Tab("Computer Use Demo", systemImage: "desktopcomputer") {
+//          ComputerUseDemo(claude: claude)
+//        }
       }
     }
     .padding()

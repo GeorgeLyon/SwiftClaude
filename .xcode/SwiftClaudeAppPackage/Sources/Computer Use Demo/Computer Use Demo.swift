@@ -1,6 +1,7 @@
 import Claude
 import SwiftUI
 
+/*
 public struct ComputerUseDemo: View {
 
   public init(claude: Claude) {
@@ -184,3 +185,4 @@ private struct Computer: Claude.Beta.ComputerTool {
     return UIImage(contentsOfFile: path)!
   }
 #endif
+*/

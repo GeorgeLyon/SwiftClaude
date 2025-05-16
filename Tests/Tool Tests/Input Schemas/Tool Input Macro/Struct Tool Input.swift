@@ -14,6 +14,12 @@ private struct Person {
   let isActive: Bool?
 }
 
+/// Single-property Struct
+@ToolInput
+private struct SinglePropertyStruct {
+  let property: String
+}
+
 @Suite("Struct Tool Input")
 struct StructToolInputTests {
 

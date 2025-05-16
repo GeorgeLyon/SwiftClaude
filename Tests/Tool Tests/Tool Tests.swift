@@ -42,8 +42,8 @@ struct ToolTest {
   }
   
   @Test
-  func testExample() {
-
+  func testCompilation() {
+    /// These examples just need to compile
   }
 
 }

@@ -1,6 +1,6 @@
 public import ClaudeClient
 public import ClaudeMessagesEndpoint
-public import Tool
+@_exported public import Tool
 
 // MARK: - Tool
 
