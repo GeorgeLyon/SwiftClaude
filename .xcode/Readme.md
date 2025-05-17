@@ -9,7 +9,3 @@ The easiest way to accomplish this is to add the "Keychain Sharing" capability t
 ## Haiku Generator
 
 The Haiku Generator example demonstrates using `SwiftClaude` to generate haikus and use tools.
-
-## Computer Use Demo
-
-The Computer Use Demo demonstrates Claude's ability to use computers.

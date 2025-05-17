@@ -1,6 +1,5 @@
 import Claude
 import ClaudeClient
-import ComputerUseDemo
 import HaikuGenerator
 import SwiftUI
 
@@ -15,9 +14,6 @@ struct ContentView: View {
       TabView {
         Tab("Haiku Generator", systemImage: "sparkles.rectangle.stack") {
           HaikuGenerator(claude: claude)
-        }
-        Tab("Computer Use Demo", systemImage: "desktopcomputer") {
-          ComputerUseDemo(claude: claude)
         }
       }
     }

@@ -18,8 +18,9 @@
   /// Install Claude Code, but only after creating the npm volume
   "postCreateCommand": {
     "Install Claude Code": "npm install -g @anthropic-ai/claude-code",
-    "Link Local Configuration": "ln -s ${containerWorkspaceFolder}/.claude-code/claude.json /root/.claude.json && ln -s ${containerWorkspaceFolder}/.claude-code/claude /root/.claude"
+    "Link Local Configuration": "ln -s ${containerWorkspaceFolder}/.claude/code/claude.json /root/.claude.json && ln -s ${containerWorkspaceFolder}/.claude/code/claude /root/.claude"
   },
+
   "remoteEnv": {
     /// Useful for disambiguating devcontainers
     "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}"
@@ -28,14 +29,8 @@
   "customizations": {
     "vscode": {
       "extensions": [
-        "swiftlang.swift-vscode",
-        "vadimcn.vscode-lldb"
-      ],
-      "settings": {
-        "files.exclude": {
-          ".claude-code": true
-        }
-      }
+        "swiftlang.swift-vscode"
+      ]
     }
   }
 }

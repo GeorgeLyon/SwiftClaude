@@ -1,6 +1,9 @@
 public import ClaudeClient
 public import ClaudeMessagesEndpoint
 public import Observation
+public import Tool
+
+private import struct Foundation.Data
 
 public typealias ToolUseProtocol = Claude.ToolUseProtocol
 
@@ -71,12 +74,14 @@ extension Claude {
     public typealias Output = Tool.Output
 
     public var tool: any Claude.Tool<Output> {
-      toolWithContext.tool
+      concreteTool
     }
+
+    let concreteTool: Tool
+
     public var toolName: String {
-      toolWithContext.toolName
+      tool.definition.name
     }
-    private let toolWithContext: any ConcreteToolWithContextProtocol<Tool>
 
     public private(set) var currentInputJSON = ""
 
@@ -97,20 +102,15 @@ extension Claude {
     }
 
     public var currentInput: Tool.Input? {
-      try? inputDecodingResult?.get()
+      get throws {
+        try inputDecodingResult?.get()
+      }
     }
 
     public func input(
       isolation: isolated Actor = #isolation
     ) async throws -> Tool.Input {
       try await untilNotNil(\.inputDecodingResult)
-    }
-
-    public func encodableInput(
-      isolation: isolated Actor
-    ) async throws -> any Encodable {
-      let input = try await input()
-      return try Claude.ToolInputEncoder<Tool>.encode(input)
     }
 
     public func requestInvocation() {
@@ -175,28 +175,15 @@ extension Claude {
       return errors.first
     }
 
-    func currentEncodableInput(
-      inputDecodingFailureEncodingStrategy: ToolInputDecodingFailureEncodingStrategy
-    ) -> (Encodable & Sendable)? {
-      guard let currentInput else {
-        return nil
-      }
-      do {
-        return try Claude.ToolInputEncoder<Tool>.encode(currentInput)
-      } catch {
-        return inputDecodingFailureEncodingStrategy.encode(error)
-      }
-    }
-
     init(
       id: ToolUse.ID,
-      toolWithContext: any ConcreteToolWithContextProtocol<Tool>,
-      inputDecoder: ToolInputDecoder<Tool>,
+      tool: Tool,
+      client: ClaudeClient,
       invocationStrategy: ToolInvocationStrategy
     ) {
       self.id = id
-      self.toolWithContext = toolWithContext
-      self.inputDecoder = inputDecoder
+      self.concreteTool = tool
+      self.client = client
 
       if invocationStrategy.kind == .whenInputAvailable {
         invocationRequests.continuation.yield()
@@ -273,7 +260,8 @@ extension Claude {
       }
     }
 
-    private let inputDecoder: ToolInputDecoder<Tool>
+    /// Only used for decoding the input
+    private let client: ClaudeClient
 
     private let invocationRequests = AsyncThrowingStream<Void, Error>.makeStream()
 
@@ -363,11 +351,9 @@ extension Claude.ToolUse {
         json = currentInputJSON
       }
 
-      input = try await Tool.decodeInput(
-        for: toolWithContext.tool,
-        from: .init(json: json),
-        using: inputDecoder,
-        isolation: isolation
+      input = try await client.decodeValue(
+        using: concreteTool.definition.inputSchema,
+        fromResponseData: Data(json.utf8)
       )
       streamingResult = .success(())
       inputDecodingResult = .success(input)
@@ -387,14 +373,13 @@ extension Claude.ToolUse {
         }
 
         /// Strongly reference `tool` but not `self`
-        guard let toolWithContext = self?.toolWithContext else {
+        guard let tool = self?.concreteTool else {
           /// Since `self` is `nil`, no further action is required
           return
         }
 
-        let output = try await toolWithContext.tool.invoke(
+        let output = try await tool.invoke(
           with: input,
-          in: toolWithContext.context,
           isolation: isolation
         )
         self?.currentOutput = output
@@ -413,5 +398,11 @@ extension Claude.ToolUse {
     }
 
   }
+
+}
+
+// MARK: - Implementation Details
+
+extension ClaudeClient {
 
 }

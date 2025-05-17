@@ -2,6 +2,7 @@ private import AsyncAlgorithms
 public import ClaudeClient
 public import ClaudeMessagesEndpoint
 public import Observation
+private import Tool
 
 // MARK: - Messages
 
@@ -56,10 +57,7 @@ extension Claude {
       let toolKit: ToolKit<Conversation.ToolOutput>?
       let toolDefinitions: ClaudeClient.MessagesEndpoint.Request.ToolDefinitions?
       if let tools = tools {
-        (toolKit, toolDefinitions) = try tools.compile(
-          for: model,
-          imagePreprocessingMode: imagePreprocessingMode
-        )
+        (toolKit, toolDefinitions) = try tools.compile()
       } else {
         toolKit = nil
         toolDefinitions = nil
@@ -556,18 +554,9 @@ extension Claude.ConversationAssistantMessage {
       case .textBlock(let textBlock):
         assistantContent.append(textBlock.currentText)
       case .toolUseBlock(_, let toolUse):
-        guard
-          let input = toolUse.currentEncodableInput(
-            inputDecodingFailureEncodingStrategy: toolInputDecodingFailureEncodingStrategy
-          )
-        else {
-          throw IncompleteMessage()
-        }
         assistantContent.append(
-          .toolUse(
-            id: toolUse.id,
-            name: toolUse.toolName,
-            input: input
+          try toolUse.contentBlock(
+            inputDecodingFailureEncodingStrategy: toolInputDecodingFailureEncodingStrategy
           )
         )
 
@@ -630,9 +619,11 @@ extension Claude.ConversationAssistantMessage {
     return messages
   }
 
-  private struct IncompleteMessage: Error {}
-
 }
+
+// MARK: - Errors
+
+private struct IncompleteMessage: Error {}
 
 // MARK: - Implementation Details
 
@@ -641,9 +632,9 @@ private typealias MessageID = ClaudeClient.MessagesEndpoint.Response.Event.Messa
 private protocol PrivateToolUseProtocol<Output>: Claude.ToolUseProtocol {
   associatedtype Output
 
-  func currentEncodableInput(
+  func contentBlock(
     inputDecodingFailureEncodingStrategy: Claude.ToolInputDecodingFailureEncodingStrategy
-  ) -> (Encodable & Sendable)?
+  ) throws -> ClaudeClient.MessagesEndpoint.Request.Message.Content.Block
 
   var invocationResult: Result<Output, Error>? { get }
 
@@ -652,9 +643,25 @@ private protocol PrivateToolUseProtocol<Output>: Claude.ToolUseProtocol {
 
 extension Claude.ToolUse: PrivateToolUseProtocol {
 
+  func contentBlock(
+    inputDecodingFailureEncodingStrategy: Claude.ToolInputDecodingFailureEncodingStrategy
+  ) throws -> ClaudeClient.MessagesEndpoint.Request.Message.Content.Block {
+    guard let input = try currentInput else {
+      throw IncompleteMessage()
+    }
+    return .toolUse(
+      id: id,
+      name: concreteTool.definition.name,
+      input: ToolInput.EncodableAdaptor(
+        schema: concreteTool.definition.inputSchema,
+        value: input
+      )
+    )
+  }
+
 }
 
-extension Claude.ToolWithContextProtocol {
+extension Claude.Tool {
 
   /// Un-type-erase the tool and context
   fileprivate func toolUseAndBlock<Conversation: Claude.Conversation>(
@@ -665,13 +672,10 @@ extension Claude.ToolWithContextProtocol {
     isolation: isolated Actor
   ) throws -> (any PrivateToolUseProtocol<Output>, Conversation.ToolUseBlock)
   where Conversation.ToolUseBlock.Output == Output {
-    let toolUse = Claude.ToolUse<Tool>(
+    let toolUse = Claude.ToolUse<Self>(
       id: id,
-      toolWithContext: self,
-      inputDecoder: Claude.ToolInputDecoder(
-        client: client,
-        context: context
-      ),
+      tool: self,
+      client: client,
       invocationStrategy: invocationStrategy
     )
     return (toolUse, try Conversation.toolUseBlock(for: toolUse))

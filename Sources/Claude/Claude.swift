@@ -32,4 +32,9 @@ public struct Claude {
 
   let client: ClaudeClient
 
+  /// Namespace for working around module/type name collisions
+  public enum _ImplementationDetails {
+
+  }
+
 }

@@ -9,4 +9,5 @@ DerivedData/
 .netrc
 
 # Claude Code
-.claude-code
+.claude/code
+.claude/settings.local.json

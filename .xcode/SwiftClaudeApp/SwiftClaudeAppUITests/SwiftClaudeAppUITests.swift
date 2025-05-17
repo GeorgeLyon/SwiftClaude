@@ -20,4 +20,5 @@ final class SwiftClaudeAppUITests: XCTestCase {
       }
     }
   }
+  
 }

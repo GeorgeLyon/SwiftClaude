@@ -170,13 +170,13 @@ extension ClaudeClient.MessagesEndpoint.Request.Message.Content {
     public static func toolUse(
       id: ClaudeClient.MessagesEndpoint.ToolUse.ID,
       name: String,
-      input: Encodable & Sendable
+      input: any Encodable & Sendable
     ) -> Block {
       Block(
         ToolUse(
           id: id,
           name: name,
-          input: AnyEncodable(input)
+          input: input
         )
       )
     }
@@ -220,11 +220,21 @@ extension ClaudeClient.MessagesEndpoint.Request.Message.Content {
       let text: String
     }
     private struct ToolUse: Encodable, Sendable {
+      init(
+        id: ClaudeClient.MessagesEndpoint.ToolUse.ID,
+        name: String,
+        input: any Encodable & Sendable
+      ) {
+        self.id = id
+        self.name = name
+        self.input = AnyEncodable(input)
+      }
+
       private let type = "tool_use"
 
-      let id: ClaudeClient.MessagesEndpoint.ToolUse.ID
-      let name: String
-      let input: AnyEncodable
+      private let id: ClaudeClient.MessagesEndpoint.ToolUse.ID
+      private let name: String
+      private let input: AnyEncodable
     }
     private struct ToolResult: Encodable, Sendable {
       private let type = "tool_result"

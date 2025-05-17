@@ -27,6 +27,7 @@ let package = Package(
     .target(
       name: "ClaudeClient",
       dependencies: [
+        "Tool",
         .product(name: "HTTPTypes", package: "swift-http-types"),
         .product(name: "HTTPTypesFoundation", package: "swift-http-types"),
       ],
@@ -52,8 +53,7 @@ let package = Package(
       name: "Claude",
       dependencies: [
         "ClaudeMessagesEndpoint",
-        .target(name: "ClaudeToolInput", condition: .when(platforms: .supportToolInput)),
-        .target(name: "ClaudeMacros", condition: .when(platforms: .supportToolInput)),
+        .target(name: "Tool", condition: .when(platforms: .supportToolInput)),
         .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
       ],
       swiftSettings: .claude
@@ -65,34 +65,36 @@ let package = Package(
     ),
 
     .target(
-      name: "ClaudeToolInput",
-      path: "Sources/Tool Input"
+      name: "Tool",
+      dependencies: [
+        "ToolMacros"
+      ],
+      swiftSettings: .claude
     ),
     .testTarget(
-      name: "ClaudeToolInputTests",
-      dependencies: ["ClaudeToolInput"],
-      path: "Tests/Tool Input Tests"
+      name: "ToolTests",
+      dependencies: ["Tool"],
+      path: "Tests/Tool Tests"
     ),
 
     .macro(
-      name: "ClaudeMacros",
+      name: "ToolMacros",
       dependencies: [
         .product(name: "SwiftSyntax", package: "swift-syntax"),
         .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
         .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
         .product(name: "SwiftDiagnostics", package: "swift-syntax"),
       ],
-      path: "Sources/Macros"
+      path: "Sources/Tool Macros"
     ),
     .testTarget(
-      name: "ClaudeMacrosTests",
+      name: "ToolMacrosTests",
       dependencies: [
-        "Claude",
-        "ClaudeMacros",
+        "ToolMacros",
         .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
         .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
       ],
-      path: "Tests/Macros Tests"
+      path: "Tests/Tool Macros Tests"
     ),
   ]
 )

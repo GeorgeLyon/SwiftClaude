@@ -1,4 +1,5 @@
 public import ClaudeClient
+public import Tool
 
 public typealias MessagesEndpoint = ClaudeClient.MessagesEndpoint
 
@@ -197,6 +198,12 @@ extension ClaudeClient.MessagesEndpoint.Request {
       }
 
       public static func tool(
+        _ definition: any ToolDefinition
+      ) -> Self {
+        return Self(component: .clientDefinedTool(AnyEncodable(definition)))
+      }
+
+      public static func tool(
         _ tool: AnthropicToolDefinition
       ) -> Self {
         Self(component: .anthropicDefinedTool(tool))
@@ -210,7 +217,7 @@ extension ClaudeClient.MessagesEndpoint.Request {
 
       fileprivate var anthropicBetaHeader: ClaudeClient.AnthropicBetaHeader? {
         switch component {
-        case .userDefinedTool, .cacheBreakpoint:
+        case .userDefinedTool, .clientDefinedTool, .cacheBreakpoint:
           return nil
         case .anthropicDefinedTool(let tool):
           return tool.betaHeader
@@ -221,8 +228,10 @@ extension ClaudeClient.MessagesEndpoint.Request {
         .CacheableComponentArray<AnyEncodable>.Element
       fileprivate var cacheableComponentArrayElement: CacheableComponentArray {
         switch component {
-        case .userDefinedTool(let tool):
-          .component(AnyEncodable(tool))
+        case .userDefinedTool(let definition):
+          .component(AnyEncodable(definition))
+        case .clientDefinedTool(let definition):
+          .component(definition)
         case .anthropicDefinedTool(let tool):
           .component(AnyEncodable(tool.definition))
         case .cacheBreakpoint(let cacheBreakpint):
@@ -249,6 +258,7 @@ extension ClaudeClient.MessagesEndpoint.Request {
 
       private enum Component {
         case userDefinedTool(UserToolDefinition)
+        case clientDefinedTool(AnyEncodable)
         case anthropicDefinedTool(AnthropicToolDefinition)
         case cacheBreakpoint(ClaudeClient.MessagesEndpoint.Request.CacheBreakpoint)
       }

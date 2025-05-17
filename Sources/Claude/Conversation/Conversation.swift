@@ -1,5 +1,6 @@
 import ClaudeClient
 import ClaudeMessagesEndpoint
+public import Tool
 
 #if canImport(UIKit)
   public import UIKit
