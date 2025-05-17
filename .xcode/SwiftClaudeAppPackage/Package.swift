@@ -25,7 +25,6 @@ let package = Package(
       name: "App",
       dependencies: [
         "HaikuGenerator",
-        "ComputerUseDemo",
       ]
     ),
     .target(
@@ -37,16 +36,6 @@ let package = Package(
       swiftSettings: [
         /// Uncomment this line to disable tool use
         // .define("TOOL_USE_DISABLED")
-      ]
-    ),
-    .target(
-      name: "ComputerUseDemo",
-      dependencies: [
-        "SwiftClaude"
-      ],
-      path: "Sources/Computer Use Demo",
-      resources: [
-        .process("Screenshot.png")
       ]
     ),
 
