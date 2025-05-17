@@ -1,6 +1,5 @@
 import Claude
 import ClaudeClient
-import ComputerUseDemo
 import HaikuGenerator
 import SwiftUI
 
