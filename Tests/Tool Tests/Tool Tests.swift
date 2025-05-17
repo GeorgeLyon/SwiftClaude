@@ -20,18 +20,18 @@ import Testing
     enum Namespace {
       @Tool
       struct MyAbsurdlyNestedTool {
-        func invoke(_ a: Int, b: String, `c`: Bool) {}
+        func invoke(_ a: Int, b: String, `c`: Bool, isolation: isolated Actor) {}
       }
     }
 
     @Tool
     class MyClassTool {
-      func invoke(_ a: Int, b: String, `c`: Bool) {}
+      func invoke(_ a: Int, b: String, `c`: Bool, isolation: isolated Actor?) {}
     }
 
     @Tool
-    final class MyFinalClassTool {
-      func invoke(_ a: Int, b: String, `c`: Bool) {}
+    final class MyFinalClassTool: Sendable {
+      func invoke(_ a: Int, b: String, `c`: Bool) async {}
     }
 
     @Tool

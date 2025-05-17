@@ -74,12 +74,16 @@ extension DeclGroupSyntax {
       .signature
       .parameterClause
       .parameters
-      .map { parameter in
+      .compactMap { parameter in
         guard let identifier = (parameter.secondName ?? parameter.firstName).identifier else {
           throw DiagnosticError(
             node: parameter,
             severity: .error,
             message: "All parameters must be named")
+        }
+        guard !parameter.type.isIsolated else {
+          /// Skip the isolation parameter
+          return nil
         }
         return StructDeclSyntax.StoredProperty(
           name: .identifier(identifier.name),
@@ -124,7 +128,8 @@ extension DeclGroupSyntax {
               base: DeclReferenceExprSyntax(baseName: "self"),
               name: property.name
             )
-          }
+          },
+          in: context
         )
       }
     )
@@ -161,7 +166,8 @@ extension DeclGroupSyntax {
             on: DeclReferenceExprSyntax(baseName: "input"),
             arguments: [
               DeclReferenceExprSyntax(baseName: "self")
-            ]
+            ],
+            in: context
           )
         }
       )
@@ -316,6 +322,7 @@ extension FunctionDeclSyntax {
     on callee: some ExprSyntaxProtocol,
     forceAwait: Bool = false,
     arguments: [Argument],
+    in context: MacroExpansionContext
   ) throws -> some ExprSyntaxProtocol {
     let effectSpecifiers = signature.effectSpecifiers
 
@@ -362,16 +369,18 @@ extension FunctionDeclSyntax {
               }
             )
           )
+        } else if let argument = arguments.next() {
+          expr = ExprSyntax(argument)
         } else {
-          guard let argument = arguments.next() else {
-            let name = parameter.firstName.identifier?.name ?? "\(offset)"
-            throw DiagnosticError(
+          let name = parameter.firstName.identifier?.name ?? "\(offset)"
+          context.diagnose(
+            DiagnosticError(
               node: self,
               severity: .error,
               message: "Internal Error: Missing argument for parameter `\(name)`"
             )
-          }
-          expr = ExprSyntax(argument)
+          )
+          expr = ExprSyntax(NilLiteralExprSyntax())
         }
 
         let labledExpr: LabeledExprSyntax
@@ -390,11 +399,13 @@ extension FunctionDeclSyntax {
         }
         labeledArguments.append(labledExpr)
       }
-      guard arguments.next() == nil else {
-        throw DiagnosticError(
-          node: self,
-          severity: .error,
-          message: "Internal Error: More arguments provided than parameters"
+      if arguments.next() != nil {
+        context.diagnose(
+          DiagnosticError(
+            node: self,
+            severity: .error,
+            message: "Internal Error: More arguments provided than parameters"
+          )
         )
       }
 

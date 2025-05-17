@@ -2,6 +2,14 @@ import SwiftDiagnostics
 import SwiftSyntax
 import SwiftSyntaxMacros
 
+extension MacroExpansionContext {
+
+  func diagnose(_ error: DiagnosticError) {
+    diagnose(error.diagnostic)
+  }
+
+}
+
 struct DiagnosticError: Error {
 
   static func diagnose<T>(
@@ -36,7 +44,7 @@ struct DiagnosticError: Error {
     self.diagnostic = Diagnostic(node: node, message: message)
   }
 
-  private let diagnostic: Diagnostic
+  fileprivate let diagnostic: Diagnostic
 }
 
 struct DiagnosticMessage: Identifiable, SwiftDiagnostics.DiagnosticMessage {
