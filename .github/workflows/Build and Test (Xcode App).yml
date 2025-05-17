@@ -60,7 +60,8 @@ jobs:
             -xcconfig ".xcode/Configurations/Continuous Integration.xcconfig"
 
       - name: UI Tests
-        if: matrix.build-configuration == 'Debug'
+        # UI Tests are currently broken on GitHub Actions
+        if: false
         run: |
           xcrun xcodebuild test \
             -workspace SwiftClaude.xcworkspace \
