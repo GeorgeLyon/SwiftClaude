@@ -20,7 +20,7 @@ import Testing
     enum Namespace {
       @Tool
       struct MyAbsurdlyNestedTool {
-        func invoke(_ a: Int, b: String, `c`: Bool, isolation: isolated Actor) {}
+        func invoke(_ a: Int, b: String, isolation: isolated Actor, `c`: Bool) {}
       }
     }
 
