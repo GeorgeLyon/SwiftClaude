@@ -22,6 +22,7 @@ let package = Package(
     .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
     .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "600.0.1"),
     .package(url: "https://github.com/apple/swift-async-algorithms", from: "1.0.0"),
+    .package(url: "https://github.com/apple/swift-collections.git", from: "1.1.0"),
   ],
   targets: [
     .target(
@@ -95,6 +96,21 @@ let package = Package(
         .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
       ],
       path: "Tests/Tool Macros Tests"
+    ),
+
+    .target(
+      name: "JSONSupport",
+      dependencies: [
+        .product(name: "Collections", package: "swift-collections")
+      ],
+      path: "Sources/JSON Support"
+    ),
+    .testTarget(
+      name: "JSONSupportTests",
+      dependencies: [
+        "JSONSupport"
+      ],
+      path: "Tests/JSON Support Tests"
     ),
   ]
 )
