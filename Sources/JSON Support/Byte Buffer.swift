@@ -2,7 +2,7 @@ import Collections
 
 extension JSON {
   /// - warning: SubSequences returned by the reader are invalidated if the buffer is modified.
-  public struct ByteBuffer: Sendable {
+  public struct ByteBuffer: Sendable, ~Copyable {
 
     public typealias Byte = UInt8
 
@@ -27,34 +27,40 @@ extension JSON {
     }
 
     mutating func readByte() -> Byte? {
-      readBytes(count: 1)?[0]
+      guard let bytes = readBytes(count: 1) else {
+        return nil
+      }
+      assert(bytes.count == 1)
+      return bytes.first!
     }
 
     mutating func readBytes(count: Int) -> Bytes.SubSequence? {
-      let bytes = readableBytes.dropFirst(readBytesCount)
+      let bytes = readableBytes
       guard bytes.count >= count else {
         return nil
       }
 
       readBytesCount += count
-      return bytes
+      let endIndex = bytes.index(
+        bytes.startIndex,
+        offsetBy: count
+      )
+      return bytes[..<endIndex]
     }
 
-    /// Read bytes until a condition is met
-    /// If `stopCondition` returns a non-nil value, the byte it was passed is considered read but is not returned as part of `readBytes`.
-    mutating func readBytes<StopResult>(
-      until stopCondition: (Byte) -> StopResult?
-    ) -> (readBytes: Bytes.SubSequence, stopResult: StopResult?) {
+    mutating func readBytes(
+      until stopCondition: (Byte) -> Bool
+    ) -> Bytes.SubSequence {
       for index in readableBytes.indices {
-        if let stopResult = stopCondition(readableBytes[index]) {
+        if stopCondition(readableBytes[index]) {
           let readBytes = readableBytes[..<index]
-          readBytesCount += readBytes.count + 1
-          return (readBytes, stopResult)
+          readBytesCount += readBytes.count
+          return readBytes
         }
       }
       let readBytes = readableBytes
       readBytesCount += readableBytes.count
-      return (readBytes, nil)
+      return readBytes
     }
 
     struct Checkpoint: ~Copyable {
@@ -72,6 +78,16 @@ extension JSON {
       readBytesRetainCount += 1
       return Checkpoint(offset: readBytesCount)
     }
+
+    mutating func restore(to checkpoint: consuming Checkpoint) {
+      readBytesCount = checkpoint.offset
+      release(checkpoint)
+    }
+
+    mutating func discard(_ checkpoint: consuming Checkpoint) {
+      release(checkpoint)
+    }
+
     mutating func bytesRead(
       since checkpoint: consuming Checkpoint
     ) -> [UInt8] {
@@ -81,14 +97,18 @@ extension JSON {
       )
       let readBytes = Array(bytes[startIndex..<nextReadIndex])
 
+      release(checkpoint)
+
+      return readBytes
+    }
+
+    private mutating func release(_ checkpoint: consuming Checkpoint) {
       checkpoint.release()
       readBytesRetainCount -= 1
       if readBytesRetainCount == 0 {
         bytes.removeFirst(readBytesCount - droppedBytesCount)
         droppedBytesCount = readBytesCount
       }
-
-      return readBytes
     }
 
     private mutating func didReadBytes(_ count: Int) {

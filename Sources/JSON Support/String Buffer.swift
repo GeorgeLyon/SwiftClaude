@@ -32,73 +32,77 @@ extension JSON {
 
 extension JSON.ByteBuffer {
 
+  /// Reads a string fragment into the buffer
+  /// - Returns: `true` if the string is complete
   mutating func readStringFragment(
     into outputBuffer: inout JSON.StringBuffer,
   ) throws {
-    let isComplete = try readStringFragment(
-      into: &outputBuffer.possiblyIncompleteString.unicodeScalars
-    )
-    outputBuffer.isComplete = isComplete
-  }
-
-  /// Reads a string fragment into the buffer
-  /// - Returns: `true` if the string is complete
-  private mutating func readStringFragment(
-    into outputBuffer: inout some RangeReplaceableCollection<UnicodeScalar>,
-  ) throws -> Bool {
+    assert(!outputBuffer.isComplete)
     while true {
-      let controlCharacter: ControlCharacter?
       do {
-        let readBytes: Bytes.SubSequence
-        (readBytes, controlCharacter) = self.readBytes(
-          until: { byte -> ControlCharacter? in
+        /// Read bytes until we reach a control character or the end of the string
+        let readBytes = self.readBytes(
+          until: { byte in
             switch UnicodeScalar(byte) {
-            case "\"":
-              return .end
-            case "\\":
-              return .escape
+            case "\"", "\\":
+              return true
             default:
-              return nil
+              return false
             }
           }
         )
-        outputBuffer.append(contentsOf: readBytes.map(UnicodeScalar.init))
+        let string = String(decoding: readBytes, as: UTF8.self)
+        outputBuffer.possiblyIncompleteString.append(string)
       }
 
-      switch controlCharacter {
+      let checkpoint = createCheckpoint()
+
+      switch readByte().map(UnicodeScalar.init) {
       case .none:
         /// We've reached the end of the buffer
-        return false
-      case .end:
-        return true
-      case .escape:
+        discard(checkpoint)
+        return
+      case "\"":
+        /// We've reached the end of the string
+        discard(checkpoint)
+        outputBuffer.isComplete = true
+        return
+      case "\\":
+        /// This is an escape sequence
         guard let nextScalar = readByte().map(UnicodeScalar.init) else {
-          return false
+          restore(to: checkpoint)
+          return
         }
 
         switch nextScalar {
         /// Unsupported characters
         case "b", "r", "f":
+          restore(to: checkpoint)
           throw Error.unsupportedEscapeCharacter(nextScalar)
         /// Verbatim characters
         case "\"", "\\", "/":
-          outputBuffer.append(nextScalar)
+          discard(checkpoint)
+          outputBuffer.possiblyIncompleteString.unicodeScalars.append(nextScalar)
         /// Escaped characters
         case "n":
+          discard(checkpoint)
           outputBuffer.append("\n")
         case "t":
+          discard(checkpoint)
           outputBuffer.append("\t")
         case "u":
           guard
             let escapeSequence = readBytes(count: 4)
               .map({ String(String.UnicodeScalarView($0.map(UnicodeScalar.init))) })
           else {
+            restore(to: checkpoint)
             return false
           }
 
           guard
             let intValue = Int(escapeSequence, radix: 16)
           else {
+            restore(to: checkpoint)
             throw Error.invalidUnicodeEscapeSequence(escapeSequence)
           }
 
@@ -108,6 +112,7 @@ extension JSON.ByteBuffer {
           /// Details in Section 2 of https://www.ietf.org/rfc/rfc2781.txt
           case 0xDC00...0xDFFF:
             /// Low surrogate value without corresponding high surrogate value
+            restore(to: checkpoint)
             throw Error.invalidUnicodeEscapeSequence(escapeSequence)
           case 0xD800...0xDBFF:
             // This is a high surrogate pair any must be immediately followed by a low surrogate pair
@@ -115,10 +120,12 @@ extension JSON.ByteBuffer {
               let remainingBytes = readBytes(count: 6)
                 .map({ String(String.UnicodeScalarView($0.map(UnicodeScalar.init))) })
             else {
+              restore(to: checkpoint)
               return false
             }
 
             guard remainingBytes.prefix(2) == "\\u" else {
+              restore(to: checkpoint)
               throw Error.invalidUnicodeEscapeSequence(escapeSequence + remainingBytes)
             }
 
@@ -133,23 +140,33 @@ extension JSON.ByteBuffer {
                 ].reduce(0, +)
               )
             else {
+              restore(to: checkpoint)
               throw Error.invalidUnicodeEscapeSequence(escapeSequence + remainingBytes)
             }
 
+            discard(checkpoint)
             outputBuffer.append(scalar)
 
           default:
             guard let scalar = UnicodeScalar(intValue) else {
+              restore(to: checkpoint)
               throw Error.invalidUnicodeScalar(intValue)
             }
 
+            discard(checkpoint)
             outputBuffer.append(scalar)
           }
 
         default:
+          restore(to: checkpoint)
           throw Error.invalidEscapeCharacter(nextScalar)
 
         }
+      default:
+        /// This shouldn't be possible, since this character should have been consumed by `readBytes(until:)`
+        assertionFailure()
+        restore(to: checkpoint)
+        throw Error.internalError
       }
     }
   }
@@ -158,14 +175,10 @@ extension JSON.ByteBuffer {
 
 // MARK: - Implementation Details
 
-private enum ControlCharacter {
-  case end
-  case escape
-}
-
 private enum Error: Swift.Error {
   case unsupportedEscapeCharacter(UnicodeScalar)
   case invalidEscapeCharacter(UnicodeScalar)
   case invalidUnicodeEscapeSequence(String)
   case invalidUnicodeScalar(Int)
+  case internalError
 }
