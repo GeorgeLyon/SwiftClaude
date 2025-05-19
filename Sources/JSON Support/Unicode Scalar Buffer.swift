@@ -2,7 +2,7 @@ import Collections
 
 extension JSON {
 
-  public struct ScalarBuffer: Sendable, ~Copyable {
+  public struct UnicodeScalarBuffer: Sendable, ~Copyable {
 
     public init() {
     }

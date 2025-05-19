@@ -8,7 +8,7 @@ private struct JSONSupportTests {
 
   @Test
   func basicTests() async throws {
-    var scalarBuffer = JSON.ScalarBuffer()
+    var scalarBuffer = JSON.UnicodeScalarBuffer()
     var stringBuffer = JSON.StringBuffer()
 
     /// Complete string
@@ -39,7 +39,7 @@ private struct JSONSupportTests {
 
   @Test
   func emptyStringTest() async throws {
-    var scalarBuffer = JSON.ScalarBuffer()
+    var scalarBuffer = JSON.UnicodeScalarBuffer()
     var stringBuffer = JSON.StringBuffer()
 
     scalarBuffer.push("\"")
@@ -49,7 +49,7 @@ private struct JSONSupportTests {
 
   @Test
   func internationalCharactersTest() async throws {
-    var scalarBuffer = JSON.ScalarBuffer()
+    var scalarBuffer = JSON.UnicodeScalarBuffer()
     var stringBuffer = JSON.StringBuffer()
 
     /// Non-ASCII UTF-8 characters
@@ -71,7 +71,7 @@ private struct JSONSupportTests {
 
   @Test
   func basicEscapeSequencesTest() async throws {
-    var scalarBuffer = JSON.ScalarBuffer()
+    var scalarBuffer = JSON.UnicodeScalarBuffer()
     var stringBuffer = JSON.StringBuffer()
 
     /// Double quote escape
@@ -98,7 +98,7 @@ private struct JSONSupportTests {
 
   @Test
   func controlCharactersTest() async throws {
-    var scalarBuffer = JSON.ScalarBuffer()
+    var scalarBuffer = JSON.UnicodeScalarBuffer()
     var stringBuffer = JSON.StringBuffer()
 
     /// Newline
@@ -125,7 +125,7 @@ private struct JSONSupportTests {
 
   @Test
   func unsupportedEscapeCharactersTest() async throws {
-    var scalarBuffer = JSON.ScalarBuffer()
+    var scalarBuffer = JSON.UnicodeScalarBuffer()
     var stringBuffer = JSON.StringBuffer()
 
     /// Unsupported \b
@@ -155,7 +155,7 @@ private struct JSONSupportTests {
 
   @Test
   func invalidEscapeSequencesTest() async throws {
-    var scalarBuffer = JSON.ScalarBuffer()
+    var scalarBuffer = JSON.UnicodeScalarBuffer()
     var stringBuffer = JSON.StringBuffer()
 
     /// Invalid escape \z
@@ -169,7 +169,7 @@ private struct JSONSupportTests {
 
   @Test
   func unicodeEscapeSequencesTest() async throws {
-    var scalarBuffer = JSON.ScalarBuffer()
+    var scalarBuffer = JSON.UnicodeScalarBuffer()
     var stringBuffer = JSON.StringBuffer()
 
     /// Basic unicode escape
@@ -201,7 +201,7 @@ private struct JSONSupportTests {
 
   @Test
   func invalidUnicodeEscapeSequencesTest() async throws {
-    var scalarBuffer = JSON.ScalarBuffer()
+    var scalarBuffer = JSON.UnicodeScalarBuffer()
     var stringBuffer = JSON.StringBuffer()
 
     /// Non-hex characters
@@ -215,7 +215,7 @@ private struct JSONSupportTests {
 
   @Test
   func surrogatePairsTest() async throws {
-    var scalarBuffer = JSON.ScalarBuffer()
+    var scalarBuffer = JSON.UnicodeScalarBuffer()
     var stringBuffer = JSON.StringBuffer()
 
     /// Valid surrogate pair for 😀 (U+1F600)
@@ -237,7 +237,7 @@ private struct JSONSupportTests {
 
   @Test
   func invalidSurrogatePairsTest() async throws {
-    var scalarBuffer = JSON.ScalarBuffer()
+    var scalarBuffer = JSON.UnicodeScalarBuffer()
     var stringBuffer = JSON.StringBuffer()
 
     /// High surrogate without low surrogate, but incomplete
@@ -269,7 +269,7 @@ private struct JSONSupportTests {
 
   @Test
   func edgeCasesTest() async throws {
-    var scalarBuffer = JSON.ScalarBuffer()
+    var scalarBuffer = JSON.UnicodeScalarBuffer()
     var stringBuffer = JSON.StringBuffer()
 
     /// Null character
@@ -287,7 +287,7 @@ private struct JSONSupportTests {
 
   @Test
   func incrementalParsingTest() async throws {
-    var scalarBuffer = JSON.ScalarBuffer()
+    var scalarBuffer = JSON.UnicodeScalarBuffer()
     var stringBuffer = JSON.StringBuffer()
 
     /// String with escape sequence split

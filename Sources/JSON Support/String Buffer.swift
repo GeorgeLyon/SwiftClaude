@@ -31,7 +31,7 @@ extension JSON {
 
 }
 
-extension JSON.ScalarBuffer {
+extension JSON.UnicodeScalarBuffer {
 
   /// Reads a string fragment into the buffer
   /// - Returns: `true` if the string is complete
