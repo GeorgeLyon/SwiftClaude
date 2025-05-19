@@ -22,6 +22,7 @@ extension JSON {
 
     public mutating func reset() {
       possiblyIncompleteString.unicodeScalars.removeAll(keepingCapacity: true)
+      isComplete = false
     }
 
     fileprivate var possiblyIncompleteString: String = ""
@@ -30,7 +31,7 @@ extension JSON {
 
 }
 
-extension JSON.ByteBuffer {
+extension JSON.ScalarBuffer {
 
   /// Reads a string fragment into the buffer
   /// - Returns: `true` if the string is complete
@@ -41,7 +42,7 @@ extension JSON.ByteBuffer {
     while true {
       do {
         /// Read bytes until we reach a control character or the end of the string
-        let readBytes = self.readBytes(
+        let readScalars = self.readScalars(
           until: { byte in
             switch UnicodeScalar(byte) {
             case "\"", "\\":
@@ -51,13 +52,12 @@ extension JSON.ByteBuffer {
             }
           }
         )
-        let string = String(decoding: readBytes, as: UTF8.self)
-        outputBuffer.possiblyIncompleteString.append(string)
+        outputBuffer.possiblyIncompleteString.unicodeScalars.append(contentsOf: readScalars)
       }
 
       let checkpoint = createCheckpoint()
 
-      switch readByte().map(UnicodeScalar.init) {
+      switch readScalar() {
       case .none:
         /// We've reached the end of the buffer
         discard(checkpoint)
@@ -69,7 +69,7 @@ extension JSON.ByteBuffer {
         return
       case "\\":
         /// This is an escape sequence
-        guard let nextScalar = readByte().map(UnicodeScalar.init) else {
+        guard let nextScalar = readScalar() else {
           restore(to: checkpoint)
           return
         }
@@ -86,17 +86,17 @@ extension JSON.ByteBuffer {
         /// Escaped characters
         case "n":
           discard(checkpoint)
-          outputBuffer.append("\n")
+          outputBuffer.possiblyIncompleteString.append("\n")
         case "t":
           discard(checkpoint)
-          outputBuffer.append("\t")
+          outputBuffer.possiblyIncompleteString.append("\t")
         case "u":
           guard
-            let escapeSequence = readBytes(count: 4)
-              .map({ String(String.UnicodeScalarView($0.map(UnicodeScalar.init))) })
+            let escapeSequence = readScalars(count: 4)
+              .map({ String(String.UnicodeScalarView($0)) })
           else {
             restore(to: checkpoint)
-            return false
+            return
           }
 
           guard
@@ -117,11 +117,11 @@ extension JSON.ByteBuffer {
           case 0xD800...0xDBFF:
             // This is a high surrogate pair any must be immediately followed by a low surrogate pair
             guard
-              let remainingBytes = readBytes(count: 6)
-                .map({ String(String.UnicodeScalarView($0.map(UnicodeScalar.init))) })
+              let remainingBytes = readScalars(count: 6)
+                .map({ String(String.UnicodeScalarView($0)) })
             else {
               restore(to: checkpoint)
-              return false
+              return
             }
 
             guard remainingBytes.prefix(2) == "\\u" else {
@@ -130,7 +130,7 @@ extension JSON.ByteBuffer {
             }
 
             guard
-              let lowIntValue = Int(remainingBytes.dropFirst(2)),
+              let lowIntValue = Int(remainingBytes.dropFirst(2), radix: 16),
               (0xDC00...0xDFFF).contains(lowIntValue),
               let scalar = UnicodeScalar(
                 [
@@ -145,7 +145,7 @@ extension JSON.ByteBuffer {
             }
 
             discard(checkpoint)
-            outputBuffer.append(scalar)
+            outputBuffer.possiblyIncompleteString.unicodeScalars.append(scalar)
 
           default:
             guard let scalar = UnicodeScalar(intValue) else {
@@ -154,7 +154,7 @@ extension JSON.ByteBuffer {
             }
 
             discard(checkpoint)
-            outputBuffer.append(scalar)
+            outputBuffer.possiblyIncompleteString.unicodeScalars.append(scalar)
           }
 
         default:
