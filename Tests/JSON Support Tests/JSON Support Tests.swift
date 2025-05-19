@@ -8,76 +8,33 @@ private struct JSONSupportTests {
 
   @Test
   func simpleTest() async throws {
-    try await StringDecoder.decode { decoder in
-      decoder.yield(
-      """
-      "Hello, World!"
-      """
-      )
-      try await #expect(decoder.decodeFragment() == "Hello, World!")
-    }
-  }
-  
-  @Test
-  func escapeCharacters() async throws {
-    try await StringDecoder.decode { decoder in
-      decoder.yield(
-        """
-        "Hello, World\n"
-        """
-      )
-      try await #expect(decoder.decodeFragment() == "Hello, World\n")
-    }
-    
-    /// Add more tests here
-      
-  }
-  
-}
+    var byteBuffer = JSON.ByteBuffer()
+    var stringBuffer = JSON.StringBuffer()
 
-// MARK: - Implementation Details
+    /// Complete string
+    byteBuffer.append(
+      """
+      Hello, World!"
+      """
+    )
+    try byteBuffer.readStringFragment(into: &stringBuffer)
+    #expect(stringBuffer.stringValue == "Hello, World!")
+    byteBuffer.reset()
+    stringBuffer.reset()
 
-private struct StringDecoder: ~Copyable {
-  
-  static func decode(
-    _ body: (inout StringDecoder) async throws -> Void
-  ) async throws {
-    var decoder = StringDecoder()
-    try await body(&decoder)
+    /// Partial string
+    byteBuffer.append("Hello")
+    byteBuffer.append(", ")
+    try byteBuffer.readStringFragment(into: &stringBuffer)
+    /// Trailing space is omitted because the last character can be modified by subsequent characters.
+    #expect(stringBuffer.stringValue == "Hello,")
+    byteBuffer.append("World!")
+    try byteBuffer.readStringFragment(into: &stringBuffer)
+    /// Exclamation mark is omitted because the last character can be modified by subsequent characters, but the space after the comma is returned now.
+    #expect(stringBuffer.stringValue == "Hello, World")
+    byteBuffer.append("\"")
+    try byteBuffer.readStringFragment(into: &stringBuffer)
+    #expect(stringBuffer.stringValue == "Hello, World!")
   }
-  
-  private init() {
-    var decoder = JSON<AsyncStream<[UInt8]>>.StreamingDecoder()
-    
-    let fragments = AsyncStream<[UInt8]>.makeStream()
-    self.fragmentsContinuation = fragments.continuation
-    decoder.reset(fragments: fragments.stream)
-    
-    let decodedFragments = AsyncThrowingStream<String, Error>.makeStream()
-    self.decodedFragments = decodedFragments.stream.makeAsyncIterator()
-    Task {
-      do {
-        try await decoder.readString { decoder in
-          while let next = try await decoder.decodeNextFragment() {
-            decodedFragments.continuation.yield(next)
-          }
-        }
-        decodedFragments.continuation.finish()
-      } catch {
-        decodedFragments.continuation.finish(throwing: error)
-      }
-    }
-  }
-  
-  mutating func decodeFragment() async throws -> String? {
-    try await decodedFragments.next()
-  }
-  
-  func yield(_ fragment: String) {
-    fragmentsContinuation.yield(Array(fragment.utf8))
-  }
-  
-  private let fragmentsContinuation: AsyncStream<[UInt8]>.Continuation
-  private var decodedFragments: AsyncThrowingStream<String, Error>.AsyncIterator
-  
+
 }
