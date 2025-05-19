@@ -7,7 +7,7 @@ import Testing
 private struct JSONSupportTests {
 
   @Test
-  func simpleTest() async throws {
+  func basicTests() async throws {
     var byteBuffer = JSON.ByteBuffer()
     var stringBuffer = JSON.StringBuffer()
 
