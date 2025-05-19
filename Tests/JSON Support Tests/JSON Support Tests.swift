@@ -176,7 +176,6 @@ private struct JSONSupportTests {
     scalarBuffer.push("\\u0041\"")
     try scalarBuffer.readStringFragment(into: &stringBuffer)
     #expect(stringBuffer.stringValue == "A")
-
     scalarBuffer.reset()
     stringBuffer.reset()
 
@@ -184,7 +183,13 @@ private struct JSONSupportTests {
     scalarBuffer.push("\\u00A9\"")
     try scalarBuffer.readStringFragment(into: &stringBuffer)
     #expect(stringBuffer.stringValue == "©")
+    scalarBuffer.reset()
+    stringBuffer.reset()
 
+    /// Non-ASCII unicode escape (lowercase letters)
+    scalarBuffer.push("\\u00a9\"")
+    try scalarBuffer.readStringFragment(into: &stringBuffer)
+    #expect(stringBuffer.stringValue == "©")
     scalarBuffer.reset()
     stringBuffer.reset()
 
@@ -235,11 +240,10 @@ private struct JSONSupportTests {
     var scalarBuffer = JSON.ScalarBuffer()
     var stringBuffer = JSON.StringBuffer()
 
-    /// High surrogate without low surrogate
-    scalarBuffer.push("\\uD83D some more text")
-    #expect(throws: Error.self) {
-      try scalarBuffer.readStringFragment(into: &stringBuffer)
-    }
+    /// High surrogate without low surrogate, but incomplete
+    scalarBuffer.push("\\uD83D")
+    try scalarBuffer.readStringFragment(into: &stringBuffer)
+    #expect(stringBuffer.stringValue == "")  // Waiting on the low surrogate
     scalarBuffer.reset()
     stringBuffer.reset()
 
@@ -254,8 +258,8 @@ private struct JSONSupportTests {
     scalarBuffer.reset()
     stringBuffer.reset()
 
-    /// Malformed surrogate pair
-    scalarBuffer.push("\\uD83Dabcdef")
+    /// High surrogate without low surrogate
+    scalarBuffer.push("\\uD83D🥸")
     #expect(throws: Error.self) {
       try scalarBuffer.readStringFragment(into: &stringBuffer)
     }

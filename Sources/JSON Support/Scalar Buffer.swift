@@ -18,48 +18,77 @@ extension JSON {
       scalars.append(contentsOf: fragment.unicodeScalars)
     }
 
-    /// - warning: SubSequences are invalidated if the buffer is modified
     typealias SubSequence = Slice<Deque<UnicodeScalar>>
 
-    var readableScalars: SubSequence {
-      return scalars[nextReadIndex...]
-    }
-
     mutating func readScalar() -> UnicodeScalar? {
-      guard let scalars = readScalars(count: 1) else {
+      guard
+        let scalar = readingScalars(
+          count: 1,
+          body: { scalars in
+            assert(scalars.count == 1)
+            return scalars.first!
+          }
+        )
+      else {
         return nil
       }
-      assert(scalars.count == 1)
-      return scalars.first!
+      return scalar
     }
 
-    mutating func readScalars(count: Int) -> SubSequence? {
+    mutating func readingScalars<T>(
+      count: Int,
+      body: (SubSequence) throws -> T
+    ) rethrows -> T? {
       let scalars = readableScalars
       guard scalars.count >= count else {
         return nil
       }
 
-      readScalarsCount += count
-      let endIndex = scalars.index(
-        scalars.startIndex,
-        offsetBy: count
-      )
-      return scalars[..<endIndex]
+      let result = try body(scalars.prefix(count))
+      didReadScalars(count: count)
+      return result
     }
 
-    mutating func readScalars(
-      until stopCondition: (UnicodeScalar) -> Bool
-    ) -> SubSequence {
+    mutating func readingScalars<T>(
+      until stopCondition: (UnicodeScalar) -> Bool,
+      body: (SubSequence) throws -> T
+    ) rethrows -> T {
       for index in readableScalars.indices {
         if stopCondition(readableScalars[index]) {
-          let readBytes = readableScalars[..<index]
-          readScalarsCount += readBytes.count
-          return readBytes
+          let readScalars = readableScalars[..<index]
+          let result = try body(readScalars)
+          didReadScalars(count: readScalars.count)
+          return result
         }
       }
       let readScalars = readableScalars
-      readScalarsCount += readScalars.count
-      return readScalars
+      let result = try body(readScalars)
+      didReadScalars(count: readScalars.count)
+      return result
+    }
+
+    mutating func readingScalars<T>(
+      while condition: (UnicodeScalar) -> Bool,
+      expectedCount: Int,
+      body: (SubSequence) throws -> T
+    ) rethrows -> T? {
+      let readableScalars = readableScalars.prefix(expectedCount)
+      for index in readableScalars.indices {
+        guard condition(readableScalars[index]) else {
+          let readScalars = readableScalars[..<index]
+          let result = try body(readScalars)
+          didReadScalars(count: readScalars.count)
+          return result
+        }
+      }
+      guard readableScalars.count == expectedCount else {
+        /// If all scalars match the condition, but we didn't read enough, return nil
+        return nil
+      }
+      let readScalars = readableScalars
+      let result = try body(readScalars)
+      didReadScalars(count: readScalars.count)
+      return result
     }
 
     struct Checkpoint: ~Copyable {
@@ -100,6 +129,10 @@ extension JSON {
       release(checkpoint)
     }
 
+    private var readableScalars: SubSequence {
+      return scalars[nextReadIndex...]
+    }
+
     private mutating func release(_ checkpoint: consuming Checkpoint) {
       checkpoint.release()
       readScalarsRetainCount -= 1
@@ -110,7 +143,7 @@ extension JSON {
       }
     }
 
-    private mutating func didReadScalars(_ count: Int) {
+    private mutating func didReadScalars(count: Int) {
       readScalarsCount += count
       if readScalarsRetainCount == 0 {
         droppedScalarsCount += count
