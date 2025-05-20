@@ -162,7 +162,7 @@ extension JSON.UnicodeScalarBuffer {
           return false
         }
       },
-      expectedCount: 4
+      maxCount: 4
     ) { scalars in
       guard scalars.count == 4 else {
         return .invalid

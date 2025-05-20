@@ -69,10 +69,10 @@ extension JSON {
 
     mutating func readingScalars<T>(
       while condition: (UnicodeScalar) -> Bool,
-      expectedCount: Int,
+      maxCount: Int,
       body: (SubSequence) throws -> T
     ) rethrows -> T? {
-      let readableScalars = readableScalars.prefix(expectedCount)
+      let readableScalars = readableScalars.prefix(maxCount)
       for index in readableScalars.indices {
         guard condition(readableScalars[index]) else {
           let readScalars = readableScalars[..<index]
@@ -81,7 +81,7 @@ extension JSON {
           return result
         }
       }
-      guard readableScalars.count == expectedCount else {
+      guard readableScalars.count == maxCount else {
         /// If all scalars match the condition, but we didn't read enough, return nil
         return nil
       }
@@ -89,6 +89,20 @@ extension JSON {
       let result = try body(readScalars)
       didReadScalars(count: readScalars.count)
       return result
+    }
+
+    mutating func readWhitespace() {
+      let whitespace =
+        readableScalars
+        .prefix { scalar in
+          switch scalar {
+          case " ", "\t", "\n", "\r":
+            return true
+          default:
+            return false
+          }
+        }
+      didReadScalars(count: whitespace.count)
     }
 
     struct Checkpoint: ~Copyable {
