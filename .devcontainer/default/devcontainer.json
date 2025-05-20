@@ -30,7 +30,13 @@
     "vscode": {
       "extensions": [
         "swiftlang.swift-vscode"
-      ]
+      ],
+      "settings": {
+        "files.exclude": {
+          /// Code coverage data
+          "default.profraw": true
+        }
+      }
     }
   }
 }

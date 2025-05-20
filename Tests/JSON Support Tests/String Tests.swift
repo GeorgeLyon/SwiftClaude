@@ -222,7 +222,10 @@ private struct StringTests {
     scalarBuffer.push("\\uD83D")
     try scalarBuffer.readStringFragment(into: &stringBuffer)
     #expect(stringBuffer.stringValue == "")  // Nothing to return yet
-    scalarBuffer.push("\\uDE00\"")
+    scalarBuffer.push("\\u")
+    try scalarBuffer.readStringFragment(into: &stringBuffer)
+    #expect(stringBuffer.stringValue == "")  // Nothing to return yet
+    scalarBuffer.push("DE00\"")
     try scalarBuffer.readStringFragment(into: &stringBuffer)
     #expect(stringBuffer.stringValue == "😀")
   }
@@ -232,27 +235,24 @@ private struct StringTests {
     var scalarBuffer = JSON.UnicodeScalarBuffer()
     var stringBuffer = JSON.StringBuffer()
 
-    /// High surrogate without low surrogate, but incomplete
-    scalarBuffer.push("\\uD83D")
+    /// High surrogate followed by a scalar
+    scalarBuffer.push("\\uD83D\\u00A9\"")
     try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "")  // Waiting on the low surrogate
+    #expect(stringBuffer.stringValue == "�©")  // Waiting on the low surrogate
     scalarBuffer.reset()
     stringBuffer.reset()
 
-    scalarBuffer.reset()
-    stringBuffer.reset()
-
-    /// Low surrogate without high surrogate
-    scalarBuffer.push("\\uDE00\"")
+    /// High surrogate followed by a high surrogate
+    scalarBuffer.push("\\uD83D\\uD83D\"")
     try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "�")
+    #expect(stringBuffer.stringValue == "��")
     scalarBuffer.reset()
     stringBuffer.reset()
 
     /// High surrogate without low surrogate
-    scalarBuffer.push("\\uD83D🥸")
+    scalarBuffer.push("\\uD83D🥸\"")
     try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "��")
+    #expect(stringBuffer.stringValue == "�🥸")
     scalarBuffer.reset()
     stringBuffer.reset()
   }

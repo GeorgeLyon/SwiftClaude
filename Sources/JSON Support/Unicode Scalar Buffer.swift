@@ -23,7 +23,12 @@ extension JSON {
     mutating func read(_ string: String) -> Bool? {
       let count = string.unicodeScalars.count
       guard readableScalars.count >= count else {
-        return nil
+        if zip(string.unicodeScalars, readableScalars).allSatisfy(==) {
+          /// The prefix matches, but the string is incomplete
+          return nil
+        } else {
+          return false
+        }
       }
       if string == String(readableScalars.prefix(count)) {
         didReadScalars(count: count)

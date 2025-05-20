@@ -114,7 +114,7 @@ extension JSON.UnicodeScalarBuffer {
             guard result else {
               discard(checkpoint)
               outputBuffer.possiblyIncompleteString.append("�")
-              return
+              continue
             }
 
             guard let lowSurrogateEscapeSequence = readUnicodeEscapeSequence() else {
@@ -136,8 +136,10 @@ extension JSON.UnicodeScalarBuffer {
                   highSurrogateValue + lowSurrogateValue
                 )
               else {
+                /// This shouldn't be possible, because all values that are created by a valid surrogate pair should result in a valid scalar.
+                assertionFailure()
                 outputBuffer.possiblyIncompleteString.append("�")
-                return
+                continue
               }
               outputBuffer.possiblyIncompleteString.unicodeScalars.append(scalar)
 
@@ -182,6 +184,8 @@ extension JSON.UnicodeScalarBuffer {
         return .invalid
       }
       guard let intValue = Int(String(String.UnicodeScalarView(scalars)), radix: 16) else {
+        /// This shouldn't be possible because we only read hex characters
+        assertionFailure()
         return .invalid
       }
       switch intValue {
@@ -191,6 +195,8 @@ extension JSON.UnicodeScalarBuffer {
         return .highSurrogate(0x10000 + ((intValue - 0xD800) << 10))
       default:
         guard let scalar = UnicodeScalar(intValue) else {
+          /// This shouldn't be possible, because other than surrogate pairs all values in the range 0x0000...0xFFFF are valid.
+          assertionFailure()
           return .invalid
         }
         return .scalar(scalar)
