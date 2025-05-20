@@ -36,7 +36,7 @@ extension JSON {
 
 }
 
-extension JSON.Stream {
+extension JSON.DecodingStream {
 
   /// Reads a string fragment into the buffer
   /// - Returns: `true` if the string is complete

@@ -8,7 +8,7 @@ private struct StringTests {
 
   @Test
   func simpleTest() async throws {
-    var stream = JSON.Stream()
+    var stream = JSON.DecodingStream()
     var stringBuffer = JSON.StringBuffer()
     var context = JSON.DecodingContext()
 
@@ -46,7 +46,7 @@ private struct StringTests {
 
   @Test
   func emptyStringTest() async throws {
-    var stream = JSON.Stream()
+    var stream = JSON.DecodingStream()
     var stringBuffer = JSON.StringBuffer()
     var context = JSON.DecodingContext()
 
@@ -59,7 +59,7 @@ private struct StringTests {
 
   @Test
   func internationalCharactersTest() async throws {
-    var stream = JSON.Stream()
+    var stream = JSON.DecodingStream()
     var stringBuffer = JSON.StringBuffer()
     var context = JSON.DecodingContext()
 
@@ -82,7 +82,7 @@ private struct StringTests {
 
   @Test
   func basicEscapeSequencesTest() async throws {
-    var stream = JSON.Stream()
+    var stream = JSON.DecodingStream()
     var stringBuffer = JSON.StringBuffer()
     var context = JSON.DecodingContext()
 
@@ -110,7 +110,7 @@ private struct StringTests {
 
   @Test
   func controlCharactersTest() async throws {
-    var stream = JSON.Stream()
+    var stream = JSON.DecodingStream()
     var stringBuffer = JSON.StringBuffer()
     var context = JSON.DecodingContext()
 
@@ -143,7 +143,7 @@ private struct StringTests {
 
   @Test
   func unsupportedEscapeCharactersTest() async throws {
-    var stream = JSON.Stream()
+    var stream = JSON.DecodingStream()
     var stringBuffer = JSON.StringBuffer()
     var context = JSON.DecodingContext()
 
@@ -164,7 +164,7 @@ private struct StringTests {
 
   @Test
   func invalidEscapeSequencesTest() async throws {
-    var stream = JSON.Stream()
+    var stream = JSON.DecodingStream()
     var stringBuffer = JSON.StringBuffer()
     var context = JSON.DecodingContext()
 
@@ -185,7 +185,7 @@ private struct StringTests {
 
   @Test
   func unicodeEscapeSequencesTest() async throws {
-    var stream = JSON.Stream()
+    var stream = JSON.DecodingStream()
     var stringBuffer = JSON.StringBuffer()
     var context = JSON.DecodingContext()
 
@@ -218,7 +218,7 @@ private struct StringTests {
 
   @Test
   func invalidUnicodeEscapeSequencesTest() async throws {
-    var stream = JSON.Stream()
+    var stream = JSON.DecodingStream()
     var stringBuffer = JSON.StringBuffer()
     var context = JSON.DecodingContext()
 
@@ -232,7 +232,7 @@ private struct StringTests {
 
   @Test
   func surrogatePairsTest() async throws {
-    var stream = JSON.Stream()
+    var stream = JSON.DecodingStream()
     var stringBuffer = JSON.StringBuffer()
     var context = JSON.DecodingContext()
 
@@ -257,7 +257,7 @@ private struct StringTests {
 
   @Test
   func invalidSurrogatePairsTest() async throws {
-    var stream = JSON.Stream()
+    var stream = JSON.DecodingStream()
     var stringBuffer = JSON.StringBuffer()
     var context = JSON.DecodingContext()
 
@@ -285,7 +285,7 @@ private struct StringTests {
 
   @Test
   func edgeCasesTest() async throws {
-    var stream = JSON.Stream()
+    var stream = JSON.DecodingStream()
     var stringBuffer = JSON.StringBuffer()
     var context = JSON.DecodingContext()
 
@@ -304,7 +304,7 @@ private struct StringTests {
 
   @Test
   func incrementalParsingTest() async throws {
-    var stream = JSON.Stream()
+    var stream = JSON.DecodingStream()
     var stringBuffer = JSON.StringBuffer()
     var context = JSON.DecodingContext()
 
@@ -326,10 +326,10 @@ private struct StringTests {
     try stream.readStringFragment(into: &stringBuffer, in: &context)
     #expect(stringBuffer.validSubstring == "© copyright")
   }
-  
+
   @Test
   func completelyPathalogicalTest() async throws {
-    var stream = JSON.Stream()
+    var stream = JSON.DecodingStream()
     var stringBuffer = JSON.StringBuffer()
     var context = JSON.DecodingContext()
 

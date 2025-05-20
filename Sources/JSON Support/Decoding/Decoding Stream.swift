@@ -2,7 +2,7 @@ import Collections
 
 extension JSON {
 
-  public struct Stream: Sendable, ~Copyable {
+  public struct DecodingStream: Sendable, ~Copyable {
 
     public init() {
       nextReadIndex = string.startIndex

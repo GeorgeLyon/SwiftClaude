@@ -103,7 +103,8 @@ let package = Package(
       dependencies: [
         .product(name: "Collections", package: "swift-collections")
       ],
-      path: "Sources/JSON Support"
+      path: "Sources/JSON Support",
+      swiftSettings: .claude
     ),
     .testTarget(
       name: "JSONSupportTests",
