@@ -66,45 +66,51 @@ extension JSON {
       return result
     }
 
+    /// The read is only committed if `body` returns a non-nil value.
     mutating func read<T>(
       until stopCondition: (Character) -> Bool,
-      _ body: (Substring) throws -> T
-    ) rethrows -> T {
-      let readableSubstring = readableSubstring
-      for index in readableSubstring.indices {
-        if stopCondition(readableSubstring[index]) {
-          let substring = readableSubstring[..<index]
-          let result = try body(substring[..<index])
-          nextReadIndex = substring.endIndex
-          return result
-        }
-      }
-      let result = try body(readableSubstring)
-      nextReadIndex = readableSubstring.endIndex
-      return result
-    }
-
-    mutating func read<T>(
-      while condition: (Character) -> Bool,
-      maxCount: Int,
-      _ body: (Substring) throws -> T
+      maxCount: Int? = nil,
+      _ body: (_ substring: Substring, _ conditionMet: Bool) throws -> T?
     ) rethrows -> T? {
-      let readableSubstring = readableSubstring.prefix(maxCount)
+      let readableSubstring =
+        if let maxCount {
+          readableSubstring.prefix(maxCount)
+        } else {
+          readableSubstring
+        }
       for index in readableSubstring.indices {
-        guard condition(readableSubstring[index]) else {
+        guard !stopCondition(readableSubstring[index]) else {
           let substring = readableSubstring[..<index]
-          let result = try body(substring)
-          nextReadIndex = substring.endIndex
-          return result
+          if let result = try body(substring, true) {
+            nextReadIndex = substring.endIndex
+            return result
+          } else {
+            return nil
+          }
         }
       }
-      guard readableSubstring.count == maxCount else {
-        /// This is a prefix match, but the string is incomplete.
+      if let result = try body(readableSubstring, false) {
+        nextReadIndex = readableSubstring.endIndex
+        return result
+      } else {
         return nil
       }
-      let result = try body(readableSubstring)
-      nextReadIndex = readableSubstring.endIndex
-      return result
+    }
+
+    /// Read characters while the condition is true.
+    /// The read is only committed if `body` return `true`.
+    mutating func read(
+      until stopCondition: (Character) -> Bool,
+      maxCount: Int? = nil,
+      _ body: (_ substring: Substring, _ conditionMet: Bool) throws -> Bool
+    ) rethrows {
+      try read(until: stopCondition, maxCount: maxCount) { (substring, conditionMet) -> Void? in
+        if try body(substring, conditionMet) {
+          return ()
+        } else {
+          return nil
+        }
+      }
     }
 
     var possiblyIncompleteIncomingGraphemeCluster: Character? {

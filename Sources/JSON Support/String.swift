@@ -57,8 +57,10 @@ extension JSON.Stream {
               return false
             }
           }
-        ) { substring in
+        ) { substring, conditionMet in
           fragments.append(substring)
+          /// Always commit the read
+          return true
         }
 
         let checkpoint = createCheckpoint()
@@ -191,18 +193,18 @@ extension JSON.Stream {
   }
   private mutating func readUnicodeEscapeSequence() -> UnicodeEscapeSequence? {
     read(
-      while: { scalar in
+      until: { scalar in
         switch scalar {
         case "0"..."9", "a"..."f", "A"..."F":
-          return true
-        default:
           return false
+        default:
+          return true
         }
       },
       maxCount: 4
-    ) { substring in
+    ) { substring, encounteredNonHexCharacter in
       guard substring.count == 4 else {
-        return .invalid
+        return encounteredNonHexCharacter ? .invalid : nil
       }
       guard let intValue = Int(substring, radix: 16) else {
         /// This shouldn't be possible because we only read hex characters
