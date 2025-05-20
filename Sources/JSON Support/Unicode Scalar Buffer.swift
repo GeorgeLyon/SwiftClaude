@@ -2,36 +2,43 @@ import Collections
 
 extension JSON {
 
-  public struct UnicodeScalarBuffer: Sendable, ~Copyable {
+  public struct Stream: Sendable, ~Copyable {
 
     public init() {
+      nextReadIndex = string.startIndex
     }
 
     public mutating func reset() {
-      assert(readScalarsRetainCount == 0)
-      readScalarsCount = 0
-      droppedScalarsCount = 0
-      scalars.removeAll(keepingCapacity: true)
+      assert(checkpointsCount == 0)
+      string.unicodeScalars.removeAll(keepingCapacity: true)
+      nextReadIndex = string.startIndex
+      isFinished = false
+    }
+
+    public private(set) var isFinished = false
+
+    public mutating func finish() {
+      assert(!isFinished)
+      isFinished = true
     }
 
     public mutating func push(_ fragment: String) {
-      scalars.append(contentsOf: fragment.unicodeScalars)
+      string.append(fragment)
     }
-
-    typealias SubSequence = String.UnicodeScalarView.SubSequence
 
     mutating func read(_ string: String) -> Bool? {
       let count = string.unicodeScalars.count
-      guard readableScalars.count >= count else {
-        if zip(string.unicodeScalars, readableScalars).allSatisfy(==) {
+      guard readableSubstring.count >= count else {
+        if zip(string, readableSubstring).allSatisfy(==) {
           /// The prefix matches, but the string is incomplete
           return nil
         } else {
           return false
         }
       }
-      if string == String(readableScalars.prefix(count)) {
-        didReadScalars(count: count)
+      let candidate = readableSubstring.prefix(count)
+      if string == candidate {
+        nextReadIndex = candidate.endIndex
         return true
       } else {
         /// If the string doesn't match entirely, we don't read any scalars
@@ -39,93 +46,91 @@ extension JSON {
       }
     }
 
-    mutating func readScalar() -> UnicodeScalar? {
-      guard
-        let scalar = readingScalars(
-          count: 1,
-          body: { scalars in
-            assert(scalars.count == 1)
-            return scalars.first!
-          }
-        )
-      else {
-        return nil
+    mutating func readCharacter() -> Character? {
+      read(count: 1) { substring in
+        assert(substring.count == 1)
+        return substring.first!
       }
-      return scalar
     }
 
-    mutating func readingScalars<T>(
+    mutating func read<T>(
       count: Int,
-      body: (SubSequence) throws -> T
+      _ body: (Substring) throws -> T
     ) rethrows -> T? {
-      let scalars = readableScalars
-      guard scalars.count >= count else {
+      let substring = readableSubstring.prefix(count)
+      guard substring.count == count else {
         return nil
       }
-
-      let result = try body(scalars.prefix(count))
-      didReadScalars(count: count)
+      let result = try body(substring)
+      nextReadIndex = substring.endIndex
       return result
     }
 
-    mutating func readingScalars<T>(
-      until stopCondition: (UnicodeScalar) -> Bool,
-      body: (SubSequence) throws -> T
+    mutating func read<T>(
+      until stopCondition: (Character) -> Bool,
+      _ body: (Substring) throws -> T
     ) rethrows -> T {
-      for index in readableScalars.indices {
-        if stopCondition(readableScalars[index]) {
-          let readScalars = readableScalars[..<index]
-          let result = try body(readScalars)
-          didReadScalars(count: readScalars.count)
+      let readableSubstring = readableSubstring
+      for index in readableSubstring.indices {
+        if stopCondition(readableSubstring[index]) {
+          let substring = readableSubstring[..<index]
+          let result = try body(substring[..<index])
+          nextReadIndex = substring.endIndex
           return result
         }
       }
-      let readScalars = readableScalars
-      let result = try body(readScalars)
-      didReadScalars(count: readScalars.count)
+      let result = try body(readableSubstring)
+      nextReadIndex = readableSubstring.endIndex
       return result
     }
 
-    mutating func readingScalars<T>(
-      while condition: (UnicodeScalar) -> Bool,
+    mutating func read<T>(
+      while condition: (Character) -> Bool,
       maxCount: Int,
-      body: (SubSequence) throws -> T
+      _ body: (Substring) throws -> T
     ) rethrows -> T? {
-      let readableScalars = readableScalars.prefix(maxCount)
-      for index in readableScalars.indices {
-        guard condition(readableScalars[index]) else {
-          let readScalars = readableScalars[..<index]
-          let result = try body(readScalars)
-          didReadScalars(count: readScalars.count)
+      let readableSubstring = readableSubstring.prefix(maxCount)
+      for index in readableSubstring.indices {
+        guard condition(readableSubstring[index]) else {
+          let substring = readableSubstring[..<index]
+          let result = try body(substring)
+          nextReadIndex = substring.endIndex
           return result
         }
       }
-      guard readableScalars.count == maxCount else {
-        /// If all scalars match the condition, but we didn't read enough, return `nil`
+      guard readableSubstring.count == maxCount else {
+        /// This is a prefix match, but the string is incomplete.
         return nil
       }
-      let readScalars = readableScalars
-      let result = try body(readScalars)
-      didReadScalars(count: readScalars.count)
+      let result = try body(readableSubstring)
+      nextReadIndex = readableSubstring.endIndex
       return result
+    }
+
+    var possiblyIncompleteIncomingGraphemeCluster: Character? {
+      if isFinished {
+        return nil
+      } else {
+        return string.last
+      }
     }
 
     mutating func readWhitespace() {
-      let whitespace =
-        readableScalars
-        .prefix { scalar in
-          switch scalar {
+      nextReadIndex =
+        readableSubstring
+        .prefix { character in
+          switch character {
           case " ", "\t", "\n", "\r":
             return true
           default:
             return false
           }
         }
-      didReadScalars(count: whitespace.count)
+        .endIndex
     }
 
     struct Checkpoint: ~Copyable {
-      fileprivate let offset: Int
+      fileprivate let index: String.Index
 
       consuming fileprivate func release() {
         discard self
@@ -136,25 +141,18 @@ extension JSON {
       }
     }
     mutating func createCheckpoint() -> Checkpoint {
-      readScalarsRetainCount += 1
-      return Checkpoint(offset: readScalarsCount)
+      checkpointsCount += 1
+      return Checkpoint(index: nextReadIndex)
     }
 
-    mutating func scalarsRead(
+    mutating func stringRead(
       since checkpoint: borrowing Checkpoint
-    ) -> String {
-      let startIndex = scalars.index(
-        scalars.startIndex,
-        offsetBy: checkpoint.offset - droppedScalarsCount
-      )
-      let readScalars = String(
-        String.UnicodeScalarView(scalars[startIndex..<nextReadIndex])
-      )
-      return readScalars
+    ) -> Substring {
+      string[checkpoint.index..<nextReadIndex]
     }
 
     mutating func restore(to checkpoint: consuming Checkpoint) {
-      readScalarsCount = checkpoint.offset
+      nextReadIndex = checkpoint.index
       release(checkpoint)
     }
 
@@ -162,43 +160,32 @@ extension JSON {
       release(checkpoint)
     }
 
-    private var readableScalars: SubSequence {
-      return scalars[nextReadIndex...]
-    }
-
     private mutating func release(_ checkpoint: consuming Checkpoint) {
       checkpoint.release()
-      readScalarsRetainCount -= 1
-      assert(readScalarsRetainCount >= 0)
-      if readScalarsRetainCount == 0 {
-        scalars.removeFirst(readScalarsCount - droppedScalarsCount)
-        droppedScalarsCount = readScalarsCount
+      checkpointsCount -= 1
+      assert(checkpointsCount >= 0)
+    }
+
+    private var readableSubstring: Substring {
+      if isFinished {
+        return string[nextReadIndex...]
+      } else {
+        /**
+         If the string is incomplete, the last character may be changed by subsequent unicode scalars.
+         For example, the incomplete string `fac` may become `facts` or `façade` depending on future unicode scalars; also, emojis can be modified by a `ZWJ`.
+         This can change the meaning of the string, and make `endIndex` invalid.
+         To solve this, we do not consider the last character readable until the stream is complete.
+         */
+        return string[nextReadIndex...].dropLast()
       }
     }
 
-    private mutating func didReadScalars(count: Int) {
-      readScalarsCount += count
-      if readScalarsRetainCount == 0 {
-        droppedScalarsCount += count
-        scalars.removeFirst(count)
-      }
-    }
+    /// We depend on `String.Index` not being invalidated when appending to the string.
+    /// This should be safe as long as we don't use `endIndex` (which could end up pointing to the middle of a grapheme cluster).
+    private var nextReadIndex: String.Index
 
-    private var nextReadIndex: String.UnicodeScalarView.Index {
-      scalars.index(
-        scalars.startIndex,
-        offsetBy: readScalarsCount - droppedScalarsCount
-      )
-    }
-
-    private var readScalarsCount = 0
-    private var readScalarsRetainCount = 0
-    private var droppedScalarsCount = 0
-    private var scalars: String.UnicodeScalarView {
-      get { string.unicodeScalars }
-      set { string.unicodeScalars = newValue }
-    }
     private var string = ""
+    private var checkpointsCount = 0
 
   }
 

@@ -6,161 +6,182 @@ extension JSON {
 
     }
 
-    public var stringValue: Substring {
-      if isComplete {
-        return possiblyIncompleteString[possiblyIncompleteString.startIndex...]
-      } else {
-        /// The last grapheme cluster in a string can be modified by subsequent unicode scalars.
-        /// If we have the string `fac` we can't know whether the string being streamed is `facts` or `façade`.
-        /// Emojis can also be modified by a `ZWJ`.
-        /// To avoid characters changing mid-stream, we drop the last character while streaming.
+    public mutating func reset() {
+      isComplete = false
+      lastCharacterMayBeModified = true
+      possiblyIncompleteString.unicodeScalars.removeAll(keepingCapacity: true)
+    }
+
+    /// The portion of the string that will not change
+    public var validSubstring: Substring {
+      /**
+         If the string is incomplete, the last character may be changed by subsequent unicode scalars.
+         For example, the incomplete string `fac` may become `facts` or `façade` depending on future unicode scalars; also, emojis can be modified by a `ZWJ`.
+         This can change the meaning of the string, and make `endIndex` invalid.
+         To solve this, we do not consider the last character readable until the stream is complete.
+         - note: We need to handle this _both_ when parsing the incoming JSON stream _and_ when returning the string value because the issue can manifest at either level. For strings, a `c` can be followed by `\u0327`, for example.
+         */
+      if lastCharacterMayBeModified {
         return possiblyIncompleteString.dropLast()
+      } else {
+        return Substring(possiblyIncompleteString)
       }
     }
 
     public fileprivate(set) var isComplete: Bool = false
-
-    public mutating func reset() {
-      possiblyIncompleteString.unicodeScalars.removeAll(keepingCapacity: true)
-      isComplete = false
-    }
-
     fileprivate var possiblyIncompleteString: String = ""
+    fileprivate var lastCharacterMayBeModified: Bool = true
 
   }
 
 }
 
-extension JSON.UnicodeScalarBuffer {
+extension JSON.Stream {
 
   /// Reads a string fragment into the buffer
   /// - Returns: `true` if the string is complete
   mutating func readStringFragment(
     into outputBuffer: inout JSON.StringBuffer,
+    in context: inout JSON.DecodingContext
   ) throws {
     assert(!outputBuffer.isComplete)
-    while true {
-      /// Read scalars until we reach a control character or the end of the string
-      readingScalars(
-        until: { byte in
-          switch UnicodeScalar(byte) {
-          case "\"", "\\":
-            return true
-          default:
-            return false
+    let fragment = context.efficientlyCollectStringFragments { fragments in
+      readingStream: while true {
+        /// Read scalars until we reach a control character or the end of the string
+        read(
+          until: { character in
+            switch character {
+            case "\"", "\\":
+              return true
+            default:
+              return false
+            }
           }
-        }
-      ) { scalars in
-        outputBuffer.possiblyIncompleteString.unicodeScalars.append(contentsOf: scalars)
-      }
-
-      let checkpoint = createCheckpoint()
-
-      switch readScalar() {
-      case .none:
-        /// We've reached the end of the buffer
-        discard(checkpoint)
-        return
-      case "\"":
-        /// We've reached the end of the string
-        discard(checkpoint)
-        outputBuffer.isComplete = true
-        return
-      case "\\":
-        /// This is an escape sequence
-        guard let nextScalar = readScalar() else {
-          restore(to: checkpoint)
-          return
+        ) { substring in
+          fragments.append(substring)
         }
 
-        switch nextScalar {
-        /// Unsupported characters
-        case "b", "f":
+        let checkpoint = createCheckpoint()
+
+        switch readCharacter() {
+        case .none:
+          /// We've reached the end of the buffer
           discard(checkpoint)
-          outputBuffer.possiblyIncompleteString.append("�")
-        /// Verbatim characters
-        case "\"", "\\", "/":
+          break readingStream
+        case "\"":
+          /// We've reached the end of the string
           discard(checkpoint)
-          outputBuffer.possiblyIncompleteString.unicodeScalars.append(nextScalar)
-        /// Escaped characters
-        case "n":
-          discard(checkpoint)
-          outputBuffer.possiblyIncompleteString.append("\n")
-        case "t":
-          discard(checkpoint)
-          outputBuffer.possiblyIncompleteString.append("\t")
-        case "r":
-          discard(checkpoint)
-          outputBuffer.possiblyIncompleteString.append("\r")
-        case "u":
-          guard let escapeSequence = readUnicodeEscapeSequence() else {
+          outputBuffer.isComplete = true
+          break readingStream
+        case "\\":
+          /// This is an escape sequence
+          guard let escapedCharacter = readCharacter() else {
             restore(to: checkpoint)
-            return
+            break readingStream
           }
 
-          switch escapeSequence {
-          case .scalar(let scalar):
+          switch escapedCharacter {
+          /// Unsupported characters
+          case "b", "f":
             discard(checkpoint)
-            outputBuffer.possiblyIncompleteString.unicodeScalars.append(scalar)
-          case .invalid, .lowSurrogate:
+            fragments.append("�")
+          /// Verbatim characters
+          case "\"":
             discard(checkpoint)
-            outputBuffer.possiblyIncompleteString.append("�")
-          case .highSurrogate(let highSurrogateValue):
-            guard let result = read("\\u") else {
+            fragments.append("\"")
+          case "\\":
+            discard(checkpoint)
+            fragments.append("\\")
+          case "/":
+            discard(checkpoint)
+            fragments.append("/")
+          /// Escaped characters
+          case "n":
+            discard(checkpoint)
+            fragments.append("\n")
+          case "t":
+            discard(checkpoint)
+            fragments.append("\t")
+          case "r":
+            discard(checkpoint)
+            fragments.append("\r")
+          case "u":
+            guard let escapeSequence = readUnicodeEscapeSequence() else {
               restore(to: checkpoint)
-              return
+              break readingStream
             }
 
-            guard result else {
+            switch escapeSequence {
+            case .encoded(let fragment):
               discard(checkpoint)
-              outputBuffer.possiblyIncompleteString.append("�")
-              continue
-            }
-
-            guard let lowSurrogateEscapeSequence = readUnicodeEscapeSequence() else {
-              restore(to: checkpoint)
-              return
-            }
-
-            discard(checkpoint)
-
-            switch lowSurrogateEscapeSequence {
-            case .scalar(let scalar):
-              outputBuffer.possiblyIncompleteString.append("�")
-              outputBuffer.possiblyIncompleteString.unicodeScalars.append(scalar)
-            case .invalid, .highSurrogate:
-              outputBuffer.possiblyIncompleteString.append("��")
-            case .lowSurrogate(let lowSurrogateValue):
-              guard
-                let scalar = UnicodeScalar(
-                  highSurrogateValue + lowSurrogateValue
-                )
-              else {
-                /// This shouldn't be possible, because all values that are created by a valid surrogate pair should result in a valid scalar.
-                assertionFailure()
-                outputBuffer.possiblyIncompleteString.append("�")
-                continue
+              fragments.append(fragment)
+            case .invalid, .lowSurrogate:
+              discard(checkpoint)
+              fragments.append("�")
+            case .highSurrogate(let highSurrogateValue):
+              guard let result = read("\\u") else {
+                restore(to: checkpoint)
+                break readingStream
               }
-              outputBuffer.possiblyIncompleteString.unicodeScalars.append(scalar)
 
+              guard result else {
+                discard(checkpoint)
+                fragments.append("�")
+                continue readingStream
+              }
+
+              guard let lowSurrogateEscapeSequence = readUnicodeEscapeSequence() else {
+                restore(to: checkpoint)
+                break readingStream
+              }
+
+              discard(checkpoint)
+
+              switch lowSurrogateEscapeSequence {
+              case .encoded(let fragment):
+                fragments.append("�")
+                fragments.append(fragment)
+              case .invalid, .highSurrogate:
+                fragments.append("��")
+              case .lowSurrogate(let lowSurrogateValue):
+                guard
+                  let scalar = UnicodeScalar(
+                    highSurrogateValue + lowSurrogateValue
+                  )
+                else {
+                  /// This shouldn't be possible, because all values that are created by a valid surrogate pair should result in a valid scalar.
+                  assertionFailure()
+                  fragments.append("�")
+                  continue readingStream
+                }
+                fragments.append(Substring(String(String.UnicodeScalarView([scalar]))))
+              }
             }
+          default:
+            /// This is an invalid escape sequence
+            discard(checkpoint)
+            fragments.append("�")
           }
-        default:
-          /// This is an invalid escape sequence
+        case let character?:
+          /// This shouldn't be possible, since this character should have been consumed by `readBytes(until:)`
+          assertionFailure()
           discard(checkpoint)
-          outputBuffer.possiblyIncompleteString.append("�")
+          fragments.append(Substring(String(character)))
         }
-      case let scalar?:
-        /// This shouldn't be possible, since this character should have been consumed by `readBytes(until:)`
-        assertionFailure()
-        discard(checkpoint)
-        outputBuffer.possiblyIncompleteString.unicodeScalars.append(scalar)
       }
     }
+
+    /**
+     The last character can only be modified if the next grapheme cluster is `\`, which may be the start of an escape sequence representing a modifier or a `ZWJ`.
+     `Stream` already handles buffering the last character in case it is modified by a subsequent non-escaped scalar in the stream.
+     */
+    outputBuffer.lastCharacterMayBeModified = possiblyIncompleteIncomingGraphemeCluster == "\\"
+
+    outputBuffer.possiblyIncompleteString.append(fragment)
   }
 
   private enum UnicodeEscapeSequence {
-    case scalar(UnicodeScalar)
+    case encoded(Substring)
 
     /// Details in Section 2 of https://www.ietf.org/rfc/rfc2781.txt
     case highSurrogate(Int)
@@ -169,7 +190,7 @@ extension JSON.UnicodeScalarBuffer {
     case invalid
   }
   private mutating func readUnicodeEscapeSequence() -> UnicodeEscapeSequence? {
-    readingScalars(
+    read(
       while: { scalar in
         switch scalar {
         case "0"..."9", "a"..."f", "A"..."F":
@@ -179,11 +200,11 @@ extension JSON.UnicodeScalarBuffer {
         }
       },
       maxCount: 4
-    ) { scalars in
-      guard scalars.count == 4 else {
+    ) { substring in
+      guard substring.count == 4 else {
         return .invalid
       }
-      guard let intValue = Int(String(String.UnicodeScalarView(scalars)), radix: 16) else {
+      guard let intValue = Int(substring, radix: 16) else {
         /// This shouldn't be possible because we only read hex characters
         assertionFailure()
         return .invalid
@@ -199,7 +220,7 @@ extension JSON.UnicodeScalarBuffer {
           assertionFailure()
           return .invalid
         }
-        return .scalar(scalar)
+        return .encoded(Substring(String(String.UnicodeScalarView([scalar]))))
       }
     }
   }

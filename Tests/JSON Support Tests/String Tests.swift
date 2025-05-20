@@ -7,295 +7,323 @@ import Testing
 private struct StringTests {
 
   @Test
-  func basicTests() async throws {
-    var scalarBuffer = JSON.UnicodeScalarBuffer()
+  func simpleTest() async throws {
+    var stream = JSON.Stream()
     var stringBuffer = JSON.StringBuffer()
+    var context = JSON.DecodingContext()
 
     /// Complete string
-    scalarBuffer.push(
+    stream.push(
       """
       Hello, World!"
       """
     )
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "Hello, World!")
-    scalarBuffer.reset()
+    stream.finish()
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "Hello, World!")
+    stream.reset()
     stringBuffer.reset()
 
     /// Partial string
-    scalarBuffer.push("Hello")
-    scalarBuffer.push(", ")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
+    stream.push("Hello")
+    stream.push(", ")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
     /// Trailing space is omitted because the last character can be modified by subsequent characters.
-    #expect(stringBuffer.stringValue == "Hello,")
-    scalarBuffer.push("World!")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
+    #expect(stringBuffer.validSubstring == "Hello,")
+    stream.push("World!")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
     /// Exclamation mark is omitted because the last character can be modified by subsequent characters, but the space after the comma is returned now.
-    #expect(stringBuffer.stringValue == "Hello, World")
-    scalarBuffer.push("\"")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "Hello, World!")
+    #expect(stringBuffer.validSubstring == "Hello, World")
+    stream.push("\"")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "Hello, World!")
+    /// `"` should be buffered because it may be modified
+    #expect(!stringBuffer.isComplete)
+    stream.finish()
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.isComplete)
   }
 
   @Test
   func emptyStringTest() async throws {
-    var scalarBuffer = JSON.UnicodeScalarBuffer()
+    var stream = JSON.Stream()
     var stringBuffer = JSON.StringBuffer()
+    var context = JSON.DecodingContext()
 
-    scalarBuffer.push("\"")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "")
+    stream.push("\"")
+    stream.finish()
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "")
+    #expect(stringBuffer.isComplete)
   }
 
   @Test
   func internationalCharactersTest() async throws {
-    var scalarBuffer = JSON.UnicodeScalarBuffer()
+    var stream = JSON.Stream()
     var stringBuffer = JSON.StringBuffer()
+    var context = JSON.DecodingContext()
 
     /// Non-ASCII UTF-8 characters
-    scalarBuffer.push("こんにちは世界\"")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "こんにちは世界")
+    stream.push("こんにちは世界\"")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "こんにちは世界")
 
-    scalarBuffer.reset()
+    stream.reset()
     stringBuffer.reset()
 
     /// Incremental non-ASCII parsing
-    scalarBuffer.push("こんに")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "こん")
-    scalarBuffer.push("ちは世界\"")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "こんにちは世界")
+    stream.push("こんに")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "こん")
+    stream.push("ちは世界\"")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "こんにちは世界")
   }
 
   @Test
   func basicEscapeSequencesTest() async throws {
-    var scalarBuffer = JSON.UnicodeScalarBuffer()
+    var stream = JSON.Stream()
     var stringBuffer = JSON.StringBuffer()
+    var context = JSON.DecodingContext()
 
     /// Double quote escape
-    scalarBuffer.push("\\\"\"")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "\"")
+    stream.push("\\\"\"")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "\"")
 
-    scalarBuffer.reset()
+    stream.reset()
     stringBuffer.reset()
 
     /// Backslash escape
-    scalarBuffer.push("\\\\\"")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "\\")
+    stream.push("\\\\\"")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "\\")
 
-    scalarBuffer.reset()
+    stream.reset()
     stringBuffer.reset()
 
     /// Forward slash escape
-    scalarBuffer.push("\\/\"")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "/")
+    stream.push("\\/\"")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "/")
   }
 
   @Test
   func controlCharactersTest() async throws {
-    var scalarBuffer = JSON.UnicodeScalarBuffer()
+    var stream = JSON.Stream()
     var stringBuffer = JSON.StringBuffer()
+    var context = JSON.DecodingContext()
 
     /// Newline
-    scalarBuffer.push("\\n\"")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "\n")
-    scalarBuffer.reset()
+    stream.push("\\n\"")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "\n")
+    stream.reset()
     stringBuffer.reset()
 
     /// Tab
-    scalarBuffer.push("\\t\"")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "\t")
-    scalarBuffer.reset()
+    stream.push("\\t\"")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "\t")
+    stream.reset()
     stringBuffer.reset()
 
     /// Carriage return
-    scalarBuffer.push("\\r\"")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "\r")
-    scalarBuffer.reset()
+    stream.push("\\r\"")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "\r")
+    stream.reset()
     stringBuffer.reset()
 
     /// Mixed control characters
-    scalarBuffer.push("Line 1\\nLine 2\\tTabbed\"")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "Line 1\nLine 2\tTabbed")
+    stream.push("Line 1\\nLine 2\\tTabbed\"")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "Line 1\nLine 2\tTabbed")
   }
 
   @Test
   func unsupportedEscapeCharactersTest() async throws {
-    var scalarBuffer = JSON.UnicodeScalarBuffer()
+    var stream = JSON.Stream()
     var stringBuffer = JSON.StringBuffer()
+    var context = JSON.DecodingContext()
 
     /// Unsupported \b
-    scalarBuffer.push("\\b\"")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "�")
-    scalarBuffer.reset()
+    stream.push("\\b\"")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "�")
+    stream.reset()
     stringBuffer.reset()
 
     /// Unsupported \f
-    scalarBuffer.push("\\f\"")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "�")
-    scalarBuffer.reset()
+    stream.push("\\f\"")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "�")
+    stream.reset()
     stringBuffer.reset()
   }
 
   @Test
   func invalidEscapeSequencesTest() async throws {
-    var scalarBuffer = JSON.UnicodeScalarBuffer()
+    var stream = JSON.Stream()
     var stringBuffer = JSON.StringBuffer()
+    var context = JSON.DecodingContext()
 
-    /// Invalid escape \z
-    scalarBuffer.push("\\z\"")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "�")
-    scalarBuffer.reset()
+    /// Invalid escape character
+    stream.push("\\z\"")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "�")
+    stream.reset()
+    stringBuffer.reset()
+
+    /// Modified escape character
+    stream.push("\\n\u{0301}\"")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "�")
+    stream.reset()
     stringBuffer.reset()
   }
 
   @Test
   func unicodeEscapeSequencesTest() async throws {
-    var scalarBuffer = JSON.UnicodeScalarBuffer()
+    var stream = JSON.Stream()
     var stringBuffer = JSON.StringBuffer()
+    var context = JSON.DecodingContext()
 
     /// Basic unicode escape
-    scalarBuffer.push("\\u0041\"")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "A")
-    scalarBuffer.reset()
+    stream.push("\\u0041\"")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "A")
+    stream.reset()
     stringBuffer.reset()
 
     /// Non-ASCII unicode escape
-    scalarBuffer.push("\\u00A9\"")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "©")
-    scalarBuffer.reset()
+    stream.push("\\u00A9\"")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "©")
+    stream.reset()
     stringBuffer.reset()
 
     /// Non-ASCII unicode escape (lowercase letters)
-    scalarBuffer.push("\\u00a9\"")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "©")
-    scalarBuffer.reset()
+    stream.push("\\u00a9\"")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "©")
+    stream.reset()
     stringBuffer.reset()
 
     /// Mixed regular and unicode-escaped characters
-    scalarBuffer.push("Copyright \\u00A9 2025\"")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "Copyright © 2025")
+    stream.push("Copyright \\u00A9 2025\"")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "Copyright © 2025")
   }
 
   @Test
   func invalidUnicodeEscapeSequencesTest() async throws {
-    var scalarBuffer = JSON.UnicodeScalarBuffer()
+    var stream = JSON.Stream()
     var stringBuffer = JSON.StringBuffer()
+    var context = JSON.DecodingContext()
 
     /// Non-hex characters
-    scalarBuffer.push("\\u0XYZ\"")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "�XYZ")
-    scalarBuffer.reset()
+    stream.push("\\u0XYZ\"")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "�XYZ")
+    stream.reset()
     stringBuffer.reset()
   }
 
   @Test
   func surrogatePairsTest() async throws {
-    var scalarBuffer = JSON.UnicodeScalarBuffer()
+    var stream = JSON.Stream()
     var stringBuffer = JSON.StringBuffer()
+    var context = JSON.DecodingContext()
 
     /// Valid surrogate pair for 😀 (U+1F600)
-    scalarBuffer.push("\\uD83D\\uDE00\"")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "😀")
-    scalarBuffer.reset()
+    stream.push("\\uD83D\\uDE00\"")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "😀")
+    stream.reset()
     stringBuffer.reset()
 
     /// Incremental surrogate pair parsing
-    scalarBuffer.push("\\uD83D")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "")  // Nothing to return yet
-    scalarBuffer.push("\\u")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "")  // Nothing to return yet
-    scalarBuffer.push("DE00\"")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "😀")
+    stream.push("\\uD83D")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "")  // Nothing to return yet
+    stream.push("\\u")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "")  // Nothing to return yet
+    stream.push("DE00\"")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "😀")
   }
 
   @Test
   func invalidSurrogatePairsTest() async throws {
-    var scalarBuffer = JSON.UnicodeScalarBuffer()
+    var stream = JSON.Stream()
     var stringBuffer = JSON.StringBuffer()
+    var context = JSON.DecodingContext()
 
     /// High surrogate followed by a scalar
-    scalarBuffer.push("\\uD83D\\u00A9\"")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "�©")  // Waiting on the low surrogate
-    scalarBuffer.reset()
+    stream.push("\\uD83D\\u00A9\"")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "�©")  // Waiting on the low surrogate
+    stream.reset()
     stringBuffer.reset()
 
     /// High surrogate followed by a high surrogate
-    scalarBuffer.push("\\uD83D\\uD83D\"")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "��")
-    scalarBuffer.reset()
+    stream.push("\\uD83D\\uD83D\"")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "��")
+    stream.reset()
     stringBuffer.reset()
 
     /// High surrogate without low surrogate
-    scalarBuffer.push("\\uD83D🥸\"")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "�🥸")
-    scalarBuffer.reset()
+    stream.push("\\uD83D🥸\"")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "�🥸")
+    stream.reset()
     stringBuffer.reset()
   }
 
   @Test
   func edgeCasesTest() async throws {
-    var scalarBuffer = JSON.UnicodeScalarBuffer()
+    var stream = JSON.Stream()
     var stringBuffer = JSON.StringBuffer()
+    var context = JSON.DecodingContext()
 
     /// Null character
-    scalarBuffer.push("\\u0000\"")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "\0")
-    scalarBuffer.reset()
+    stream.push("\\u0000\"")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "\0")
+    stream.reset()
     stringBuffer.reset()
 
     /// String with mixed escapes and regular characters
-    scalarBuffer.push("Hello\\tWorld\\nNew\\\"Line\\\\Path\"")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "Hello\tWorld\nNew\"Line\\Path")
+    stream.push("Hello\\tWorld\\nNew\\\"Line\\\\Path\"")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "Hello\tWorld\nNew\"Line\\Path")
   }
 
   @Test
   func incrementalParsingTest() async throws {
-    var scalarBuffer = JSON.UnicodeScalarBuffer()
+    var stream = JSON.Stream()
     var stringBuffer = JSON.StringBuffer()
+    var context = JSON.DecodingContext()
 
     /// String with escape sequence split
-    scalarBuffer.push("Test\\")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "Tes")  // 't' gets dropped as it could be modified
-    scalarBuffer.push("n more text\"")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "Test\n more text")
-    scalarBuffer.reset()
+    stream.push("fac\\")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "fa")  // 'c' gets dropped as it could be modified
+    stream.push("u0327ade\"")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "façade")
+    stream.reset()
     stringBuffer.reset()
 
     /// Unicode escape split across buffers
-    scalarBuffer.push("\\u00")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "")  // Nothing complete yet
-    scalarBuffer.push("A9 copyright\"")
-    try scalarBuffer.readStringFragment(into: &stringBuffer)
-    #expect(stringBuffer.stringValue == "© copyright")
+    stream.push("\\u00")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "")  // Nothing complete yet
+    stream.push("A9 copyright\"")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "© copyright")
   }
 }
