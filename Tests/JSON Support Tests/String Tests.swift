@@ -326,4 +326,24 @@ private struct StringTests {
     try stream.readStringFragment(into: &stringBuffer, in: &context)
     #expect(stringBuffer.validSubstring == "© copyright")
   }
+  
+  @Test
+  func completelyPathalogicalTest() async throws {
+    var stream = JSON.Stream()
+    var stringBuffer = JSON.StringBuffer()
+    var context = JSON.DecodingContext()
+
+    /// String with escape sequence split
+    stream.push("\"")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "")
+    stream.push("\u{0327}")
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "")
+    stream.finish()
+    try stream.readStringFragment(into: &stringBuffer, in: &context)
+    #expect(stringBuffer.validSubstring == "\"" + "\u{0327}")
+    stream.reset()
+    stringBuffer.reset()
+  }
 }
