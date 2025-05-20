@@ -18,7 +18,7 @@ extension JSON {
       scalars.append(contentsOf: fragment.unicodeScalars)
     }
 
-    typealias SubSequence = Slice<Deque<UnicodeScalar>>
+    typealias SubSequence = String.UnicodeScalarView.SubSequence
 
     mutating func readScalar() -> UnicodeScalar? {
       guard
@@ -165,17 +165,21 @@ extension JSON {
       }
     }
 
-    private var nextReadIndex: SubSequence.Index {
+    private var nextReadIndex: String.UnicodeScalarView.Index {
       scalars.index(
         scalars.startIndex,
         offsetBy: readScalarsCount - droppedScalarsCount
       )
     }
 
-    private var droppedScalarsCount = 0
     private var readScalarsCount = 0
     private var readScalarsRetainCount = 0
-    private var scalars = Deque<UnicodeScalar>()
+    private var droppedScalarsCount = 0
+    private var scalars: String.UnicodeScalarView {
+      get { string.unicodeScalars }
+      set { string.unicodeScalars = newValue }
+    }
+    private var string = ""
 
   }
 
