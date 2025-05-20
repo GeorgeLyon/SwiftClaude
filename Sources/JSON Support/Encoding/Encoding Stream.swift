@@ -18,7 +18,7 @@ extension JSON {
       string.append(contentsOf: rawString)
     }
 
-    private var string: String = ""
+    internal private(set) var string: String = ""
 
   }
 

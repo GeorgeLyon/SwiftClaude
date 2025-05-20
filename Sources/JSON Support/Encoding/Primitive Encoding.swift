@@ -45,7 +45,7 @@ extension JSON.EncodingStream {
       options: .fragmentsAllowed
     )
     let string = String(data: data, encoding: .utf8)!
-    write(string.dropLast())
+    write(string)
   }
 
 }

@@ -19,6 +19,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Use Swift's type system features including generics and protocols
 - Use Swift Testing framework with `@Suite`, `@Test` annotations
 - Use `#expect` for assertions in tests
+- Do not use `XCTest`
 - Prefer optional chaining and conditional unwrapping over force unwrapping
 - Use throwing functions for error handling
 - Don't use `print` statements in tests
@@ -28,5 +29,5 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - While comments are useful (particularly for complex code), try to make what is happening apparent from the code through things like explicit naming.
 
 ## Requirements
-- Run `swift-format` after making changes to the code.
+- Run `swift format` after making changes to the code.
 - Build the project and make sure any compiler warnings are addressed.

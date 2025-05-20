@@ -5,7 +5,9 @@ extension JSON {
     public mutating func encodeElement(
       _ encodeValue: (inout EncodingStream) -> Void
     ) {
-      if !isFirstElement {
+      if isFirstElement {
+        isFirstElement = false
+      } else {
         stream.write(",")
       }
       encodeValue(&stream)

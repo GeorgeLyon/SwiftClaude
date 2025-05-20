@@ -6,6 +6,12 @@ extension JSON {
       name: String,
       encodeValue: (inout EncodingStream) -> Void
     ) {
+      if isFirstProperty {
+        isFirstProperty = false
+      } else {
+        stream.write(",")
+      }
+
       stream.encode(name)
       stream.write(":")
       encodeValue(&stream)
@@ -20,6 +26,7 @@ extension JSON {
       return stream
     }
 
+    private var isFirstProperty = true
     private var stream: EncodingStream
 
   }
