@@ -21,7 +21,7 @@ extension JSON {
          To solve this, we do not consider the last character readable until the stream is complete.
          - note: We need to handle this _both_ when parsing the incoming JSON stream _and_ when returning the string value because the issue can manifest at either level. For strings, a `c` can be followed by `\u0327`, for example.
          */
-      if lastCharacterMayBeModified {
+      if !isComplete, lastCharacterMayBeModified {
         return possiblyIncompleteString.dropLast()
       } else {
         return Substring(possiblyIncompleteString)
