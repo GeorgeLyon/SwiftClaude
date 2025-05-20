@@ -20,6 +20,20 @@ extension JSON {
 
     typealias SubSequence = String.UnicodeScalarView.SubSequence
 
+    mutating func read(_ string: String) -> Bool? {
+      let count = string.unicodeScalars.count
+      guard readableScalars.count >= count else {
+        return nil
+      }
+      if string == String(readableScalars.prefix(count)) {
+        didReadScalars(count: count)
+        return true
+      } else {
+        /// If the string doesn't match entirely, we don't read any scalars
+        return false
+      }
+    }
+
     mutating func readScalar() -> UnicodeScalar? {
       guard
         let scalar = readingScalars(
@@ -82,7 +96,7 @@ extension JSON {
         }
       }
       guard readableScalars.count == maxCount else {
-        /// If all scalars match the condition, but we didn't read enough, return nil
+        /// If all scalars match the condition, but we didn't read enough, return `nil`
         return nil
       }
       let readScalars = readableScalars

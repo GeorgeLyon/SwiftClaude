@@ -75,7 +75,7 @@ extension JSON.UnicodeScalarBuffer {
 
         switch nextScalar {
         /// Unsupported characters
-        case "b", "r", "f":
+        case "b", "f":
           discard(checkpoint)
           outputBuffer.possiblyIncompleteString.append("�")
         /// Verbatim characters
@@ -89,6 +89,9 @@ extension JSON.UnicodeScalarBuffer {
         case "t":
           discard(checkpoint)
           outputBuffer.possiblyIncompleteString.append("\t")
+        case "r":
+          discard(checkpoint)
+          outputBuffer.possiblyIncompleteString.append("\r")
         case "u":
           guard let escapeSequence = readUnicodeEscapeSequence() else {
             restore(to: checkpoint)
@@ -103,6 +106,17 @@ extension JSON.UnicodeScalarBuffer {
             discard(checkpoint)
             outputBuffer.possiblyIncompleteString.append("�")
           case .highSurrogate(let highSurrogateValue):
+            guard let result = read("\\u") else {
+              restore(to: checkpoint)
+              return
+            }
+
+            guard result else {
+              discard(checkpoint)
+              outputBuffer.possiblyIncompleteString.append("�")
+              return
+            }
+
             guard let lowSurrogateEscapeSequence = readUnicodeEscapeSequence() else {
               restore(to: checkpoint)
               return
