@@ -13,7 +13,7 @@ private struct StringTests {
       var stream = JSON.DecodingStream()
       stream.push("\"Hello, World!\"")
       stream.finish()
-      
+
       var decoder = stream.decodeString()
       try decoder.withDecodedFragments {
         #expect($0 == ["Hello, World!"])
@@ -26,19 +26,19 @@ private struct StringTests {
     do {
       var stream = JSON.DecodingStream()
       stream.push("\"Hello, ")
-      
+
       var decoder = stream.decodeString()
       /// Trailing space is omitted because the last character can be modified by subsequent characters.
       try decoder.withDecodedFragments {
         #expect($0 == ["Hello,"])
       }
-      
+
       decoder.stream.push("World!")
       /// Exclamation mark is omitted because the last character can be modified by subsequent characters, but the space after the comma is returned now.
       try decoder.withDecodedFragments {
         #expect($0 == [" World"])
       }
-      
+
       decoder.stream.push("\"")
       try decoder.withDecodedFragments {
         #expect($0 == ["!"])
@@ -52,20 +52,23 @@ private struct StringTests {
     }
   }
 
-  /*
-    @Test
-    func emptyStringTest() async throws {
+  @Test
+  func emptyStringTest() async throws {
+    do {
       var stream = JSON.DecodingStream()
-      var stringBuffer = JSON.StringBuffer()
-      var context = JSON.DecodingContext()
-  
-      stream.push("\"")
+      stream.push("\"\"")
       stream.finish()
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "")
-      #expect(stringBuffer.isComplete)
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == [""])
+      }
+      let isComplete = decoder.isComplete
+      #expect(isComplete)
     }
-  
+  }
+
+  /*
     @Test
     func internationalCharactersTest() async throws {
       var stream = JSON.DecodingStream()
