@@ -12,14 +12,13 @@ private struct StringTests {
     do {
       var stream = JSON.DecodingStream()
       stream.push("\"Hello, World!\"")
-      stream.finish()
 
       var decoder = stream.decodeString()
       try decoder.withDecodedFragments {
         #expect($0 == ["Hello, World!"])
       }
       let isComplete = decoder.isComplete
-      #expect(isComplete)
+      #expect(!isComplete)
     }
 
     /// Partial read
@@ -43,12 +42,8 @@ private struct StringTests {
       try decoder.withDecodedFragments {
         #expect($0 == ["!"])
       }
-      var isComplete = decoder.isComplete
+      let isComplete = decoder.isComplete
       #expect(!isComplete)
-      decoder.stream.finish()
-      try decoder.decodeFragments { _ in }
-      isComplete = decoder.isComplete
-      #expect(isComplete)
     }
   }
 
@@ -57,308 +52,447 @@ private struct StringTests {
     do {
       var stream = JSON.DecodingStream()
       stream.push("\"\"")
-      stream.finish()
 
       var decoder = stream.decodeString()
       try decoder.withDecodedFragments {
         #expect($0 == [""])
       }
       let isComplete = decoder.isComplete
-      #expect(isComplete)
+      #expect(!isComplete)
     }
   }
 
-  /*
-    @Test
-    func internationalCharactersTest() async throws {
+  @Test
+  func internationalCharactersTest() async throws {
+    /// Non-ASCII UTF-8 characters
+    do {
       var stream = JSON.DecodingStream()
-      var stringBuffer = JSON.StringBuffer()
-      var context = JSON.DecodingContext()
-  
-      /// Non-ASCII UTF-8 characters
-      stream.push("こんにちは世界\"")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "こんにちは世界")
-  
-      stream.reset()
-      stringBuffer.reset()
-  
-      /// Incremental non-ASCII parsing
-      stream.push("こんに")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "こん")
-      stream.push("ちは世界\"")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "こんにちは世界")
+      stream.push("\"こんにちは世界\"")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == ["こんにちは世界"])
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
     }
-  
-    @Test
-    func basicEscapeSequencesTest() async throws {
+
+    /// Incremental non-ASCII parsing
+    do {
       var stream = JSON.DecodingStream()
-      var stringBuffer = JSON.StringBuffer()
-      var context = JSON.DecodingContext()
-  
-      /// Double quote escape
-      stream.push("\\\"\"")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "\"")
-  
-      stream.reset()
-      stringBuffer.reset()
-  
-      /// Backslash escape
-      stream.push("\\\\\"")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "\\")
-  
-      stream.reset()
-      stringBuffer.reset()
-  
-      /// Forward slash escape
-      stream.push("\\/\"")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "/")
+      stream.push("\"こんに")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == ["こん"])
+      }
+
+      decoder.stream.push("ちは世界\"")
+      try decoder.withDecodedFragments {
+        #expect($0 == ["にちは世界"])
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
     }
-  
-    @Test
-    func controlCharactersTest() async throws {
+  }
+
+  @Test
+  func basicEscapeSequencesTest() async throws {
+    /// Double quote escape
+    do {
       var stream = JSON.DecodingStream()
-      var stringBuffer = JSON.StringBuffer()
-      var context = JSON.DecodingContext()
-  
-      /// Newline
-      stream.push("\\n\"")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "\n")
-      stream.reset()
-      stringBuffer.reset()
-  
-      /// Tab
-      stream.push("\\t\"")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "\t")
-      stream.reset()
-      stringBuffer.reset()
-  
-      /// Carriage return
-      stream.push("\\r\"")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "\r")
-      stream.reset()
-      stringBuffer.reset()
-  
-      /// Mixed control characters
-      stream.push("Line 1\\nLine 2\\tTabbed\"")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "Line 1\nLine 2\tTabbed")
+      stream.push("\"\\\"\"")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == ["\""])
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
     }
-  
-    @Test
-    func unsupportedEscapeCharactersTest() async throws {
+
+    /// Backslash escape
+    do {
       var stream = JSON.DecodingStream()
-      var stringBuffer = JSON.StringBuffer()
-      var context = JSON.DecodingContext()
-  
-      /// Unsupported \b
-      stream.push("\\b\"")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "�")
-      stream.reset()
-      stringBuffer.reset()
-  
-      /// Unsupported \f
-      stream.push("\\f\"")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "�")
-      stream.reset()
-      stringBuffer.reset()
+      stream.push("\"\\\\\"")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == ["\\"])
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
     }
-  
-    @Test
-    func invalidEscapeSequencesTest() async throws {
+
+    /// Forward slash escape
+    do {
       var stream = JSON.DecodingStream()
-      var stringBuffer = JSON.StringBuffer()
-      var context = JSON.DecodingContext()
-  
-      /// Invalid escape character
-      stream.push("\\z\"")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "�")
-      stream.reset()
-      stringBuffer.reset()
-  
-      /// Modified escape character
-      stream.push("\\n\u{0301}\"")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "�")
-      stream.reset()
-      stringBuffer.reset()
+      stream.push("\"\\/\"")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == ["/"])
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
     }
-  
-    @Test
-    func unicodeEscapeSequencesTest() async throws {
+  }
+
+  @Test
+  func controlCharactersTest() async throws {
+    /// Newline
+    do {
       var stream = JSON.DecodingStream()
-      var stringBuffer = JSON.StringBuffer()
-      var context = JSON.DecodingContext()
-  
-      /// Basic unicode escape
-      stream.push("\\u0041\"")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "A")
-      stream.reset()
-      stringBuffer.reset()
-  
-      /// Non-ASCII unicode escape
-      stream.push("\\u00A9\"")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "©")
-      stream.reset()
-      stringBuffer.reset()
-  
-      /// Non-ASCII unicode escape (lowercase letters)
-      stream.push("\\u00a9\"")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "©")
-      stream.reset()
-      stringBuffer.reset()
-  
-      /// Mixed regular and unicode-escaped characters
-      stream.push("Copyright \\u00A9 2025\"")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "Copyright © 2025")
+      stream.push("\"\\n\"")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == ["\n"])
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
     }
-  
-    @Test
-    func invalidUnicodeEscapeSequencesTest() async throws {
+
+    /// Tab
+    do {
       var stream = JSON.DecodingStream()
-      var stringBuffer = JSON.StringBuffer()
-      var context = JSON.DecodingContext()
-  
-      /// Non-hex characters
-      stream.push("\\u0XYZ\"")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "�XYZ")
-      stream.reset()
-      stringBuffer.reset()
+      stream.push("\"\\t\"")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == ["\t"])
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
     }
-  
-    @Test
-    func surrogatePairsTest() async throws {
+
+    /// Carriage return
+    do {
       var stream = JSON.DecodingStream()
-      var stringBuffer = JSON.StringBuffer()
-      var context = JSON.DecodingContext()
-  
-      /// Valid surrogate pair for 😀 (U+1F600)
-      stream.push("\\uD83D\\uDE00\"")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "😀")
-      stream.reset()
-      stringBuffer.reset()
-  
-      /// Incremental surrogate pair parsing
-      stream.push("\\uD83D")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "")  // Nothing to return yet
-      stream.push("\\u")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "")  // Nothing to return yet
-      stream.push("DE00\"")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "😀")
+      stream.push("\"\\r\"")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == ["\r"])
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
     }
-  
-    @Test
-    func invalidSurrogatePairsTest() async throws {
+
+    /// Mixed control characters
+    do {
       var stream = JSON.DecodingStream()
-      var stringBuffer = JSON.StringBuffer()
-      var context = JSON.DecodingContext()
-  
-      /// High surrogate followed by a scalar
-      stream.push("\\uD83D\\u00A9\"")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "�©")  // Waiting on the low surrogate
-      stream.reset()
-      stringBuffer.reset()
-  
-      /// High surrogate followed by a high surrogate
-      stream.push("\\uD83D\\uD83D\"")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "��")
-      stream.reset()
-      stringBuffer.reset()
-  
-      /// High surrogate without low surrogate
-      stream.push("\\uD83D🥸\"")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "�🥸")
-      stream.reset()
-      stringBuffer.reset()
+      stream.push("\"Line 1\\nLine 2\\tTabbed\"")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == ["Line 1\nLine 2\tTabbed"])
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
     }
-  
-    @Test
-    func edgeCasesTest() async throws {
+  }
+
+  @Test
+  func unsupportedEscapeCharactersTest() async throws {
+    /// Unsupported \b
+    do {
       var stream = JSON.DecodingStream()
-      var stringBuffer = JSON.StringBuffer()
-      var context = JSON.DecodingContext()
-  
-      /// Null character
-      stream.push("\\u0000\"")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "\0")
-      stream.reset()
-      stringBuffer.reset()
-  
-      /// String with mixed escapes and regular characters
-      stream.push("Hello\\tWorld\\nNew\\\"Line\\\\Path\"")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "Hello\tWorld\nNew\"Line\\Path")
+      stream.push("\"\\b\"")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == ["�"])
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
     }
-  
-    @Test
-    func incrementalParsingTest() async throws {
+
+    /// Unsupported \f
+    do {
       var stream = JSON.DecodingStream()
-      var stringBuffer = JSON.StringBuffer()
-      var context = JSON.DecodingContext()
-  
-      /// String with escape sequence split
-      stream.push("fac\\")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "fa")  // 'c' gets dropped as it could be modified
-      stream.push("u0327ade\"")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "façade")
-      stream.reset()
-      stringBuffer.reset()
-  
-      /// Unicode escape split across buffers
-      stream.push("\\u00")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "")  // Nothing complete yet
-      stream.push("A9 copyright\"")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "© copyright")
+      stream.push("\"\\f\"")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == ["�"])
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
     }
-  
-    @Test
-    func completelyPathalogicalTest() async throws {
+  }
+
+  @Test
+  func invalidEscapeSequencesTest() async throws {
+    /// Invalid escape character
+    do {
       var stream = JSON.DecodingStream()
-      var stringBuffer = JSON.StringBuffer()
-      var context = JSON.DecodingContext()
-  
-      /// String with escape sequence split
-      stream.push("\"")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "")
-      stream.push("\u{0327}")
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "")
-      stream.finish()
-      try stream.readStringFragment(into: &stringBuffer, in: &context)
-      #expect(stringBuffer.validSubstring == "\"" + "\u{0327}")
-      stream.reset()
-      stringBuffer.reset()
+      stream.push("\"\\z\"")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == ["�"])
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
     }
-    */
+
+    /// Modified escape character
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\"\\n\u{0301}\"")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == ["�"])
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
+    }
+  }
+
+  @Test
+  func unicodeEscapeSequencesTest() async throws {
+    /// Basic unicode escape
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\"\\u0041\"")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == ["A"])
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
+    }
+
+    /// Non-ASCII unicode escape
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\"\\u00A9\"")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == ["©"])
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
+    }
+
+    /// Non-ASCII unicode escape (lowercase letters)
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\"\\u00a9\"")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == ["©"])
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
+    }
+
+    /// Mixed regular and unicode-escaped characters
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\"Copyright \\u00A9 2025\"")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == ["Copyright © 2025"])
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
+    }
+  }
+
+  @Test
+  func invalidUnicodeEscapeSequencesTest() async throws {
+    /// Non-hex characters
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\"\\u0XYZ\"")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == ["�XYZ"])
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
+    }
+  }
+
+  @Test
+  func surrogatePairsTest() async throws {
+    /// Valid surrogate pair for 😀 (U+1F600)
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\"\\uD83D\\uDE00\"")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == ["😀"])
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
+    }
+
+    /// Incremental surrogate pair parsing
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\"\\uD83D")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == [""])  // Empty string is returned instead of empty array
+      }
+
+      decoder.stream.push("\\u")
+      try decoder.withDecodedFragments {
+        #expect($0 == [""])  // Empty string is returned instead of empty array
+      }
+
+      decoder.stream.push("DE00\"")
+      try decoder.withDecodedFragments {
+        #expect($0 == ["😀"])
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
+    }
+  }
+
+  @Test
+  func invalidSurrogatePairsTest() async throws {
+    /// High surrogate followed by a scalar
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\"\\uD83D\\u00A9\"")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == ["�©"])  // Waiting on the low surrogate
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
+    }
+
+    /// High surrogate followed by a high surrogate
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\"\\uD83D\\uD83D\"")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == ["��"])
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
+    }
+
+    /// High surrogate without low surrogate
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\"\\uD83D🥸\"")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == ["�🥸"])
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
+    }
+  }
+
+  @Test
+  func edgeCasesTest() async throws {
+    /// Null character
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\"\\u0000\"")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == ["\0"])
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
+    }
+
+    /// String with mixed escapes and regular characters
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\"Hello\\tWorld\\nNew\\\"Line\\\\Path\"")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == ["Hello\tWorld\nNew\"Line\\Path"])
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
+    }
+  }
+
+  @Test
+  func incrementalParsingTest() async throws {
+    /// String with escape sequence split
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\"fac\\")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == ["fa"])  // 'c' gets dropped as it could be modified
+      }
+
+      decoder.stream.push("u0327ade\"")
+      try decoder.withDecodedFragments {
+        #expect($0 == ["çade"])
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
+    }
+
+    /// Unicode escape split across buffers
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\"\\u00")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == [""])  // Empty string is returned instead of empty array
+      }
+
+      decoder.stream.push("A9 copyright\"")
+      try decoder.withDecodedFragments {
+        #expect($0 == ["© copyright"])
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
+    }
+  }
+
+  @Test
+  func completelyPathalogicalTest() async throws {
+    /// String with escape sequence split
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\"\"")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == [""])
+      }
+
+      decoder.stream.push("\u{0327}")
+      decoder.stream.finish()
+      try decoder.withDecodedFragments {
+        #expect($0 == ["\"" + "\u{0327}"])
+      }
+
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
+    }
+  }
 }
 
 // MARK: - Support
