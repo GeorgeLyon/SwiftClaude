@@ -27,9 +27,12 @@ extension JSON {
       string.append(fragment)
     }
 
-    /// - Returns: `true` if the string was read, `false` if the string may be read after more data is pushed.
-    /// - Throws: If it is impossible to read `string` at this position in the stream
-    mutating func read(_ string: String) throws -> Bool {
+    enum ReadStringResult {
+      case read
+      case needMoreData
+      case notFound(Swift.Error)
+    }
+    mutating func read(_ string: String) -> ReadStringResult {
       let candidate = readableSubstring.prefix(string.count)
       let mismatch =
         zip(
@@ -38,18 +41,20 @@ extension JSON {
         )
         .first(where: { $0.1.0 != $0.1.1 })
       if let mismatch {
-        throw Error.unexpectedCharacter(
-          expected: mismatch.1.0,
-          observed: mismatch.1.1,
-          at: mismatch.0.1
+        return .notFound(
+          Error.unexpectedCharacter(
+            expected: mismatch.1.0,
+            observed: mismatch.1.1,
+            at: mismatch.0.1
+          )
         )
       }
       if candidate.count == string.count {
         nextReadIndex = candidate.endIndex
-        return true
+        return .read
       } else {
         /// The prefix matches, but the string is incomplete
-        return false
+        return .needMoreData
       }
     }
 

@@ -3,7 +3,7 @@ extension JSON.DecodingStream {
   consuming func decodeString() -> JSON.StringDecoder {
     JSON.StringDecoder(stream: self)
   }
-  
+
 }
 
 extension JSON {
@@ -33,26 +33,26 @@ extension JSON {
         } else {
           trailingCharacter = nil
         }
-        
+
         try processFragment(fragment)
       }
     }
 
     public private(set) var isComplete = false
-    
+
     public consuming func finish() throws -> JSON.DecodingStream {
       /// Read any remaining fragments
       _ = try readFragments()
-      
+
       guard isComplete else {
         throw Error.incompleteString
       }
-      
+
       return stream
     }
 
     public var stream: JSON.DecodingStream
-    
+
     private var trailingCharacter: Character?
     private var readOpenQuote = false
 
@@ -70,10 +70,14 @@ extension JSON.StringDecoder {
     }
 
     if !readOpenQuote {
-      guard try stream.read("\"") else {
+      switch stream.read("\"") {
+      case .read:
+        readOpenQuote = true
+      case .needMoreData:
         return []
+      case .notFound(let error):
+        throw error
       }
-      readOpenQuote = true
     }
 
     var fragments: [Substring] = []
@@ -152,12 +156,13 @@ extension JSON.StringDecoder {
             stream.discard(checkpoint)
             fragments.append("�")
           case .highSurrogate(let highSurrogateValue):
-            do {
-              guard try stream.read("\\u") else {
-                stream.restore(to: checkpoint)
-                break readingStream
-              }
-            } catch {
+            switch stream.read("\\u") {
+            case .read:
+              break
+            case .needMoreData:
+              stream.restore(to: checkpoint)
+              break readingStream
+            case .notFound:
               /// The high surrogate was not followed by a unicode escape sequence
               stream.discard(checkpoint)
               fragments.append("�")

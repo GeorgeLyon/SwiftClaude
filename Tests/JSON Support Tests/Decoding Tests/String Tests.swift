@@ -3,7 +3,7 @@ import Testing
 
 @testable import JSONSupport
 
-@Suite
+@Suite("String Tests")
 private struct StringTests {
 
   @Test
