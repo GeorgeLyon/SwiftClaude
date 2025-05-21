@@ -23,25 +23,32 @@ extension JSON {
     }
 
     public mutating func push(_ fragment: String) {
+      assert(!isFinished)
       string.append(fragment)
     }
 
-    mutating func read(_ string: String) -> Bool? {
-      let count = string.unicodeScalars.count
-      guard readableSubstring.count >= count else {
-        if zip(string, readableSubstring).allSatisfy(==) {
-          /// The prefix matches, but the string is incomplete
-          return nil
-        } else {
-          return false
-        }
+    /// - Returns: `true` if the string was read, `false` if the string may be read after more data is pushed.
+    /// - Throws: If it is impossible to read `string` at this position in the stream
+    mutating func read(_ string: String) throws -> Bool {
+      let candidate = readableSubstring.prefix(string.count)
+      let mismatch =
+        zip(
+          zip(string.indices, candidate.indices),
+          zip(string, candidate)
+        )
+        .first(where: { $0.1.0 != $0.1.1 })
+      if let mismatch {
+        throw Error.unexpectedCharacter(
+          expected: mismatch.1.0,
+          observed: mismatch.1.1,
+          at: mismatch.0.1
+        )
       }
-      let candidate = readableSubstring.prefix(count)
-      if string == candidate {
+      if candidate.count == string.count {
         nextReadIndex = candidate.endIndex
         return true
       } else {
-        /// If the string doesn't match entirely, we don't read any scalars
+        /// The prefix matches, but the string is incomplete
         return false
       }
     }
@@ -193,6 +200,10 @@ extension JSON {
     private var string = ""
     private var checkpointsCount = 0
 
+  }
+
+  private enum Error: Swift.Error {
+    case unexpectedCharacter(expected: Character, observed: Character, at: String.Index)
   }
 
 }
