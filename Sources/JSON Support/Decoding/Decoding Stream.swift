@@ -35,6 +35,19 @@ extension JSON {
       return character
     }
 
+    mutating func peekCharacter<T>(
+      _ body: (Character) throws -> T?
+    ) throws -> T? {
+      let readableSubstring = readableSubstring
+      guard let character = readableSubstring.first else {
+        return nil
+      }
+      guard let result = try body(character) else {
+        throw Error.unexpectedCharacter(at: nextReadIndex)
+      }
+      return result
+    }
+
     enum ReadResult<T> {
       case matched(T)
       case continuableMatch
