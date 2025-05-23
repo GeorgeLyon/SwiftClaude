@@ -76,11 +76,37 @@ extension JSON {
       fileprivate let range: ClosedRange<Character>
     }
 
+    mutating func read(
+      whileCharactersIn acceptedCharacters: CharacterCondition...,
+      minCount: Int? = nil,
+      maxCount: Int? = nil
+    ) -> ReadResult<Void> {
+      self.read(
+        while: { acceptedCharacters.accepts($0) },
+        minCount: minCount,
+        maxCount: maxCount,
+        process: { _ in }
+      )
+    }
+
+    mutating func read(
+      untilCharacterIn terminationCharacters: CharacterCondition...,
+      minCount: Int? = nil,
+      maxCount: Int? = nil
+    ) -> ReadResult<Void> {
+      self.read(
+        while: { !terminationCharacters.accepts($0) },
+        minCount: minCount,
+        maxCount: maxCount,
+        process: { _ in }
+      )
+    }
+
     mutating func read<T>(
       whileCharactersIn acceptedCharacters: CharacterCondition...,
       minCount: Int? = nil,
       maxCount: Int? = nil,
-      process: (Substring) throws -> T = { _ in }
+      process: (Substring) throws -> T
     ) rethrows -> ReadResult<T> {
       try self.read(
         while: { acceptedCharacters.accepts($0) },
@@ -94,7 +120,7 @@ extension JSON {
       untilCharacterIn terminationCharacters: CharacterCondition...,
       minCount: Int? = nil,
       maxCount: Int? = nil,
-      process: (Substring) throws -> T = { _ in }
+      process: (Substring) throws -> T
     ) rethrows -> ReadResult<T> {
       try self.read(
         while: { !terminationCharacters.accepts($0) },
