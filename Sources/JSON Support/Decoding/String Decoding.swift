@@ -70,6 +70,7 @@ extension JSON.StringDecoder {
     }
 
     if !readOpenQuote {
+      stream.readWhitespace()
       switch stream.read("\"") {
       case .matched:
         readOpenQuote = true

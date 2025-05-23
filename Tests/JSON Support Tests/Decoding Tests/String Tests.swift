@@ -506,6 +506,92 @@ private struct StringTests {
       #expect(!isComplete)
     }
   }
+
+  @Test
+  func whitespaceBeforeOpeningQuoteTest() async throws {
+    /// Single space before opening quote
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push(" \"Hello\"")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == ["Hello"])
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
+    }
+
+    /// Multiple spaces before opening quote
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("   \"World\"")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == ["World"])
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
+    }
+
+    /// Tab before opening quote
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\t\"Tab\"")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == ["Tab"])
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
+    }
+
+    /// Newline before opening quote
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\n\"Newline\"")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == ["Newline"])
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
+    }
+
+    /// Mixed whitespace before opening quote
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push(" \t\n\"Mixed\"")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == ["Mixed"])
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
+    }
+
+    /// Incremental whitespace parsing
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("  ")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == [""])
+      }
+
+      decoder.stream.push("\"Incremental\"")
+      try decoder.withDecodedFragments {
+        #expect($0 == ["Incremental"])
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
+    }
+  }
 }
 
 // MARK: - Support
