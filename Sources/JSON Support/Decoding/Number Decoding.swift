@@ -1,30 +1,21 @@
 extension JSON {
 
-  public struct NumberDecoder: ~Copyable {
-
-    public var stream: DecodingStream
-
-    fileprivate struct Exponent {
-      let isNegative: Bool
-      let value: Substring
-    }
-
-    fileprivate enum Result {
-      case invalid(Substring)
-      case value(
-        integerPart: Substring,
-        fractionalPart: Substring,
-        exponent: Exponent?
-      )
-    }
-
+  public struct Number {
+    let integerPart: Substring
+    let fractionalPart: Substring?
+    let significand: Substring
+    let exponent: Substring?
   }
 
 }
 
 extension JSON.DecodingStream {
 
-  public consuming func decodeNumber() -> JSON.NumberDecoder {
+  public mutating func decodeNumber<T>(
+    onSuccess: (JSON.Number) throws -> T
+  ) throws -> T? {
+    let start = createCheckpoint()
+
     fatalError()
   }
 

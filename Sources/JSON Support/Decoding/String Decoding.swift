@@ -71,11 +71,11 @@ extension JSON.StringDecoder {
 
     if !readOpenQuote {
       switch stream.read("\"") {
-      case .read:
+      case .matched:
         readOpenQuote = true
-      case .needMoreData:
+      case .continuableMatch:
         return []
-      case .notFound(let error):
+      case .notMatched(let error):
         throw error
       }
     }
@@ -83,19 +83,10 @@ extension JSON.StringDecoder {
     var fragments: [Substring] = []
     readingStream: while true {
       /// Read scalars until we reach a control character or the end of the string
-      stream.read(
-        until: { character in
-          switch character {
-          case "\"", "\\":
-            return true
-          default:
-            return false
-          }
-        }
-      ) { substring, conditionMet in
+      _ = stream.read(
+        untilCharacterIn: "\"", "\\"
+      ) { substring in
         fragments.append(substring)
-        /// Always commit the read
-        return true
       }
 
       let checkpoint = stream.createCheckpoint()
@@ -157,12 +148,12 @@ extension JSON.StringDecoder {
             fragments.append("�")
           case .highSurrogate(let highSurrogateValue):
             switch stream.read("\\u") {
-            case .read:
+            case .matched:
               break
-            case .needMoreData:
+            case .continuableMatch:
               stream.restore(to: checkpoint)
               break readingStream
-            case .notFound:
+            case .notMatched:
               /// The high surrogate was not followed by a unicode escape sequence
               stream.discard(checkpoint)
               fragments.append("�")
@@ -231,20 +222,11 @@ extension JSON.DecodingStream {
     case invalid
   }
   fileprivate mutating func readUnicodeEscapeSequence() -> UnicodeEscapeSequence? {
-    read(
-      until: { scalar in
-        switch scalar {
-        case "0"..."9", "a"..."f", "A"..."F":
-          return false
-        default:
-          return true
-        }
-      },
+    let result = read(
+      whileCharactersIn: "0"..."9", "a"..."f", "A"..."F",
+      minCount: 4,
       maxCount: 4
-    ) { substring, encounteredNonHexCharacter in
-      guard substring.count == 4 else {
-        return encounteredNonHexCharacter ? .invalid : nil
-      }
+    ) { substring -> UnicodeEscapeSequence in
       guard let intValue = Int(substring, radix: 16) else {
         /// This shouldn't be possible because we only read hex characters
         assertionFailure()
@@ -263,6 +245,14 @@ extension JSON.DecodingStream {
         }
         return .encoded(Substring(String(String.UnicodeScalarView([scalar]))))
       }
+    }
+    return switch result {
+    case .continuableMatch:
+      nil
+    case .matched(let sequence):
+      sequence
+    case .notMatched:
+      .invalid
     }
   }
 

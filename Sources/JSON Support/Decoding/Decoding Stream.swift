@@ -27,102 +27,120 @@ extension JSON {
       string.append(fragment)
     }
 
-    enum ReadStringResult {
-      case read
-      case needMoreData
-      case notFound(Swift.Error)
-    }
-    mutating func read(_ string: String) -> ReadStringResult {
-      let candidate = readableSubstring.prefix(string.count)
-      let mismatch =
-        zip(
-          zip(string.indices, candidate.indices),
-          zip(string, candidate)
-        )
-        .first(where: { $0.1.0 != $0.1.1 })
-      if let mismatch {
-        return .notFound(
-          Error.unexpectedCharacter(
-            expected: mismatch.1.0,
-            observed: mismatch.1.1,
-            at: mismatch.0.1
-          )
-        )
-      }
-      if candidate.count == string.count {
-        nextReadIndex = candidate.endIndex
-        return .read
-      } else {
-        /// The prefix matches, but the string is incomplete
-        return .needMoreData
-      }
-    }
-
     mutating func readCharacter() -> Character? {
-      read(count: 1) { substring in
-        assert(substring.count == 1)
-        return substring.first!
-      }
-    }
-
-    mutating func read<T>(
-      count: Int,
-      _ body: (Substring) throws -> T
-    ) rethrows -> T? {
-      let substring = readableSubstring.prefix(count)
-      guard substring.count == count else {
+      let readableSubstring = readableSubstring
+      guard let character = readableSubstring.first else {
         return nil
       }
-      let result = try body(substring)
-      nextReadIndex = substring.endIndex
-      return result
+      nextReadIndex = readableSubstring.index(after: nextReadIndex)
+      return character
     }
 
-    /// The read is only committed if `body` returns a non-nil value.
+    enum ReadResult<T> {
+      case matched(T)
+      case continuableMatch
+      case notMatched(Swift.Error)
+    }
+
+    mutating func read(_ string: String) -> ReadResult<Void> {
+      var expectedCharacters = string.makeIterator()
+      return read(
+        while: { $0 == expectedCharacters.next() },
+        minCount: string.count,
+        maxCount: string.count
+      ) { _ in }
+    }
+
+    struct CharacterCondition: ExpressibleByUnicodeScalarLiteral {
+
+      init(unicodeScalarLiteral value: Character) {
+        range = value...value
+      }
+
+      fileprivate init(range: ClosedRange<Character>) {
+        self.range = range
+      }
+
+      fileprivate let range: ClosedRange<Character>
+    }
+
     mutating func read<T>(
-      until stopCondition: (Character) -> Bool,
+      whileCharactersIn acceptedCharacters: CharacterCondition...,
+      minCount: Int? = nil,
       maxCount: Int? = nil,
-      _ body: (_ substring: Substring, _ conditionMet: Bool) throws -> T?
-    ) rethrows -> T? {
-      let readableSubstring =
-        if let maxCount {
-          readableSubstring.prefix(maxCount)
-        } else {
-          readableSubstring
+      read: (Substring) throws -> T
+    ) rethrows -> ReadResult<T> {
+      try self.read(
+        while: { acceptedCharacters.accepts($0) },
+        minCount: minCount,
+        maxCount: maxCount,
+        read: read
+      )
+    }
+
+    mutating func read<T>(
+      untilCharacterIn terminationCharacters: CharacterCondition...,
+      minCount: Int? = nil,
+      maxCount: Int? = nil,
+      read: (Substring) throws -> T
+    ) rethrows -> ReadResult<T> {
+      try self.read(
+        while: { !terminationCharacters.accepts($0) },
+        minCount: minCount,
+        maxCount: maxCount,
+        read: read
+      )
+    }
+
+    private mutating func read<T>(
+      while acceptCondition: (Character) -> Bool,
+      minCount: Int? = nil,
+      maxCount: Int? = nil,
+      read: (Substring) throws -> T
+    ) rethrows -> ReadResult<T> {
+      let readableSubstring = readableSubstring
+      let endIndex: String.Index
+      let continuableMatch: Bool
+
+      var readCount = 0
+      reading: do {
+        let indices = readableSubstring.indices
+        for index in indices {
+          let character = readableSubstring[index]
+          guard acceptCondition(character) else {
+            endIndex = index
+            continuableMatch = false
+            break reading
+          }
+          readCount += 1
+
+          if let maxCount {
+            guard readCount < maxCount else {
+              endIndex = readableSubstring.index(after: index)
+              continuableMatch = false
+              break reading
+            }
+          }
         }
-      for index in readableSubstring.indices {
-        guard !stopCondition(readableSubstring[index]) else {
-          let substring = readableSubstring[..<index]
-          if let result = try body(substring, true) {
-            nextReadIndex = substring.endIndex
-            return result
+        endIndex = readableSubstring.endIndex
+        continuableMatch = true
+      }
+
+      if let minCount {
+        guard readCount >= minCount else {
+          if continuableMatch {
+            return .continuableMatch
           } else {
-            return nil
+            return .notMatched(
+              Error.unexpectedCharacter(at: endIndex)
+            )
           }
         }
       }
-      if let result = try body(readableSubstring, false) {
-        nextReadIndex = readableSubstring.endIndex
-        return result
-      } else {
-        return nil
-      }
-    }
 
-    /// Read characters while the condition is true.
-    /// The read is only committed if `body` return `true`.
-    mutating func read(
-      until stopCondition: (Character) -> Bool,
-      maxCount: Int? = nil,
-      _ body: (_ substring: Substring, _ conditionMet: Bool) throws -> Bool
-    ) rethrows {
-      try read(until: stopCondition, maxCount: maxCount) { (substring, conditionMet) -> Void? in
-        if try body(substring, conditionMet) {
-          return ()
-        } else {
-          return nil
-        }
-      }
+      let result = try read(readableSubstring[..<endIndex])
+      nextReadIndex = endIndex
+      return .matched(result)
     }
 
     var possiblyIncompleteIncomingGraphemeCluster: Character? {
@@ -208,7 +226,19 @@ extension JSON {
   }
 
   private enum Error: Swift.Error {
-    case unexpectedCharacter(expected: Character, observed: Character, at: String.Index)
+    case unexpectedCharacter(at: String.Index)
   }
 
+}
+
+func ... (lhs: Character, rhs: Character) -> JSON.DecodingStream.CharacterCondition {
+  JSON.DecodingStream.CharacterCondition(range: lhs...rhs)
+}
+
+extension Array where Element == JSON.DecodingStream.CharacterCondition {
+  fileprivate func accepts(_ character: Character) -> Bool {
+    return contains { condition in
+      condition.range.contains(character)
+    }
+  }
 }

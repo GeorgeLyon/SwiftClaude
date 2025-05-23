@@ -315,7 +315,7 @@ private struct StringTests {
 
       var decoder = stream.decodeString()
       try decoder.withDecodedFragments {
-        #expect($0 == ["�XYZ"])
+        #expect($0 == ["�0XYZ"])
       }
       let isComplete = decoder.isComplete
       #expect(!isComplete)
@@ -397,6 +397,19 @@ private struct StringTests {
       var decoder = stream.decodeString()
       try decoder.withDecodedFragments {
         #expect($0 == ["�🥸"])
+      }
+      let isComplete = decoder.isComplete
+      #expect(!isComplete)
+    }
+
+    /// High surrogate followed by a different escape sequence
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\"\\uD83D\\n\"")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == ["�\n"])
       }
       let isComplete = decoder.isComplete
       #expect(!isComplete)
