@@ -191,8 +191,9 @@ private struct BooleanTests {
       stream.push("test")
       stream.finish()
 
-      let result = try stream.decodeBool()
-      #expect(result == nil)
+      #expect(throws: (any Error).self) {
+        try stream.decodeBool()
+      }
     }
 
     /// Invalid starting with 'f' but not 'false'
@@ -201,8 +202,9 @@ private struct BooleanTests {
       stream.push("fail")
       stream.finish()
 
-      let result = try stream.decodeBool()
-      #expect(result == nil)
+      #expect(throws: (any Error).self) {
+        try stream.decodeBool()
+      }
     }
 
     /// Number input
@@ -211,8 +213,9 @@ private struct BooleanTests {
       stream.push("123")
       stream.finish()
 
-      let result = try stream.decodeBool()
-      #expect(result == nil)
+      #expect(throws: (any Error).self) {
+        try stream.decodeBool()
+      }
     }
 
     /// String input
@@ -221,8 +224,9 @@ private struct BooleanTests {
       stream.push("\"true\"")
       stream.finish()
 
-      let result = try stream.decodeBool()
-      #expect(result == nil)
+      #expect(throws: (any Error).self) {
+        try stream.decodeBool()
+      }
     }
 
     /// Null input
@@ -231,8 +235,9 @@ private struct BooleanTests {
       stream.push("null")
       stream.finish()
 
-      let result = try stream.decodeBool()
-      #expect(result == nil)
+      #expect(throws: (any Error).self) {
+        try stream.decodeBool()
+      }
     }
 
     /// Empty input
@@ -264,8 +269,9 @@ private struct BooleanTests {
       stream.push("TRUE")
       stream.finish()
 
-      let result = try stream.decodeBool()
-      #expect(result == nil)
+      #expect(throws: (any Error).self) {
+        try stream.decodeBool()
+      }
     }
 
     /// Upper case FALSE
@@ -274,8 +280,9 @@ private struct BooleanTests {
       stream.push("FALSE")
       stream.finish()
 
-      let result = try stream.decodeBool()
-      #expect(result == nil)
+      #expect(throws: (any Error).self) {
+        try stream.decodeBool()
+      }
     }
 
     /// Mixed case True
@@ -284,8 +291,9 @@ private struct BooleanTests {
       stream.push("True")
       stream.finish()
 
-      let result = try stream.decodeBool()
-      #expect(result == nil)
+      #expect(throws: (any Error).self) {
+        try stream.decodeBool()
+      }
     }
 
     /// Mixed case False
@@ -294,8 +302,9 @@ private struct BooleanTests {
       stream.push("False")
       stream.finish()
 
-      let result = try stream.decodeBool()
-      #expect(result == nil)
+      #expect(throws: (any Error).self) {
+        try stream.decodeBool()
+      }
     }
   }
 

@@ -5,33 +5,27 @@ extension JSON.DecodingStream {
   public mutating func decodeBool() throws -> Bool? {
     readWhitespace()
 
-    guard let firstCharacter = try peekCharacter({ $0 }) else {
+    let candidate = try peekCharacter { character in
+      switch character {
+      case "t":
+        return true
+      case "f":
+        return false
+      default:
+        return nil
+      }
+    }
+    guard let candidate else {
       return nil
     }
 
-    switch firstCharacter {
-    case "t":
-      switch read("true") {
-      case .continuableMatch:
-        return nil
-      case .matched:
-        return true
-      case .notMatched(let error):
-        throw error
-      }
-
-    case "f":
-      switch read("false") {
-      case .continuableMatch:
-        return nil
-      case .matched:
-        return false
-      case .notMatched(let error):
-        throw error
-      }
-
-    default:
+    switch read(candidate ? "true" : "false") {
+    case .continuableMatch:
       return nil
+    case .matched:
+      return candidate
+    case .notMatched(let error):
+      throw error
     }
   }
 }

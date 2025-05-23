@@ -118,8 +118,9 @@ private struct NullTests {
       stream.push("none")
       stream.finish()
 
-      let result = try stream.decodeNull()
-      #expect(result == false)
+      #expect(throws: (any Error).self) {
+        try stream.decodeNull()
+      }
     }
 
     /// Invalid starting with 'n' but not 'null'
@@ -128,8 +129,9 @@ private struct NullTests {
       stream.push("nil")
       stream.finish()
 
-      let result = try stream.decodeNull()
-      #expect(result == false)
+      #expect(throws: (any Error).self) {
+        try stream.decodeNull()
+      }
     }
 
     /// Boolean input
@@ -138,8 +140,9 @@ private struct NullTests {
       stream.push("true")
       stream.finish()
 
-      let result = try stream.decodeNull()
-      #expect(result == false)
+      #expect(throws: (any Error).self) {
+        try stream.decodeNull()
+      }
     }
 
     /// Number input
@@ -148,8 +151,9 @@ private struct NullTests {
       stream.push("123")
       stream.finish()
 
-      let result = try stream.decodeNull()
-      #expect(result == false)
+      #expect(throws: (any Error).self) {
+        try stream.decodeNull()
+      }
     }
 
     /// String input
@@ -158,8 +162,9 @@ private struct NullTests {
       stream.push("\"null\"")
       stream.finish()
 
-      let result = try stream.decodeNull()
-      #expect(result == false)
+      #expect(throws: (any Error).self) {
+        try stream.decodeNull()
+      }
     }
 
     /// Empty input
@@ -191,8 +196,9 @@ private struct NullTests {
       stream.push("NULL")
       stream.finish()
 
-      let result = try stream.decodeNull()
-      #expect(result == false)
+      #expect(throws: (any Error).self) {
+        try stream.decodeNull()
+      }
     }
 
     /// Mixed case Null
@@ -201,8 +207,9 @@ private struct NullTests {
       stream.push("Null")
       stream.finish()
 
-      let result = try stream.decodeNull()
-      #expect(result == false)
+      #expect(throws: (any Error).self) {
+        try stream.decodeNull()
+      }
     }
 
     /// Mixed case nULL
@@ -211,8 +218,9 @@ private struct NullTests {
       stream.push("nULL")
       stream.finish()
 
-      let result = try stream.decodeNull()
-      #expect(result == false)
+      #expect(throws: (any Error).self) {
+        try stream.decodeNull()
+      }
     }
   }
 
@@ -312,8 +320,9 @@ private struct NullTests {
       stream.push("new")
       stream.finish()
 
-      let result = try stream.decodeNull()
-      #expect(result == false)
+      #expect(throws: (any Error).self) {
+        try stream.decodeNull()
+      }
     }
 
     /// Word starting with 'n' - "nothing"
@@ -322,8 +331,9 @@ private struct NullTests {
       stream.push("nothing")
       stream.finish()
 
-      let result = try stream.decodeNull()
-      #expect(result == false)
+      #expect(throws: (any Error).self) {
+        try stream.decodeNull()
+      }
     }
 
     /// Word starting with 'nu' - "number"
@@ -332,8 +342,9 @@ private struct NullTests {
       stream.push("number")
       stream.finish()
 
-      let result = try stream.decodeNull()
-      #expect(result == false)
+      #expect(throws: (any Error).self) {
+        try stream.decodeNull()
+      }
     }
   }
 }
