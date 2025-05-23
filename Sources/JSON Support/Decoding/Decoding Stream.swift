@@ -9,7 +9,6 @@ extension JSON {
     }
 
     public mutating func reset() {
-      assert(checkpointsCount == 0)
       string.unicodeScalars.removeAll(keepingCapacity: true)
       nextReadIndex = string.startIndex
       isFinished = false
@@ -178,41 +177,21 @@ extension JSON {
         .endIndex
     }
 
-    struct Checkpoint: ~Copyable {
+    struct Checkpoint {
       fileprivate let index: String.Index
-
-      consuming fileprivate func release() {
-        discard self
-      }
-
-      deinit {
-        assertionFailure()
-      }
     }
     mutating func createCheckpoint() -> Checkpoint {
-      checkpointsCount += 1
       return Checkpoint(index: nextReadIndex)
     }
 
-    mutating func stringRead(
+    mutating func substringRead(
       since checkpoint: borrowing Checkpoint
     ) -> Substring {
       string[checkpoint.index..<nextReadIndex]
     }
 
-    mutating func restore(to checkpoint: consuming Checkpoint) {
+    mutating func restore(_ checkpoint: consuming Checkpoint) {
       nextReadIndex = checkpoint.index
-      release(checkpoint)
-    }
-
-    mutating func discard(_ checkpoint: consuming Checkpoint) {
-      release(checkpoint)
-    }
-
-    private mutating func release(_ checkpoint: consuming Checkpoint) {
-      checkpoint.release()
-      checkpointsCount -= 1
-      assert(checkpointsCount >= 0)
     }
 
     private var readableSubstring: Substring {
@@ -234,7 +213,6 @@ extension JSON {
     private var nextReadIndex: String.Index
 
     private var string = ""
-    private var checkpointsCount = 0
 
   }
 

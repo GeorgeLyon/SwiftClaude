@@ -91,78 +91,64 @@ extension JSON.StringDecoder {
       switch stream.readCharacter() {
       case .none:
         /// We've reached the end of the buffer
-        stream.discard(checkpoint)
         break readingStream
       case "\"":
         /// We've reached the end of the string
-        stream.discard(checkpoint)
         isComplete = true
         break readingStream
       case "\\":
         /// This is an escape sequence
         guard let escapedCharacter = stream.readCharacter() else {
-          stream.restore(to: checkpoint)
+          stream.restore(checkpoint)
           break readingStream
         }
 
         switch escapedCharacter {
         /// Unsupported characters
         case "b", "f":
-          stream.discard(checkpoint)
           fragments.append("�")
         /// Verbatim characters
         case "\"":
-          stream.discard(checkpoint)
           fragments.append("\"")
         case "\\":
-          stream.discard(checkpoint)
           fragments.append("\\")
         case "/":
-          stream.discard(checkpoint)
           fragments.append("/")
         /// Escaped characters
         case "n":
-          stream.discard(checkpoint)
           fragments.append("\n")
         case "t":
-          stream.discard(checkpoint)
           fragments.append("\t")
         case "r":
-          stream.discard(checkpoint)
           fragments.append("\r")
         case "u":
           guard let escapeSequence = stream.readUnicodeEscapeSequence() else {
-            stream.restore(to: checkpoint)
+            stream.restore(checkpoint)
             break readingStream
           }
 
           switch escapeSequence {
           case .encoded(let fragment):
-            stream.discard(checkpoint)
             fragments.append(fragment)
           case .invalid, .lowSurrogate:
-            stream.discard(checkpoint)
             fragments.append("�")
           case .highSurrogate(let highSurrogateValue):
             switch stream.read("\\u") {
             case .matched:
               break
             case .continuableMatch:
-              stream.restore(to: checkpoint)
+              stream.restore(checkpoint)
               break readingStream
             case .notMatched:
               /// The high surrogate was not followed by a unicode escape sequence
-              stream.discard(checkpoint)
               fragments.append("�")
               continue readingStream
             }
 
             guard let lowSurrogateEscapeSequence = stream.readUnicodeEscapeSequence() else {
-              stream.restore(to: checkpoint)
+              stream.restore(checkpoint)
               break readingStream
             }
-
-            stream.discard(checkpoint)
 
             switch lowSurrogateEscapeSequence {
             case .encoded(let fragment):
@@ -186,13 +172,11 @@ extension JSON.StringDecoder {
           }
         default:
           /// This is an invalid escape sequence
-          stream.discard(checkpoint)
           fragments.append("�")
         }
       case let character?:
         /// This shouldn't be possible, since this character should have been consumed by `readBytes(until:)`
         assertionFailure()
-        stream.discard(checkpoint)
         fragments.append(Substring(String(character)))
       }
     }
