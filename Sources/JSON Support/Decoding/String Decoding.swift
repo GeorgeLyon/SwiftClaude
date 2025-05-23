@@ -71,14 +71,10 @@ extension JSON.StringDecoder {
 
     if !readOpenQuote {
       stream.readWhitespace()
-      switch stream.read("\"") {
-      case .matched:
-        readOpenQuote = true
-      case .continuableMatch:
+      guard try !stream.read("\"").isContinuable else {
         return []
-      case .notMatched(let error):
-        throw error
       }
+      readOpenQuote = true
     }
 
     var fragments: [Substring] = []

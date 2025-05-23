@@ -13,12 +13,12 @@ private struct DecodingStreamTests {
     var stream = JSON.DecodingStream()
     let initialFinished = stream.isFinished
     #expect(!initialFinished)
-    
+
     stream.push("test")
     stream.finish()
     let afterFinish = stream.isFinished
     #expect(afterFinish)
-    
+
     stream.reset()
     let afterReset = stream.isFinished
     #expect(!afterReset)
@@ -29,16 +29,16 @@ private struct DecodingStreamTests {
   @Test
   func readCharacterBasic() {
     var stream = JSON.DecodingStream()
-    
+
     // Empty stream
     #expect(stream.readCharacter() == nil)
-    
+
     // With content
     stream.push("abc")
     #expect(stream.readCharacter() == "a")
     #expect(stream.readCharacter() == "b")
-    #expect(stream.readCharacter() == nil) // Last character not readable until finished
-    
+    #expect(stream.readCharacter() == nil)  // Last character not readable until finished
+
     // After finish
     stream.finish()
     #expect(stream.readCharacter() == "c")
@@ -48,16 +48,16 @@ private struct DecodingStreamTests {
   @Test
   func readCharacterWithIncompleteGrapheme() {
     var stream = JSON.DecodingStream()
-    
+
     // Push content that could be modified by subsequent unicode scalars
     stream.push("e")
-    #expect(stream.readCharacter() == nil) // Last character not readable until finished
-    
-    stream.push("́") // Combining acute accent
-    #expect(stream.readCharacter() == nil) // Still not readable
-    
+    #expect(stream.readCharacter() == nil)  // Last character not readable until finished
+
+    stream.push("́")  // Combining acute accent
+    #expect(stream.readCharacter() == nil)  // Still not readable
+
     stream.finish()
-    #expect(stream.readCharacter() == "é") // Now readable as combined character
+    #expect(stream.readCharacter() == "é")  // Now readable as combined character
     #expect(stream.readCharacter() == nil)
   }
 
@@ -68,35 +68,35 @@ private struct DecodingStreamTests {
     var stream = JSON.DecodingStream()
     stream.push("hello world")
     stream.finish()
-    
+
     // Successful match
     switch stream.read("hello") {
     case .matched:
-      break // Success
+      break  // Success
     default:
       Issue.record("Expected matched result")
     }
-    
+
     // Space after hello
     switch stream.read(" ") {
     case .matched:
-      break // Success
+      break  // Success
     default:
       Issue.record("Expected matched result")
     }
-    
+
     // Failed match
     switch stream.read("goodbye") {
     case .notMatched:
-      break // Expected
+      break  // Expected
     default:
       Issue.record("Expected notMatched result")
     }
-    
+
     // Successful match of remaining
     switch stream.read("world") {
     case .matched:
-      break // Success
+      break  // Success
     default:
       Issue.record("Expected matched result")
     }
@@ -106,21 +106,21 @@ private struct DecodingStreamTests {
   func readStringIncremental() {
     var stream = JSON.DecodingStream()
     stream.push("hel")
-    
+
     // Incomplete match
     switch stream.read("hello") {
     case .continuableMatch:
-      break // Expected
+      break  // Expected
     default:
       Issue.record("Expected continuableMatch result")
     }
-    
+
     stream.push("lo world")
-    
+
     // Now it should match
     switch stream.read("hello") {
     case .matched:
-      break // Success
+      break  // Success
     default:
       Issue.record("Expected matched result")
     }
@@ -133,31 +133,40 @@ private struct DecodingStreamTests {
     var stream = JSON.DecodingStream()
     stream.push("123abc456")
     stream.finish()
-    
+
     // Read digits
-    switch stream.read(whileCharactersIn: "0"..."9", read: { substring in
-      String(substring)
-    }) {
+    switch stream.read(
+      whileCharactersIn: "0"..."9",
+      process: { substring in
+        String(substring)
+      })
+    {
     case .matched(let result):
       #expect(result == "123")
     default:
       Issue.record("Expected matched result")
     }
-    
+
     // Read letters
-    switch stream.read(whileCharactersIn: "a"..."z", read: { substring in
-      String(substring)
-    }) {
+    switch stream.read(
+      whileCharactersIn: "a"..."z",
+      process: { substring in
+        String(substring)
+      })
+    {
     case .matched(let result):
       #expect(result == "abc")
     default:
       Issue.record("Expected matched result")
     }
-    
+
     // Read remaining digits
-    switch stream.read(whileCharactersIn: "0"..."9", read: { substring in
-      String(substring)
-    }) {
+    switch stream.read(
+      whileCharactersIn: "0"..."9",
+      process: { substring in
+        String(substring)
+      })
+    {
     case .matched(let result):
       #expect(result == "456")
     default:
@@ -170,23 +179,29 @@ private struct DecodingStreamTests {
     var stream = JSON.DecodingStream()
     stream.push("12345abc")
     stream.finish()
-    
+
     // Read at least 2 digits, max 3
-    switch stream.read(whileCharactersIn: "0"..."9", minCount: 2, maxCount: 3, read: { substring in
-      String(substring)
-    }) {
+    switch stream.read(
+      whileCharactersIn: "0"..."9", minCount: 2, maxCount: 3,
+      process: { substring in
+        String(substring)
+      })
+    {
     case .matched(let result):
       #expect(result == "123")
     default:
       Issue.record("Expected matched result")
     }
-    
+
     // Read at least 5 digits (should fail)
-    switch stream.read(whileCharactersIn: "0"..."9", minCount: 5, read: { substring in
-      String(substring)
-    }) {
+    switch stream.read(
+      whileCharactersIn: "0"..."9", minCount: 5,
+      process: { substring in
+        String(substring)
+      })
+    {
     case .notMatched:
-      break // Expected
+      break  // Expected
     default:
       Issue.record("Expected notMatched result")
     }
@@ -197,11 +212,14 @@ private struct DecodingStreamTests {
     var stream = JSON.DecodingStream()
     stream.push("aB1_cD2")
     stream.finish()
-    
+
     // Read alphanumeric and underscore
-    switch stream.read(whileCharactersIn: "a"..."z", "A"..."Z", "0"..."9", "_", read: { substring in
-      String(substring)
-    }) {
+    switch stream.read(
+      whileCharactersIn: "a"..."z", "A"..."Z", "0"..."9", "_",
+      process: { substring in
+        String(substring)
+      })
+    {
     case .matched(let result):
       #expect(result == "aB1_cD2")
     default:
@@ -216,24 +234,30 @@ private struct DecodingStreamTests {
     var stream = JSON.DecodingStream()
     stream.push("hello, world!")
     stream.finish()
-    
+
     // Read until comma or space
-    switch stream.read(untilCharacterIn: ",", " ", read: { substring in
-      String(substring)
-    }) {
+    switch stream.read(
+      untilCharacterIn: ",", " ",
+      process: { substring in
+        String(substring)
+      })
+    {
     case .matched(let result):
       #expect(result == "hello")
     default:
       Issue.record("Expected matched result")
     }
-    
+
     // Skip comma
     _ = stream.readCharacter()
-    
+
     // Read until exclamation
-    switch stream.read(untilCharacterIn: "!", read: { substring in
-      String(substring)
-    }) {
+    switch stream.read(
+      untilCharacterIn: "!",
+      process: { substring in
+        String(substring)
+      })
+    {
     case .matched(let result):
       #expect(result == " world")
     default:
@@ -246,24 +270,30 @@ private struct DecodingStreamTests {
     var stream = JSON.DecodingStream()
     stream.push("abc:def")
     stream.finish()
-    
+
     // Read at least 2 chars until colon
-    switch stream.read(untilCharacterIn: ":", minCount: 2, read: { substring in
-      String(substring)
-    }) {
+    switch stream.read(
+      untilCharacterIn: ":", minCount: 2,
+      process: { substring in
+        String(substring)
+      })
+    {
     case .matched(let result):
       #expect(result == "abc")
     default:
       Issue.record("Expected matched result")
     }
-    
+
     // Skip colon
     _ = stream.readCharacter()
-    
+
     // Read at most 2 chars until colon
-    switch stream.read(untilCharacterIn: ":", maxCount: 2, read: { substring in
-      String(substring)
-    }) {
+    switch stream.read(
+      untilCharacterIn: ":", maxCount: 2,
+      process: { substring in
+        String(substring)
+      })
+    {
     case .matched(let result):
       #expect(result == "de")
     default:
@@ -278,7 +308,7 @@ private struct DecodingStreamTests {
     var stream = JSON.DecodingStream()
     stream.push("  \t\n\r  text")
     stream.finish()
-    
+
     stream.readWhitespace()
     #expect(stream.readCharacter() == "t")
     #expect(stream.readCharacter() == "e")
@@ -291,8 +321,8 @@ private struct DecodingStreamTests {
     var stream = JSON.DecodingStream()
     stream.push("text")
     stream.finish()
-    
-    stream.readWhitespace() // Should not consume anything
+
+    stream.readWhitespace()  // Should not consume anything
     #expect(stream.readCharacter() == "t")
   }
 
@@ -303,26 +333,26 @@ private struct DecodingStreamTests {
     var stream = JSON.DecodingStream()
     stream.push("hello world")
     stream.finish()
-    
+
     let checkpoint = stream.createCheckpoint()
-    
+
     // Read some characters
-    _ = stream.readCharacter() // h
-    _ = stream.readCharacter() // e
-    _ = stream.readCharacter() // l
-    _ = stream.readCharacter() // l
-    _ = stream.readCharacter() // o
-    
+    _ = stream.readCharacter()  // h
+    _ = stream.readCharacter()  // e
+    _ = stream.readCharacter()  // l
+    _ = stream.readCharacter()  // l
+    _ = stream.readCharacter()  // o
+
     // Check string read since checkpoint
     #expect(stream.stringRead(since: checkpoint) == "hello")
-    
+
     // Continue reading
-    _ = stream.readCharacter() // space
-    _ = stream.readCharacter() // w
-    
+    _ = stream.readCharacter()  // space
+    _ = stream.readCharacter()  // w
+
     // Restore to checkpoint
     stream.restore(to: checkpoint)
-    
+
     // Should be back at beginning
     #expect(stream.readCharacter() == "h")
   }
@@ -332,13 +362,13 @@ private struct DecodingStreamTests {
     var stream = JSON.DecodingStream()
     stream.push("test")
     stream.finish()
-    
+
     let checkpoint = stream.createCheckpoint()
     _ = stream.readCharacter()
     _ = stream.readCharacter()
-    
+
     stream.discard(checkpoint)
-    
+
     // Should still be at current position
     #expect(stream.readCharacter() == "s")
   }
@@ -348,13 +378,13 @@ private struct DecodingStreamTests {
   @Test
   func emptyStream() {
     var stream = JSON.DecodingStream()
-    
+
     #expect(stream.readCharacter() == nil)
-    stream.readWhitespace() // Should not crash
-    
+    stream.readWhitespace()  // Should not crash
+
     switch stream.read("test") {
     case .continuableMatch:
-      break // Expected
+      break  // Expected
     default:
       Issue.record("Expected continuableMatch for empty stream")
     }
@@ -363,26 +393,26 @@ private struct DecodingStreamTests {
   @Test
   func incrementalUnicode() {
     var stream = JSON.DecodingStream()
-    
+
     // Test emoji modification
     stream.push("👍")
-    #expect(stream.readCharacter() == nil) // Not readable until finished
-    
-    stream.push("\u{1F3FB}") // Light skin tone modifier
-    #expect(stream.readCharacter() == nil) // Still not readable
-    
+    #expect(stream.readCharacter() == nil)  // Not readable until finished
+
+    stream.push("\u{1F3FB}")  // Light skin tone modifier
+    #expect(stream.readCharacter() == nil)  // Still not readable
+
     stream.finish()
-    #expect(stream.readCharacter() == "👍🏻") // Combined emoji
+    #expect(stream.readCharacter() == "👍🏻")  // Combined emoji
   }
 
   @Test
   func possiblyIncompleteGraphemeCluster() {
     var stream = JSON.DecodingStream()
-    
+
     stream.push("a")
     let beforeFinish = stream.possiblyIncompleteIncomingGraphemeCluster
     #expect(beforeFinish == "a")
-    
+
     stream.finish()
     let afterFinish = stream.possiblyIncompleteIncomingGraphemeCluster
     #expect(afterFinish == nil)
@@ -395,21 +425,27 @@ private struct DecodingStreamTests {
     var stream = JSON.DecodingStream()
     stream.push("123abc")
     stream.finish()
-    
+
     // Read while digit
-    switch stream.read(while: { $0.isNumber }, read: { substring in
-      String(substring)
-    }) {
+    switch stream.read(
+      while: { $0.isNumber },
+      process: { substring in
+        String(substring)
+      })
+    {
     case .matched(let result):
       #expect(result == "123")
     default:
       Issue.record("Expected matched result")
     }
-    
+
     // Read while letter
-    switch stream.read(while: { $0.isLetter }, read: { substring in
-      String(substring)
-    }) {
+    switch stream.read(
+      while: { $0.isLetter },
+      process: { substring in
+        String(substring)
+      })
+    {
     case .matched(let result):
       #expect(result == "abc")
     default:
@@ -421,24 +457,30 @@ private struct DecodingStreamTests {
   func readWithConditionIncremental() {
     var stream = JSON.DecodingStream()
     stream.push("12")
-    
+
     // Try to read 3 digits
-    switch stream.read(while: { $0.isNumber }, minCount: 3, read: { substring in
-      String(substring)
-    }) {
+    switch stream.read(
+      while: { $0.isNumber }, minCount: 3,
+      process: { substring in
+        String(substring)
+      })
+    {
     case .continuableMatch:
-      break // Expected
+      break  // Expected
     default:
       Issue.record("Expected continuableMatch")
     }
-    
+
     stream.push("3abc")
     stream.finish()
-    
+
     // Now should succeed
-    switch stream.read(while: { $0.isNumber }, minCount: 3, read: { substring in
-      String(substring)
-    }) {
+    switch stream.read(
+      while: { $0.isNumber }, minCount: 3,
+      process: { substring in
+        String(substring)
+      })
+    {
     case .matched(let result):
       #expect(result == "123")
     default:

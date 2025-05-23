@@ -12,13 +12,14 @@ private struct StringTests {
     do {
       var stream = JSON.DecodingStream()
       stream.push("\"Hello, World!\"")
+      stream.finish()
 
       var decoder = stream.decodeString()
       try decoder.withDecodedFragments {
         #expect($0 == ["Hello, World!"])
       }
       let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(isComplete)
     }
 
     /// Partial read
@@ -59,6 +60,18 @@ private struct StringTests {
       }
       let isComplete = decoder.isComplete
       #expect(!isComplete)
+    }
+  }
+
+  @Test
+  func testFinish() async throws {
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\"\"")
+      stream.finish()
+      var decoder = stream.decodeString()
+      stream = try decoder.finish()
+      #expect(stream.readCharacter() == nil)
     }
   }
 
@@ -135,6 +148,25 @@ private struct StringTests {
       }
       let isComplete = decoder.isComplete
       #expect(!isComplete)
+    }
+
+    /// Split Escape
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\"\\")
+
+      var decoder = stream.decodeString()
+      try decoder.withDecodedFragments {
+        #expect($0 == [""])
+      }
+
+      decoder.stream.push("\"\"")
+      decoder.stream.finish()
+      try decoder.withDecodedFragments {
+        #expect($0 == ["\""])
+      }
+      let isComplete = decoder.isComplete
+      #expect(isComplete)
     }
   }
 

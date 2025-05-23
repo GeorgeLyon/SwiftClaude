@@ -40,6 +40,19 @@ extension JSON {
       case matched(T)
       case continuableMatch
       case notMatched(Swift.Error)
+
+      var isContinuable: Bool {
+        get throws {
+          switch self {
+          case .matched:
+            return false
+          case .continuableMatch:
+            return true
+          case .notMatched(let error):
+            throw error
+          }
+        }
+      }
     }
 
     mutating func read(_ string: String) -> ReadResult<Void> {
@@ -68,13 +81,13 @@ extension JSON {
       whileCharactersIn acceptedCharacters: CharacterCondition...,
       minCount: Int? = nil,
       maxCount: Int? = nil,
-      read: (Substring) throws -> T
+      process: (Substring) throws -> T = { _ in }
     ) rethrows -> ReadResult<T> {
       try self.read(
         while: { acceptedCharacters.accepts($0) },
         minCount: minCount,
         maxCount: maxCount,
-        read: read
+        process: process
       )
     }
 
@@ -82,13 +95,13 @@ extension JSON {
       untilCharacterIn terminationCharacters: CharacterCondition...,
       minCount: Int? = nil,
       maxCount: Int? = nil,
-      read: (Substring) throws -> T
+      process: (Substring) throws -> T = { _ in }
     ) rethrows -> ReadResult<T> {
       try self.read(
         while: { !terminationCharacters.accepts($0) },
         minCount: minCount,
         maxCount: maxCount,
-        read: read
+        process: process
       )
     }
 
@@ -96,7 +109,7 @@ extension JSON {
       while acceptCondition: (Character) -> Bool,
       minCount: Int? = nil,
       maxCount: Int? = nil,
-      read: (Substring) throws -> T
+      process: (Substring) throws -> T
     ) rethrows -> ReadResult<T> {
       let readableSubstring = readableSubstring
       let endIndex: String.Index
@@ -138,7 +151,7 @@ extension JSON {
         }
       }
 
-      let result = try read(readableSubstring[..<endIndex])
+      let result = try process(readableSubstring[..<endIndex])
       nextReadIndex = endIndex
       return .matched(result)
     }
