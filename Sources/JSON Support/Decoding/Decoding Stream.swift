@@ -92,7 +92,7 @@ extension JSON {
       )
     }
 
-    private mutating func read<T>(
+    mutating func read<T>(
       while acceptCondition: (Character) -> Bool,
       minCount: Int? = nil,
       maxCount: Int? = nil,
