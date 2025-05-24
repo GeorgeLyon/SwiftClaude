@@ -10,9 +10,9 @@ extension JSON {
 
 }
 
-extension JSON.DecodingStream {
+extension JSON.Value {
 
-  public mutating func decodeNumber<T>(
+  public mutating func decodeAsNumber<T>(
     process: (JSON.Number) throws -> T
   ) throws -> T? {
     let significand: Substring
@@ -20,17 +20,17 @@ extension JSON.DecodingStream {
     let fractionalPart: Substring?
     let exponentPart: Substring?
 
-    readWhitespace()
+    stream.readWhitespace()
 
-    let start = createCheckpoint()
+    let start = stream.createCheckpoint()
 
     /// Read integer part
     do {
-      guard try !read(whileCharactersIn: "-", maxCount: 1).isContinuable else {
-        restore(start)
+      guard try !stream.read(whileCharactersIn: "-", maxCount: 1).isContinuable else {
+        stream.restore(start)
         return nil
       }
-      let result = try read(
+      let result = try stream.read(
         whileCharactersIn: "0"..."9",
         minCount: 1,
         process: { substring in
@@ -41,57 +41,57 @@ extension JSON.DecodingStream {
       )
       switch result {
       case .continuableMatch:
-        restore(start)
+        stream.restore(start)
         return nil
       case .matched:
         break
       case .notMatched(let error):
         throw error
       }
-      integerPart = substringRead(since: start)
+      integerPart = stream.substringRead(since: start)
     }
 
     /// Read fractional part
-    switch read(".") {
+    switch stream.read(".") {
     case .continuableMatch:
-      restore(start)
+      stream.restore(start)
       return nil
 
     case .matched:
-      let fractionStart = createCheckpoint()
+      let fractionStart = stream.createCheckpoint()
 
-      guard try !read(whileCharactersIn: "0"..."9", minCount: 1).isContinuable else {
-        restore(start)
+      guard try !stream.read(whileCharactersIn: "0"..."9", minCount: 1).isContinuable else {
+        stream.restore(start)
         return nil
       }
 
-      fractionalPart = substringRead(since: fractionStart)
+      fractionalPart = stream.substringRead(since: fractionStart)
 
     case .notMatched:
       fractionalPart = nil
       break
     }
 
-    significand = substringRead(since: start)
+    significand = stream.substringRead(since: start)
 
     /// Read exponent
-    switch read(whileCharactersIn: "E", "e", minCount: 1, maxCount: 1) {
+    switch stream.read(whileCharactersIn: "E", "e", minCount: 1, maxCount: 1) {
     case .continuableMatch:
-      restore(start)
+      stream.restore(start)
       return nil
 
     case .matched:
-      let exponentStart = createCheckpoint()
+      let exponentStart = stream.createCheckpoint()
 
       guard
-        try !read(whileCharactersIn: "+", "-", maxCount: 1).isContinuable,
-        try !read(whileCharactersIn: "0"..."9", minCount: 1).isContinuable
+        try !stream.read(whileCharactersIn: "+", "-", maxCount: 1).isContinuable,
+        try !stream.read(whileCharactersIn: "0"..."9", minCount: 1).isContinuable
       else {
-        restore(start)
+        stream.restore(start)
         return nil
       }
 
-      exponentPart = substringRead(since: exponentStart)
+      exponentPart = stream.substringRead(since: exponentStart)
 
     case .notMatched:
       exponentPart = nil
@@ -99,7 +99,7 @@ extension JSON.DecodingStream {
     }
 
     let number = JSON.Number(
-      stringValue: substringRead(since: start),
+      stringValue: stream.substringRead(since: start),
       significand: significand,
       integerPart: integerPart,
       fractionalPart: fractionalPart,

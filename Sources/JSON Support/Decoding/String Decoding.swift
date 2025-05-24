@@ -1,7 +1,7 @@
-extension JSON.DecodingStream {
+extension JSON.Value {
 
-  consuming func decodeString() -> JSON.StringDecoder {
-    JSON.StringDecoder(stream: self)
+  consuming func decodeAsString() -> JSON.StringDecoder {
+    JSON.StringDecoder(stream: stream)
   }
 
 }

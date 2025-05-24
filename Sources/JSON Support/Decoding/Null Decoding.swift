@@ -1,11 +1,11 @@
 // Created by Claude
 
-extension JSON.DecodingStream {
+extension JSON.Value {
 
-  public mutating func decodeNull() throws -> Bool {
-    readWhitespace()
+  public mutating func decodeAsNull() throws -> Bool {
+    stream.readWhitespace()
 
-    switch read("null") {
+    switch stream.read("null") {
     case .continuableMatch:
       return false
     case .matched:
@@ -14,4 +14,5 @@ extension JSON.DecodingStream {
       throw error
     }
   }
+
 }

@@ -1,11 +1,11 @@
 // Created by Claude
 
-extension JSON.DecodingStream {
+extension JSON.Value {
 
-  public mutating func decodeBool() throws -> Bool? {
-    readWhitespace()
+  public mutating func decodeAsBool() throws -> Bool? {
+    stream.readWhitespace()
 
-    let candidate = try peekCharacter { character in
+    let candidate = try stream.peekCharacter { character in
       switch character {
       case "t":
         return true
@@ -19,7 +19,7 @@ extension JSON.DecodingStream {
       return nil
     }
 
-    switch read(candidate ? "true" : "false") {
+    switch stream.read(candidate ? "true" : "false") {
     case .continuableMatch:
       return nil
     case .matched:
