@@ -3,7 +3,8 @@
     "allow": [
       "Bash(swift test:*)",
       "Bash(swift format:*)",
-      "Bash(swift build:*)"
+      "Bash(swift build:*)",
+      "Bash(sed:*)"
     ],
     "deny": [ ]
   }

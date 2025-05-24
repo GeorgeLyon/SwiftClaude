@@ -1,6 +1,6 @@
 extension JSON.Value {
 
-  consuming func decodeAsString() -> JSON.StringDecoder {
+  public consuming func decodeAsString() -> JSON.StringDecoder {
     JSON.StringDecoder(stream: stream)
   }
 

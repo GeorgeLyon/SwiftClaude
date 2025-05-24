@@ -12,31 +12,31 @@ private struct NullTests {
   func nullLiteralTest() async throws {
     /// Simple null
     do {
-      var stream = JSON.DecodingStream()
-      stream.push("null")
-      stream.finish()
+      var value = JSON.Value()
+      value.stream.push("null")
+      value.stream.finish()
 
-      let result = try stream.decodeNull()
+      let result = try value.decodeAsNull()
       #expect(result == true)
     }
 
     /// Null with leading whitespace
     do {
-      var stream = JSON.DecodingStream()
-      stream.push("  null")
-      stream.finish()
+      var value = JSON.Value()
+      value.stream.push("  null")
+      value.stream.finish()
 
-      let result = try stream.decodeNull()
+      let result = try value.decodeAsNull()
       #expect(result == true)
     }
 
     /// Null with various whitespace
     do {
-      var stream = JSON.DecodingStream()
-      stream.push(" \t\n\rnull")
-      stream.finish()
+      var value = JSON.Value()
+      value.stream.push(" \t\n\rnull")
+      value.stream.finish()
 
-      let result = try stream.decodeNull()
+      let result = try value.decodeAsNull()
       #expect(result == true)
     }
   }
@@ -45,28 +45,28 @@ private struct NullTests {
   func partialMatchTest() async throws {
     /// Partial null - "n"
     do {
-      var stream = JSON.DecodingStream()
-      stream.push("n")
+      var value = JSON.Value()
+      value.stream.push("n")
 
-      let result = try stream.decodeNull()
+      let result = try value.decodeAsNull()
       #expect(result == false)
     }
 
     /// Partial null - "nu"
     do {
-      var stream = JSON.DecodingStream()
-      stream.push("nu")
+      var value = JSON.Value()
+      value.stream.push("nu")
 
-      let result = try stream.decodeNull()
+      let result = try value.decodeAsNull()
       #expect(result == false)
     }
 
     /// Partial null - "nul"
     do {
-      var stream = JSON.DecodingStream()
-      stream.push("nul")
+      var value = JSON.Value()
+      value.stream.push("nul")
 
-      let result = try stream.decodeNull()
+      let result = try value.decodeAsNull()
       #expect(result == false)
     }
   }
@@ -75,37 +75,37 @@ private struct NullTests {
   func incrementalParsingTest() async throws {
     /// Building up null incrementally
     do {
-      var stream = JSON.DecodingStream()
-      
-      stream.push("n")
-      var result = try stream.decodeNull()
+      var value = JSON.Value()
+
+      value.stream.push("n")
+      var result = try value.decodeAsNull()
       #expect(result == false)
-      
-      stream.push("u")
-      result = try stream.decodeNull()
+
+      value.stream.push("u")
+      result = try value.decodeAsNull()
       #expect(result == false)
-      
-      stream.push("l")
-      result = try stream.decodeNull()
+
+      value.stream.push("l")
+      result = try value.decodeAsNull()
       #expect(result == false)
-      
-      stream.push("l")
-      stream.finish()
-      result = try stream.decodeNull()
+
+      value.stream.push("l")
+      value.stream.finish()
+      result = try value.decodeAsNull()
       #expect(result == true)
     }
 
     /// Building up null in chunks
     do {
-      var stream = JSON.DecodingStream()
-      
-      stream.push("nu")
-      var result = try stream.decodeNull()
+      var value = JSON.Value()
+
+      value.stream.push("nu")
+      var result = try value.decodeAsNull()
       #expect(result == false)
-      
-      stream.push("ll")
-      stream.finish()
-      result = try stream.decodeNull()
+
+      value.stream.push("ll")
+      value.stream.finish()
+      result = try value.decodeAsNull()
       #expect(result == true)
     }
   }
@@ -114,77 +114,79 @@ private struct NullTests {
   func invalidInputTest() async throws {
     /// Invalid starting with 'n' but not 'null'
     do {
-      var stream = JSON.DecodingStream()
-      stream.push("none")
-      stream.finish()
+      var value = JSON.Value()
+      value.stream.push("none")
+      value.stream.finish()
 
       #expect(throws: (any Error).self) {
-        try stream.decodeNull()
+        try value.decodeAsNull()
       }
     }
 
     /// Invalid starting with 'n' but not 'null'
     do {
-      var stream = JSON.DecodingStream()
-      stream.push("nil")
-      stream.finish()
+      var value = JSON.Value()
+      value.stream.push("nil")
+      value.stream.finish()
 
       #expect(throws: (any Error).self) {
-        try stream.decodeNull()
+        try value.decodeAsNull()
       }
     }
 
     /// Boolean input
     do {
-      var stream = JSON.DecodingStream()
-      stream.push("true")
-      stream.finish()
+      var value = JSON.Value()
+      value.stream.push("true")
+      value.stream.finish()
 
       #expect(throws: (any Error).self) {
-        try stream.decodeNull()
+        try value.decodeAsNull()
       }
     }
 
     /// Number input
     do {
-      var stream = JSON.DecodingStream()
-      stream.push("123")
-      stream.finish()
+      var value = JSON.Value()
+      value.stream.push("123")
+      value.stream.finish()
 
       #expect(throws: (any Error).self) {
-        try stream.decodeNull()
+        try value.decodeAsNull()
       }
     }
 
     /// String input
     do {
-      var stream = JSON.DecodingStream()
-      stream.push("\"null\"")
-      stream.finish()
+      var value = JSON.Value()
+      value.stream.push("\"null\"")
+      value.stream.finish()
 
       #expect(throws: (any Error).self) {
-        try stream.decodeNull()
+        try value.decodeAsNull()
       }
     }
 
     /// Empty input
     do {
-      var stream = JSON.DecodingStream()
-      stream.push("")
-      stream.finish()
+      var value = JSON.Value()
+      value.stream.push("")
+      value.stream.finish()
 
-      let result = try stream.decodeNull()
-      #expect(result == false)
+      #expect(throws: Error.self) {
+        _ = try value.decodeAsNull()
+      }
     }
 
     /// Only whitespace
     do {
-      var stream = JSON.DecodingStream()
-      stream.push("   ")
-      stream.finish()
+      var value = JSON.Value()
+      value.stream.push("   ")
+      value.stream.finish()
 
-      let result = try stream.decodeNull()
-      #expect(result == false)
+      #expect(throws: Error.self) {
+        _ = try value.decodeAsNull()
+      }
     }
   }
 
@@ -192,34 +194,34 @@ private struct NullTests {
   func caseInsensitivityTest() async throws {
     /// Upper case NULL
     do {
-      var stream = JSON.DecodingStream()
-      stream.push("NULL")
-      stream.finish()
+      var value = JSON.Value()
+      value.stream.push("NULL")
+      value.stream.finish()
 
       #expect(throws: (any Error).self) {
-        try stream.decodeNull()
+        try value.decodeAsNull()
       }
     }
 
     /// Mixed case Null
     do {
-      var stream = JSON.DecodingStream()
-      stream.push("Null")
-      stream.finish()
+      var value = JSON.Value()
+      value.stream.push("Null")
+      value.stream.finish()
 
       #expect(throws: (any Error).self) {
-        try stream.decodeNull()
+        try value.decodeAsNull()
       }
     }
 
     /// Mixed case nULL
     do {
-      var stream = JSON.DecodingStream()
-      stream.push("nULL")
-      stream.finish()
+      var value = JSON.Value()
+      value.stream.push("nULL")
+      value.stream.finish()
 
       #expect(throws: (any Error).self) {
-        try stream.decodeNull()
+        try value.decodeAsNull()
       }
     }
   }
@@ -228,43 +230,43 @@ private struct NullTests {
   func trailingCharactersTest() async throws {
     /// null with trailing characters
     do {
-      var stream = JSON.DecodingStream()
-      stream.push("null123")
-      stream.finish()
+      var value = JSON.Value()
+      value.stream.push("null123")
+      value.stream.finish()
 
-      let result = try stream.decodeNull()
+      let result = try value.decodeAsNull()
       #expect(result == true)
-      
+
       // Verify that only "null" was consumed
-      let remaining = stream.readCharacter()
+      let remaining = value.stream.readCharacter()
       #expect(remaining == "1")
     }
 
     /// null with comma
     do {
-      var stream = JSON.DecodingStream()
-      stream.push("null,")
-      stream.finish()
+      var value = JSON.Value()
+      value.stream.push("null,")
+      value.stream.finish()
 
-      let result = try stream.decodeNull()
+      let result = try value.decodeAsNull()
       #expect(result == true)
-      
+
       // Verify that only "null" was consumed
-      let remaining = stream.readCharacter()
+      let remaining = value.stream.readCharacter()
       #expect(remaining == ",")
     }
 
     /// null with closing bracket
     do {
-      var stream = JSON.DecodingStream()
-      stream.push("null]")
-      stream.finish()
+      var value = JSON.Value()
+      value.stream.push("null]")
+      value.stream.finish()
 
-      let result = try stream.decodeNull()
+      let result = try value.decodeAsNull()
       #expect(result == true)
-      
+
       // Verify that only "null" was consumed
-      let remaining = stream.readCharacter()
+      let remaining = value.stream.readCharacter()
       #expect(remaining == "]")
     }
   }
@@ -273,41 +275,44 @@ private struct NullTests {
   func edgeCasesTest() async throws {
     /// Just 'n' at end of stream
     do {
-      var stream = JSON.DecodingStream()
-      stream.push("n")
-      stream.finish()
+      var value = JSON.Value()
+      value.stream.push("n")
+      value.stream.finish()
 
-      let result = try stream.decodeNull()
-      #expect(result == false)
+      #expect(throws: Error.self) {
+        _ = try value.decodeAsNull()
+      }
     }
 
     /// 'nu' at end of stream
     do {
-      var stream = JSON.DecodingStream()
-      stream.push("nu")
-      stream.finish()
+      var value = JSON.Value()
+      value.stream.push("nu")
+      value.stream.finish()
 
-      let result = try stream.decodeNull()
-      #expect(result == false)
+      #expect(throws: Error.self) {
+        _ = try value.decodeAsNull()
+      }
     }
 
     /// 'nul' at end of stream
     do {
-      var stream = JSON.DecodingStream()
-      stream.push("nul")
-      stream.finish()
+      var value = JSON.Value()
+      value.stream.push("nul")
+      value.stream.finish()
 
-      let result = try stream.decodeNull()
-      #expect(result == false)
+      #expect(throws: Error.self) {
+        _ = try value.decodeAsNull()
+      }
     }
 
     /// 'null' with no finish
     do {
-      var stream = JSON.DecodingStream()
-      stream.push("null")
+      var value = JSON.Value()
+      value.stream.push("null")
       // Don't call finish()
 
-      let result = try stream.decodeNull()
+      let result = try value.decodeAsNull()
       #expect(result == false)
     }
   }
@@ -316,34 +321,34 @@ private struct NullTests {
   func similarWordsTest() async throws {
     /// Word starting with 'n' - "new"
     do {
-      var stream = JSON.DecodingStream()
-      stream.push("new")
-      stream.finish()
+      var value = JSON.Value()
+      value.stream.push("new")
+      value.stream.finish()
 
       #expect(throws: (any Error).self) {
-        try stream.decodeNull()
+        try value.decodeAsNull()
       }
     }
 
     /// Word starting with 'n' - "nothing"
     do {
-      var stream = JSON.DecodingStream()
-      stream.push("nothing")
-      stream.finish()
+      var value = JSON.Value()
+      value.stream.push("nothing")
+      value.stream.finish()
 
       #expect(throws: (any Error).self) {
-        try stream.decodeNull()
+        try value.decodeAsNull()
       }
     }
 
     /// Word starting with 'nu' - "number"
     do {
-      var stream = JSON.DecodingStream()
-      stream.push("number")
-      stream.finish()
+      var value = JSON.Value()
+      value.stream.push("number")
+      value.stream.finish()
 
       #expect(throws: (any Error).self) {
-        try stream.decodeNull()
+        try value.decodeAsNull()
       }
     }
   }

@@ -43,7 +43,7 @@ extension JSON {
         return nil
       }
       guard let result = try body(character) else {
-        throw Error.unexpectedCharacter(at: nextReadIndex)
+        throw Error.unexpectedCharacter(character, at: nextReadIndex)
       }
       return result
     }
@@ -174,16 +174,20 @@ extension JSON {
           }
         }
         endIndex = readableSubstring.endIndex
-        continuableMatch = true
+        continuableMatch = !isFinished
       }
 
       if let minCount {
         guard readCount >= minCount else {
           if continuableMatch {
             return .continuableMatch
+          } else if endIndex < readableSubstring.endIndex {
+            return .notMatched(
+              Error.unexpectedCharacter(readableSubstring[endIndex], at: endIndex)
+            )
           } else {
             return .notMatched(
-              Error.unexpectedCharacter(at: endIndex)
+              Error.unexpectedEndOfStream
             )
           }
         }
@@ -214,6 +218,11 @@ extension JSON {
           }
         }
         .endIndex
+    }
+
+    private enum Error: Swift.Error {
+      case unexpectedCharacter(Character, at: String.Index)
+      case unexpectedEndOfStream
     }
 
     struct Checkpoint {
@@ -253,10 +262,6 @@ extension JSON {
 
     private var string = ""
 
-  }
-
-  private enum Error: Swift.Error {
-    case unexpectedCharacter(at: String.Index)
   }
 
 }
