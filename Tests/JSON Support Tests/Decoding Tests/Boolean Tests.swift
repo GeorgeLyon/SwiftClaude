@@ -12,31 +12,31 @@ private struct BooleanTests {
   func trueLiteralTest() async throws {
     /// Simple true
     do {
-      var stream = JSON.DecodingStream()
-      stream.push("true")
-      stream.finish()
+      var value = JSON.Value()
+      value.stream.push("true")
+      value.stream.finish()
 
-      let result = try stream.decodeBool()
+      let result = try value.decodeAsBool()
       #expect(result == true)
     }
 
     /// True with leading whitespace
     do {
-      var stream = JSON.DecodingStream()
-      stream.push("  true")
-      stream.finish()
+      var value = JSON.Value()
+      value.stream.push("  true")
+      value.stream.finish()
 
-      let result = try stream.decodeBool()
+      let result = try value.stream.decodeAsBool()
       #expect(result == true)
     }
 
     /// True with various whitespace
     do {
-      var stream = JSON.DecodingStream()
-      stream.push(" \t\n\rtrue")
-      stream.finish()
+      var value = JSON.Value()
+      value.stream.push(" \t\n\rtrue")
+      value.stream.finish()
 
-      let result = try stream.decodeBool()
+      let result = try value.stream.decodeAsBool()
       #expect(result == true)
     }
   }
@@ -145,19 +145,19 @@ private struct BooleanTests {
     /// Building up true incrementally
     do {
       var stream = JSON.DecodingStream()
-      
+
       stream.push("t")
       var result = try stream.decodeBool()
       #expect(result == nil)
-      
+
       stream.push("r")
       result = try stream.decodeBool()
       #expect(result == nil)
-      
+
       stream.push("u")
       result = try stream.decodeBool()
       #expect(result == nil)
-      
+
       stream.push("e")
       stream.finish()
       result = try stream.decodeBool()
@@ -167,15 +167,15 @@ private struct BooleanTests {
     /// Building up false incrementally
     do {
       var stream = JSON.DecodingStream()
-      
+
       stream.push("f")
       var result = try stream.decodeBool()
       #expect(result == nil)
-      
+
       stream.push("al")
       result = try stream.decodeBool()
       #expect(result == nil)
-      
+
       stream.push("se")
       stream.finish()
       result = try stream.decodeBool()
@@ -318,7 +318,7 @@ private struct BooleanTests {
 
       let result = try stream.decodeBool()
       #expect(result == true)
-      
+
       // Verify that only "true" was consumed
       let remaining = stream.readCharacter()
       #expect(remaining == "1")
@@ -332,7 +332,7 @@ private struct BooleanTests {
 
       let result = try stream.decodeBool()
       #expect(result == false)
-      
+
       // Verify that only "false" was consumed
       let remaining = stream.readCharacter()
       #expect(remaining == ",")

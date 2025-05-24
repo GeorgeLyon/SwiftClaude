@@ -5,6 +5,10 @@ extension JSON {
 
   public struct Value: ~Copyable {
 
+    public init() {
+      self.stream = JSON.DecodingStream()
+    }
+
     public init(decoding stream: consuming DecodingStream) {
       self.stream = stream
     }
