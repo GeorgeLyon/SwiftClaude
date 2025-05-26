@@ -1,60 +1,106 @@
-extension JSON.Value {
-
-  public consuming func decodeAsString() -> JSON.StringDecoder {
-    JSON.StringDecoder(stream: stream)
-  }
-
-}
-
 extension JSON {
 
   public struct StringDecoder: ~Copyable {
 
-    public mutating func decodeFragments(
-      _ processFragment: (Substring) throws -> Void
-    ) throws {
-      let fragments = try readFragments()
-      if isComplete, trailingCharacter == nil, fragments.count == 1 {
-        /// Fast path for simple strings
-        try processFragment(fragments[0])
-      } else {
-        var fragment = Substring(
-          [
-            trailingCharacter.map { [Substring(String($0))] } ?? [],
-            fragments,
-          ]
-          .joined()
-          .joined()
-        )
-
-        if !isComplete, stream.possiblyIncompleteIncomingGraphemeCluster == "\\" {
-          /// The last character may be modified by a unicode escape sequence
-          trailingCharacter = fragment.popLast()
-        } else {
-          trailingCharacter = nil
-        }
-
-        try processFragment(fragment)
-      }
-    }
-
-    public private(set) var isComplete = false
-
-    public consuming func finish() throws -> JSON.DecodingStream {
-      /// Read any remaining fragments
-      _ = try readFragments()
-
-      guard isComplete else {
-        throw Error.incompleteString
-      }
-
-      return stream
-    }
-
     public var stream: JSON.DecodingStream
 
-    private var trailingCharacter: Character?
-    private var readOpenQuote = false
+    /// Process fragments of a string
+    /// Grapheme clusters may span multiple fragments, but the last character in the last fragment is guaranteed to be not modifiable by subsequent characters.
+    /// For example, "ç" might be returned as a "c" fragment, and a separate fragment containing the U+0327 combining diacritic, but the fragment passed to the last call to `processFragment` is guaranteed to not be modified by any subsequent unicode scalars.
+    public mutating func processFragments(
+      _ processFragment: (Substring) -> Void
+    ) throws -> JSON.DecodingResult<Void> {
+      switch state {
+      case .complete:
+        return .decoded(())
+      case .failed(let error):
+        throw error
+      case .readingOpenQuote:
+        stream.readWhitespace()
+        guard try !stream.read("\"").needsMoreData else {
+          return .needsMoreData
+        }
+        state = .readingFragments(trailingCharacter: nil)
+        try procesFragments(trailingCharacter: nil, processFragment: processFragment)
+        return .decoded(())
+      case .readingFragments(let trailingCharacter):
+        try procesFragments(trailingCharacter: trailingCharacter, processFragment: processFragment)
+        return .decoded(())
+      }
+    }
+
+    consuming func finish() -> FinishDecodingResult<Self> {
+      do {
+        /// Process any remaining fragments
+        _ = try processFragments { _ in }
+
+        guard case .complete = state else {
+          if stream.isFinished {
+            return .decodingFailed(Error.incompleteString, remainder: stream)
+          } else {
+            return .needsMoreData(self)
+          }
+        }
+
+        return .decodingComplete(remainder: stream)
+      } catch {
+        return .decodingFailed(error, remainder: stream)
+      }
+    }
+
+    init(stream: consuming JSON.DecodingStream) {
+      self.stream = stream
+    }
+
+    private mutating func procesFragments(
+      trailingCharacter: Character?,
+      processFragment: (Substring) -> Void
+    ) throws {
+      do {
+        var nextFragment: Substring?
+        if let trailingCharacter {
+          nextFragment = Substring(String(trailingCharacter))
+        }
+        let isComplete = try stream.readStringFragments { fragment in
+          assert(!fragment.isEmpty)
+          if let nextFragment {
+            processFragment(nextFragment)
+          }
+          nextFragment = fragment
+        }
+        if var lastFragment = nextFragment {
+          let trailingCharacter: Character?
+
+          if !isComplete, stream.possiblyIncompleteIncomingGraphemeCluster == "\\" {
+            /// `DecodingStream` handles the possibility of a combining diacritic or a `ZWJ` being streamed as unicode, but we also need to handle modifications caused by escaped unicode sequences such as `\u0327`.
+            trailingCharacter = lastFragment.popLast()
+            assert(trailingCharacter != nil)
+          } else {
+            trailingCharacter = nil
+          }
+
+          processFragment(lastFragment)
+          state = .readingFragments(trailingCharacter: trailingCharacter)
+        } else {
+          state = .readingFragments(trailingCharacter: nil)
+        }
+
+        if isComplete {
+          state = .complete
+        }
+      } catch {
+        state = .failed(error)
+        throw error
+      }
+    }
+
+    private enum State {
+      case readingOpenQuote
+      case readingFragments(trailingCharacter: Character?)
+      case complete
+      case failed(Swift.Error)
+    }
+    private var state: State = .readingOpenQuote
 
   }
 
@@ -62,100 +108,108 @@ extension JSON {
 
 /// MARK: - Implementation Details
 
-extension JSON.StringDecoder {
+extension JSON.DecodingStream {
 
-  fileprivate mutating func readFragments() throws -> [Substring] {
-    guard !isComplete else {
-      return []
-    }
-
-    if !readOpenQuote {
-      stream.readWhitespace()
-      guard try !stream.read("\"").isContinuable else {
-        return []
-      }
-      readOpenQuote = true
-    }
-
-    var fragments: [Substring] = []
+  /// - Returns: `true` if the end of the string was read
+  fileprivate mutating func readStringFragments(
+    onFragment: (Substring) -> Void
+  ) throws -> Bool {
     readingStream: while true {
       /// Read scalars until we reach a control character or the end of the string
-      _ = stream.read(
-        untilCharacterIn: "\"", "\\"
-      ) { substring in
-        fragments.append(substring)
+      _ = read(
+        untilCharacterIn: "\"", "\\",
+        process: { substring, _ in
+          guard !substring.isEmpty else {
+            /// Empty fragments could mess with our last-character-may-be-modified-by-subsequent-characters mitigation efforts
+            return
+          }
+          onFragment(substring)
+        }
+      )
+
+      let readStart = createCheckpoint()
+
+      let nextCharacter: Character
+      switch readCharacter() {
+      case .needsMoreData:
+        /// We've reached the end of the buffer
+        return false
+      case .matched(let character):
+        nextCharacter = character
+      case .notMatched(let error):
+        throw error
       }
 
-      let checkpoint = stream.createCheckpoint()
-
-      switch stream.readCharacter() {
-      case .none:
-        /// We've reached the end of the buffer
-        break readingStream
+      switch nextCharacter {
       case "\"":
         /// We've reached the end of the string
-        isComplete = true
-        break readingStream
+        return true
       case "\\":
         /// This is an escape sequence
-        guard let escapedCharacter = stream.readCharacter() else {
-          stream.restore(checkpoint)
-          break readingStream
+        let escapedCharacter: Character
+        switch readCharacter() {
+        case .needsMoreData:
+          restore(readStart)
+          return false
+        case .matched(let character):
+          escapedCharacter = character
+        case .notMatched(let error):
+          throw error
         }
 
         switch escapedCharacter {
         /// Unsupported characters
         case "b", "f":
-          fragments.append("�")
+          onFragment("�")
         /// Verbatim characters
         case "\"":
-          fragments.append("\"")
+          onFragment("\"")
         case "\\":
-          fragments.append("\\")
+          onFragment("\\")
         case "/":
-          fragments.append("/")
+          onFragment("/")
         /// Escaped characters
         case "n":
-          fragments.append("\n")
+          onFragment("\n")
         case "t":
-          fragments.append("\t")
+          onFragment("\t")
         case "r":
-          fragments.append("\r")
+          onFragment("\r")
         case "u":
-          guard let escapeSequence = stream.readUnicodeEscapeSequence() else {
-            stream.restore(checkpoint)
-            break readingStream
+          guard let escapeSequence = readUnicodeEscapeSequence() else {
+            restore(readStart)
+            return false
           }
 
           switch escapeSequence {
           case .encoded(let fragment):
-            fragments.append(fragment)
+            onFragment(fragment)
           case .invalid, .lowSurrogate:
-            fragments.append("�")
+            onFragment("�")
           case .highSurrogate(let highSurrogateValue):
-            switch stream.read("\\u") {
+            switch read("\\u") {
             case .matched:
               break
-            case .continuableMatch:
-              stream.restore(checkpoint)
-              break readingStream
+            case .needsMoreData:
+              restore(readStart)
+              return false
             case .notMatched:
               /// The high surrogate was not followed by a unicode escape sequence
-              fragments.append("�")
+              onFragment("�")
               continue readingStream
             }
 
-            guard let lowSurrogateEscapeSequence = stream.readUnicodeEscapeSequence() else {
-              stream.restore(checkpoint)
-              break readingStream
+            guard let lowSurrogateEscapeSequence = readUnicodeEscapeSequence() else {
+              restore(readStart)
+              return false
             }
 
             switch lowSurrogateEscapeSequence {
             case .encoded(let fragment):
-              fragments.append("�")
-              fragments.append(fragment)
+              onFragment("�")
+              onFragment(fragment)
             case .invalid, .highSurrogate:
-              fragments.append("��")
+              onFragment("��")
             case .lowSurrogate(let lowSurrogateValue):
               guard
                 let scalar = UnicodeScalar(
@@ -164,29 +218,23 @@ extension JSON.StringDecoder {
               else {
                 /// This shouldn't be possible, because all values that are created by a valid surrogate pair should result in a valid scalar.
                 assertionFailure()
-                fragments.append("�")
+                onFragment("�")
                 continue readingStream
               }
-              fragments.append(Substring(String(String.UnicodeScalarView([scalar]))))
+              onFragment(Substring(String(String.UnicodeScalarView([scalar]))))
             }
           }
         default:
           /// This is an invalid escape sequence
-          fragments.append("�")
+          onFragment("�")
         }
-      case let character?:
+      case let character:
         /// This shouldn't be possible, since this character should have been consumed by `readBytes(until:)`
         assertionFailure()
-        fragments.append(Substring(String(character)))
+        onFragment(Substring(String(character)))
       }
     }
-    return fragments
-  }
-
-  fileprivate init(
-    stream: consuming JSON.DecodingStream,
-  ) {
-    self.stream = stream
+    return false
   }
 
 }
@@ -207,7 +255,7 @@ extension JSON.DecodingStream {
       whileCharactersIn: "0"..."9", "a"..."f", "A"..."F",
       minCount: 4,
       maxCount: 4
-    ) { substring -> UnicodeEscapeSequence in
+    ) { substring, _ -> UnicodeEscapeSequence in
       guard let intValue = Int(substring, radix: 16) else {
         /// This shouldn't be possible because we only read hex characters
         assertionFailure()
@@ -228,7 +276,7 @@ extension JSON.DecodingStream {
       }
     }
     return switch result {
-    case .continuableMatch:
+    case .needsMoreData:
       nil
     case .matched(let sequence):
       sequence

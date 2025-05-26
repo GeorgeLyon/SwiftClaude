@@ -26,45 +26,45 @@ extension JSON {
       string.append(fragment)
     }
 
-    mutating func readCharacter() -> Character? {
+    mutating func readCharacter() -> ReadResult<Character> {
       let readableSubstring = readableSubstring
       guard let character = readableSubstring.first else {
-        return nil
-      }
-      nextReadIndex = readableSubstring.index(after: nextReadIndex)
-      return character
-    }
-
-    mutating func peekCharacter<T>(
-      _ body: (Character) throws -> T?
-    ) throws -> T? {
-      let readableSubstring = readableSubstring
-      guard let character = readableSubstring.first else {
-        return nil
-      }
-      guard let result = try body(character) else {
-        throw Error.unexpectedCharacter(character, at: nextReadIndex)
-      }
-      return result
-    }
-
-    enum ReadResult<T> {
-      case matched(T)
-      case continuableMatch
-      case notMatched(Swift.Error)
-
-      var isContinuable: Bool {
-        get throws {
-          switch self {
-          case .matched:
-            return false
-          case .continuableMatch:
-            return true
-          case .notMatched(let error):
-            throw error
-          }
+        if isFinished {
+          return .notMatched(Error.unexpectedEndOfStream)
+        } else {
+          return .needsMoreData
         }
       }
+      nextReadIndex = readableSubstring.index(after: nextReadIndex)
+      return .matched(character)
+    }
+
+    /// Peeks at the next character but does not increment the read index.
+    /// If `body` returns `nil`, returns an `error` result.
+    func peekCharacter<T>(
+      _ body: (Character) -> T?
+    ) -> ReadResult<T> {
+      let readableSubstring = readableSubstring
+      guard let character = readableSubstring.first else {
+        if isFinished {
+          return .notMatched(Error.unexpectedEndOfStream)
+        } else {
+          return .needsMoreData
+        }
+      }
+      guard let result = body(character) else {
+        return .notMatched(Error.unexpectedCharacter(character, at: nextReadIndex))
+      }
+      return .matched(result)
+    }
+
+    /// The result of reading data from the stream.
+    /// Similar to a `DecodingResult` but it returns errors as a separate case.
+    /// This is because we expect the "didn't match" case to happen on the happy path, and don't want to trip error breakpoints when this happens.
+    enum ReadResult<T> {
+      case matched(T)
+      case needsMoreData
+      case notMatched(Swift.Error)
     }
 
     mutating func read(_ string: String) -> ReadResult<Void> {
@@ -73,7 +73,7 @@ extension JSON {
         while: { $0 == expectedCharacters.next() },
         minCount: string.count,
         maxCount: string.count
-      ) { _ in }
+      ) { _, _ in }
     }
 
     struct CharacterCondition: ExpressibleByUnicodeScalarLiteral {
@@ -98,7 +98,7 @@ extension JSON {
         while: { acceptedCharacters.accepts($0) },
         minCount: minCount,
         maxCount: maxCount,
-        process: { _ in }
+        process: { _, _ in }
       )
     }
 
@@ -111,7 +111,7 @@ extension JSON {
         while: { !terminationCharacters.accepts($0) },
         minCount: minCount,
         maxCount: maxCount,
-        process: { _ in }
+        process: { _, _ in }
       )
     }
 
@@ -119,7 +119,7 @@ extension JSON {
       whileCharactersIn acceptedCharacters: CharacterCondition...,
       minCount: Int? = nil,
       maxCount: Int? = nil,
-      process: (Substring) throws -> T
+      process: (inout Substring, Character?) throws -> T
     ) rethrows -> ReadResult<T> {
       try self.read(
         while: { acceptedCharacters.accepts($0) },
@@ -133,7 +133,7 @@ extension JSON {
       untilCharacterIn terminationCharacters: CharacterCondition...,
       minCount: Int? = nil,
       maxCount: Int? = nil,
-      process: (Substring) throws -> T
+      process: (inout Substring, Character?) throws -> T
     ) rethrows -> ReadResult<T> {
       try self.read(
         while: { !terminationCharacters.accepts($0) },
@@ -147,12 +147,11 @@ extension JSON {
       while acceptCondition: (Character) -> Bool,
       minCount: Int? = nil,
       maxCount: Int? = nil,
-      process: (Substring) throws -> T
+      process: (inout Substring, Character?) throws -> T
     ) rethrows -> ReadResult<T> {
       let readableSubstring = readableSubstring
       let endIndex: String.Index
       let continuableMatch: Bool
-
       var readCount = 0
       reading: do {
         let indices = readableSubstring.indices
@@ -180,7 +179,7 @@ extension JSON {
       if let minCount {
         guard readCount >= minCount else {
           if continuableMatch {
-            return .continuableMatch
+            return .needsMoreData
           } else if endIndex < readableSubstring.endIndex {
             return .notMatched(
               Error.unexpectedCharacter(readableSubstring[endIndex], at: endIndex)
@@ -193,8 +192,11 @@ extension JSON {
         }
       }
 
-      let result = try process(readableSubstring[..<endIndex])
-      nextReadIndex = endIndex
+      var substring = readableSubstring[..<endIndex]
+      let terminatingCharacter =
+        endIndex < readableSubstring.endIndex ? readableSubstring[endIndex] : nil
+      let result = try process(&substring, terminatingCharacter)
+      nextReadIndex = substring.endIndex
       return .matched(result)
     }
 
@@ -218,11 +220,6 @@ extension JSON {
           }
         }
         .endIndex
-    }
-
-    private enum Error: Swift.Error {
-      case unexpectedCharacter(Character, at: String.Index)
-      case unexpectedEndOfStream
     }
 
     struct Checkpoint {
@@ -262,8 +259,67 @@ extension JSON {
 
     private var string = ""
 
+    enum Error: Swift.Error {
+      case unexpectedCharacter(Character, at: String.Index)
+      case unexpectedEndOfStream
+      case numberWithLeadingZeroes
+    }
+
   }
 
+}
+
+extension JSON {
+
+  public enum DecodingResult<Value: ~Copyable>: ~Copyable {
+    case needsMoreData
+    case decoded(Value)
+
+    func map<T>(_ transform: (consuming Value) throws -> T) rethrows -> DecodingResult<T> {
+      switch self {
+      case .needsMoreData:
+        return .needsMoreData
+      case .decoded(let value):
+        return .decoded(try transform(value))
+      }
+    }
+  }
+
+}
+
+extension JSON.DecodingStream.ReadResult {
+
+  var needsMoreData: Bool {
+    get throws {
+      switch self {
+      case .matched:
+        return false
+      case .needsMoreData:
+        return true
+      case .notMatched(let error):
+        throw error
+      }
+    }
+  }
+
+  func decodingResult() throws -> JSON.DecodingResult<T> {
+    switch self {
+    case .matched(let value):
+      return .decoded(value)
+    case .needsMoreData:
+      return .needsMoreData
+    case .notMatched(let error):
+      throw error
+    }
+  }
+
+}
+
+/// In Finland, decoding results include either the stream in whatever state it is in after decoding completed, or the decoder itself if decoding is still incomplete.
+enum FinishDecodingResult<Decoder: ~Copyable>: ~Copyable {
+  case needsMoreData(Decoder)
+  case decodingComplete(remainder: JSON.DecodingStream)
+  case decodingFailed(Swift.Error, remainder: JSON.DecodingStream)
 }
 
 func ... (lhs: Character, rhs: Character) -> JSON.DecodingStream.CharacterCondition {

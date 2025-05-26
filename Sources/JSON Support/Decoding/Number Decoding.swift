@@ -8,113 +8,116 @@ extension JSON {
     let exponent: Substring?
   }
 
+  public struct NumberDecoder: PrimitiveDecoder, ~Copyable {
+
+    init(state: consuming State) {
+      self.state = state
+    }
+
+    static func decodeValueStatelessly(
+      _ stream: inout JSON.DecodingStream
+    ) throws -> JSON.DecodingResult<Number> {
+      try stream.readNumber()
+    }
+
+    var state: State
+
+  }
+
 }
 
-extension JSON.Value {
+extension JSON.DecodingStream {
 
-  public mutating func decodeAsNumber<T>(
-    process: (JSON.Number) throws -> T
-  ) throws -> T? {
+  fileprivate mutating func readNumber() throws -> JSON.DecodingResult<JSON.Number> {
     let significand: Substring
     let integerPart: Substring
     let fractionalPart: Substring?
     let exponentPart: Substring?
 
-    stream.readWhitespace()
+    readWhitespace()
 
-    let start = stream.createCheckpoint()
+    let start = createCheckpoint()
 
     /// Read integer part
     do {
-      guard try !stream.read(whileCharactersIn: "-", maxCount: 1).isContinuable else {
-        stream.restore(start)
-        return nil
+      guard try !read(whileCharactersIn: "-", maxCount: 1).needsMoreData else {
+        restore(start)
+        return .needsMoreData
       }
-      let result = try stream.read(
-        whileCharactersIn: "0"..."9",
-        minCount: 1,
-        process: { substring in
-          guard substring.prefix(while: { $0 == "0" }).count < 2 else {
-            throw JSON.Number.Error.leadingZeroes
+
+      guard
+        try read(
+          whileCharactersIn: "0"..."9",
+          minCount: 1,
+          process: { substring, _ in
+            guard substring.prefix(while: { $0 == "0" }).count < 2 else {
+              throw JSON.DecodingStream.Error.numberWithLeadingZeroes
+            }
           }
-        }
-      )
-      switch result {
-      case .continuableMatch:
-        stream.restore(start)
-        return nil
-      case .matched:
-        break
-      case .notMatched(let error):
-        throw error
+        ).needsMoreData
+      else {
+        restore(start)
+        return .needsMoreData
       }
-      integerPart = stream.substringRead(since: start)
+      integerPart = substringRead(since: start)
     }
 
     /// Read fractional part
-    switch stream.read(".") {
-    case .continuableMatch:
-      stream.restore(start)
-      return nil
+    switch read(".") {
+    case .needsMoreData:
+      restore(start)
+      return .needsMoreData
 
     case .matched:
-      let fractionStart = stream.createCheckpoint()
+      let fractionStart = createCheckpoint()
 
-      guard try !stream.read(whileCharactersIn: "0"..."9", minCount: 1).isContinuable else {
-        stream.restore(start)
-        return nil
+      guard try !read(whileCharactersIn: "0"..."9", minCount: 1).needsMoreData else {
+        restore(start)
+        return .needsMoreData
       }
 
-      fractionalPart = stream.substringRead(since: fractionStart)
+      fractionalPart = substringRead(since: fractionStart)
 
     case .notMatched:
       fractionalPart = nil
       break
     }
 
-    significand = stream.substringRead(since: start)
+    significand = substringRead(since: start)
 
     /// Read exponent
-    switch stream.read(whileCharactersIn: "E", "e", minCount: 1, maxCount: 1) {
-    case .continuableMatch:
-      stream.restore(start)
-      return nil
+    switch read(whileCharactersIn: "E", "e", minCount: 1, maxCount: 1) {
+    case .needsMoreData:
+      restore(start)
+      return .needsMoreData
 
     case .matched:
-      let exponentStart = stream.createCheckpoint()
+      let exponentStart = createCheckpoint()
 
       guard
-        try !stream.read(whileCharactersIn: "+", "-", maxCount: 1).isContinuable,
-        try !stream.read(whileCharactersIn: "0"..."9", minCount: 1).isContinuable
+        try !read(whileCharactersIn: "+", "-", maxCount: 1).needsMoreData,
+        try !read(whileCharactersIn: "0"..."9", minCount: 1).needsMoreData
       else {
-        stream.restore(start)
-        return nil
+        restore(start)
+        return .needsMoreData
       }
 
-      exponentPart = stream.substringRead(since: exponentStart)
+      exponentPart = substringRead(since: exponentStart)
 
     case .notMatched:
       exponentPart = nil
       break
     }
 
-    let number = JSON.Number(
-      stringValue: stream.substringRead(since: start),
-      significand: significand,
-      integerPart: integerPart,
-      fractionalPart: fractionalPart,
-      exponent: exponentPart
+    return .decoded(
+      JSON.Number(
+        stringValue: substringRead(since: start),
+        significand: significand,
+        integerPart: integerPart,
+        fractionalPart: fractionalPart,
+        exponent: exponentPart
+      )
     )
-
-    return try process(number)
-  }
-
-}
-
-extension JSON.Number {
-
-  enum Error: Swift.Error {
-    case leadingZeroes
   }
 
 }

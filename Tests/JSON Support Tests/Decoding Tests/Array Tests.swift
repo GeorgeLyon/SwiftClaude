@@ -15,8 +15,8 @@ private struct ArrayTests {
       value.stream.finish()
 
       var decoder = value.decodeArray()
-      let firstElement: String? = try decoder.decodeNextElement { stream in
-        return "element"
+      let firstElement: String? = try decoder.decodeNextElement { value in
+        return
       }
       #expect(firstElement == nil)
       #expect(decoder.isComplete == true)

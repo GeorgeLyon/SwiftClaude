@@ -1,18 +1,19 @@
-// Created by Claude
+extension JSON {
 
-extension JSON.Value {
+  public struct NullDecoder: PrimitiveDecoder, ~Copyable {
 
-  public mutating func decodeAsNull() throws -> Bool {
-    stream.readWhitespace()
-
-    switch stream.read("null") {
-    case .continuableMatch:
-      return false
-    case .matched:
-      return true
-    case .notMatched(let error):
-      throw error
+    static func decodeValueStatelessly(_ stream: inout JSON.DecodingStream) throws
+      -> JSON.DecodingResult<Void>
+    {
+      try stream.read("null").decodingResult()
     }
+
+    init(state: consuming State) {
+      self.state = state
+    }
+
+    var state: State
+
   }
 
 }
