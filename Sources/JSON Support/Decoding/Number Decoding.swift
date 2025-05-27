@@ -10,6 +10,20 @@ extension JSON {
 
   public struct NumberDecoder: PrimitiveDecoder, ~Copyable {
 
+    public init() {
+      self.init(stream: JSON.DecodingStream())
+    }
+
+    public mutating func decodeNumber() throws -> JSON.DecodingResult<Number> {
+      try state.decodeValue()
+    }
+
+    public var isComplete: Bool {
+      get throws {
+        try state.isComplete
+      }
+    }
+
     init(state: consuming State) {
       self.state = state
     }
@@ -50,7 +64,7 @@ extension JSON.DecodingStream {
       }
 
       guard
-        try read(
+        try !read(
           whileCharactersIn: "0"..."9",
           minCount: 1,
           process: { substring, _ in

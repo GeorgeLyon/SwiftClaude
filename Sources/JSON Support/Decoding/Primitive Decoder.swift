@@ -16,26 +16,7 @@ protocol PrimitiveDecoder: ~Copyable {
 
 struct PrimitiveDecoderState<Decoder: PrimitiveDecoder & ~Copyable>: ~Copyable {
 
-  consuming func finish() -> FinishDecodingResult<Decoder> {
-    if case .incomplete = state {
-      _ = try? decodeValue()
-    }
-
-    switch state {
-    case .complete:
-      return .decodingComplete(remainder: stream)
-    case .failed(let error):
-      return .decodingFailed(error, remainder: stream)
-    case .incomplete:
-      return .needsMoreData(Decoder(state: self))
-    }
-  }
-
-  fileprivate init(stream: consuming JSON.DecodingStream) {
-    self.stream = stream
-  }
-
-  fileprivate mutating func decodeValue() throws -> JSON.DecodingResult<Decoder.Value> {
+  mutating func decodeValue() throws -> JSON.DecodingResult<Decoder.Value> {
     switch state {
     case .incomplete:
       do {
@@ -57,6 +38,38 @@ struct PrimitiveDecoderState<Decoder: PrimitiveDecoder & ~Copyable>: ~Copyable {
     }
   }
 
+  consuming func finish() -> FinishDecodingResult<Decoder> {
+    if case .incomplete = state {
+      _ = try? decodeValue()
+    }
+
+    switch state {
+    case .complete:
+      return .decodingComplete(remainder: stream)
+    case .failed(let error):
+      return .decodingFailed(error, remainder: stream)
+    case .incomplete:
+      return .needsMoreData(Decoder(state: self))
+    }
+  }
+
+  var isComplete: Bool {
+    get throws {
+      switch state {
+      case .incomplete:
+        return false
+      case .complete:
+        return true
+      case .failed(let error):
+        throw error
+      }
+    }
+  }
+
+  fileprivate init(stream: consuming JSON.DecodingStream) {
+    self.stream = stream
+  }
+
   fileprivate enum State {
     case incomplete
     case complete(Decoder.Value)
@@ -74,10 +87,6 @@ extension PrimitiveDecoder where Self: ~Copyable {
 
   init(stream: consuming JSON.DecodingStream) {
     self.init(state: PrimitiveDecoderState(stream: stream))
-  }
-
-  mutating func decodeValue() throws -> JSON.DecodingResult<Value> {
-    try state.decodeValue()
   }
 
   var stream: JSON.DecodingStream {

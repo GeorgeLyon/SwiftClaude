@@ -260,6 +260,7 @@ extension JSON {
     private var string = ""
 
     enum Error: Swift.Error {
+      case needsMoreData
       case unexpectedCharacter(Character, at: String.Index)
       case unexpectedEndOfStream
       case numberWithLeadingZeroes
@@ -274,6 +275,24 @@ extension JSON {
   public enum DecodingResult<Value: ~Copyable>: ~Copyable {
     case needsMoreData
     case decoded(Value)
+
+    public consuming func getValue() throws -> Value {
+      switch consume self {
+      case .needsMoreData:
+        throw JSON.DecodingStream.Error.needsMoreData
+      case .decoded(let value):
+        return value
+      }
+    }
+
+    public var needsMoreData: Bool {
+      switch self {
+      case .needsMoreData:
+        return true
+      case .decoded:
+        return false
+      }
+    }
 
     consuming func map<T>(
       _ transform: (consuming Value) throws -> T

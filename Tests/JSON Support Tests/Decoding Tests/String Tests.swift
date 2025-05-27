@@ -573,6 +573,7 @@ private struct StringTests {
   }
 
 }
+
 // MARK: - Support
 
 extension JSON.StringDecoder {
