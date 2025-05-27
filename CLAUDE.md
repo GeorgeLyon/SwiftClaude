@@ -20,6 +20,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Use Swift Testing framework with `@Suite`, `@Test` annotations
 - Use `#expect` for assertions in tests
 - Do not use `XCTest`
+- Try to keep public APIs at the top of the file, followed by internal APIs, fileprivate APIs, and private APIs.
 - Prefer optional chaining and conditional unwrapping over force unwrapping
 - Use throwing functions for error handling
 - Don't use `print` statements in tests

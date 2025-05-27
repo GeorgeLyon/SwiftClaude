@@ -76,6 +76,11 @@ struct PrimitiveDecoderState<Decoder: PrimitiveDecoder & ~Copyable>: ~Copyable {
     self.stream = stream
   }
 
+  fileprivate init(error: Swift.Error, stream: consuming JSON.DecodingStream) {
+    self.stream = stream
+    self.state = .failed(error)
+  }
+
   fileprivate enum State {
     case incomplete
     case complete(Decoder.Value)
@@ -93,6 +98,10 @@ extension PrimitiveDecoder where Self: ~Copyable {
 
   init(stream: consuming JSON.DecodingStream) {
     self.init(state: PrimitiveDecoderState(stream: stream))
+  }
+
+  init(error: Swift.Error, stream: consuming JSON.DecodingStream) {
+    self.init(state: PrimitiveDecoderState(error: error, stream: stream))
   }
 
   var stream: JSON.DecodingStream {

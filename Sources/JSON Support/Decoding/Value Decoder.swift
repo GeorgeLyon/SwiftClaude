@@ -98,7 +98,134 @@ extension JSON {
       }
     }
 
-    /// Add Here
+    public var numberDecoder: NumberDecoder {
+      consuming _read {
+        let decoder: NumberDecoder
+        switch consume value {
+        case .partiallyConsumed:
+          assertionFailure()
+          decoder = NumberDecoder(error: Error.partiallyConsumed, stream: JSON.DecodingStream())
+        case .unknown(let stream):
+          decoder = NumberDecoder(stream: stream)
+        case .number(let existingDecoder):
+          decoder = existingDecoder
+        case .string(let existingDecoder):
+          decoder = NumberDecoder(error: Error.unexpectedType, stream: existingDecoder.destroy())
+        case .null(let existingDecoder):
+          decoder = NumberDecoder(error: Error.unexpectedType, stream: existingDecoder.destroy())
+        case .boolean(let existingDecoder):
+          decoder = NumberDecoder(error: Error.unexpectedType, stream: existingDecoder.destroy())
+        }
+        yield decoder
+      }
+      _modify {
+        var decoder: NumberDecoder
+        switch consume value {
+        case .partiallyConsumed:
+          assertionFailure()
+          decoder = NumberDecoder(error: Error.partiallyConsumed, stream: JSON.DecodingStream())
+        case .unknown(let stream):
+          decoder = NumberDecoder(stream: stream)
+        case .number(let existingDecoder):
+          decoder = existingDecoder
+        case .string(let existingDecoder):
+          decoder = NumberDecoder(error: Error.unexpectedType, stream: existingDecoder.destroy())
+        case .null(let existingDecoder):
+          decoder = NumberDecoder(error: Error.unexpectedType, stream: existingDecoder.destroy())
+        case .boolean(let existingDecoder):
+          decoder = NumberDecoder(error: Error.unexpectedType, stream: existingDecoder.destroy())
+        }
+        self = ValueDecoder(value: .partiallyConsumed)
+        yield &decoder
+        self = ValueDecoder(value: .number(decoder))
+      }
+    }
+
+    public var nullDecoder: NullDecoder {
+      consuming _read {
+        let decoder: NullDecoder
+        switch consume value {
+        case .partiallyConsumed:
+          assertionFailure()
+          decoder = NullDecoder(error: Error.partiallyConsumed, stream: JSON.DecodingStream())
+        case .unknown(let stream):
+          decoder = NullDecoder(stream: stream)
+        case .null(let existingDecoder):
+          decoder = existingDecoder
+        case .string(let existingDecoder):
+          decoder = NullDecoder(error: Error.unexpectedType, stream: existingDecoder.destroy())
+        case .number(let existingDecoder):
+          decoder = NullDecoder(error: Error.unexpectedType, stream: existingDecoder.destroy())
+        case .boolean(let existingDecoder):
+          decoder = NullDecoder(error: Error.unexpectedType, stream: existingDecoder.destroy())
+        }
+        yield decoder
+      }
+      _modify {
+        var decoder: NullDecoder
+        switch consume value {
+        case .partiallyConsumed:
+          assertionFailure()
+          decoder = NullDecoder(error: Error.partiallyConsumed, stream: JSON.DecodingStream())
+        case .unknown(let stream):
+          decoder = NullDecoder(stream: stream)
+        case .null(let existingDecoder):
+          decoder = existingDecoder
+        case .string(let existingDecoder):
+          decoder = NullDecoder(error: Error.unexpectedType, stream: existingDecoder.destroy())
+        case .number(let existingDecoder):
+          decoder = NullDecoder(error: Error.unexpectedType, stream: existingDecoder.destroy())
+        case .boolean(let existingDecoder):
+          decoder = NullDecoder(error: Error.unexpectedType, stream: existingDecoder.destroy())
+        }
+        self = ValueDecoder(value: .partiallyConsumed)
+        yield &decoder
+        self = ValueDecoder(value: .null(decoder))
+      }
+    }
+
+    public var booleanDecoder: BooleanDecoder {
+      consuming _read {
+        let decoder: BooleanDecoder
+        switch consume value {
+        case .partiallyConsumed:
+          assertionFailure()
+          decoder = BooleanDecoder(error: Error.partiallyConsumed, stream: JSON.DecodingStream())
+        case .unknown(let stream):
+          decoder = BooleanDecoder(stream: stream)
+        case .boolean(let existingDecoder):
+          decoder = existingDecoder
+        case .string(let existingDecoder):
+          decoder = BooleanDecoder(error: Error.unexpectedType, stream: existingDecoder.destroy())
+        case .number(let existingDecoder):
+          decoder = BooleanDecoder(error: Error.unexpectedType, stream: existingDecoder.destroy())
+        case .null(let existingDecoder):
+          decoder = BooleanDecoder(error: Error.unexpectedType, stream: existingDecoder.destroy())
+        }
+        yield decoder
+      }
+      _modify {
+        var decoder: BooleanDecoder
+        switch consume value {
+        case .partiallyConsumed:
+          assertionFailure()
+          decoder = BooleanDecoder(error: Error.partiallyConsumed, stream: JSON.DecodingStream())
+        case .unknown(let stream):
+          decoder = BooleanDecoder(stream: stream)
+        case .boolean(let existingDecoder):
+          decoder = existingDecoder
+        case .string(let existingDecoder):
+          decoder = BooleanDecoder(error: Error.unexpectedType, stream: existingDecoder.destroy())
+        case .number(let existingDecoder):
+          decoder = BooleanDecoder(error: Error.unexpectedType, stream: existingDecoder.destroy())
+        case .null(let existingDecoder):
+          decoder = BooleanDecoder(error: Error.unexpectedType, stream: existingDecoder.destroy())
+        }
+        self = ValueDecoder(value: .partiallyConsumed)
+        yield &decoder
+        self = ValueDecoder(value: .boolean(decoder))
+      }
+    }
 
     consuming func finish() -> FinishDecodingResult<Self> {
       switch consume value {
