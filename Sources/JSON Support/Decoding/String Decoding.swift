@@ -2,13 +2,30 @@ extension JSON {
 
   public struct StringDecoder: ~Copyable {
 
+    public init() {
+      stream = JSON.DecodingStream()
+    }
+
     public var stream: JSON.DecodingStream
+
+    public var isComplete: Bool {
+      get throws {
+        switch state {
+        case .complete:
+          return true
+        case .failed(let error):
+          throw error
+        case .readingOpenQuote, .readingFragments:
+          return false
+        }
+      }
+    }
 
     /// Process fragments of a string
     /// Grapheme clusters may span multiple fragments, but the last character in the last fragment is guaranteed to be not modifiable by subsequent characters.
     /// For example, "ç" might be returned as a "c" fragment, and a separate fragment containing the U+0327 combining diacritic, but the fragment passed to the last call to `processFragment` is guaranteed to not be modified by any subsequent unicode scalars.
-    public mutating func processFragments(
-      _ processFragment: (Substring) -> Void
+    public mutating func decodeFragments(
+      _ decodeFragment: (Substring) -> Void
     ) throws -> JSON.DecodingResult<Void> {
       switch state {
       case .complete:
@@ -21,10 +38,10 @@ extension JSON {
           return .needsMoreData
         }
         state = .readingFragments(trailingCharacter: nil)
-        try procesFragments(trailingCharacter: nil, processFragment: processFragment)
+        try decodeFragments(trailingCharacter: nil, decodeFragment: decodeFragment)
         return .decoded(())
       case .readingFragments(let trailingCharacter):
-        try procesFragments(trailingCharacter: trailingCharacter, processFragment: processFragment)
+        try decodeFragments(trailingCharacter: trailingCharacter, decodeFragment: decodeFragment)
         return .decoded(())
       }
     }
@@ -32,7 +49,7 @@ extension JSON {
     consuming func finish() -> FinishDecodingResult<Self> {
       do {
         /// Process any remaining fragments
-        _ = try processFragments { _ in }
+        _ = try decodeFragments { _ in }
 
         guard case .complete = state else {
           if stream.isFinished {
@@ -52,9 +69,9 @@ extension JSON {
       self.stream = stream
     }
 
-    private mutating func procesFragments(
+    private mutating func decodeFragments(
       trailingCharacter: Character?,
-      processFragment: (Substring) -> Void
+      decodeFragment: (Substring) -> Void
     ) throws {
       do {
         var nextFragment: Substring?
@@ -64,7 +81,7 @@ extension JSON {
         let isComplete = try stream.readStringFragments { fragment in
           assert(!fragment.isEmpty)
           if let nextFragment {
-            processFragment(nextFragment)
+            decodeFragment(nextFragment)
           }
           nextFragment = fragment
         }
@@ -79,7 +96,7 @@ extension JSON {
             trailingCharacter = nil
           }
 
-          processFragment(lastFragment)
+          decodeFragment(lastFragment)
           state = .readingFragments(trailingCharacter: trailingCharacter)
         } else {
           state = .readingFragments(trailingCharacter: nil)

@@ -275,8 +275,10 @@ extension JSON {
     case needsMoreData
     case decoded(Value)
 
-    func map<T>(_ transform: (consuming Value) throws -> T) rethrows -> DecodingResult<T> {
-      switch self {
+    consuming func map<T>(
+      _ transform: (consuming Value) throws -> T
+    ) rethrows -> DecodingResult<T> {
+      switch consume self {
       case .needsMoreData:
         return .needsMoreData
       case .decoded(let value):

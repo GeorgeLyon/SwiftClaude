@@ -80,4 +80,13 @@ extension PrimitiveDecoder where Self: ~Copyable {
     try state.decodeValue()
   }
 
+  var stream: JSON.DecodingStream {
+    _read {
+      yield state.stream
+    }
+    _modify {
+      yield &state.stream
+    }
+  }
+
 }

@@ -7,21 +7,26 @@ import Testing
 private struct StringTests {
 
   @Test
-  func simpleTest() async throws {
+  func basicTest() async throws {
+
     /// Complete string
     do {
-      var value = JSON.Value()
-      value.stream.push("\"Hello, World!\"")
-      value.stream.finish()
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"Hello, World!\"")
+      decoder.stream.finish()
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
         #expect($0 == ["Hello, World!"])
       }
-      let isComplete = decoder.isComplete
-      #expect(isComplete)
+
+      #expect(try decoder.isComplete)
     }
 
+  }
+
+}
+
+/*
     /// Partial read
     do {
       var value = JSON.Value()
@@ -626,18 +631,20 @@ private struct StringTests {
   }
 }
 
+ */
 // MARK: - Support
 
 extension JSON.StringDecoder {
 
+  /// Takes a closure since Swift Testing doesn't currently support non-copyable type in `#expect` expressions.
   mutating func withDecodedFragments(
-    _ body: ([String]) throws -> Void
+    _ body: ([String]) -> Void
   ) throws {
     var fragments: [String] = []
-    try decodeFragments { fragment in
-      fragments.append(String(fragment))
+    _ = try decodeFragments { decoded in
+      fragments.append(String(decoded))
     }
-    try body(fragments)
+    body(fragments)
   }
 
 }

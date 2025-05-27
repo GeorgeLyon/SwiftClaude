@@ -2,8 +2,88 @@ extension JSON {
 
   public struct ValueDecoder: ~Copyable {
 
+    public init() {
+      value = .unknown(JSON.DecodingStream())
+    }
+
+    public var stream: JSON.DecodingStream {
+      _read {
+        switch value {
+        case .partiallyConsumed:
+          assertionFailure()
+          let stream = JSON.DecodingStream()
+          yield stream
+        case .unknown(let stream):
+          yield stream
+        case .string(let decoder):
+          yield decoder.stream
+        case .number(let decoder):
+          yield decoder.stream
+        case .null(let decoder):
+          yield decoder.stream
+        case .boolean(let decoder):
+          yield decoder.stream
+        }
+      }
+      _modify {
+        switch consume value {
+        case .partiallyConsumed:
+          assertionFailure()
+          self = ValueDecoder(value: .partiallyConsumed)
+          var stream = JSON.DecodingStream()
+          yield &stream
+        case .unknown(var stream):
+          self = ValueDecoder(value: .partiallyConsumed)
+          yield &stream
+          self = ValueDecoder(value: .unknown(stream))
+        case .string(var decoder):
+          self = ValueDecoder(value: .partiallyConsumed)
+          yield &decoder.stream
+          self = ValueDecoder(value: .string(decoder))
+        case .number(var decoder):
+          self = ValueDecoder(value: .partiallyConsumed)
+          yield &decoder.stream
+          self = ValueDecoder(value: .number(decoder))
+        case .null(var decoder):
+          self = ValueDecoder(value: .partiallyConsumed)
+          yield &decoder.stream
+          self = ValueDecoder(value: .null(decoder))
+        case .boolean(var decoder):
+          self = ValueDecoder(value: .partiallyConsumed)
+          yield &decoder.stream
+          self = ValueDecoder(value: .boolean(decoder))
+        }
+      }
+    }
+
+    public mutating func decodeAsString<T>(
+      _ body: (inout StringDecoder) -> T
+    ) throws -> T {
+      switch consume value {
+      case .partiallyConsumed:
+        assertionFailure()
+        self = ValueDecoder(value: .partiallyConsumed)
+        throw Error.partiallyConsumed
+      case .unknown(let stream):
+        var decoder = JSON.StringDecoder(stream: stream)
+        let result = body(&decoder)
+        self = ValueDecoder(value: .string(decoder))
+        return result
+      case .string(var decoder):
+        let result = body(&decoder)
+        self = ValueDecoder(value: .string(decoder))
+        return result
+      case let value:
+        self = ValueDecoder(value: value)
+        throw Error.unexpectedType
+      }
+    }
+
     consuming func finish() -> FinishDecodingResult<Self> {
       switch consume value {
+      case .partiallyConsumed:
+        assertionFailure()
+        return .decodingFailed(Error.partiallyConsumed, remainder: JSON.DecodingStream())
       case .string(let decoder):
         return decoder.finish().map { ValueDecoder(value: .string($0)) }
       case .number(let decoder):
@@ -70,7 +150,14 @@ extension JSON {
       }
     }
 
+    private init(value: consuming Value) {
+      self.value = value
+    }
+
     private enum Value: ~Copyable {
+      /// `Value` cannot be partially consumed when yielding a stream in the `_modify` accessor, so we need an explicit state to represent this.
+      case partiallyConsumed
+
       case unknown(DecodingStream)
       case string(StringDecoder)
       case number(NumberDecoder)
@@ -78,6 +165,12 @@ extension JSON {
       case boolean(BooleanDecoder)
     }
     private var value: Value
+
+    private enum Error: Swift.Error {
+      case unexpectedType
+      case partiallyConsumed
+    }
+
   }
 
 }
@@ -98,9 +191,5 @@ extension FinishDecodingResult where Decoder: ~Copyable {
       return .decodingFailed(error, remainder: remainder)
     }
   }
-
-}
-
-extension PrimitiveDecoder {
 
 }
