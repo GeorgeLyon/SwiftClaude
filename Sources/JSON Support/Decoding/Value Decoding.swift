@@ -8,6 +8,11 @@ extension JSON {
         return decoder.finish().map { ValueDecoder(value: .string($0)) }
       case .number(let decoder):
         return decoder.finish().map { ValueDecoder(value: .number($0)) }
+      case .null(let decoder):
+        return decoder.finish().map { ValueDecoder(value: .null($0)) }
+      case .boolean(let decoder):
+        return decoder.finish().map { ValueDecoder(value: .boolean($0)) }
+
       case .unknown(let stream):
 
         enum Kind {
@@ -53,7 +58,10 @@ extension JSON {
             return decoder.finish().map { ValueDecoder(value: .number($0)) }
           case .null:
             let decoder = NullDecoder(stream: stream)
-            return decoder.finish().map { ValueDecoder(value:) }
+            return decoder.finish().map { ValueDecoder(value: .null($0)) }
+          case .boolean:
+            let decoder = BooleanDecoder(stream: stream)
+            return decoder.finish().map { ValueDecoder(value: .boolean($0)) }
           default:
             #warning("fix")
             fatalError()
@@ -67,6 +75,7 @@ extension JSON {
       case string(StringDecoder)
       case number(NumberDecoder)
       case null(NullDecoder)
+      case boolean(BooleanDecoder)
     }
     private var value: Value
   }

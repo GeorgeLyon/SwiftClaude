@@ -10,13 +10,11 @@ protocol PrimitiveDecoder: ~Copyable {
 
   var state: PrimitiveDecoderState<Self> { get set }
 
+  consuming func finish() -> FinishDecodingResult<Self>
+
 }
 
 struct PrimitiveDecoderState<Decoder: PrimitiveDecoder & ~Copyable>: ~Copyable {
-
-  init(stream: consuming JSON.DecodingStream) {
-    self.stream = stream
-  }
 
   consuming func finish() -> FinishDecodingResult<Decoder> {
     if case .incomplete = state {
@@ -31,6 +29,10 @@ struct PrimitiveDecoderState<Decoder: PrimitiveDecoder & ~Copyable>: ~Copyable {
     case .incomplete:
       return .needsMoreData(Decoder(state: self))
     }
+  }
+
+  fileprivate init(stream: consuming JSON.DecodingStream) {
+    self.stream = stream
   }
 
   fileprivate mutating func decodeValue() throws -> JSON.DecodingResult<Decoder.Value> {
@@ -69,6 +71,10 @@ struct PrimitiveDecoderState<Decoder: PrimitiveDecoder & ~Copyable>: ~Copyable {
 extension PrimitiveDecoder where Self: ~Copyable {
 
   typealias State = PrimitiveDecoderState<Self>
+
+  init(stream: consuming JSON.DecodingStream) {
+    self.init(state: PrimitiveDecoderState(stream: stream))
+  }
 
   mutating func decodeValue() throws -> JSON.DecodingResult<Value> {
     try state.decodeValue()

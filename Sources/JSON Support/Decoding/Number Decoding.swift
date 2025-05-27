@@ -20,6 +20,10 @@ extension JSON {
       try stream.readNumber()
     }
 
+    consuming func finish() -> FinishDecodingResult<Self> {
+      state.finish()
+    }
+
     var state: State
 
   }

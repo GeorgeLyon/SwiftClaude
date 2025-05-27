@@ -12,6 +12,10 @@ extension JSON {
       self.state = state
     }
 
+    consuming func finish() -> FinishDecodingResult<Self> {
+      state.finish()
+    }
+
     var state: State
 
   }
