@@ -1,7 +1,14 @@
 extension JSON {
 
-  struct BooleanDecoder: PrimitiveDecoder, ~Copyable {
-    typealias Value = Bool
+  public struct BooleanDecoder: PrimitiveDecoder, ~Copyable {
+
+    public init() {
+      self.init(stream: JSON.DecodingStream())
+    }
+
+    public mutating func decodeBoolean() throws -> JSON.DecodingResult<Bool> {
+      try state.decodeValue()
+    }
 
     init(state: consuming State) {
       self.state = state
