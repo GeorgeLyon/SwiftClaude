@@ -135,6 +135,7 @@ extension JSON.DecodingStream {
       /// Read scalars until we reach a control character or the end of the string
       _ = read(
         untilCharacterIn: "\"", "\\",
+        processPartialMatchAtEndOfBuffer: true,
         process: { substring, _ in
           guard !substring.isEmpty else {
             /// Empty fragments could mess with our last-character-may-be-modified-by-subsequent-characters mitigation efforts

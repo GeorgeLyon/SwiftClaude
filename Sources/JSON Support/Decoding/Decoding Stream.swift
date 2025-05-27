@@ -72,7 +72,8 @@ extension JSON {
       return read(
         while: { $0 == expectedCharacters.next() },
         minCount: string.count,
-        maxCount: string.count
+        maxCount: string.count,
+        processPartialMatchAtEndOfBuffer: false,
       ) { _, _ in }
     }
 
@@ -92,12 +93,14 @@ extension JSON {
     mutating func read(
       whileCharactersIn acceptedCharacters: CharacterCondition...,
       minCount: Int? = nil,
-      maxCount: Int? = nil
+      maxCount: Int? = nil,
+      processPartialMatchAtEndOfBuffer: Bool = false,
     ) -> ReadResult<Void> {
       self.read(
         while: { acceptedCharacters.accepts($0) },
         minCount: minCount,
         maxCount: maxCount,
+        processPartialMatchAtEndOfBuffer: processPartialMatchAtEndOfBuffer,
         process: { _, _ in }
       )
     }
@@ -105,12 +108,14 @@ extension JSON {
     mutating func read(
       untilCharacterIn terminationCharacters: CharacterCondition...,
       minCount: Int? = nil,
-      maxCount: Int? = nil
+      maxCount: Int? = nil,
+      processPartialMatchAtEndOfBuffer: Bool = false,
     ) -> ReadResult<Void> {
       self.read(
         while: { !terminationCharacters.accepts($0) },
         minCount: minCount,
         maxCount: maxCount,
+        processPartialMatchAtEndOfBuffer: processPartialMatchAtEndOfBuffer,
         process: { _, _ in }
       )
     }
@@ -119,12 +124,14 @@ extension JSON {
       whileCharactersIn acceptedCharacters: CharacterCondition...,
       minCount: Int? = nil,
       maxCount: Int? = nil,
+      processPartialMatchAtEndOfBuffer: Bool = false,
       process: (inout Substring, Character?) throws -> T
     ) rethrows -> ReadResult<T> {
       try self.read(
         while: { acceptedCharacters.accepts($0) },
         minCount: minCount,
         maxCount: maxCount,
+        processPartialMatchAtEndOfBuffer: processPartialMatchAtEndOfBuffer,
         process: process
       )
     }
@@ -133,20 +140,23 @@ extension JSON {
       untilCharacterIn terminationCharacters: CharacterCondition...,
       minCount: Int? = nil,
       maxCount: Int? = nil,
+      processPartialMatchAtEndOfBuffer: Bool = false,
       process: (inout Substring, Character?) throws -> T
     ) rethrows -> ReadResult<T> {
       try self.read(
         while: { !terminationCharacters.accepts($0) },
         minCount: minCount,
         maxCount: maxCount,
+        processPartialMatchAtEndOfBuffer: processPartialMatchAtEndOfBuffer,
         process: process
       )
     }
 
-    mutating func read<T>(
+    private mutating func read<T>(
       while acceptCondition: (Character) -> Bool,
-      minCount: Int? = nil,
-      maxCount: Int? = nil,
+      minCount: Int?,
+      maxCount: Int?,
+      processPartialMatchAtEndOfBuffer: Bool,
       process: (inout Substring, Character?) throws -> T
     ) rethrows -> ReadResult<T> {
       let readableSubstring = readableSubstring
@@ -173,7 +183,12 @@ extension JSON {
           }
         }
         endIndex = readableSubstring.endIndex
-        continuableMatch = !isFinished
+
+        if isFinished {
+          continuableMatch = false
+        } else {
+          continuableMatch = !processPartialMatchAtEndOfBuffer
+        }
       }
 
       if let minCount {
@@ -190,6 +205,10 @@ extension JSON {
             )
           }
         }
+      }
+
+      guard !continuableMatch else {
+        return .needsMoreData
       }
 
       var substring = readableSubstring[..<endIndex]
