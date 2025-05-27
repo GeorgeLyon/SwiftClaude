@@ -12,6 +12,8 @@ protocol PrimitiveDecoder: ~Copyable {
 
   consuming func finish() -> FinishDecodingResult<Self>
 
+  consuming func destroy() -> JSON.DecodingStream
+
 }
 
 struct PrimitiveDecoderState<Decoder: PrimitiveDecoder & ~Copyable>: ~Copyable {
@@ -51,6 +53,10 @@ struct PrimitiveDecoderState<Decoder: PrimitiveDecoder & ~Copyable>: ~Copyable {
     case .incomplete:
       return .needsMoreData(Decoder(state: self))
     }
+  }
+
+  consuming func destroy() -> JSON.DecodingStream {
+    stream
   }
 
   var isComplete: Bool {

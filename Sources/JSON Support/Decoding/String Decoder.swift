@@ -46,6 +46,15 @@ extension JSON {
       }
     }
 
+    /// Initializes the decoder in a failed state
+    init(
+      error: Swift.Error,
+      stream: consuming JSON.DecodingStream
+    ) {
+      self.state = .failed(error)
+      self.stream = stream
+    }
+
     consuming func finish() -> FinishDecodingResult<Self> {
       do {
         /// Process any remaining fragments
@@ -63,6 +72,10 @@ extension JSON {
       } catch {
         return .decodingFailed(error, remainder: stream)
       }
+    }
+
+    consuming func destroy() -> JSON.DecodingStream {
+      stream
     }
 
     init(stream: consuming JSON.DecodingStream) {

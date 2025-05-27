@@ -11,8 +11,7 @@ extension JSON {
         switch value {
         case .partiallyConsumed:
           assertionFailure()
-          let stream = JSON.DecodingStream()
-          yield stream
+          yield JSON.DecodingStream()
         case .unknown(let stream):
           yield stream
         case .string(let decoder):
@@ -28,8 +27,8 @@ extension JSON {
       _modify {
         switch consume value {
         case .partiallyConsumed:
-          assertionFailure()
           self = ValueDecoder(value: .partiallyConsumed)
+          assertionFailure()
           var stream = JSON.DecodingStream()
           yield &stream
         case .unknown(var stream):
@@ -56,28 +55,50 @@ extension JSON {
       }
     }
 
-    public mutating func decodeAsString<T>(
-      _ body: (inout StringDecoder) -> T
-    ) throws -> T {
-      switch consume value {
-      case .partiallyConsumed:
-        assertionFailure()
+    public var stringDecoder: StringDecoder {
+      consuming _read {
+        let decoder: StringDecoder
+        switch consume value {
+        case .partiallyConsumed:
+          assertionFailure()
+          decoder = StringDecoder(error: Error.partiallyConsumed, stream: JSON.DecodingStream())
+        case .unknown(let stream):
+          decoder = StringDecoder(stream: stream)
+        case .string(let existingDecoder):
+          decoder = existingDecoder
+        case .number(let existingDecoder):
+          decoder = StringDecoder(error: Error.unexpectedType, stream: existingDecoder.destroy())
+        case .null(let existingDecoder):
+          decoder = StringDecoder(error: Error.unexpectedType, stream: existingDecoder.destroy())
+        case .boolean(let existingDecoder):
+          decoder = StringDecoder(error: Error.unexpectedType, stream: existingDecoder.destroy())
+        }
+        yield decoder
+      }
+      _modify {
+        var decoder: StringDecoder
+        switch consume value {
+        case .partiallyConsumed:
+          assertionFailure()
+          decoder = StringDecoder(error: Error.partiallyConsumed, stream: JSON.DecodingStream())
+        case .unknown(let stream):
+          decoder = StringDecoder(stream: stream)
+        case .string(let existingDecoder):
+          decoder = existingDecoder
+        case .number(let existingDecoder):
+          decoder = StringDecoder(error: Error.unexpectedType, stream: existingDecoder.destroy())
+        case .null(let existingDecoder):
+          decoder = StringDecoder(error: Error.unexpectedType, stream: existingDecoder.destroy())
+        case .boolean(let existingDecoder):
+          decoder = StringDecoder(error: Error.unexpectedType, stream: existingDecoder.destroy())
+        }
         self = ValueDecoder(value: .partiallyConsumed)
-        throw Error.partiallyConsumed
-      case .unknown(let stream):
-        var decoder = JSON.StringDecoder(stream: stream)
-        let result = body(&decoder)
+        yield &decoder
         self = ValueDecoder(value: .string(decoder))
-        return result
-      case .string(var decoder):
-        let result = body(&decoder)
-        self = ValueDecoder(value: .string(decoder))
-        return result
-      case let value:
-        self = ValueDecoder(value: value)
-        throw Error.unexpectedType
       }
     }
+
+    /// Add Here
 
     consuming func finish() -> FinishDecodingResult<Self> {
       switch consume value {

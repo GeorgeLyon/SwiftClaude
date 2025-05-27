@@ -31,6 +31,10 @@ extension JSON {
       state.finish()
     }
 
+    consuming func destroy() -> JSON.DecodingStream {
+      state.destroy()
+    }
+
     var state: State
 
   }
