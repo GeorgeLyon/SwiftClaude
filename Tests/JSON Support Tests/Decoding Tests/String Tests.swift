@@ -22,17 +22,11 @@ private struct StringTests {
       #expect(try decoder.isComplete)
     }
 
-  }
-
-}
-
-/*
     /// Partial read
     do {
-      var value = JSON.Value()
-      value.stream.push("\"Hello, ")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"Hello, ")
 
-      var decoder = value.decodeAsString()
       /// Trailing space is omitted because the last character can be modified by subsequent characters.
       try decoder.withDecodedFragments {
         #expect($0 == ["Hello,"])
@@ -48,35 +42,52 @@ private struct StringTests {
       try decoder.withDecodedFragments {
         #expect($0 == ["!"])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
+
+      decoder.stream.finish()
+      try decoder.withDecodedFragments {
+        #expect($0 == [])
+      }
+      #expect(try decoder.isComplete)
     }
   }
 
   @Test
   func emptyStringTest() async throws {
     do {
-      var value = JSON.Value()
-      value.stream.push("\"\"")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"\"")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
-        #expect($0 == [""])
+        #expect($0 == [])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
   }
 
   @Test
   func testFinish() async throws {
     do {
-      var value = JSON.Value()
-      value.stream.push("\"\"")
-      value.stream.finish()
-      let decoder = value.decodeAsString()
-      var remainingStream = try decoder.finish()
-      #expect(remainingStream.readCharacter() == nil)
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"\"")
+      decoder.stream.finish()
+      let result = decoder.finish()
+      switch result {
+      case .decodingComplete(var remainder):
+        switch remainder.readCharacter() {
+        case .needsMoreData:
+          #expect(Bool(false), "Should not need more data when stream is finished")
+        case .matched:
+          #expect(Bool(false), "Should not have any remaining characters")
+        case .notMatched:
+          // This is expected - no remaining characters in the stream
+          #expect(Bool(true))
+        }
+      case .needsMoreData:
+        #expect(Bool(false), "Should not need more data when stream is finished")
+      case .decodingFailed(let error, _):
+        #expect(Bool(false), "Should not fail: \(error)")
+      }
     }
   }
 
@@ -84,23 +95,20 @@ private struct StringTests {
   func internationalCharactersTest() async throws {
     /// Non-ASCII UTF-8 characters
     do {
-      var value = JSON.Value()
-      value.stream.push("\"こんにちは世界\"")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"こんにちは世界\"")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
         #expect($0 == ["こんにちは世界"])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
 
     /// Incremental non-ASCII parsing
     do {
-      var value = JSON.Value()
-      value.stream.push("\"こんに")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"こんに")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
         #expect($0 == ["こん"])
       }
@@ -109,8 +117,7 @@ private struct StringTests {
       try decoder.withDecodedFragments {
         #expect($0 == ["にちは世界"])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
   }
 
@@ -118,51 +125,44 @@ private struct StringTests {
   func basicEscapeSequencesTest() async throws {
     /// Double quote escape
     do {
-      var value = JSON.Value()
-      value.stream.push("\"\\\"\"")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"\\\"\"")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
         #expect($0 == ["\""])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
 
     /// Backslash escape
     do {
-      var value = JSON.Value()
-      value.stream.push("\"\\\\\"")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"\\\\\"")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
         #expect($0 == ["\\"])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
 
     /// Forward slash escape
     do {
-      var value = JSON.Value()
-      value.stream.push("\"\\/\"")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"\\/\"")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
         #expect($0 == ["/"])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
 
     /// Split Escape
     do {
-      var value = JSON.Value()
-      value.stream.push("\"\\")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"\\")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
-        #expect($0 == [""])
+        #expect($0 == [])
       }
 
       decoder.stream.push("\"\"")
@@ -170,7 +170,7 @@ private struct StringTests {
       try decoder.withDecodedFragments {
         #expect($0 == ["\""])
       }
-      let isComplete = decoder.isComplete
+      let isComplete = try decoder.isComplete
       #expect(isComplete)
     }
   }
@@ -179,54 +179,46 @@ private struct StringTests {
   func controlCharactersTest() async throws {
     /// Newline
     do {
-      var value = JSON.Value()
-      value.stream.push("\"\\n\"")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"\\n\"")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
         #expect($0 == ["\n"])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
 
     /// Tab
     do {
-      var value = JSON.Value()
-      value.stream.push("\"\\t\"")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"\\t\"")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
         #expect($0 == ["\t"])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
 
     /// Carriage return
     do {
-      var value = JSON.Value()
-      value.stream.push("\"\\r\"")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"\\r\"")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
         #expect($0 == ["\r"])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
 
     /// Mixed control characters
     do {
-      var value = JSON.Value()
-      value.stream.push("\"Line 1\\nLine 2\\tTabbed\"")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"Line 1\\nLine 2\\tTabbed\"")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
-        #expect($0 == ["Line 1\nLine 2\tTabbed"])
+        #expect($0 == ["Line 1", "\n", "Line 2", "\t", "Tabbed"])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
   }
 
@@ -234,28 +226,24 @@ private struct StringTests {
   func unsupportedEscapeCharactersTest() async throws {
     /// Unsupported \b
     do {
-      var value = JSON.Value()
-      value.stream.push("\"\\b\"")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"\\b\"")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
         #expect($0 == ["�"])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
 
     /// Unsupported \f
     do {
-      var value = JSON.Value()
-      value.stream.push("\"\\f\"")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"\\f\"")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
         #expect($0 == ["�"])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
   }
 
@@ -263,28 +251,24 @@ private struct StringTests {
   func invalidEscapeSequencesTest() async throws {
     /// Invalid escape character
     do {
-      var value = JSON.Value()
-      value.stream.push("\"\\z\"")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"\\z\"")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
         #expect($0 == ["�"])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
 
     /// Modified escape character
     do {
-      var value = JSON.Value()
-      value.stream.push("\"\\n\u{0301}\"")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"\\n\u{0301}\"")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
         #expect($0 == ["�"])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
   }
 
@@ -292,54 +276,46 @@ private struct StringTests {
   func unicodeEscapeSequencesTest() async throws {
     /// Basic unicode escape
     do {
-      var value = JSON.Value()
-      value.stream.push("\"\\u0041\"")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"\\u0041\"")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
         #expect($0 == ["A"])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
 
     /// Non-ASCII unicode escape
     do {
-      var value = JSON.Value()
-      value.stream.push("\"\\u00A9\"")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"\\u00A9\"")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
         #expect($0 == ["©"])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
 
     /// Non-ASCII unicode escape (lowercase letters)
     do {
-      var value = JSON.Value()
-      value.stream.push("\"\\u00a9\"")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"\\u00a9\"")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
         #expect($0 == ["©"])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
 
     /// Mixed regular and unicode-escaped characters
     do {
-      var value = JSON.Value()
-      value.stream.push("\"Copyright \\u00A9 2025\"")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"Copyright \\u00A9 2025\"")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
-        #expect($0 == ["Copyright © 2025"])
+        #expect($0 == ["Copyright ", "©", " 2025"])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
   }
 
@@ -347,15 +323,13 @@ private struct StringTests {
   func invalidUnicodeEscapeSequencesTest() async throws {
     /// Non-hex characters
     do {
-      var value = JSON.Value()
-      value.stream.push("\"\\u0XYZ\"")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"\\u0XYZ\"")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
-        #expect($0 == ["�0XYZ"])
+        #expect($0 == ["�", "0XYZ"])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
   }
 
@@ -363,38 +337,34 @@ private struct StringTests {
   func surrogatePairsTest() async throws {
     /// Valid surrogate pair for 😀 (U+1F600)
     do {
-      var value = JSON.Value()
-      value.stream.push("\"\\uD83D\\uDE00\"")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"\\uD83D\\uDE00\"")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
         #expect($0 == ["😀"])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
 
     /// Incremental surrogate pair parsing
     do {
-      var value = JSON.Value()
-      value.stream.push("\"\\uD83D")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"\\uD83D")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
-        #expect($0 == [""])  // Empty string is returned instead of empty array
+        #expect($0 == [])
       }
 
       decoder.stream.push("\\u")
       try decoder.withDecodedFragments {
-        #expect($0 == [""])  // Empty string is returned instead of empty array
+        #expect($0 == [])
       }
 
       decoder.stream.push("DE00\"")
       try decoder.withDecodedFragments {
         #expect($0 == ["😀"])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
   }
 
@@ -402,54 +372,46 @@ private struct StringTests {
   func invalidSurrogatePairsTest() async throws {
     /// High surrogate followed by a scalar
     do {
-      var value = JSON.Value()
-      value.stream.push("\"\\uD83D\\u00A9\"")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"\\uD83D\\u00A9\"")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
-        #expect($0 == ["�©"])  // Waiting on the low surrogate
+        #expect($0 == ["�", "©"])  // Waiting on the low surrogate
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
 
     /// High surrogate followed by a high surrogate
     do {
-      var value = JSON.Value()
-      value.stream.push("\"\\uD83D\\uD83D\"")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"\\uD83D\\uD83D\"")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
         #expect($0 == ["��"])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
 
     /// High surrogate without low surrogate
     do {
-      var value = JSON.Value()
-      value.stream.push("\"\\uD83D🥸\"")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"\\uD83D🥸\"")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
-        #expect($0 == ["�🥸"])
+        #expect($0 == ["�", "🥸"])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
 
     /// High surrogate followed by a different escape sequence
     do {
-      var value = JSON.Value()
-      value.stream.push("\"\\uD83D\\n\"")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"\\uD83D\\n\"")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
-        #expect($0 == ["�\n"])
+        #expect($0 == ["�", "\n"])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
   }
 
@@ -457,28 +419,24 @@ private struct StringTests {
   func edgeCasesTest() async throws {
     /// Null character
     do {
-      var value = JSON.Value()
-      value.stream.push("\"\\u0000\"")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"\\u0000\"")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
         #expect($0 == ["\0"])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
 
     /// String with mixed escapes and regular characters
     do {
-      var value = JSON.Value()
-      value.stream.push("\"Hello\\tWorld\\nNew\\\"Line\\\\Path\"")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"Hello\\tWorld\\nNew\\\"Line\\\\Path\"")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
-        #expect($0 == ["Hello\tWorld\nNew\"Line\\Path"])
+        #expect($0 == ["Hello", "\t", "World", "\n", "New", "\"", "Line", "\\", "Path"])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
   }
 
@@ -486,38 +444,36 @@ private struct StringTests {
   func incrementalParsingTest() async throws {
     /// String with escape sequence split
     do {
-      var value = JSON.Value()
-      value.stream.push("\"fac\\")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"fac\\")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
-        #expect($0 == ["fa"])  // 'c' gets dropped as it could be modified
+        /// 'c' gets dropped as it could be modified
+        #expect($0 == ["fa"])
       }
 
       decoder.stream.push("u0327ade\"")
       try decoder.withDecodedFragments {
-        #expect($0 == ["çade"])
+        #expect($0 == ["c", "\u{0327}", "ade"])
+        #expect($0.joined() == "çade")
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
 
     /// Unicode escape split across buffers
     do {
-      var value = JSON.Value()
-      value.stream.push("\"\\u00")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"\\u00")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
-        #expect($0 == [""])  // Empty string is returned instead of empty array
+        #expect($0 == [])
       }
 
       decoder.stream.push("A9 copyright\"")
       try decoder.withDecodedFragments {
-        #expect($0 == ["© copyright"])
+        #expect($0 == ["©", " copyright"])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
   }
 
@@ -525,22 +481,20 @@ private struct StringTests {
   func completelyPathalogicalTest() async throws {
     /// String with escape sequence split
     do {
-      var value = JSON.Value()
-      value.stream.push("\"\"")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\"\"")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
-        #expect($0 == [""])
+        #expect($0 == [])
       }
 
-      decoder.stream.push("\u{0327}")
+      decoder.stream.push("\u{0327}\"")
       decoder.stream.finish()
       try decoder.withDecodedFragments {
         #expect($0 == ["\"" + "\u{0327}"])
       }
 
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try decoder.isComplete)
     }
   }
 
@@ -548,90 +502,77 @@ private struct StringTests {
   func whitespaceBeforeOpeningQuoteTest() async throws {
     /// Single space before opening quote
     do {
-      var value = JSON.Value()
-      value.stream.push(" \"Hello\"")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push(" \"Hello\"")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
         #expect($0 == ["Hello"])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
 
     /// Multiple spaces before opening quote
     do {
-      var value = JSON.Value()
-      value.stream.push("   \"World\"")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("   \"World\"")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
         #expect($0 == ["World"])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
 
     /// Tab before opening quote
     do {
-      var value = JSON.Value()
-      value.stream.push("\t\"Tab\"")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\t\"Tab\"")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
         #expect($0 == ["Tab"])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
 
     /// Newline before opening quote
     do {
-      var value = JSON.Value()
-      value.stream.push("\n\"Newline\"")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("\n\"Newline\"")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
         #expect($0 == ["Newline"])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
 
     /// Mixed whitespace before opening quote
     do {
-      var value = JSON.Value()
-      value.stream.push(" \t\n\"Mixed\"")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push(" \t\n\"Mixed\"")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
         #expect($0 == ["Mixed"])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
 
     /// Incremental whitespace parsing
     do {
-      var value = JSON.Value()
-      value.stream.push("  ")
+      var decoder = JSON.StringDecoder()
+      decoder.stream.push("  ")
 
-      var decoder = value.decodeAsString()
       try decoder.withDecodedFragments {
-        #expect($0 == [""])
+        #expect($0 == [])
       }
 
       decoder.stream.push("\"Incremental\"")
       try decoder.withDecodedFragments {
         #expect($0 == ["Incremental"])
       }
-      let isComplete = decoder.isComplete
-      #expect(!isComplete)
+      #expect(try !decoder.isComplete)
     }
   }
-}
 
- */
+}
 // MARK: - Support
 
 extension JSON.StringDecoder {
