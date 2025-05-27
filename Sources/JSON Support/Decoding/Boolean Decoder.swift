@@ -10,6 +10,12 @@ extension JSON {
       try state.decodeValue()
     }
 
+    public var isComplete: Bool {
+      get throws {
+        try state.isComplete
+      }
+    }
+
     init(state: consuming State) {
       self.state = state
     }
@@ -19,7 +25,8 @@ extension JSON {
     static func decodeValueStatelessly(
       _ stream: inout JSON.DecodingStream
     ) throws -> JSON.DecodingResult<Bool> {
-      try stream.readBoolean()
+      stream.readWhitespace()
+      return try stream.readBoolean()
     }
 
     consuming func finish() -> FinishDecodingResult<Self> {
@@ -32,8 +39,6 @@ extension JSON {
 extension JSON.DecodingStream {
 
   mutating func readBoolean() throws -> JSON.DecodingResult<Bool> {
-    readWhitespace()
-
     let expectedValue = try peekCharacter { character in
       switch character {
       case "t":

@@ -10,10 +10,17 @@ extension JSON {
       try state.decodeValue()
     }
 
+    public var isComplete: Bool {
+      get throws {
+        try state.isComplete
+      }
+    }
+
     static func decodeValueStatelessly(_ stream: inout JSON.DecodingStream) throws
       -> JSON.DecodingResult<Void>
     {
-      try stream.read("null").decodingResult()
+      stream.readWhitespace()
+      return try stream.read("null").decodingResult()
     }
 
     init(state: consuming State) {
