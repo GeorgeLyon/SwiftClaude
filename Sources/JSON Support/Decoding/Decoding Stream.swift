@@ -58,6 +58,17 @@ extension JSON {
       return .matched(result)
     }
 
+    /// Reads a single character only if `body` returns a non-nil value.
+    mutating func readCharacter<T>(
+      _ body: (Character) -> T?
+    ) -> ReadResult<T> {
+      let result = peekCharacter(body)
+      if case .matched = result {
+        nextReadIndex = readableSubstring.index(after: nextReadIndex)
+      }
+      return result
+    }
+
     /// The result of reading data from the stream.
     /// Similar to a `DecodingResult` but it returns errors as a separate case.
     /// This is because we expect the "didn't match" case to happen on the happy path, and don't want to trip error breakpoints when this happens.

@@ -16,6 +16,12 @@ let package = Package(
     .library(
       name: "SwiftClaude",
       targets: ["Claude"]
+    ),
+    
+    /// Temporary
+    .library(
+      name: "JSONSupport",
+      targets: ["JSONSupport"]
     )
   ],
   dependencies: [
