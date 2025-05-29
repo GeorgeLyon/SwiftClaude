@@ -179,7 +179,6 @@ private struct NumberTests {
     }
   }
 
-
   @Test
   func whitespaceBeforeNumberTest() async throws {
     /// Single space before number
