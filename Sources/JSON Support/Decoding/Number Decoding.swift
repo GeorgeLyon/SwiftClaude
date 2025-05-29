@@ -8,49 +8,11 @@ extension JSON {
     let exponent: Substring?
   }
 
-  public struct NumberDecoder: PrimitiveDecoder, ~Copyable {
-
-    public init() {
-      self.init(stream: JSON.DecodingStream())
-    }
-
-    public mutating func decodeNumber() throws -> JSON.DecodingResult<Number> {
-      try state.decodeValue()
-    }
-
-    public var isComplete: Bool {
-      get throws {
-        try state.isComplete
-      }
-    }
-
-    init(state: consuming State) {
-      self.state = state
-    }
-
-    static func decodeValueStatelessly(
-      _ stream: inout JSON.DecodingStream
-    ) throws -> JSON.DecodingResult<Number> {
-      try stream.readNumber()
-    }
-
-    consuming func finish() -> FinishDecodingResult<Self> {
-      state.finish()
-    }
-
-    consuming func destroy() -> JSON.DecodingStream {
-      state.destroy()
-    }
-
-    var state: State
-
-  }
-
 }
 
 extension JSON.DecodingStream {
 
-  fileprivate mutating func readNumber() throws -> JSON.DecodingResult<JSON.Number> {
+  public mutating func decodeNumber() throws -> JSON.DecodingResult<JSON.Number> {
     let significand: Substring
     let integerPart: Substring
     let fractionalPart: Substring?
@@ -73,7 +35,7 @@ extension JSON.DecodingStream {
           minCount: 1,
           process: { substring, _ in
             guard substring.prefix(while: { $0 == "0" }).count < 2 else {
-              throw JSON.DecodingStream.Error.numberWithLeadingZeroes
+              throw Error.numberWithLeadingZeroes
             }
           }
         ).needsMoreData
@@ -142,4 +104,8 @@ extension JSON.DecodingStream {
     )
   }
 
+}
+
+private enum Error: Swift.Error {
+  case numberWithLeadingZeroes
 }

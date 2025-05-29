@@ -1,157 +1,73 @@
 extension JSON {
 
-  public struct StringDecoder: ~Copyable {
-
-    public init() {
-      stream = JSON.DecodingStream()
-    }
-
-    public var stream: JSON.DecodingStream
-
-    public var isComplete: Bool {
-      get throws {
-        switch state {
-        case .complete:
-          return true
-        case .failed(let error):
-          throw error
-        case .readingOpenQuote, .readingFragments:
-          return false
-        }
-      }
-    }
-
-    /// Process fragments of a string
-    /// Grapheme clusters may span multiple fragments, but the last character in the last fragment is guaranteed to be not modifiable by subsequent characters.
-    /// For example, "ç" might be returned as a "c" fragment, and a separate fragment containing the U+0327 combining diacritic, but the fragment passed to the last call to `processFragment` is guaranteed to not be modified by any subsequent unicode scalars.
-    public mutating func decodeFragments(
-      _ decodeFragment: (Substring) -> Void
-    ) throws -> JSON.DecodingResult<Void> {
-      switch state {
-      case .complete:
-        return .decoded(())
-      case .failed(let error):
-        throw error
-      case .readingOpenQuote:
-        stream.readWhitespace()
-        guard try !stream.read("\"").needsMoreData else {
-          return .needsMoreData
-        }
-        state = .readingFragments(trailingCharacter: nil)
-        try decodeFragments(trailingCharacter: nil, decodeFragment: decodeFragment)
-        return .decoded(())
-      case .readingFragments(let trailingCharacter):
-        try decodeFragments(trailingCharacter: trailingCharacter, decodeFragment: decodeFragment)
-        return .decoded(())
-      }
-    }
-
-    /// Initializes the decoder in a failed state
-    init(
-      error: Swift.Error,
-      stream: consuming JSON.DecodingStream
-    ) {
-      self.state = .failed(error)
-      self.stream = stream
-    }
-
-    consuming func finish() -> FinishDecodingResult<Self> {
-      do {
-        /// Process any remaining fragments
-        _ = try decodeFragments { _ in }
-
-        guard case .complete = state else {
-          if stream.isFinished {
-            return .decodingFailed(Error.incompleteString, remainder: stream)
-          } else {
-            return .needsMoreData(self)
-          }
-        }
-
-        return .decodingComplete(remainder: stream)
-      } catch {
-        return .decodingFailed(error, remainder: stream)
-      }
-    }
-
-    consuming func destroy() -> JSON.DecodingStream {
-      stream
-    }
-
-    init(stream: consuming JSON.DecodingStream) {
-      self.stream = stream
-    }
-
-    private mutating func decodeFragments(
-      trailingCharacter: Character?,
-      decodeFragment: (Substring) -> Void
-    ) throws {
-      do {
-        var nextFragment: Substring?
-        if let trailingCharacter {
-          nextFragment = Substring(String(trailingCharacter))
-        }
-        let isComplete = try stream.readStringFragments { fragment in
-          assert(!fragment.isEmpty)
-          if let nextFragment {
-            decodeFragment(nextFragment)
-          }
-          nextFragment = fragment
-        }
-        if var lastFragment = nextFragment {
-          let trailingCharacter: Character?
-
-          if !isComplete, stream.possiblyIncompleteIncomingGraphemeCluster == "\\" {
-            /// `DecodingStream` handles the possibility of a combining diacritic or a `ZWJ` being streamed as unicode, but we also need to handle modifications caused by escaped unicode sequences such as `\u0327`.
-            trailingCharacter = lastFragment.popLast()
-            assert(trailingCharacter != nil)
-          } else {
-            trailingCharacter = nil
-          }
-
-          decodeFragment(lastFragment)
-          state = .readingFragments(trailingCharacter: trailingCharacter)
-        } else {
-          state = .readingFragments(trailingCharacter: nil)
-        }
-
-        if isComplete {
-          state = .complete
-        }
-      } catch {
-        state = .failed(error)
-        throw error
-      }
-    }
-
-    private enum State {
-      case readingOpenQuote
-      case readingFragments(trailingCharacter: Character?)
-      case complete
-      case failed(Swift.Error)
-    }
-    private var state: State = .readingOpenQuote
-
+  public struct StringDecodingState: ~Copyable {
+    fileprivate var isComplete = false
+    fileprivate var trailingCharacter: Character?
   }
 
 }
 
-/// MARK: - Implementation Details
-
 extension JSON.DecodingStream {
 
+  public mutating func decodeStringStart() throws -> JSON.DecodingResult<JSON.StringDecodingState> {
+    readWhitespace()
+
+    switch read("\"") {
+    case .needsMoreData:
+      return .needsMoreData
+    case .matched:
+      return .decoded(JSON.StringDecodingState())
+    case .notMatched(let error):
+      throw error
+    }
+  }
+
+  public mutating func decodeStringFragments(
+    state: inout JSON.StringDecodingState,
+    onFragment: (_ fragment: Substring) -> Void
+  ) throws {
+    guard !state.isComplete else {
+      assertionFailure()
+      return
+    }
+
+    var nextFragment: Substring?
+    if let trailingCharacter = state.trailingCharacter {
+      nextFragment = Substring(String(trailingCharacter))
+    }
+    state.isComplete = try readRawStringFragments { fragment in
+      assert(!fragment.isEmpty)
+      if let nextFragment {
+        onFragment(nextFragment)
+      }
+      nextFragment = fragment
+    }
+    if var lastFragment = nextFragment {
+
+      if !state.isComplete, possiblyIncompleteIncomingGraphemeCluster == "\\" {
+        /// `DecodingStream` handles the possibility of a combining diacritic or a `ZWJ` being streamed as unicode, but we also need to handle modifications caused by escaped unicode sequences such as `\u0327`.
+        state.trailingCharacter = lastFragment.popLast()
+        assert(state.trailingCharacter != nil)
+      } else {
+        state.trailingCharacter = nil
+      }
+
+      onFragment(lastFragment)
+    }
+  }
+
   /// - Returns: `true` if the end of the string was read
-  fileprivate mutating func readStringFragments(
-    onFragment: (Substring) -> Void
+  private mutating func readRawStringFragments(
+    onFragment: (_ fragment: Substring) -> Void
   ) throws -> Bool {
     readingStream: while true {
       /// Read scalars until we reach a control character or the end of the string
       _ = read(
         untilCharacterIn: "\"", "\\",
         processPartialMatchAtEndOfBuffer: true,
-        process: { substring, _ in
+        process: { substring, terminatingCharacter in
           guard !substring.isEmpty else {
-            /// Empty fragments could mess with our last-character-may-be-modified-by-subsequent-characters mitigation efforts
+            /// Empty fragments that are not lastcould mess with our last-character-may-be-modified-by-subsequent-characters mitigation efforts
             return
           }
           onFragment(substring)
@@ -268,11 +184,7 @@ extension JSON.DecodingStream {
     return false
   }
 
-}
-
-extension JSON.DecodingStream {
-
-  fileprivate enum UnicodeEscapeSequence {
+  private enum UnicodeEscapeSequence {
     case encoded(Substring)
 
     /// Details in Section 2 of https://www.ietf.org/rfc/rfc2781.txt
@@ -281,7 +193,7 @@ extension JSON.DecodingStream {
 
     case invalid
   }
-  fileprivate mutating func readUnicodeEscapeSequence() -> UnicodeEscapeSequence? {
+  private mutating func readUnicodeEscapeSequence() -> UnicodeEscapeSequence? {
     let result = read(
       whileCharactersIn: "0"..."9", "a"..."f", "A"..."F",
       minCount: 4,
@@ -314,14 +226,6 @@ extension JSON.DecodingStream {
     case .notMatched:
       .invalid
     }
-  }
-
-}
-
-extension JSON.StringDecoder {
-
-  enum Error: Swift.Error {
-    case incompleteString
   }
 
 }

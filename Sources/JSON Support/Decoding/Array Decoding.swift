@@ -1,0 +1,3 @@
+extension JSON.DecodingStream {
+
+}
