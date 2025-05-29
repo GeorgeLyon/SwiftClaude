@@ -1,7 +1,7 @@
 extension JSON {
 
-  public struct StringDecodingState: ~Copyable {
-    fileprivate var isComplete = false
+  public struct StringDecodingState {
+    public fileprivate(set) var isComplete = false
     fileprivate var trailingCharacter: Character?
   }
 

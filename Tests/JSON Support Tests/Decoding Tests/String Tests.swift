@@ -6,22 +6,27 @@ import Testing
 @Suite("String Tests")
 private struct StringTests {
 
+  @Test
+  func basicTest() async throws {
+
+    /// Complete string
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\"Hello, World!\"")
+      stream.finish()
+
+      var state = try stream.decodeStringStart().getValue()
+      try stream.withDecodedStringFragments(state: &state) {
+        #expect($0 == ["Hello, World!"])
+      }
+
+      #expect(state.isComplete)
+    }
+
+  }
+
   // @Test
-  // func basicTest() async throws {
-
-  //   /// Complete string
-  //   do {
-  //     var decoder = JSON.StringDecoder()
-  //     decoder.stream.push("\"Hello, World!\"")
-  //     decoder.stream.finish()
-
-  //     try decoder.withDecodedFragments {
-  //       #expect($0 == ["Hello, World!"])
-  //     }
-
-  //     #expect(try decoder.isComplete)
-  //   }
-
+  // func incrementalParsingTest() async throws {
   //   /// Partial read
   //   do {
   //     var decoder = JSON.StringDecoder()
@@ -576,17 +581,18 @@ private struct StringTests {
 
 // MARK: - Support
 
-// extension JSON.StringDecoder {
+extension JSON.DecodingStream {
 
-//   /// Takes a closure since Swift Testing doesn't currently support non-copyable type in `#expect` expressions.
-//   mutating func withDecodedFragments(
-//     _ body: ([String]) -> Void
-//   ) throws {
-//     var fragments: [String] = []
-//     _ = try decodeFragments { decoded in
-//       fragments.append(String(decoded))
-//     }
-//     body(fragments)
-//   }
+  /// Takes a closure since Swift Testing doesn't currently support non-copyable type in `#expect` expressions.
+  mutating func withDecodedStringFragments(
+    state: inout JSON.StringDecodingState,
+    _ body: ([String]) -> Void
+  ) throws {
+    var fragments: [String] = []
+    _ = try decodeStringFragments(state: &state) { decoded in
+      fragments.append(String(decoded))
+    }
+    body(fragments)
+  }
 
-// }
+}

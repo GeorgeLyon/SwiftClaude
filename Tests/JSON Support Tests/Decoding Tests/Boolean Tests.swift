@@ -6,248 +6,185 @@ import Testing
 @Suite("Boolean Tests")
 private struct BooleanTests {
 
-  // @Test
-  // func basicTrueTest() async throws {
-  //   /// Complete true value
-  //   do {
-  //     var decoder = JSON.BooleanDecoder()
-  //     decoder.stream.push("true")
-  //     decoder.stream.finish()
+  @Test
+  func basicTrueTest() async throws {
+    /// Complete true value
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("true")
+      stream.finish()
 
-  //     let value = try decoder.decodeBoolean().getValue()
-  //     #expect(value == true)
-  //     #expect(try decoder.isComplete)
-  //   }
+      let value = try stream.decodeBoolean().getValue()
+      #expect(value == true)
+    }
 
-  //   /// Partial read
-  //   do {
-  //     var decoder = JSON.BooleanDecoder()
-  //     decoder.stream.push("tr")
-  //     #expect(try decoder.decodeBoolean().needsMoreData)
+    /// Partial read
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("tr")
+      #expect(try stream.decodeBoolean().needsMoreData)
 
-  //     decoder.stream.push("ue")
-  //     #expect(try decoder.decodeBoolean().needsMoreData)
+      stream.push("ue")
+      #expect(try stream.decodeBoolean().needsMoreData)
 
-  //     decoder.stream.finish()
-  //     let value = try decoder.decodeBoolean().getValue()
-  //     #expect(value == true)
-  //     #expect(try decoder.isComplete)
-  //   }
-  // }
+      stream.finish()
+      let value = try stream.decodeBoolean().getValue()
+      #expect(value == true)
+    }
+  }
 
-  // @Test
-  // func basicFalseTest() async throws {
-  //   /// Complete false value
-  //   do {
-  //     var decoder = JSON.BooleanDecoder()
-  //     decoder.stream.push("false")
-  //     decoder.stream.finish()
+  @Test
+  func basicFalseTest() async throws {
+    /// Complete false value
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("false")
+      stream.finish()
 
-  //     let value = try decoder.decodeBoolean().getValue()
-  //     #expect(value == false)
-  //     #expect(try decoder.isComplete)
-  //   }
+      let value = try stream.decodeBoolean().getValue()
+      #expect(value == false)
+    }
 
-  //   /// Partial read
-  //   do {
-  //     var decoder = JSON.BooleanDecoder()
-  //     decoder.stream.push("fal")
-  //     #expect(try decoder.decodeBoolean().needsMoreData)
+    /// Partial read
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("fal")
+      #expect(try stream.decodeBoolean().needsMoreData)
 
-  //     decoder.stream.push("se")
-  //     #expect(try decoder.decodeBoolean().needsMoreData)
+      stream.push("se")
+      #expect(try stream.decodeBoolean().needsMoreData)
 
-  //     decoder.stream.finish()
-  //     let value = try decoder.decodeBoolean().getValue()
-  //     #expect(value == false)
-  //     #expect(try decoder.isComplete)
-  //   }
-  // }
+      stream.finish()
+      let value = try stream.decodeBoolean().getValue()
+      #expect(value == false)
+    }
+  }
 
-  // @Test
-  // func incrementalParsingTest() async throws {
-  //   /// True - one character at a time
-  //   do {
-  //     var decoder = JSON.BooleanDecoder()
-  //     decoder.stream.push("t")
-  //     #expect(try decoder.decodeBoolean().needsMoreData)
+  @Test
+  func incrementalParsingTest() async throws {
+    /// True - one character at a time
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("t")
+      #expect(try stream.decodeBoolean().needsMoreData)
 
-  //     decoder.stream.push("r")
-  //     #expect(try decoder.decodeBoolean().needsMoreData)
+      stream.push("r")
+      #expect(try stream.decodeBoolean().needsMoreData)
 
-  //     decoder.stream.push("u")
-  //     #expect(try decoder.decodeBoolean().needsMoreData)
+      stream.push("u")
+      #expect(try stream.decodeBoolean().needsMoreData)
 
-  //     decoder.stream.push("e")
-  //     #expect(try decoder.decodeBoolean().needsMoreData)
+      stream.push("e")
+      #expect(try stream.decodeBoolean().needsMoreData)
 
-  //     decoder.stream.finish()
-  //     let value = try decoder.decodeBoolean().getValue()
-  //     #expect(value == true)
-  //     #expect(try decoder.isComplete)
-  //   }
+      stream.finish()
+      let value = try stream.decodeBoolean().getValue()
+      #expect(value == true)
+    }
 
-  //   /// False - one character at a time
-  //   do {
-  //     var decoder = JSON.BooleanDecoder()
-  //     decoder.stream.push("f")
-  //     #expect(try decoder.decodeBoolean().needsMoreData)
+    /// False - one character at a time
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("f")
+      #expect(try stream.decodeBoolean().needsMoreData)
 
-  //     decoder.stream.push("a")
-  //     #expect(try decoder.decodeBoolean().needsMoreData)
+      stream.push("a")
+      #expect(try stream.decodeBoolean().needsMoreData)
 
-  //     decoder.stream.push("l")
-  //     #expect(try decoder.decodeBoolean().needsMoreData)
+      stream.push("l")
+      #expect(try stream.decodeBoolean().needsMoreData)
 
-  //     decoder.stream.push("s")
-  //     #expect(try decoder.decodeBoolean().needsMoreData)
+      stream.push("s")
+      #expect(try stream.decodeBoolean().needsMoreData)
 
-  //     decoder.stream.push("e")
-  //     #expect(try decoder.decodeBoolean().needsMoreData)
+      stream.push("e")
+      #expect(try stream.decodeBoolean().needsMoreData)
 
-  //     decoder.stream.finish()
-  //     let value = try decoder.decodeBoolean().getValue()
-  //     #expect(value == false)
-  //     #expect(try decoder.isComplete)
-  //   }
-  // }
+      stream.finish()
+      let value = try stream.decodeBoolean().getValue()
+      #expect(value == false)
+    }
+  }
 
-  // @Test
-  // func whitespaceBeforeBooleanTest() async throws {
-  //   /// Single space before true
-  //   do {
-  //     var decoder = JSON.BooleanDecoder()
-  //     decoder.stream.push(" true")
-  //     decoder.stream.finish()
+  @Test
+  func whitespaceBeforeBooleanTest() async throws {
+    /// Single space before true
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push(" true")
+      stream.finish()
 
-  //     let value = try decoder.decodeBoolean().getValue()
-  //     #expect(value == true)
-  //     #expect(try decoder.isComplete)
-  //   }
+      let value = try stream.decodeBoolean().getValue()
+      #expect(value == true)
+    }
 
-  //   /// Multiple spaces before false
-  //   do {
-  //     var decoder = JSON.BooleanDecoder()
-  //     decoder.stream.push("   false")
-  //     decoder.stream.finish()
+    /// Multiple spaces before false
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("   false")
+      stream.finish()
 
-  //     let value = try decoder.decodeBoolean().getValue()
-  //     #expect(value == false)
-  //     #expect(try decoder.isComplete)
-  //   }
+      let value = try stream.decodeBoolean().getValue()
+      #expect(value == false)
+    }
 
-  //   /// Tab before true
-  //   do {
-  //     var decoder = JSON.BooleanDecoder()
-  //     decoder.stream.push("\ttrue")
-  //     decoder.stream.finish()
+    /// Tab before true
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\ttrue")
+      stream.finish()
 
-  //     let value = try decoder.decodeBoolean().getValue()
-  //     #expect(value == true)
-  //     #expect(try decoder.isComplete)
-  //   }
+      let value = try stream.decodeBoolean().getValue()
+      #expect(value == true)
+    }
 
-  //   /// Newline before false
-  //   do {
-  //     var decoder = JSON.BooleanDecoder()
-  //     decoder.stream.push("\nfalse")
-  //     decoder.stream.finish()
+    /// Newline before false
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\nfalse")
+      stream.finish()
 
-  //     let value = try decoder.decodeBoolean().getValue()
-  //     #expect(value == false)
-  //     #expect(try decoder.isComplete)
-  //   }
+      let value = try stream.decodeBoolean().getValue()
+      #expect(value == false)
+    }
 
-  //   /// Mixed whitespace before true
-  //   do {
-  //     var decoder = JSON.BooleanDecoder()
-  //     decoder.stream.push(" \t\ntrue")
-  //     decoder.stream.finish()
+    /// Mixed whitespace before true
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push(" \t\ntrue")
+      stream.finish()
 
-  //     let value = try decoder.decodeBoolean().getValue()
-  //     #expect(value == true)
-  //     #expect(try decoder.isComplete)
-  //   }
+      let value = try stream.decodeBoolean().getValue()
+      #expect(value == true)
+    }
 
-  //   /// Incremental whitespace parsing with true
-  //   do {
-  //     var decoder = JSON.BooleanDecoder()
-  //     decoder.stream.push("  ")
-  //     #expect(try decoder.decodeBoolean().needsMoreData)
+    /// Incremental whitespace parsing with true
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("  ")
+      #expect(try stream.decodeBoolean().needsMoreData)
 
-  //     decoder.stream.push("true")
-  //     #expect(try decoder.decodeBoolean().needsMoreData)
+      stream.push("true")
+      #expect(try stream.decodeBoolean().needsMoreData)
 
-  //     decoder.stream.finish()
-  //     let value = try decoder.decodeBoolean().getValue()
-  //     #expect(value == true)
-  //     #expect(try decoder.isComplete)
-  //   }
+      stream.finish()
+      let value = try stream.decodeBoolean().getValue()
+      #expect(value == true)
+    }
 
-  //   /// Incremental whitespace parsing with false
-  //   do {
-  //     var decoder = JSON.BooleanDecoder()
-  //     decoder.stream.push("\t\n")
-  //     #expect(try decoder.decodeBoolean().needsMoreData)
+    /// Incremental whitespace parsing with false
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\t\n")
+      #expect(try stream.decodeBoolean().needsMoreData)
 
-  //     decoder.stream.push("false")
-  //     #expect(try decoder.decodeBoolean().needsMoreData)
+      stream.push("false")
+      #expect(try stream.decodeBoolean().needsMoreData)
 
-  //     decoder.stream.finish()
-  //     let value = try decoder.decodeBoolean().getValue()
-  //     #expect(value == false)
-  //     #expect(try decoder.isComplete)
-  //   }
-  // }
+      stream.finish()
+      let value = try stream.decodeBoolean().getValue()
+      #expect(value == false)
+    }
+  }
 
-  // @Test
-  // func testFinish() async throws {
-  //   /// Test finish with true
-  //   do {
-  //     var decoder = JSON.BooleanDecoder()
-  //     decoder.stream.push("true")
-  //     decoder.stream.finish()
-  //     let result = decoder.finish()
-  //     switch result {
-  //     case .decodingComplete(var remainder):
-  //       switch remainder.readCharacter() {
-  //       case .needsMoreData:
-  //         #expect(Bool(false), "Should not need more data when stream is finished")
-  //       case .matched:
-  //         #expect(Bool(false), "Should not have any remaining characters")
-  //       case .notMatched:
-  //         // This is expected - no remaining characters in the stream
-  //         #expect(Bool(true))
-  //       }
-  //     case .needsMoreData:
-  //       #expect(Bool(false), "Should not need more data when stream is finished")
-  //     case .decodingFailed(let error, _):
-  //       #expect(Bool(false), "Should not fail: \(error)")
-  //     }
-  //   }
-
-  //   /// Test finish with false
-  //   do {
-  //     var decoder = JSON.BooleanDecoder()
-  //     decoder.stream.push("false")
-  //     decoder.stream.finish()
-  //     let result = decoder.finish()
-  //     switch result {
-  //     case .decodingComplete(var remainder):
-  //       switch remainder.readCharacter() {
-  //       case .needsMoreData:
-  //         #expect(Bool(false), "Should not need more data when stream is finished")
-  //       case .matched:
-  //         #expect(Bool(false), "Should not have any remaining characters")
-  //       case .notMatched:
-  //         // This is expected - no remaining characters in the stream
-  //         #expect(Bool(true))
-  //       }
-  //     case .needsMoreData:
-  //       #expect(Bool(false), "Should not need more data when stream is finished")
-  //     case .decodingFailed(let error, _):
-  //       #expect(Bool(false), "Should not fail: \(error)")
-  //     }
-  //   }
-  // }
 }

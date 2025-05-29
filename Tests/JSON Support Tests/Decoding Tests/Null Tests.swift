@@ -33,126 +33,94 @@ private struct NullTests {
     }
   }
 
-  //  @Test
-  //  func incrementalParsingTest() async throws {
-  //    /// One character at a time
-  //    do {
-  //      var decoder = JSON.NullDecoder()
-  //      decoder.stream.push("n")
-  //      #expect(try decoder.decodeNull().needsMoreData)
-  //
-  //      decoder.stream.push("u")
-  //      #expect(try decoder.decodeNull().needsMoreData)
-  //
-  //      decoder.stream.push("l")
-  //      #expect(try decoder.decodeNull().needsMoreData)
-  //
-  //      decoder.stream.push("l")
-  //      #expect(try decoder.decodeNull().needsMoreData)
-  //
-  //      decoder.stream.finish()
-  //      let result = try decoder.decodeNull()
-  //      #expect(try result.getValue() == ())
-  //      #expect(try decoder.isComplete)
-  //    }
-  //  }
+  @Test
+  func incrementalParsingTest() async throws {
+    /// One character at a time
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("n")
+      #expect(try stream.decodeNull().needsMoreData)
 
-  // @Test
-  // func whitespaceBeforeNullTest() async throws {
-  //   /// Single space before null
-  //   do {
-  //     var decoder = JSON.NullDecoder()
-  //     decoder.stream.push(" null")
-  //     decoder.stream.finish()
+      stream.push("u")
+      #expect(try stream.decodeNull().needsMoreData)
 
-  //     let result = try decoder.decodeNull()
-  //     #expect(try result.getValue() == ())
-  //     #expect(try decoder.isComplete)
-  //   }
+      stream.push("l")
+      #expect(try stream.decodeNull().needsMoreData)
 
-  //   /// Multiple spaces before null
-  //   do {
-  //     var decoder = JSON.NullDecoder()
-  //     decoder.stream.push("   null")
-  //     decoder.stream.finish()
+      stream.push("l")
+      #expect(try stream.decodeNull().needsMoreData)
 
-  //     let result = try decoder.decodeNull()
-  //     #expect(try result.getValue() == ())
-  //     #expect(try decoder.isComplete)
-  //   }
+      stream.finish()
+      let result = try stream.decodeNull()
+      #expect(try result.getValue() == ())
+    }
+  }
 
-  //   /// Tab before null
-  //   do {
-  //     var decoder = JSON.NullDecoder()
-  //     decoder.stream.push("\tnull")
-  //     decoder.stream.finish()
+  @Test
+  func whitespaceBeforeNullTest() async throws {
+    /// Single space before null
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push(" null")
+      stream.finish()
 
-  //     let result = try decoder.decodeNull()
-  //     #expect(try result.getValue() == ())
-  //     #expect(try decoder.isComplete)
-  //   }
+      let result = try stream.decodeNull()
+      #expect(try result.getValue() == ())
+    }
 
-  //   /// Newline before null
-  //   do {
-  //     var decoder = JSON.NullDecoder()
-  //     decoder.stream.push("\nnull")
-  //     decoder.stream.finish()
+    /// Multiple spaces before null
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("   null")
+      stream.finish()
 
-  //     let result = try decoder.decodeNull()
-  //     #expect(try result.getValue() == ())
-  //     #expect(try decoder.isComplete)
-  //   }
+      let result = try stream.decodeNull()
+      #expect(try result.getValue() == ())
+    }
 
-  //   /// Mixed whitespace before null
-  //   do {
-  //     var decoder = JSON.NullDecoder()
-  //     decoder.stream.push(" \t\nnull")
-  //     decoder.stream.finish()
+    /// Tab before null
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\tnull")
+      stream.finish()
 
-  //     let result = try decoder.decodeNull()
-  //     #expect(try result.getValue() == ())
-  //     #expect(try decoder.isComplete)
-  //   }
+      let result = try stream.decodeNull()
+      #expect(try result.getValue() == ())
+    }
 
-  //   /// Incremental whitespace parsing
-  //   do {
-  //     var decoder = JSON.NullDecoder()
-  //     decoder.stream.push("  ")
-  //     #expect(try decoder.decodeNull().needsMoreData)
+    /// Newline before null
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\nnull")
+      stream.finish()
 
-  //     decoder.stream.push("null")
-  //     #expect(try decoder.decodeNull().needsMoreData)
+      let result = try stream.decodeNull()
+      #expect(try result.getValue() == ())
+    }
 
-  //     decoder.stream.finish()
-  //     let result = try decoder.decodeNull()
-  //     #expect(try result.getValue() == ())
-  //     #expect(try decoder.isComplete)
-  //   }
-  // }
+    /// Mixed whitespace before null
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push(" \t\nnull")
+      stream.finish()
 
-  // @Test
-  // func testFinish() async throws {
-  //   do {
-  //     var decoder = JSON.NullDecoder()
-  //     decoder.stream.push("null")
-  //     decoder.stream.finish()
-  //     let result = decoder.finish()
-  //     switch result {
-  //     case .decodingComplete(var remainder):
-  //       switch remainder.readCharacter() {
-  //       case .needsMoreData:
-  //         #expect(Bool(false), "Should not need more data when stream is finished")
-  //       case .matched:
-  //         #expect(Bool(false), "Should not have any remaining characters")
-  //       case .notMatched:
-  //         // This is expected - no remaining characters in the stream
-  //         #expect(Bool(true))
-  //       }
-  //     case .needsMoreData:
-  //       #expect(Bool(false), "Should not need more data when stream is finished")
-  //     case .decodingFailed(let error, _):
-  //       #expect(Bool(false), "Should not fail: \(error)")
-  //     }
-  //   }
-  // }
+      let result = try stream.decodeNull()
+      #expect(try result.getValue() == ())
+    }
+
+    /// Incremental whitespace parsing
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("  ")
+      #expect(try stream.decodeNull().needsMoreData)
+
+      stream.push("null")
+      #expect(try stream.decodeNull().needsMoreData)
+
+      stream.finish()
+      let result = try stream.decodeNull()
+      #expect(try result.getValue() == ())
+    }
+  }
+
 }
