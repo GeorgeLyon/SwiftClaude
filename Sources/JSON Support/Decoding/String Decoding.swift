@@ -35,12 +35,18 @@ extension JSON.DecodingStream {
     if let trailingCharacter = state.trailingCharacter {
       nextFragment = Substring(String(trailingCharacter))
     }
-    state.isComplete = try readRawStringFragments { fragment in
+    let result = readRawStringFragments { fragment in
       assert(!fragment.isEmpty)
       if let nextFragment {
         onFragment(nextFragment)
       }
       nextFragment = fragment
+    }
+    switch result {
+    case .needsMoreData:
+      break
+    case .notMatched, .matched:
+      state.isComplete = true
     }
     if var lastFragment = nextFragment {
 
@@ -56,10 +62,11 @@ extension JSON.DecodingStream {
     }
   }
 
+  /// Unlike other `read` methods, this method advances the read cursor even if `needsMoreData` is returned.
   /// - Returns: `true` if the end of the string was read
   private mutating func readRawStringFragments(
     onFragment: (_ fragment: Substring) -> Void
-  ) throws -> Bool {
+  ) -> ReadResult<Void> {
     readingStream: while true {
       /// Read scalars until we reach a control character or the end of the string
       _ = read(
@@ -79,29 +86,28 @@ extension JSON.DecodingStream {
       let nextCharacter: Character
       switch readCharacter() {
       case .needsMoreData:
-        /// We've reached the end of the buffer
-        return false
+        return .needsMoreData
       case .matched(let character):
         nextCharacter = character
       case .notMatched(let error):
-        throw error
+        return .notMatched(error)
       }
 
       switch nextCharacter {
       case "\"":
         /// We've reached the end of the string
-        return true
+        return .matched(())
       case "\\":
         /// This is an escape sequence
         let escapedCharacter: Character
         switch readCharacter() {
         case .needsMoreData:
           restore(readStart)
-          return false
+          return .needsMoreData
         case .matched(let character):
           escapedCharacter = character
         case .notMatched(let error):
-          throw error
+          return .notMatched(error)
         }
 
         switch escapedCharacter {
@@ -123,52 +129,62 @@ extension JSON.DecodingStream {
         case "r":
           onFragment("\r")
         case "u":
-          guard let escapeSequence = readUnicodeEscapeSequence() else {
+          switch readUnicodeEscapeSequence() {
+          case .needsMoreData:
             restore(readStart)
-            return false
-          }
-
-          switch escapeSequence {
-          case .encoded(let fragment):
-            onFragment(fragment)
-          case .invalid, .lowSurrogate:
+            return .needsMoreData
+          case .notMatched:
             onFragment("�")
-          case .highSurrogate(let highSurrogateValue):
-            switch read("\\u") {
-            case .matched:
-              break
-            case .needsMoreData:
-              restore(readStart)
-              return false
-            case .notMatched:
-              /// The high surrogate was not followed by a unicode escape sequence
-              onFragment("�")
-              continue readingStream
-            }
-
-            guard let lowSurrogateEscapeSequence = readUnicodeEscapeSequence() else {
-              restore(readStart)
-              return false
-            }
-
-            switch lowSurrogateEscapeSequence {
+          case .matched(let escapeSequence):
+            switch escapeSequence {
             case .encoded(let fragment):
-              onFragment("�")
               onFragment(fragment)
-            case .invalid, .highSurrogate:
-              onFragment("��")
-            case .lowSurrogate(let lowSurrogateValue):
-              guard
-                let scalar = UnicodeScalar(
-                  highSurrogateValue + lowSurrogateValue
-                )
-              else {
-                /// This shouldn't be possible, because all values that are created by a valid surrogate pair should result in a valid scalar.
-                assertionFailure()
+            case .invalid, .lowSurrogate:
+              onFragment("�")
+            case .highSurrogate(let highSurrogateValue):
+              let highSurrogateStart = createCheckpoint()
+
+              switch read("\\u") {
+              case .matched:
+                break
+              case .needsMoreData:
+                restore(readStart)
+                return .needsMoreData
+              case .notMatched:
+                /// The high surrogate was not followed by a unicode escape sequence
                 onFragment("�")
                 continue readingStream
               }
-              onFragment(Substring(String(String.UnicodeScalarView([scalar]))))
+
+              switch readUnicodeEscapeSequence() {
+              case .needsMoreData:
+                restore(readStart)
+                return .needsMoreData
+              case .notMatched:
+                onFragment("�")
+              case .matched(.encoded(let fragment)):
+                onFragment("�")
+                onFragment(fragment)
+              case .matched(.highSurrogate):
+                onFragment("�")
+
+                /// Read a new surrogate pair starting from this high surrogate
+                restore(highSurrogateStart)
+              case .matched(.invalid):
+                onFragment("��")
+              case .matched(.lowSurrogate(let lowSurrogateValue)):
+                guard
+                  let scalar = UnicodeScalar(
+                    highSurrogateValue + lowSurrogateValue
+                  )
+                else {
+                  /// This shouldn't be possible, because all values that are created by a valid surrogate pair should result in a valid scalar.
+                  assertionFailure()
+                  onFragment("�")
+                  continue readingStream
+                }
+                onFragment(Substring(String(String.UnicodeScalarView([scalar]))))
+              }
             }
           }
         default:
@@ -181,7 +197,6 @@ extension JSON.DecodingStream {
         onFragment(Substring(String(character)))
       }
     }
-    return false
   }
 
   private enum UnicodeEscapeSequence {
@@ -193,8 +208,9 @@ extension JSON.DecodingStream {
 
     case invalid
   }
-  private mutating func readUnicodeEscapeSequence() -> UnicodeEscapeSequence? {
-    let result = read(
+
+  private mutating func readUnicodeEscapeSequence() -> ReadResult<UnicodeEscapeSequence> {
+    read(
       whileCharactersIn: "0"..."9", "a"..."f", "A"..."F",
       minCount: 4,
       maxCount: 4
@@ -217,14 +233,6 @@ extension JSON.DecodingStream {
         }
         return .encoded(Substring(String(String.UnicodeScalarView([scalar]))))
       }
-    }
-    return switch result {
-    case .needsMoreData:
-      nil
-    case .matched(let sequence):
-      sequence
-    case .notMatched:
-      .invalid
     }
   }
 

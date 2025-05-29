@@ -419,7 +419,7 @@ private struct StringTests {
 
       var state = try stream.decodeStringStart().getValue()
       try stream.withDecodedStringFragments(state: &state) {
-        #expect($0 == ["��"])
+        #expect($0 == ["�", "�"])
       }
       #expect(state.isComplete)
     }
@@ -446,6 +446,19 @@ private struct StringTests {
       var state = try stream.decodeStringStart().getValue()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�", "\n"])
+      }
+      #expect(state.isComplete)
+    }
+
+    /// HIgh surrogate followed by a valid surrogate pair
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\"\\uD83D\\uD83D\\uDE00\"")
+      stream.finish()
+
+      var state = try stream.decodeStringStart().getValue()
+      try stream.withDecodedStringFragments(state: &state) {
+        #expect($0 == ["�", "😀"])
       }
       #expect(state.isComplete)
     }

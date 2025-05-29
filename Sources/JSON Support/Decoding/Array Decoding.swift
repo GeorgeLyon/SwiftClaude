@@ -24,17 +24,19 @@ extension JSON.DecodingStream {
       return .needsMoreData
     case .decoded:
       readWhitespace()
-      let isEmpty = try peekCharacter { character in
+      let isEmpty = readCharacter { character in
         switch character {
         case "]":
-          return true
+          return ()
         default:
-          return false
+          return nil
         }
-      }.decodingResult()
+      }
       switch isEmpty {
-      case .decoded(let isEmpty):
-        return isEmpty ? .complete : .decodingElement
+      case .matched:
+        return .complete
+      case .notMatched:
+        return .decodingElement
       case .needsMoreData:
         /// Restore to start so we don't need to keep track of the fact that we've read "["
         restore(start)

@@ -15,6 +15,8 @@ private struct ArrayTests {
 
       let result = try stream.decodeArrayStart()
       #expect(result == .complete)
+
+      #expect(try stream.readCharacter().needsMoreData)
     }
 
     /// With whitespace
