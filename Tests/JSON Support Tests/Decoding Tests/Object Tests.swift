@@ -245,7 +245,8 @@ private struct ObjectTests {
 
       while let key = result.decodingPropertyName {
         let number = try stream.decodeNumber().getValue()
-        properties.append((key: String(key), value: Int(number.integerPart)!))
+        let intValue = try number.decode(as: Int.self)
+        properties.append((key: String(key), value: intValue))
         result = try stream.decodeObjectUpToNextPropertyValue()
       }
 
@@ -266,7 +267,8 @@ private struct ObjectTests {
 
       while let key = result.decodingPropertyName {
         let number = try stream.decodeNumber().getValue()
-        properties.append((key: String(key), value: Int(number.integerPart)!))
+        let intValue = try number.decode(as: Int.self)
+        properties.append((key: String(key), value: intValue))
         result = try stream.decodeObjectUpToNextPropertyValue()
       }
 
@@ -420,7 +422,8 @@ private struct ObjectTests {
 
       while arrayResult == .decodingElement {
         let number = try stream.decodeNumber().getValue()
-        numbers.append(Int(number.integerPart)!)
+        let intValue = try number.decode(as: Int.self)
+        numbers.append(intValue)
         arrayResult = try stream.decodeArrayUpToNextElement()
       }
       #expect(numbers == [1, 2, 3])
@@ -588,7 +591,8 @@ private struct ObjectTests {
 
       while let key = result.decodingPropertyName {
         let number = try stream.decodeNumber().getValue()
-        properties.append((key: String(key), value: Int(number.integerPart)!))
+        let intValue = try number.decode(as: Int.self)
+        properties.append((key: String(key), value: intValue))
         result = try stream.decodeObjectUpToNextPropertyValue()
       }
 

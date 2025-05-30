@@ -1,11 +1,88 @@
+public import Foundation
+
 extension JSON {
 
   public struct Number {
-    let stringValue: Substring
+
+    public let stringValue: Substring
+
     let significand: Substring
     let integerPart: Substring
     let fractionalPart: Substring?
     let exponent: Substring?
+  }
+
+}
+
+extension JSON.Number {
+
+  public func decode<T: FixedWidthInteger>(as _: T.Type = T.self) throws -> T {
+    guard let value = T(integerPart) else {
+      throw Error.notRepresentable
+    }
+    guard fractionalPart == nil, exponent == nil else {
+      throw Error.notRepresentable
+    }
+    return value
+  }
+
+  public func decode<
+    T: BinaryFloatingPoint & LosslessStringConvertible
+  >(
+    as _: T.Type = T.self
+  ) throws -> T {
+    guard let value = T(String(significand)) else {
+      throw Error.notRepresentable
+    }
+    guard exponent == nil else {
+      throw Error.notRepresentable
+    }
+    return value
+  }
+
+  public func decode(
+    as _: Float.Type = Float.self
+  ) throws -> Float {
+    guard var value = Float(significand) else {
+      throw Error.notRepresentable
+    }
+    if let exponent {
+      guard let exponentValue = Float(exponent) else {
+        throw Error.notRepresentable
+      }
+      value = value * pow(10.0, exponentValue)
+    }
+    return value
+  }
+
+  public func decode(
+    as _: Double.Type = Double.self
+  ) throws -> Double {
+    guard var value = Double(significand) else {
+      throw Error.notRepresentable
+    }
+    if let exponent {
+      guard let exponentValue = Double(exponent) else {
+        throw Error.notRepresentable
+      }
+      value = value * pow(10.0, exponentValue)
+    }
+    return value
+  }
+
+  public func decode(
+    as _: Decimal.Type = Decimal.self
+  ) throws -> Decimal {
+    guard var value = Decimal(string: String(significand)) else {
+      throw Error.notRepresentable
+    }
+    if let exponent {
+      guard let exponentValue = Int(exponent) else {
+        throw Error.notRepresentable
+      }
+      value = value * pow(Decimal(10), exponentValue)
+    }
+    return value
   }
 
 }
@@ -108,4 +185,5 @@ extension JSON.DecodingStream {
 
 private enum Error: Swift.Error {
   case numberWithLeadingZeroes
+  case notRepresentable
 }

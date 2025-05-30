@@ -672,12 +672,12 @@ private struct StringTests {
     do {
       var stream = JSON.DecodingStream()
       stream.push("\"test\\")
-      
+
       var state = try stream.decodeStringStart().getValue()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["tes"])  // 't' is dropped because it could be part of escape
       }
-      
+
       stream.push("n\"")
       stream.finish()
       try stream.withDecodedStringFragments(state: &state) {

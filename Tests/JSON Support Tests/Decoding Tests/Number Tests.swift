@@ -385,7 +385,7 @@ private struct NumberTests {
       var stream = JSON.DecodingStream()
       stream.push("123e")
       #expect(try stream.decodeNumber().needsMoreData)
-      
+
       stream.push("4")
       stream.finish()
       let number = try stream.decodeNumber().getValue()
@@ -400,7 +400,7 @@ private struct NumberTests {
       var stream = JSON.DecodingStream()
       stream.push("5.0E+")
       #expect(try stream.decodeNumber().needsMoreData)
-      
+
       stream.push("2")
       stream.finish()
       let number = try stream.decodeNumber().getValue()
@@ -415,7 +415,7 @@ private struct NumberTests {
       var stream = JSON.DecodingStream()
       stream.push("10.0")
       stream.finish()
-      
+
       let number = try stream.decodeNumber().getValue()
       #expect(number.stringValue == "10.0")
       #expect(number.integerPart == "10")
@@ -428,7 +428,7 @@ private struct NumberTests {
       var stream = JSON.DecodingStream()
       stream.push("42.")
       #expect(try stream.decodeNumber().needsMoreData)
-      
+
       stream.push("0")
       stream.finish()
       let number = try stream.decodeNumber().getValue()
@@ -443,7 +443,7 @@ private struct NumberTests {
       var stream = JSON.DecodingStream()
       stream.push("1e999")
       stream.finish()
-      
+
       let number = try stream.decodeNumber().getValue()
       #expect(number.stringValue == "1e999")
       #expect(number.integerPart == "1")
@@ -456,7 +456,7 @@ private struct NumberTests {
       var stream = JSON.DecodingStream()
       stream.push("-3.14E+2")
       stream.finish()
-      
+
       let number = try stream.decodeNumber().getValue()
       #expect(number.stringValue == "-3.14E+2")
       #expect(number.integerPart == "-3")
@@ -472,7 +472,7 @@ private struct NumberTests {
       var stream = JSON.DecodingStream()
       stream.push("-")
       #expect(try stream.decodeNumber().needsMoreData)
-      
+
       stream.push("7")
       stream.finish()
       let number = try stream.decodeNumber().getValue()
@@ -485,7 +485,7 @@ private struct NumberTests {
       var stream = JSON.DecodingStream()
       stream.push("0")
       #expect(try stream.decodeNumber().needsMoreData)
-      
+
       stream.push(".5")
       stream.finish()
       let number = try stream.decodeNumber().getValue()
@@ -499,30 +499,502 @@ private struct NumberTests {
       var stream = JSON.DecodingStream()
       stream.push("-")
       #expect(try stream.decodeNumber().needsMoreData)
-      
+
       stream.push("1")
       #expect(try stream.decodeNumber().needsMoreData)
-      
+
       stream.push(".")
       #expect(try stream.decodeNumber().needsMoreData)
-      
+
       stream.push("2")
       #expect(try stream.decodeNumber().needsMoreData)
-      
+
       stream.push("e")
       #expect(try stream.decodeNumber().needsMoreData)
-      
+
       stream.push("-")
       #expect(try stream.decodeNumber().needsMoreData)
-      
+
       stream.push("3")
       stream.finish()
-      
+
       let number = try stream.decodeNumber().getValue()
       #expect(number.stringValue == "-1.2e-3")
       #expect(number.integerPart == "-1")
       #expect(number.fractionalPart == "2")
       #expect(number.exponent == "-3")
+    }
+  }
+
+  @Test
+  func integerDecodingTest() async throws {
+    /// Decode various integer types
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("42")
+      stream.finish()
+
+      let number = try stream.decodeNumber().getValue()
+
+      let int8Value = try number.decode(as: Int8.self)
+      #expect(int8Value == 42)
+
+      let int16Value = try number.decode(as: Int16.self)
+      #expect(int16Value == 42)
+
+      let int32Value = try number.decode(as: Int32.self)
+      #expect(int32Value == 42)
+
+      let int64Value = try number.decode(as: Int64.self)
+      #expect(int64Value == 42)
+
+      let intValue = try number.decode(as: Int.self)
+      #expect(intValue == 42)
+
+      let uint8Value = try number.decode(as: UInt8.self)
+      #expect(uint8Value == 42)
+
+      let uint16Value = try number.decode(as: UInt16.self)
+      #expect(uint16Value == 42)
+
+      let uint32Value = try number.decode(as: UInt32.self)
+      #expect(uint32Value == 42)
+
+      let uint64Value = try number.decode(as: UInt64.self)
+      #expect(uint64Value == 42)
+
+      let uintValue = try number.decode(as: UInt.self)
+      #expect(uintValue == 42)
+    }
+
+    /// Negative integers
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("-123")
+      stream.finish()
+
+      let number = try stream.decodeNumber().getValue()
+
+      let intValue = try number.decode(as: Int.self)
+      #expect(intValue == -123)
+
+      let int32Value = try number.decode(as: Int32.self)
+      #expect(int32Value == -123)
+    }
+
+    /// Zero
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("0")
+      stream.finish()
+
+      let number = try stream.decodeNumber().getValue()
+
+      let intValue = try number.decode(as: Int.self)
+      #expect(intValue == 0)
+
+      let uintValue = try number.decode(as: UInt.self)
+      #expect(uintValue == 0)
+    }
+  }
+
+  @Test
+  func integerDecodingErrorTest() async throws {
+    /// Integer with fractional part should fail
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("42.5")
+      stream.finish()
+
+      let number = try stream.decodeNumber().getValue()
+
+      #expect(throws: (any Error).self) {
+        try number.decode(as: Int.self)
+      }
+    }
+
+    /// Integer with exponent should fail
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("42e2")
+      stream.finish()
+
+      let number = try stream.decodeNumber().getValue()
+
+      #expect(throws: (any Error).self) {
+        try number.decode(as: Int.self)
+      }
+    }
+
+    /// Number too large for type
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("999999999999999999999999999999")
+      stream.finish()
+
+      let number = try stream.decodeNumber().getValue()
+
+      #expect(throws: (any Error).self) {
+        try number.decode(as: Int8.self)
+      }
+    }
+
+    /// Negative number for unsigned type
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("-42")
+      stream.finish()
+
+      let number = try stream.decodeNumber().getValue()
+
+      #expect(throws: (any Error).self) {
+        try number.decode(as: UInt.self)
+      }
+    }
+  }
+
+  @Test
+  func binaryFloatingPointDecodingTest() async throws {
+    /// Decode Float values
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("3.14")
+      stream.finish()
+
+      let number = try stream.decodeNumber().getValue()
+
+      let floatValue = try number.decode(as: Float.self)
+      #expect(abs(floatValue - 3.14) < 0.001)
+
+      let doubleValue = try number.decode(as: Double.self)
+      #expect(abs(doubleValue - 3.14) < 0.001)
+    }
+
+    /// Integer values as floats
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("42")
+      stream.finish()
+
+      let number = try stream.decodeNumber().getValue()
+
+      let floatValue = try number.decode(as: Float.self)
+      #expect(floatValue == 42.0)
+
+      let doubleValue = try number.decode(as: Double.self)
+      #expect(doubleValue == 42.0)
+    }
+
+    /// Negative values
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("-1.5")
+      stream.finish()
+
+      let number = try stream.decodeNumber().getValue()
+
+      let floatValue = try number.decode(as: Float.self)
+      #expect(floatValue == -1.5)
+
+      let doubleValue = try number.decode(as: Double.self)
+      #expect(doubleValue == -1.5)
+    }
+
+    /// Zero values
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("0.0")
+      stream.finish()
+
+      let number = try stream.decodeNumber().getValue()
+
+      let floatValue = try number.decode(as: Float.self)
+      #expect(floatValue == 0.0)
+
+      let doubleValue = try number.decode(as: Double.self)
+      #expect(doubleValue == 0.0)
+    }
+
+    /// Very small decimal
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("0.000001")
+      stream.finish()
+
+      let number = try stream.decodeNumber().getValue()
+
+      let doubleValue = try number.decode(as: Double.self)
+      #expect(abs(doubleValue - 0.000001) < 0.0000001)
+    }
+  }
+
+  @Test
+  func binaryFloatingPointErrorTest() async throws {
+    /// Generic BinaryFloatingPoint method with exponent should fail
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("1.5e10")
+      stream.finish()
+
+      let number = try stream.decodeNumber().getValue()
+
+      #expect(throws: (any Error).self) {
+        _ = try number.decode(as: Float16.self)
+      }
+    }
+
+    /// Invalid float format
+    do {
+      // This should never happen in practice since decodeNumber would fail first,
+      // but we test the error handling in the decode method itself
+      let number = JSON.Number(
+        stringValue: "abc",
+        significand: "abc",
+        integerPart: "abc",
+        fractionalPart: nil,
+        exponent: nil
+      )
+
+      #expect(throws: (any Error).self) {
+        try number.decode(as: Float.self)
+      }
+    }
+  }
+
+  @Test
+  func floatWithExponentDecodingTest() async throws {
+    /// Float with positive exponent
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("1.5e2")
+      stream.finish()
+
+      let number = try stream.decodeNumber().getValue()
+
+      let floatValue = try number.decode(as: Float.self)
+      #expect(floatValue == 150.0)
+    }
+
+    /// Float with negative exponent
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("2.5e-1")
+      stream.finish()
+
+      let number = try stream.decodeNumber().getValue()
+
+      let floatValue = try number.decode(as: Float.self)
+      #expect(abs(floatValue - 0.25) < 0.001)
+    }
+
+    /// Double with positive exponent
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("1.25e3")
+      stream.finish()
+
+      let number = try stream.decodeNumber().getValue()
+
+      let doubleValue = try number.decode(as: Double.self)
+      #expect(doubleValue == 1250.0)
+    }
+
+    /// Double with negative exponent
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("3.75e-2")
+      stream.finish()
+
+      let number = try stream.decodeNumber().getValue()
+
+      let doubleValue = try number.decode(as: Double.self)
+      #expect(abs(doubleValue - 0.0375) < 0.0001)
+    }
+
+    /// Integer with exponent
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("5e1")
+      stream.finish()
+
+      let number = try stream.decodeNumber().getValue()
+
+      let floatValue = try number.decode(as: Float.self)
+      #expect(floatValue == 50.0)
+
+      let doubleValue = try number.decode(as: Double.self)
+      #expect(doubleValue == 50.0)
+    }
+
+    /// Zero exponent
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("7.5e0")
+      stream.finish()
+
+      let number = try stream.decodeNumber().getValue()
+
+      let floatValue = try number.decode(as: Float.self)
+      #expect(floatValue == 7.5)
+    }
+
+    /// Large exponent
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("1e10")
+      stream.finish()
+
+      let number = try stream.decodeNumber().getValue()
+
+      let doubleValue = try number.decode(as: Double.self)
+      #expect(doubleValue == 10000000000.0)
+    }
+  }
+
+  @Test
+  func decimalDecodingTest() async throws {
+    /// Basic decimal
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("123.456")
+      stream.finish()
+
+      let number = try stream.decodeNumber().getValue()
+
+      let decimalValue = try number.decode(as: Decimal.self)
+      #expect(decimalValue == Decimal(string: "123.456"))
+    }
+
+    /// Integer as decimal
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("42")
+      stream.finish()
+
+      let number = try stream.decodeNumber().getValue()
+
+      let decimalValue = try number.decode(as: Decimal.self)
+      #expect(decimalValue == Decimal(42))
+    }
+
+    /// Negative decimal
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("-99.99")
+      stream.finish()
+
+      let number = try stream.decodeNumber().getValue()
+
+      let decimalValue = try number.decode(as: Decimal.self)
+      #expect(decimalValue == Decimal(string: "-99.99"))
+    }
+
+    /// Zero
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("0")
+      stream.finish()
+
+      let number = try stream.decodeNumber().getValue()
+
+      let decimalValue = try number.decode(as: Decimal.self)
+      #expect(decimalValue == Decimal(0))
+    }
+
+    /// Very large decimal
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("123456789012345678901234567890.123456789")
+      stream.finish()
+
+      let number = try stream.decodeNumber().getValue()
+
+      let decimalValue = try number.decode(as: Decimal.self)
+      #expect(decimalValue == Decimal(string: "123456789012345678901234567890.123456789"))
+    }
+  }
+
+  @Test
+  func decimalWithExponentDecodingTest() async throws {
+    /// Decimal with positive exponent
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("1.23e2")
+      stream.finish()
+
+      let number = try stream.decodeNumber().getValue()
+
+      let decimalValue = try number.decode(as: Decimal.self)
+      #expect(decimalValue == Decimal(123))
+    }
+
+    /// Decimal with negative exponent
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("1.5e-1")
+      stream.finish()
+
+      let number = try stream.decodeNumber().getValue()
+
+      let decimalValue = try number.decode(as: Decimal.self)
+      #expect(decimalValue == Decimal(string: "0.15"))
+    }
+
+    /// Integer with exponent as decimal
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("5e3")
+      stream.finish()
+
+      let number = try stream.decodeNumber().getValue()
+
+      let decimalValue = try number.decode(as: Decimal.self)
+      #expect(decimalValue == Decimal(5000))
+    }
+
+    /// Zero exponent
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("42.5e0")
+      stream.finish()
+
+      let number = try stream.decodeNumber().getValue()
+
+      let decimalValue = try number.decode(as: Decimal.self)
+      #expect(decimalValue == Decimal(string: "42.5"))
+    }
+  }
+
+  @Test
+  func decimalErrorTest() async throws {
+    /// Invalid decimal format
+    do {
+      let number = JSON.Number(
+        stringValue: "invalid",
+        significand: "invalid",
+        integerPart: "invalid",
+        fractionalPart: nil,
+        exponent: nil
+      )
+
+      #expect(throws: (any Error).self) {
+        try number.decode(as: Decimal.self)
+      }
+    }
+
+    /// Invalid exponent format
+    do {
+      let number = JSON.Number(
+        stringValue: "1.5einvalid",
+        significand: "1.5",
+        integerPart: "1",
+        fractionalPart: "5",
+        exponent: "invalid"
+      )
+
+      #expect(throws: (any Error).self) {
+        try number.decode(as: Decimal.self)
+      }
     }
   }
 }

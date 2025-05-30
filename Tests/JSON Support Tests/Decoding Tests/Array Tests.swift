@@ -45,7 +45,8 @@ private struct ArrayTests {
 
       while result == .decodingElement {
         let number = try stream.decodeNumber().getValue()
-        elements.append(Int(number.integerPart)!)
+        let intValue = try number.decode(as: Int.self)
+        elements.append(intValue)
         result = try stream.decodeArrayUpToNextElement()
       }
 
@@ -147,7 +148,8 @@ private struct ArrayTests {
 
         while innerResult == .decodingElement {
           let number = try stream.decodeNumber().getValue()
-          innerArray.append(Int(number.integerPart)!)
+          let intValue = try number.decode(as: Int.self)
+          innerArray.append(intValue)
           innerResult = try stream.decodeArrayUpToNextElement()
         }
 
@@ -227,7 +229,8 @@ private struct ArrayTests {
 
       while result == .decodingElement {
         let number = try stream.decodeNumber().getValue()
-        elements.append(Int(number.integerPart)!)
+        let intValue = try number.decode(as: Int.self)
+        elements.append(intValue)
         result = try stream.decodeArrayUpToNextElement()
       }
 
@@ -248,7 +251,8 @@ private struct ArrayTests {
 
       while result == .decodingElement {
         let number = try stream.decodeNumber().getValue()
-        elements.append(Int(number.integerPart)!)
+        let intValue = try number.decode(as: Int.self)
+        elements.append(intValue)
         result = try stream.decodeArrayUpToNextElement()
       }
 
@@ -331,7 +335,8 @@ private struct ArrayTests {
       // Parse first three elements
       for _ in 0..<3 {
         let number = try stream.decodeNumber().getValue()
-        elements.append(Int(number.integerPart)!)
+        let intValue = try number.decode(as: Int.self)
+        elements.append(intValue)
         result = try stream.decodeArrayUpToNextElement()
         #expect(result == .decodingElement)
       }

@@ -90,7 +90,6 @@ private struct ReencodableValueTests {
 
       var state = JSON.ReencodableValueDecodingState()
       let result = try stream.decodeReencodableValue(state: &state).getValue()
-      
 
       var encodingStream = JSON.EncodingStream()
       encodingStream.encode(result)
@@ -106,7 +105,6 @@ private struct ReencodableValueTests {
 
       var state = JSON.ReencodableValueDecodingState()
       let result = try stream.decodeReencodableValue(state: &state).getValue()
-      
 
       var encodingStream = JSON.EncodingStream()
       encodingStream.encode(result)
@@ -124,7 +122,6 @@ private struct ReencodableValueTests {
 
       var state = JSON.ReencodableValueDecodingState()
       let result = try stream.decodeReencodableValue(state: &state).getValue()
-      
 
       var encodingStream = JSON.EncodingStream()
       encodingStream.encode(result)
@@ -140,7 +137,6 @@ private struct ReencodableValueTests {
 
       var state = JSON.ReencodableValueDecodingState()
       let result = try stream.decodeReencodableValue(state: &state).getValue()
-      
 
       var encodingStream = JSON.EncodingStream()
       encodingStream.encode(result)
@@ -156,7 +152,6 @@ private struct ReencodableValueTests {
 
       var state = JSON.ReencodableValueDecodingState()
       let result = try stream.decodeReencodableValue(state: &state).getValue()
-      
 
       var encodingStream = JSON.EncodingStream()
       encodingStream.encode(result)
@@ -179,7 +174,6 @@ private struct ReencodableValueTests {
       stream.finish()
 
       let value = try stream.decodeReencodableValue(state: &state).getValue()
-      
 
       var encodingStream = JSON.EncodingStream()
       encodingStream.encode(value)
@@ -203,7 +197,6 @@ private struct ReencodableValueTests {
       stream.finish()
 
       let value = try stream.decodeReencodableValue(state: &state).getValue()
-      
 
       var encodingStream = JSON.EncodingStream()
       encodingStream.encode(value)
@@ -227,7 +220,6 @@ private struct ReencodableValueTests {
       stream.finish()
 
       let value = try stream.decodeReencodableValue(state: &state).getValue()
-      
 
       var encodingStream = JSON.EncodingStream()
       encodingStream.encode(value)
@@ -251,7 +243,6 @@ private struct ReencodableValueTests {
       stream.finish()
 
       let value = try stream.decodeReencodableValue(state: &state).getValue()
-      
 
       var encodingStream = JSON.EncodingStream()
       encodingStream.encode(value)
@@ -270,7 +261,6 @@ private struct ReencodableValueTests {
 
       var state = JSON.ReencodableValueDecodingState()
       let result = try stream.decodeReencodableValue(state: &state).getValue()
-      
 
       var encodingStream = JSON.EncodingStream()
       encodingStream.encode(result)
@@ -286,7 +276,6 @@ private struct ReencodableValueTests {
 
       var state = JSON.ReencodableValueDecodingState()
       let result = try stream.decodeReencodableValue(state: &state).getValue()
-      
 
       var encodingStream = JSON.EncodingStream()
       encodingStream.encode(result)
@@ -302,7 +291,6 @@ private struct ReencodableValueTests {
 
       var state = JSON.ReencodableValueDecodingState()
       let result = try stream.decodeReencodableValue(state: &state).getValue()
-      
 
       var encodingStream = JSON.EncodingStream()
       encodingStream.encode(result)
@@ -322,7 +310,6 @@ private struct ReencodableValueTests {
 
       var state1 = JSON.ReencodableValueDecodingState()
       let value1 = try stream.decodeReencodableValue(state: &state1).getValue()
-      
 
       // Reset and decode second value
       stream.reset()
@@ -331,7 +318,6 @@ private struct ReencodableValueTests {
 
       var state2 = JSON.ReencodableValueDecodingState()
       let value2 = try stream.decodeReencodableValue(state: &state2).getValue()
-      
 
       // Re-encode both values
       var encodingStream = JSON.EncodingStream()
@@ -352,7 +338,6 @@ private struct ReencodableValueTests {
 
       var state = JSON.ReencodableValueDecodingState()
       let result = try stream.decodeReencodableValue(state: &state).getValue()
-      
 
       var encodingStream = JSON.EncodingStream()
       encodingStream.encode(result)
@@ -367,7 +352,6 @@ private struct ReencodableValueTests {
 
       var state = JSON.ReencodableValueDecodingState()
       let result = try stream.decodeReencodableValue(state: &state).getValue()
-      
 
       var encodingStream = JSON.EncodingStream()
       encodingStream.encode(result)
@@ -383,7 +367,6 @@ private struct ReencodableValueTests {
 
       var state = JSON.ReencodableValueDecodingState()
       let result = try stream.decodeReencodableValue(state: &state).getValue()
-      
 
       var encodingStream = JSON.EncodingStream()
       encodingStream.encode(result)
@@ -399,7 +382,6 @@ private struct ReencodableValueTests {
 
       var state = JSON.ReencodableValueDecodingState()
       let result = try stream.decodeReencodableValue(state: &state).getValue()
-      
 
       var encodingStream = JSON.EncodingStream()
       encodingStream.encode(result)
