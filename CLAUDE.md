@@ -20,6 +20,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Use Swift Testing framework with `@Suite`, `@Test` annotations
 - Use `#expect` for assertions in tests
 - Do not use `XCTest`
+- In tests, try to test for a condition rather than using `Issue.report` in a conditional block. You can add helpers at the bottom of the test file to help with enums that cannot be directly compared.
 - Try to keep public APIs at the top of the file, followed by internal APIs, fileprivate APIs, and private APIs.
 - Prefer optional chaining and conditional unwrapping over force unwrapping
 - Use throwing functions for error handling
@@ -31,3 +32,4 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Run `swift format` after making changes to the code.
 - Build the project and make sure any compiler warnings are addressed.
 - When adding tests, add them one at a time and run each test after adding to ensure it passes.
+- If you are fixing tests after API has changed, comment out all the tests with build failures and then uncomment them one by one, fixing each test as you go.

@@ -14,7 +14,7 @@ extension JSON {
 
 extension JSON.DecodingStream {
 
-  public mutating func decodeObjectStart() throws -> JSON.ObjectDecodingState {
+  public mutating func decodeObjectUpToFirstPropertyValue() throws -> JSON.ObjectDecodingState {
     readWhitespace()
 
     let start = createCheckpoint()
@@ -54,7 +54,7 @@ extension JSON.DecodingStream {
     }
   }
 
-  public mutating func decodeNextObjectProperty() throws -> JSON.ObjectDecodingState {
+  public mutating func decodeObjectUpToNextPropertyValue() throws -> JSON.ObjectDecodingState {
     readWhitespace()
 
     let start = createCheckpoint()

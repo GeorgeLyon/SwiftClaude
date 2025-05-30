@@ -1,5 +1,3 @@
-import Collections
-
 extension JSON {
 
   public struct DecodingStream: Sendable, ~Copyable {

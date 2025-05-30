@@ -14,7 +14,7 @@ extension JSON {
 
 extension JSON.DecodingStream {
 
-  public mutating func decodeArrayStart() throws -> JSON.ArrayDecodingState {
+  public mutating func decodeArrayUpToFirstElement() throws -> JSON.ArrayDecodingState {
     readWhitespace()
 
     let start = createCheckpoint()
@@ -45,7 +45,7 @@ extension JSON.DecodingStream {
     }
   }
 
-  public mutating func decodeNextArrayElement() throws -> JSON.ArrayDecodingState {
+  public mutating func decodeArrayUpToNextElement() throws -> JSON.ArrayDecodingState {
     readWhitespace()
 
     let isComplete = try readCharacter { character in

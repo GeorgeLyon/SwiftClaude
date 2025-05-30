@@ -284,21 +284,11 @@ private struct ObjectTests {
       stream.push("{")
 
       var result = try stream.decodeObjectStart()
-      if case .needsMoreData = result {
-        // Expected
-      } else {
-        Issue.record("Expected needsMoreData")
-        return
-      }
+      #expect(result.needsMoreData)
 
       stream.push("\"ke")
       result = try stream.decodeObjectStart()
-      if case .needsMoreData = result {
-        // Expected
-      } else {
-        Issue.record("Expected needsMoreData")
-        return
-      }
+      #expect(!result.needsMoreData)
 
       stream.push("y1\": 4")
       result = try stream.decodeObjectStart()
@@ -428,11 +418,11 @@ private struct ObjectTests {
 
       // First property: array of numbers
       #expect(result.decodingPropertyName == "numbers")
-      
+
       var numbers: [Int] = []
       var arrayResult = try stream.decodeArrayStart()
       #expect(arrayResult == .decodingElement)
-      
+
       while arrayResult == .decodingElement {
         let number = try stream.decodeNumber().getValue()
         numbers.append(Int(number.integerPart)!)
@@ -444,11 +434,11 @@ private struct ObjectTests {
 
       // Second property: array of strings
       #expect(result.decodingPropertyName == "names")
-      
+
       var names: [String] = []
       arrayResult = try stream.decodeArrayStart()
       #expect(arrayResult == .decodingElement)
-      
+
       while arrayResult == .decodingElement {
         var state = try stream.decodeStringStart().getValue()
         var fragments: [String] = []
@@ -462,6 +452,203 @@ private struct ObjectTests {
 
       result = try stream.decodeNextObjectProperty()
       #expect(result.isComplete)
+    }
+  }
+
+  @Test
+  func objectStreamingEdgeCasesTest() async throws {
+    /// Empty object split across buffers
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("{")
+
+      var result = try stream.decodeObjectStart()
+      #expect(result.needsMoreData)
+
+      stream.push("}")
+      stream.finish()
+
+      result = try stream.decodeObjectStart()
+      #expect(result.isComplete)
+    }
+
+    /// Object with property name split
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("{\"pro")
+
+      var result = try stream.decodeObjectStart()
+      #expect(result.needsMoreData)
+
+      stream.push("perty\": 42}")
+      stream.finish()
+
+      result = try stream.decodeObjectStart()
+      #expect(result.decodingPropertyName == "property")
+
+      let number = try stream.decodeNumber().getValue()
+      #expect(number.integerPart == "42")
+
+      result = try stream.decodeNextObjectProperty()
+      #expect(result.isComplete)
+    }
+
+    /// Colon split between property name and value
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("{\"key\"")
+
+      var result = try stream.decodeObjectStart()
+      #expect(result.needsMoreData)
+
+      stream.push(": \"value\"}")
+      stream.finish()
+
+      result = try stream.decodeObjectStart()
+      #expect(result.decodingPropertyName == "key")
+
+      var state = try stream.decodeStringStart().getValue()
+      var fragments: [String] = []
+      try stream.decodeStringFragments(state: &state) { fragment in
+        fragments.append(String(fragment))
+      }
+      #expect(fragments.joined() == "value")
+
+      result = try stream.decodeNextObjectProperty()
+      #expect(result.isComplete)
+    }
+
+    /// Comma split between properties
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("{\"a\": 1")
+
+      var result = try stream.decodeObjectStart()
+      #expect(result.decodingPropertyName == "a")
+
+      let first = try stream.decodeNumber().getValue()
+      #expect(first.integerPart == "1")
+
+      result = try stream.decodeNextObjectProperty()
+      #expect(result.needsMoreData)
+
+      stream.push(", \"b\": 2}")
+      stream.finish()
+
+      result = try stream.decodeNextObjectProperty()
+      #expect(result.decodingPropertyName == "b")
+
+      let second = try stream.decodeNumber().getValue()
+      #expect(second.integerPart == "2")
+
+      result = try stream.decodeNextObjectProperty()
+      #expect(result.isComplete)
+    }
+
+    /// Whitespace around colons and commas
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("{ \"a\" ")
+
+      var result = try stream.decodeObjectStart()
+      #expect(result.needsMoreData)
+
+      stream.push(" : ")
+      result = try stream.decodeObjectStart()
+      #expect(result.needsMoreData)
+
+      stream.push(" 1 ")
+      result = try stream.decodeObjectStart()
+      #expect(result.decodingPropertyName == "a")
+
+      let number = try stream.decodeNumber().getValue()
+      #expect(number.integerPart == "1")
+
+      result = try stream.decodeNextObjectProperty()
+      #expect(result.needsMoreData)
+
+      stream.push(" , \"b\" : 2 }")
+      stream.finish()
+
+      result = try stream.decodeNextObjectProperty()
+      #expect(result.decodingPropertyName == "b")
+
+      let second = try stream.decodeNumber().getValue()
+      #expect(second.integerPart == "2")
+
+      result = try stream.decodeNextObjectProperty()
+      #expect(result.isComplete)
+    }
+  }
+
+  @Test
+  func objectWithEscapedPropertyNamesTest() async throws {
+    /// Property names with escape sequences
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("{\"key\\\"with\\\"quotes\": 1, \"new\\nline\": 2, \"tab\\there\": 3}")
+      stream.finish()
+
+      var properties: [(key: String, value: Int)] = []
+
+      var result = try stream.decodeObjectStart()
+
+      while let key = result.decodingPropertyName {
+        let number = try stream.decodeNumber().getValue()
+        properties.append((key: String(key), value: Int(number.integerPart)!))
+        result = try stream.decodeNextObjectProperty()
+      }
+
+      #expect(result.isComplete)
+      #expect(properties.count == 3)
+      #expect(properties[0].key == "key\"with\"quotes")  // Escapes are decoded
+      #expect(properties[1].key == "new\nline")  // \n becomes newline
+      #expect(properties[2].key == "tab\there")  // \t becomes tab
+      #expect(properties.map { $0.value } == [1, 2, 3])
+    }
+
+    /// Unicode escapes in property names
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("{\"\\u0048\\u0065\\u006C\\u006C\\u006F\": \"world\"}")
+      stream.finish()
+
+      var result = try stream.decodeObjectStart()
+      #expect(result.decodingPropertyName == "Hello")  // Unicode escapes are decoded to "Hello"
+
+      var state = try stream.decodeStringStart().getValue()
+      var fragments: [String] = []
+      try stream.decodeStringFragments(state: &state) { fragment in
+        fragments.append(String(fragment))
+      }
+      #expect(fragments.joined() == "world")
+
+      result = try stream.decodeNextObjectProperty()
+      #expect(result.isComplete)
+    }
+  }
+
+  @Test
+  func objectTrailingWhitespaceTest() async throws {
+    /// Object with trailing whitespace after closing brace
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("{\"x\": 1}  \n  ")
+      stream.finish()
+
+      var result = try stream.decodeObjectStart()
+      #expect(result.decodingPropertyName == "x")
+
+      let number = try stream.decodeNumber().getValue()
+      #expect(number.integerPart == "1")
+
+      result = try stream.decodeNextObjectProperty()
+      #expect(result.isComplete)
+
+      // Verify we can read the trailing whitespace
+      #expect(try stream.readCharacter().decodingResult().getValue() == " ")
+      #expect(try stream.readCharacter().decodingResult().getValue() == " ")
+      #expect(try stream.readCharacter().decodingResult().getValue() == "\n")
     }
   }
 

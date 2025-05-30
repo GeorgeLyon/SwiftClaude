@@ -74,7 +74,7 @@ extension JSON.DecodingStream {
               continue
             }
           case .array:
-            switch try decodeArrayStart() {
+            switch try decodeArrayUpToFirstElement() {
             case .needsMoreData:
               restore(start)
               return .needsMoreData
@@ -86,7 +86,7 @@ extension JSON.DecodingStream {
               break
             }
           case .object:
-            switch try decodeObjectStart() {
+            switch try decodeObjectUpToFirstPropertyValue() {
             case .needsMoreData:
               restore(start)
               return .needsMoreData
@@ -109,7 +109,7 @@ extension JSON.DecodingStream {
         }
 
       case .decodingNextArrayElement:
-        switch try decodeNextArrayElement() {
+        switch try decodeArrayUpToNextElement() {
         case .needsMoreData:
           return .needsMoreData
         case .decodingElement:
@@ -122,7 +122,7 @@ extension JSON.DecodingStream {
         }
 
       case .decodingNextObjectProperty:
-        switch try decodeNextObjectProperty() {
+        switch try decodeObjectUpToNextPropertyValue() {
         case .needsMoreData:
           return .needsMoreData
         case .decodingPropertyValue:

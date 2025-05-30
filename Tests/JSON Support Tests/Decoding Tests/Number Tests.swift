@@ -377,4 +377,152 @@ private struct NumberTests {
       #expect(number.exponent == nil)
     }
   }
+
+  @Test
+  func additionalScientificNotationEdgeCasesTest() async throws {
+    /// Number with just 'e' at end (incomplete)
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("123e")
+      #expect(try stream.decodeNumber().needsMoreData)
+      
+      stream.push("4")
+      stream.finish()
+      let number = try stream.decodeNumber().getValue()
+      #expect(number.stringValue == "123e4")
+      #expect(number.integerPart == "123")
+      #expect(number.fractionalPart == nil)
+      #expect(number.exponent == "4")
+    }
+
+    /// Number with 'E' and '+' but no exponent digits yet
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("5.0E+")
+      #expect(try stream.decodeNumber().needsMoreData)
+      
+      stream.push("2")
+      stream.finish()
+      let number = try stream.decodeNumber().getValue()
+      #expect(number.stringValue == "5.0E+2")
+      #expect(number.integerPart == "5")
+      #expect(number.fractionalPart == "0")
+      #expect(number.exponent == "+2")
+    }
+
+    /// Decimal with zero fractional part
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("10.0")
+      stream.finish()
+      
+      let number = try stream.decodeNumber().getValue()
+      #expect(number.stringValue == "10.0")
+      #expect(number.integerPart == "10")
+      #expect(number.fractionalPart == "0")
+      #expect(number.exponent == nil)
+    }
+
+    /// Number ending with decimal point
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("42.")
+      #expect(try stream.decodeNumber().needsMoreData)
+      
+      stream.push("0")
+      stream.finish()
+      let number = try stream.decodeNumber().getValue()
+      #expect(number.stringValue == "42.0")
+      #expect(number.integerPart == "42")
+      #expect(number.fractionalPart == "0")
+      #expect(number.exponent == nil)
+    }
+
+    /// Large exponent
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("1e999")
+      stream.finish()
+      
+      let number = try stream.decodeNumber().getValue()
+      #expect(number.stringValue == "1e999")
+      #expect(number.integerPart == "1")
+      #expect(number.fractionalPart == nil)
+      #expect(number.exponent == "999")
+    }
+
+    /// Negative number with positive exponent
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("-3.14E+2")
+      stream.finish()
+      
+      let number = try stream.decodeNumber().getValue()
+      #expect(number.stringValue == "-3.14E+2")
+      #expect(number.integerPart == "-3")
+      #expect(number.fractionalPart == "14")
+      #expect(number.exponent == "+2")
+    }
+  }
+
+  @Test
+  func numberStreamingEdgeCasesTest() async throws {
+    /// Minus sign alone needs more data
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("-")
+      #expect(try stream.decodeNumber().needsMoreData)
+      
+      stream.push("7")
+      stream.finish()
+      let number = try stream.decodeNumber().getValue()
+      #expect(number.stringValue == "-7")
+      #expect(number.integerPart == "-7")
+    }
+
+    /// Just '0' could be followed by decimal
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("0")
+      #expect(try stream.decodeNumber().needsMoreData)
+      
+      stream.push(".5")
+      stream.finish()
+      let number = try stream.decodeNumber().getValue()
+      #expect(number.stringValue == "0.5")
+      #expect(number.integerPart == "0")
+      #expect(number.fractionalPart == "5")
+    }
+
+    /// Number split at every character
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("-")
+      #expect(try stream.decodeNumber().needsMoreData)
+      
+      stream.push("1")
+      #expect(try stream.decodeNumber().needsMoreData)
+      
+      stream.push(".")
+      #expect(try stream.decodeNumber().needsMoreData)
+      
+      stream.push("2")
+      #expect(try stream.decodeNumber().needsMoreData)
+      
+      stream.push("e")
+      #expect(try stream.decodeNumber().needsMoreData)
+      
+      stream.push("-")
+      #expect(try stream.decodeNumber().needsMoreData)
+      
+      stream.push("3")
+      stream.finish()
+      
+      let number = try stream.decodeNumber().getValue()
+      #expect(number.stringValue == "-1.2e-3")
+      #expect(number.integerPart == "-1")
+      #expect(number.fractionalPart == "2")
+      #expect(number.exponent == "-3")
+    }
+  }
 }

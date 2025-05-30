@@ -347,6 +347,129 @@ private struct ValueTests {
   }
 
   @Test
+  func objectValuesTest() async throws {
+    /// Empty object
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("{}")
+      stream.finish()
+
+      try stream.withDecodeValueResult { result, decodedSubstring in
+        #expect(result.isDecoded)
+        #expect(decodedSubstring == "{}")
+      }
+    }
+
+    /// Simple object
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("{\"name\": \"John\"}")
+      stream.finish()
+
+      try stream.withDecodeValueResult { result, decodedSubstring in
+        #expect(result.isDecoded)
+        #expect(decodedSubstring == "{\"name\": \"John\"}")
+      }
+    }
+
+    /// Object with numbers
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("{\"age\": 25, \"height\": 5.9}")
+      stream.finish()
+
+      try stream.withDecodeValueResult { result, decodedSubstring in
+        #expect(result.isDecoded)
+        #expect(decodedSubstring == "{\"age\": 25, \"height\": 5.9}")
+      }
+    }
+
+    /// Object with boolean and null
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("{\"active\": true, \"deleted\": false, \"parent\": null}")
+      stream.finish()
+
+      try stream.withDecodeValueResult { result, decodedSubstring in
+        #expect(result.isDecoded)
+        #expect(decodedSubstring == "{\"active\": true, \"deleted\": false, \"parent\": null}")
+      }
+    }
+
+    /// Nested object
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("{\"user\": {\"name\": \"John\", \"age\": 25}}")
+      stream.finish()
+
+      try stream.withDecodeValueResult { result, decodedSubstring in
+        #expect(result.isDecoded)
+        #expect(decodedSubstring == "{\"user\": {\"name\": \"John\", \"age\": 25}}")
+      }
+    }
+
+    /// Object with array
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("{\"items\": [1, 2, 3], \"count\": 3}")
+      stream.finish()
+
+      try stream.withDecodeValueResult { result, decodedSubstring in
+        #expect(result.isDecoded)
+        #expect(decodedSubstring == "{\"items\": [1, 2, 3], \"count\": 3}")
+      }
+    }
+
+    /// Object with whitespace
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("{ \"name\" : \"John\" , \"age\" : 25 }")
+      stream.finish()
+
+      try stream.withDecodeValueResult { result, decodedSubstring in
+        #expect(result.isDecoded)
+        #expect(decodedSubstring == "{ \"name\" : \"John\" , \"age\" : 25 }")
+      }
+    }
+
+    /// Object with newlines
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("{\n  \"name\": \"John\",\n  \"age\": 25\n}")
+      stream.finish()
+
+      try stream.withDecodeValueResult { result, decodedSubstring in
+        #expect(result.isDecoded)
+        #expect(decodedSubstring == "{\n  \"name\": \"John\",\n  \"age\": 25\n}")
+      }
+    }
+
+    /// Complex nested object
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("{\"user\": {\"profile\": {\"name\": \"John\"}, \"posts\": [{\"id\": 1}, {\"id\": 2}]}}")
+      stream.finish()
+
+      try stream.withDecodeValueResult { result, decodedSubstring in
+        #expect(result.isDecoded)
+        #expect(decodedSubstring == "{\"user\": {\"profile\": {\"name\": \"John\"}, \"posts\": [{\"id\": 1}, {\"id\": 2}]}}")
+      }
+    }
+
+    /// Object with escaped property names
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("{\"key\\\"with\\\"quotes\": \"value\"}")
+      stream.finish()
+
+      try stream.withDecodeValueResult { result, decodedSubstring in
+        #expect(result.isDecoded)
+        #expect(decodedSubstring == "{\"key\\\"with\\\"quotes\": \"value\"}")
+      }
+    }
+  }
+
+  @Test
   func arrayValuesTest() async throws {
     /// Empty array
     do {

@@ -557,6 +557,176 @@ private struct StringTests {
   }
 
   @Test
+  func additionalSurrogatePairEdgeCasesTest() async throws {
+    /// Low surrogate without high surrogate
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\"\\uDE00\"")
+      stream.finish()
+
+      var state = try stream.decodeStringStart().getValue()
+      try stream.withDecodedStringFragments(state: &state) {
+        #expect($0 == ["�"])
+      }
+      #expect(state.isComplete)
+    }
+
+    /// Low surrogate at start of string
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\"\\uDE00Hello\"")
+      stream.finish()
+
+      var state = try stream.decodeStringStart().getValue()
+      try stream.withDecodedStringFragments(state: &state) {
+        #expect($0 == ["�", "Hello"])
+      }
+      #expect(state.isComplete)
+    }
+
+    /// Multiple invalid surrogates
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\"\\uDE00\\uDE01\"")
+      stream.finish()
+
+      var state = try stream.decodeStringStart().getValue()
+      try stream.withDecodedStringFragments(state: &state) {
+        #expect($0 == ["�", "�"])
+      }
+      #expect(state.isComplete)
+    }
+
+    /// High surrogate at end of string (no low surrogate)
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\"Hello\\uD83D\"")
+      stream.finish()
+
+      var state = try stream.decodeStringStart().getValue()
+      try stream.withDecodedStringFragments(state: &state) {
+        #expect($0 == ["Hello", "�"])
+      }
+      #expect(state.isComplete)
+    }
+  }
+
+  @Test
+  func incompleteUnicodeEscapeSequencesTest() async throws {
+    /// Unicode escape with only 1 hex digit
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\"\\u0\"")
+      stream.finish()
+
+      var state = try stream.decodeStringStart().getValue()
+      try stream.withDecodedStringFragments(state: &state) {
+        #expect($0 == ["�", "0"])
+      }
+      #expect(state.isComplete)
+    }
+
+    /// Unicode escape with only 2 hex digits
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\"\\u00\"")
+      stream.finish()
+
+      var state = try stream.decodeStringStart().getValue()
+      try stream.withDecodedStringFragments(state: &state) {
+        #expect($0 == ["�", "00"])
+      }
+      #expect(state.isComplete)
+    }
+
+    /// Unicode escape with only 3 hex digits
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\"\\u004\"")
+      stream.finish()
+
+      var state = try stream.decodeStringStart().getValue()
+      try stream.withDecodedStringFragments(state: &state) {
+        #expect($0 == ["�", "004"])
+      }
+      #expect(state.isComplete)
+    }
+
+    /// Unicode escape cut off at \\u
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\"\\u\"")
+      stream.finish()
+
+      var state = try stream.decodeStringStart().getValue()
+      try stream.withDecodedStringFragments(state: &state) {
+        #expect($0 == ["�"])
+      }
+      #expect(state.isComplete)
+    }
+  }
+
+  @Test
+  func escapeSequenceEdgeCasesTest() async throws {
+    /// Incomplete escape at end of string
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\"test\\")
+      
+      var state = try stream.decodeStringStart().getValue()
+      try stream.withDecodedStringFragments(state: &state) {
+        #expect($0 == ["tes"])  // 't' is dropped because it could be part of escape
+      }
+      
+      stream.push("n\"")
+      stream.finish()
+      try stream.withDecodedStringFragments(state: &state) {
+        #expect($0 == ["t", "\n"])
+      }
+      #expect(state.isComplete)
+    }
+
+    /// Multiple consecutive escapes
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\"\\\\\\\\\"")
+      stream.finish()
+
+      var state = try stream.decodeStringStart().getValue()
+      try stream.withDecodedStringFragments(state: &state) {
+        #expect($0 == ["\\", "\\"])
+      }
+      #expect(state.isComplete)
+    }
+
+    /// Escape followed by unicode escape
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\"\\n\\u0041\"")
+      stream.finish()
+
+      var state = try stream.decodeStringStart().getValue()
+      try stream.withDecodedStringFragments(state: &state) {
+        #expect($0 == ["\n", "A"])
+      }
+      #expect(state.isComplete)
+    }
+
+    /// Unicode escape followed by regular escape
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("\"\\u0041\\n\"")
+      stream.finish()
+
+      var state = try stream.decodeStringStart().getValue()
+      try stream.withDecodedStringFragments(state: &state) {
+        #expect($0 == ["A", "\n"])
+      }
+      #expect(state.isComplete)
+    }
+  }
+
+  @Test
   func whitespaceBeforeOpeningQuoteTest() async throws {
     /// Single space before opening quote
     do {
