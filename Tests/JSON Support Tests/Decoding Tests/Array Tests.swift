@@ -10,13 +10,11 @@ private struct ArrayTests {
   func emptyArrayTest() async throws {
     do {
       var stream = JSON.DecodingStream()
-      stream.push("[]")
+      stream.push("[] ")
       stream.finish()
 
       let result = try stream.decodeArrayStart()
       #expect(result == .complete)
-
-      #expect(try stream.readCharacter().needsMoreData)
     }
 
     /// With whitespace

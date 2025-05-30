@@ -1,4 +1,3 @@
-/*
 extension JSON {
 
   public enum ObjectDecodingResult {
@@ -39,13 +38,14 @@ extension JSON.DecodingStream {
       case .matched:
         return .complete
       case .notMatched:
-        let propertyResult = try decodePropertyName()
-        switch propertyResult {
+        switch readNextPropertyName() {
+        case .matched(let name):
+          return .decodingPropertyValue(name: name)
+        case .notMatched(let error):
+          throw error
         case .needsMoreData:
           restore(start)
           return .needsMoreData
-        case .decodingPropertyValue, .complete:
-          return propertyResult
         }
       case .needsMoreData:
         restore(start)
@@ -57,7 +57,7 @@ extension JSON.DecodingStream {
   public mutating func decodeNextObjectProperty() throws -> JSON.ObjectDecodingResult {
     readWhitespace()
 
-    let beforeSeparator = createCheckpoint()
+    let start = createCheckpoint()
 
     let isComplete = try readCharacter { character in
       switch character {
@@ -72,62 +72,82 @@ extension JSON.DecodingStream {
 
     switch isComplete {
     case .needsMoreData:
-      restore(beforeSeparator)
+      restore(start)
       return .needsMoreData
     case .decoded(let isComplete):
       if isComplete {
         return .complete
       } else {
-        // Read whitespace after comma before decoding next property
-        readWhitespace()
-        let propertyResult = try decodePropertyName()
-        switch propertyResult {
+        switch readNextPropertyName() {
+        case .matched(let name):
+          return .decodingPropertyValue(name: name)
+        case .notMatched(let error):
+          throw error
         case .needsMoreData:
-          restore(beforeSeparator)
+          restore(start)
           return .needsMoreData
-        case .decodingPropertyValue, .complete:
-          return propertyResult
         }
       }
     }
   }
 
-  private mutating func decodeNextPropertyName() -> ReadResult<Substring> {
+  /// Does not restore the read cursor when it `needsMoreData`.
+  /// Also reads the ":" character.
+  /// - Returns: The property name
+  private mutating func readNextPropertyName() -> ReadResult<Substring> {
     readWhitespace()
 
-    var propertyFragments: [Substring] = []
+    let propertyFragments: [Substring]
     do {
-      switch
-      var state = try decodeStringStart().getValue()
-      let result = try decodeStringFragments(state: &state) { fragment in
-        propertyFragments.append(fragment)
-      }
-      if !state.isComplete {
-        restore(propertyStart)
+      var state: JSON.StringDecodingState
+      switch readStringStart() {
+      case .matched(let s):
+        state = s
+      case .needsMoreData:
         return .needsMoreData
+      case .notMatched(let error):
+        return .notMatched(error)
       }
-    } catch {
-      restore(propertyStart)
-      throw error
+
+      var fragments: [Substring] = []
+      let result = readStringFragments(state: &state) { fragment in
+        fragments.append(fragment)
+      }
+      switch result {
+      case .needsMoreData:
+        return .needsMoreData
+      case .notMatched(let error):
+        return .notMatched(error)
+      case .matched:
+        guard state.isComplete else {
+          /// `state` should be complete if we matched
+          assertionFailure()
+          return .notMatched(Error.invalidState)
+        }
+        propertyFragments = fragments
+      }
     }
 
-    switch try decodeString().decodingResult() {
+    readWhitespace()
+
+    switch read(":") {
     case .needsMoreData:
-      restore(propertyStart)
       return .needsMoreData
-    case .decoded(let propertyName):
-      // Check for colon
-      readWhitespace()
-      switch try read(":").decodingResult() {
-      case .needsMoreData:
-        restore(propertyStart)
-        return .needsMoreData
-      case .decoded:
-        readWhitespace()
-        return .decodingPropertyValue(name: Substring(propertyName))
+    case .matched:
+      if propertyFragments.count == 1 {
+        /// Fast path for a single fragment
+        return .matched(propertyFragments[0])
+      } else {
+        /// Join all fragments
+        return .matched(Substring(propertyFragments.joined()))
       }
+    case .notMatched(let error):
+      return .notMatched(error)
     }
   }
 
 }
-*/
+
+private enum Error: Swift.Error {
+  case invalidState
+}

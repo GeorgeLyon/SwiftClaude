@@ -10,25 +10,44 @@ extension JSON {
 extension JSON.DecodingStream {
 
   public mutating func decodeStringStart() throws -> JSON.DecodingResult<JSON.StringDecodingState> {
-    readWhitespace()
-
-    switch read("\"") {
-    case .needsMoreData:
-      return .needsMoreData
-    case .matched:
-      return .decoded(JSON.StringDecodingState())
-    case .notMatched(let error):
-      throw error
-    }
+    try readStringStart().decodingResult()
   }
 
   public mutating func decodeStringFragments(
     state: inout JSON.StringDecodingState,
     onFragment: (_ fragment: Substring) -> Void
   ) throws {
+    switch readStringFragments(state: &state, onFragment: onFragment) {
+    case .needsMoreData:
+      break
+    case .matched(()):
+      state.isComplete = true
+    case .notMatched(let error):
+      throw error
+    }
+  }
+
+  mutating func readStringStart() -> ReadResult<JSON.StringDecodingState> {
+    readWhitespace()
+
+    switch read("\"") {
+    case .needsMoreData:
+      return .needsMoreData
+    case .matched:
+      return .matched(JSON.StringDecodingState())
+    case .notMatched(let error):
+      return .notMatched(error)
+    }
+  }
+
+  /// We recover from many errors by emitting a "�" character, but we can still fail if the stream finishes without emitting a closing quote.
+  mutating func readStringFragments(
+    state: inout JSON.StringDecodingState,
+    onFragment: (_ fragment: Substring) -> Void
+  ) -> ReadResult<Void> {
     guard !state.isComplete else {
       assertionFailure()
-      return
+      return .matched(())
     }
 
     var nextFragment: Substring?
@@ -42,12 +61,6 @@ extension JSON.DecodingStream {
       }
       nextFragment = fragment
     }
-    switch result {
-    case .needsMoreData:
-      break
-    case .notMatched, .matched:
-      state.isComplete = true
-    }
     if var lastFragment = nextFragment {
 
       if !state.isComplete, possiblyIncompleteIncomingGraphemeCluster == "\\" {
@@ -60,6 +73,10 @@ extension JSON.DecodingStream {
 
       onFragment(lastFragment)
     }
+    if case .matched = result {
+      state.isComplete = true
+    }
+    return result
   }
 
   /// Unlike other `read` methods, this method advances the read cursor even if `needsMoreData` is returned.
