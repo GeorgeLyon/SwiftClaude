@@ -344,6 +344,216 @@ private struct ValueTests {
         #expect(decodedSubstring == "2, 3]")
       }
     }
+
+    /// Object split across multiple chunks
+    do {
+      var stream = JSON.DecodingStream()
+      let checkpoint = stream.createCheckpoint()
+      
+      stream.push("{")
+
+      var state = JSON.ValueDecodingState()
+      try stream.withDecodeValueResult(state: &state) { result, _ in
+        #expect(result.needsMoreData)
+      }
+
+      stream.push("\"name\"")
+      try stream.withDecodeValueResult(state: &state) { result, _ in
+        #expect(result.needsMoreData)
+      }
+
+      stream.push(": \"Jo")
+      try stream.withDecodeValueResult(state: &state) { result, _ in
+        #expect(result.needsMoreData)
+      }
+
+      stream.push("hn\"}")
+      stream.finish()
+
+      try stream.withDecodeValueResult(state: &state) { result, _ in
+        #expect(result.isDecoded)
+      }
+      
+      let decodedSubstring = stream.substringDecoded(since: checkpoint)
+      #expect(decodedSubstring == "{\"name\": \"John\"}")
+    }
+
+    /// Boolean split (tr|ue)
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("tr")
+
+      var state = JSON.ValueDecodingState()
+      try stream.withDecodeValueResult(state: &state) { result, decodedSubstring in
+        #expect(result.needsMoreData)
+        #expect(decodedSubstring == "")
+      }
+
+      stream.push("ue")
+      stream.finish()
+
+      try stream.withDecodeValueResult(state: &state) { result, decodedSubstring in
+        #expect(result.isDecoded)
+        #expect(decodedSubstring == "true")
+      }
+    }
+
+    /// Null split (nu|ll)
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("nu")
+
+      var state = JSON.ValueDecodingState()
+      try stream.withDecodeValueResult(state: &state) { result, decodedSubstring in
+        #expect(result.needsMoreData)
+        #expect(decodedSubstring == "")
+      }
+
+      stream.push("ll")
+      stream.finish()
+
+      try stream.withDecodeValueResult(state: &state) { result, decodedSubstring in
+        #expect(result.isDecoded)
+        #expect(decodedSubstring == "null")
+      }
+    }
+
+    /// Decimal number split at decimal point
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("3.")
+
+      var state = JSON.ValueDecodingState()
+      try stream.withDecodeValueResult(state: &state) { result, decodedSubstring in
+        #expect(result.needsMoreData)
+        #expect(decodedSubstring == "")
+      }
+
+      stream.push("14159")
+      stream.finish()
+
+      try stream.withDecodeValueResult(state: &state) { result, decodedSubstring in
+        #expect(result.isDecoded)
+        #expect(decodedSubstring == "3.14159")
+      }
+    }
+
+    /// Scientific notation split at exponent
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("1.23e")
+
+      var state = JSON.ValueDecodingState()
+      try stream.withDecodeValueResult(state: &state) { result, decodedSubstring in
+        #expect(result.needsMoreData)
+        #expect(decodedSubstring == "")
+      }
+
+      stream.push("-4")
+      stream.finish()
+
+      try stream.withDecodeValueResult(state: &state) { result, decodedSubstring in
+        #expect(result.isDecoded)
+        #expect(decodedSubstring == "1.23e-4")
+      }
+    }
+
+    /// Nested array split across multiple chunks
+    do {
+      var stream = JSON.DecodingStream()
+      let checkpoint = stream.createCheckpoint()
+
+      stream.push("[[1")
+
+      var state = JSON.ValueDecodingState()
+      try stream.withDecodeValueResult(state: &state) { result, _ in
+        #expect(result.needsMoreData)
+      }
+
+      stream.push(", 2], ")
+      try stream.withDecodeValueResult(state: &state) { result, _ in
+        #expect(result.needsMoreData)
+      }
+
+      stream.push("[3]]")
+      stream.finish()
+
+      try stream.withDecodeValueResult(state: &state) { result, _ in
+        #expect(result.isDecoded)
+      }
+
+      let decodedSubstring = stream.substringDecoded(since: checkpoint)
+      #expect(decodedSubstring == "[[1, 2], [3]]")
+    }
+
+    /// String with escape sequence split
+    do {
+      var stream = JSON.DecodingStream()
+      let checkpoint = stream.createCheckpoint()
+      
+      stream.push("\"hello\\")
+
+      var state = JSON.ValueDecodingState()
+      try stream.withDecodeValueResult(state: &state) { result, _ in
+        #expect(result.needsMoreData)
+      }
+
+      stream.push("nworld\"")
+      stream.finish()
+
+      try stream.withDecodeValueResult(state: &state) { result, _ in
+        #expect(result.isDecoded)
+      }
+      
+      let decodedSubstring = stream.substringDecoded(since: checkpoint)
+      #expect(decodedSubstring == "\"hello\\nworld\"")
+    }
+
+    /// Unicode escape split
+    do {
+      var stream = JSON.DecodingStream()
+      let checkpoint = stream.createCheckpoint()
+      
+      stream.push("\"\\u00")
+
+      var state = JSON.ValueDecodingState()
+      try stream.withDecodeValueResult(state: &state) { result, _ in
+        #expect(result.needsMoreData)
+      }
+
+      stream.push("48\"")
+      stream.finish()
+
+      try stream.withDecodeValueResult(state: &state) { result, _ in
+        #expect(result.isDecoded)
+      }
+      
+      let decodedSubstring = stream.substringDecoded(since: checkpoint)
+      #expect(decodedSubstring == "\"\\u0048\"")
+    }
+
+    /// Leading whitespace with value split
+    do {
+      var stream = JSON.DecodingStream()
+      let checkpoint = stream.createCheckpoint()
+      
+      stream.push("   ")
+
+      var state = JSON.ValueDecodingState()
+      try stream.withDecodeValueResult(state: &state) { result, _ in
+        #expect(result.needsMoreData)
+      }
+
+      stream.push("42")
+      stream.finish()
+
+      try stream.withDecodeValueResult(state: &state) { result, _ in
+        #expect(result.isDecoded)
+      }
+      
+      let decodedSubstring = stream.substringDecoded(since: checkpoint)
+      #expect(decodedSubstring == "   42")
+    }
   }
 
   @Test
@@ -447,12 +657,16 @@ private struct ValueTests {
     /// Complex nested object
     do {
       var stream = JSON.DecodingStream()
-      stream.push("{\"user\": {\"profile\": {\"name\": \"John\"}, \"posts\": [{\"id\": 1}, {\"id\": 2}]}}")
+      stream.push(
+        "{\"user\": {\"profile\": {\"name\": \"John\"}, \"posts\": [{\"id\": 1}, {\"id\": 2}]}}")
       stream.finish()
 
       try stream.withDecodeValueResult { result, decodedSubstring in
         #expect(result.isDecoded)
-        #expect(decodedSubstring == "{\"user\": {\"profile\": {\"name\": \"John\"}, \"posts\": [{\"id\": 1}, {\"id\": 2}]}}")
+        #expect(
+          decodedSubstring
+            == "{\"user\": {\"profile\": {\"name\": \"John\"}, \"posts\": [{\"id\": 1}, {\"id\": 2}]}}"
+        )
       }
     }
 
