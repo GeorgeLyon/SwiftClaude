@@ -26,6 +26,19 @@ extension JSON {
       string.append(fragment)
     }
 
+    public struct Checkpoint {
+      fileprivate let index: String.Index
+    }
+    public mutating func createCheckpoint() -> Checkpoint {
+      return Checkpoint(index: nextReadIndex)
+    }
+
+    public func substringDecoded(
+      since checkpoint: borrowing Checkpoint
+    ) -> Substring {
+      string[checkpoint.index..<nextReadIndex]
+    }
+
     /// We depend on `String.Index` not being invalidated when appending to the string.
     /// This should be safe as long as we don't use `endIndex` (which could end up pointing to the middle of a grapheme cluster due to combining diacritics and `ZWJ`).
     private var nextReadIndex: String.Index
@@ -244,19 +257,6 @@ extension JSON.DecodingStream {
       .endIndex
   }
 
-  struct Checkpoint {
-    fileprivate let index: String.Index
-  }
-  mutating func createCheckpoint() -> Checkpoint {
-    return Checkpoint(index: nextReadIndex)
-  }
-
-  mutating func substringRead(
-    since checkpoint: borrowing Checkpoint
-  ) -> Substring {
-    string[checkpoint.index..<nextReadIndex]
-  }
-
   mutating func restore(_ checkpoint: consuming Checkpoint) {
     nextReadIndex = checkpoint.index
   }
@@ -316,6 +316,8 @@ extension JSON {
   }
 
 }
+
+extension JSON.DecodingResult: Copyable where Value: Copyable {}
 
 /// The result of reading data from the stream.
 /// Similar to a `DecodingResult` but it returns errors as a separate case.

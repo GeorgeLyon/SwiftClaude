@@ -469,7 +469,7 @@ private struct ObjectTests {
 
 // MARK: - Support
 
-extension JSON.ObjectDecodingResult {
+extension JSON.ObjectDecodingState {
   fileprivate var isComplete: Bool {
     if case .complete = self {
       return true

@@ -43,7 +43,7 @@ extension JSON.DecodingStream {
         restore(start)
         return .needsMoreData
       }
-      integerPart = substringRead(since: start)
+      integerPart = substringDecoded(since: start)
     }
 
     /// Read fractional part
@@ -60,14 +60,14 @@ extension JSON.DecodingStream {
         return .needsMoreData
       }
 
-      fractionalPart = substringRead(since: fractionStart)
+      fractionalPart = substringDecoded(since: fractionStart)
 
     case .notMatched:
       fractionalPart = nil
       break
     }
 
-    significand = substringRead(since: start)
+    significand = substringDecoded(since: start)
 
     /// Read exponent
     switch read(whileCharactersIn: "E", "e", minCount: 1, maxCount: 1) {
@@ -86,7 +86,7 @@ extension JSON.DecodingStream {
         return .needsMoreData
       }
 
-      exponentPart = substringRead(since: exponentStart)
+      exponentPart = substringDecoded(since: exponentStart)
 
     case .notMatched:
       exponentPart = nil
@@ -95,7 +95,7 @@ extension JSON.DecodingStream {
 
     return .decoded(
       JSON.Number(
-        stringValue: substringRead(since: start),
+        stringValue: substringDecoded(since: start),
         significand: significand,
         integerPart: integerPart,
         fractionalPart: fractionalPart,
