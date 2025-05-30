@@ -349,7 +349,7 @@ private struct ValueTests {
     do {
       var stream = JSON.DecodingStream()
       let checkpoint = stream.createCheckpoint()
-      
+
       stream.push("{")
 
       var state = JSON.ValueDecodingState()
@@ -373,8 +373,8 @@ private struct ValueTests {
       try stream.withDecodeValueResult(state: &state) { result, _ in
         #expect(result.isDecoded)
       }
-      
-      let decodedSubstring = stream.substringDecoded(since: checkpoint)
+
+      let decodedSubstring = stream.substringRead(since: checkpoint)
       #expect(decodedSubstring == "{\"name\": \"John\"}")
     }
 
@@ -482,7 +482,7 @@ private struct ValueTests {
         #expect(result.isDecoded)
       }
 
-      let decodedSubstring = stream.substringDecoded(since: checkpoint)
+      let decodedSubstring = stream.substringRead(since: checkpoint)
       #expect(decodedSubstring == "[[1, 2], [3]]")
     }
 
@@ -490,7 +490,7 @@ private struct ValueTests {
     do {
       var stream = JSON.DecodingStream()
       let checkpoint = stream.createCheckpoint()
-      
+
       stream.push("\"hello\\")
 
       var state = JSON.ValueDecodingState()
@@ -504,8 +504,8 @@ private struct ValueTests {
       try stream.withDecodeValueResult(state: &state) { result, _ in
         #expect(result.isDecoded)
       }
-      
-      let decodedSubstring = stream.substringDecoded(since: checkpoint)
+
+      let decodedSubstring = stream.substringRead(since: checkpoint)
       #expect(decodedSubstring == "\"hello\\nworld\"")
     }
 
@@ -513,7 +513,7 @@ private struct ValueTests {
     do {
       var stream = JSON.DecodingStream()
       let checkpoint = stream.createCheckpoint()
-      
+
       stream.push("\"\\u00")
 
       var state = JSON.ValueDecodingState()
@@ -527,8 +527,8 @@ private struct ValueTests {
       try stream.withDecodeValueResult(state: &state) { result, _ in
         #expect(result.isDecoded)
       }
-      
-      let decodedSubstring = stream.substringDecoded(since: checkpoint)
+
+      let decodedSubstring = stream.substringRead(since: checkpoint)
       #expect(decodedSubstring == "\"\\u0048\"")
     }
 
@@ -536,7 +536,7 @@ private struct ValueTests {
     do {
       var stream = JSON.DecodingStream()
       let checkpoint = stream.createCheckpoint()
-      
+
       stream.push("   ")
 
       var state = JSON.ValueDecodingState()
@@ -550,8 +550,8 @@ private struct ValueTests {
       try stream.withDecodeValueResult(state: &state) { result, _ in
         #expect(result.isDecoded)
       }
-      
-      let decodedSubstring = stream.substringDecoded(since: checkpoint)
+
+      let decodedSubstring = stream.substringRead(since: checkpoint)
       #expect(decodedSubstring == "   42")
     }
   }
@@ -791,7 +791,7 @@ extension JSON.DecodingStream {
   ) throws {
     let checkpoint = checkpoint ?? createCheckpoint()
     let result = try decodeValue(&state)
-    body(result, substringDecoded(since: checkpoint))
+    body(result, substringRead(since: checkpoint))
   }
 
 }
