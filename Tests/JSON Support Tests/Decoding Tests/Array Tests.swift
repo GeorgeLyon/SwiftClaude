@@ -13,7 +13,7 @@ private struct ArrayTests {
       stream.push("[]  ")
       stream.finish()
 
-      let result = try stream.decodeArrayStart()
+      let result = try stream.decodeArrayUpToFirstElement()
       #expect(result == .complete)
 
       #expect(try stream.readCharacter().decodingResult().getValue() == " ")
@@ -25,7 +25,7 @@ private struct ArrayTests {
       stream.push("[ ]")
       stream.finish()
 
-      let result = try stream.decodeArrayStart()
+      let result = try stream.decodeArrayUpToFirstElement()
       #expect(result == .complete)
     }
   }
@@ -40,13 +40,13 @@ private struct ArrayTests {
 
       var elements: [Int] = []
 
-      var result = try stream.decodeArrayStart()
+      var result = try stream.decodeArrayUpToFirstElement()
       #expect(result == .decodingElement)
 
       while result == .decodingElement {
         let number = try stream.decodeNumber().getValue()
         elements.append(Int(number.integerPart)!)
-        result = try stream.decodeNextArrayElement()
+        result = try stream.decodeArrayUpToNextElement()
       }
 
       #expect(result == .complete)
@@ -63,7 +63,7 @@ private struct ArrayTests {
 
       var elements: [String] = []
 
-      var result = try stream.decodeArrayStart()
+      var result = try stream.decodeArrayUpToFirstElement()
       #expect(result == .decodingElement)
 
       while result == .decodingElement {
@@ -73,7 +73,7 @@ private struct ArrayTests {
           fragments.append(String(fragment))
         }
         elements.append(fragments.joined())
-        result = try stream.decodeNextArrayElement()
+        result = try stream.decodeArrayUpToNextElement()
       }
 
       #expect(result == .complete)
@@ -90,13 +90,13 @@ private struct ArrayTests {
 
       var elements: [Bool] = []
 
-      var result = try stream.decodeArrayStart()
+      var result = try stream.decodeArrayUpToFirstElement()
       #expect(result == .decodingElement)
 
       while result == .decodingElement {
         let boolean = try stream.decodeBoolean().getValue()
         elements.append(boolean)
-        result = try stream.decodeNextArrayElement()
+        result = try stream.decodeArrayUpToNextElement()
       }
 
       #expect(result == .complete)
@@ -113,13 +113,13 @@ private struct ArrayTests {
 
       var nullCount = 0
 
-      var result = try stream.decodeArrayStart()
+      var result = try stream.decodeArrayUpToFirstElement()
       #expect(result == .decodingElement)
 
       while result == .decodingElement {
         _ = try stream.decodeNull().getValue()
         nullCount += 1
-        result = try stream.decodeNextArrayElement()
+        result = try stream.decodeArrayUpToNextElement()
       }
 
       #expect(result == .complete)
@@ -136,23 +136,23 @@ private struct ArrayTests {
 
       var arrays: [[Int]] = []
 
-      var outerResult = try stream.decodeArrayStart()
+      var outerResult = try stream.decodeArrayUpToFirstElement()
       #expect(outerResult == .decodingElement)
 
       while outerResult == .decodingElement {
         var innerArray: [Int] = []
 
-        var innerResult = try stream.decodeArrayStart()
+        var innerResult = try stream.decodeArrayUpToFirstElement()
         #expect(innerResult == .decodingElement)
 
         while innerResult == .decodingElement {
           let number = try stream.decodeNumber().getValue()
           innerArray.append(Int(number.integerPart)!)
-          innerResult = try stream.decodeNextArrayElement()
+          innerResult = try stream.decodeArrayUpToNextElement()
         }
 
         arrays.append(innerArray)
-        outerResult = try stream.decodeNextArrayElement()
+        outerResult = try stream.decodeArrayUpToNextElement()
       }
 
       #expect(outerResult == .complete)
@@ -168,14 +168,14 @@ private struct ArrayTests {
       stream.push("[42, \"hello\", true, null, 3.14]")
       stream.finish()
 
-      var result = try stream.decodeArrayStart()
+      var result = try stream.decodeArrayUpToFirstElement()
       #expect(result == .decodingElement)
 
       // First element: number
       let number = try stream.decodeNumber().getValue()
       #expect(number.integerPart == "42")
 
-      result = try stream.decodeNextArrayElement()
+      result = try stream.decodeArrayUpToNextElement()
       #expect(result == .decodingElement)
 
       // Second element: string
@@ -186,20 +186,20 @@ private struct ArrayTests {
       }
       #expect(fragments.joined() == "hello")
 
-      result = try stream.decodeNextArrayElement()
+      result = try stream.decodeArrayUpToNextElement()
       #expect(result == .decodingElement)
 
       // Third element: boolean
       let boolean = try stream.decodeBoolean().getValue()
       #expect(boolean == true)
 
-      result = try stream.decodeNextArrayElement()
+      result = try stream.decodeArrayUpToNextElement()
       #expect(result == .decodingElement)
 
       // Fourth element: null
       _ = try stream.decodeNull().getValue()
 
-      result = try stream.decodeNextArrayElement()
+      result = try stream.decodeArrayUpToNextElement()
       #expect(result == .decodingElement)
 
       // Fifth element: decimal number
@@ -207,7 +207,7 @@ private struct ArrayTests {
       #expect(decimal.integerPart == "3")
       #expect(decimal.fractionalPart == "14")
 
-      result = try stream.decodeNextArrayElement()
+      result = try stream.decodeArrayUpToNextElement()
       #expect(result == .complete)
     }
   }
@@ -222,13 +222,13 @@ private struct ArrayTests {
 
       var elements: [Int] = []
 
-      var result = try stream.decodeArrayStart()
+      var result = try stream.decodeArrayUpToFirstElement()
       #expect(result == .decodingElement)
 
       while result == .decodingElement {
         let number = try stream.decodeNumber().getValue()
         elements.append(Int(number.integerPart)!)
-        result = try stream.decodeNextArrayElement()
+        result = try stream.decodeArrayUpToNextElement()
       }
 
       #expect(result == .complete)
@@ -243,13 +243,13 @@ private struct ArrayTests {
 
       var elements: [Int] = []
 
-      var result = try stream.decodeArrayStart()
+      var result = try stream.decodeArrayUpToFirstElement()
       #expect(result == .decodingElement)
 
       while result == .decodingElement {
         let number = try stream.decodeNumber().getValue()
         elements.append(Int(number.integerPart)!)
-        result = try stream.decodeNextArrayElement()
+        result = try stream.decodeArrayUpToNextElement()
       }
 
       #expect(result == .complete)
@@ -264,11 +264,11 @@ private struct ArrayTests {
       var stream = JSON.DecodingStream()
       stream.push("[")
 
-      var result = try stream.decodeArrayStart()
+      var result = try stream.decodeArrayUpToFirstElement()
       #expect(result == .needsMoreData)
 
       stream.push("12")
-      result = try stream.decodeArrayStart()
+      result = try stream.decodeArrayUpToFirstElement()
       #expect(result == .decodingElement)
 
       let needsMoreData = try stream.decodeNumber().needsMoreData
@@ -279,7 +279,7 @@ private struct ArrayTests {
       let firstNumber = try stream.decodeNumber().getValue()
       #expect(firstNumber.integerPart == "12")
 
-      result = try stream.decodeNextArrayElement()
+      result = try stream.decodeArrayUpToNextElement()
       #expect(result == .decodingElement)
 
       stream.push("2] ")
@@ -287,7 +287,7 @@ private struct ArrayTests {
       let secondNumber = try stream.decodeNumber().getValue()
       #expect(secondNumber.integerPart == "2")
 
-      result = try stream.decodeNextArrayElement()
+      result = try stream.decodeArrayUpToNextElement()
       #expect(result == .complete)
     }
 
@@ -296,7 +296,7 @@ private struct ArrayTests {
       var stream = JSON.DecodingStream()
       stream.push("[\"hel")
 
-      var result = try stream.decodeArrayStart()
+      var result = try stream.decodeArrayUpToFirstElement()
       #expect(result == .decodingElement)
 
       var state = try stream.decodeStringStart().getValue()
@@ -312,7 +312,7 @@ private struct ArrayTests {
       }
       #expect(state.isComplete)
 
-      result = try stream.decodeNextArrayElement()
+      result = try stream.decodeArrayUpToNextElement()
       #expect(result == .complete)
     }
   }
@@ -325,26 +325,26 @@ private struct ArrayTests {
       stream.push("[1, 2, 3, ")
 
       var elements: [Int] = []
-      var result = try stream.decodeArrayStart()
+      var result = try stream.decodeArrayUpToFirstElement()
       #expect(result == .decodingElement)
 
       // Parse first three elements
       for _ in 0..<3 {
         let number = try stream.decodeNumber().getValue()
         elements.append(Int(number.integerPart)!)
-        result = try stream.decodeNextArrayElement()
+        result = try stream.decodeArrayUpToNextElement()
         #expect(result == .decodingElement)
       }
 
       // Now we're after the trailing comma, waiting for next element or ]
-      result = try stream.decodeNextArrayElement()
+      result = try stream.decodeArrayUpToNextElement()
       #expect(result == .needsMoreData)
 
       stream.push("]")
       stream.finish()
 
       // Should complete after the closing bracket
-      result = try stream.decodeNextArrayElement()
+      result = try stream.decodeArrayUpToNextElement()
       #expect(result == .complete)
 
       #expect(elements == [1, 2, 3])
@@ -359,19 +359,19 @@ private struct ArrayTests {
       stream.push(" [1, 2]")
       stream.finish()
 
-      var result = try stream.decodeArrayStart()
+      var result = try stream.decodeArrayUpToFirstElement()
       #expect(result == .decodingElement)
 
       let first = try stream.decodeNumber().getValue()
       #expect(first.integerPart == "1")
 
-      result = try stream.decodeNextArrayElement()
+      result = try stream.decodeArrayUpToNextElement()
       #expect(result == .decodingElement)
 
       let second = try stream.decodeNumber().getValue()
       #expect(second.integerPart == "2")
 
-      result = try stream.decodeNextArrayElement()
+      result = try stream.decodeArrayUpToNextElement()
       #expect(result == .complete)
     }
 
@@ -381,13 +381,13 @@ private struct ArrayTests {
       stream.push(" \t\n[42]")
       stream.finish()
 
-      var result = try stream.decodeArrayStart()
+      var result = try stream.decodeArrayUpToFirstElement()
       #expect(result == .decodingElement)
 
       let number = try stream.decodeNumber().getValue()
       #expect(number.integerPart == "42")
 
-      result = try stream.decodeNextArrayElement()
+      result = try stream.decodeArrayUpToNextElement()
       #expect(result == .complete)
     }
   }
@@ -401,7 +401,7 @@ private struct ArrayTests {
 
       // Navigate through 5 levels of nesting
       for _ in 0..<5 {
-        let result = try stream.decodeArrayStart()
+        let result = try stream.decodeArrayUpToFirstElement()
         #expect(result == .decodingElement)
       }
 
@@ -411,7 +411,7 @@ private struct ArrayTests {
 
       // Close all arrays
       for _ in 0..<5 {
-        let result = try stream.decodeNextArrayElement()
+        let result = try stream.decodeArrayUpToNextElement()
         #expect(result == .complete)
       }
     }
