@@ -30,3 +30,4 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Requirements
 - Run `swift format` after making changes to the code.
 - Build the project and make sure any compiler warnings are addressed.
+- When adding tests, add them one at a time and run each test after adding to ensure it passes.
