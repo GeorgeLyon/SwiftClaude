@@ -35,7 +35,10 @@
         "files.exclude": {
           /// Code coverage data
           "default.profraw": true
-        }
+        },
+        "swift.buildArguments": [
+          "--enable-experimental-prebuilts"
+        ]
       }
     }
   }

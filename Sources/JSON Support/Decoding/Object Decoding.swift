@@ -8,6 +8,14 @@ extension JSON {
 
     /// The object is complete
     case complete
+
+    public var isComplete: Bool {
+      if case .complete = self {
+        return true
+      } else {
+        return false
+      }
+    }
   }
 
 }
