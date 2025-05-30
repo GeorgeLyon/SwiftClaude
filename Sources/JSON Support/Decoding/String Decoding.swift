@@ -1,7 +1,7 @@
 extension JSON {
 
   public struct StringDecodingState {
-    public fileprivate(set) var isComplete = false
+    internal fileprivate(set) var isComplete = false
     fileprivate var trailingCharacter: Character?
   }
 
@@ -81,7 +81,7 @@ extension JSON.DecodingStream {
 
   /// Unlike other `read` methods, this method advances the read cursor even if `needsMoreData` is returned.
   /// - Returns: `true` if the end of the string was read
-  private mutating func readRawStringFragments(
+  mutating func readRawStringFragments(
     onFragment: (_ fragment: Substring) -> Void
   ) -> ReadResult<Void> {
     readingStream: while true {

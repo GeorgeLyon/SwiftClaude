@@ -1,6 +1,6 @@
 extension JSON {
 
-  public enum ArrayDecodingResult {
+  public enum ArrayDecodingState {
     case needsMoreData
 
     /// The read cursor has been advanced to the start of the next element in the array
@@ -14,7 +14,7 @@ extension JSON {
 
 extension JSON.DecodingStream {
 
-  public mutating func decodeArrayStart() throws -> JSON.ArrayDecodingResult {
+  public mutating func decodeArrayStart() throws -> JSON.ArrayDecodingState {
     readWhitespace()
 
     let start = createCheckpoint()
@@ -45,7 +45,7 @@ extension JSON.DecodingStream {
     }
   }
 
-  public mutating func decodeNextArrayElement() throws -> JSON.ArrayDecodingResult {
+  public mutating func decodeNextArrayElement() throws -> JSON.ArrayDecodingState {
     readWhitespace()
 
     let isComplete = try readCharacter { character in

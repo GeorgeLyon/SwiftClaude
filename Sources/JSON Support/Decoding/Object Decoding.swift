@@ -1,6 +1,6 @@
 extension JSON {
 
-  public enum ObjectDecodingResult {
+  public enum ObjectDecodingState {
     case needsMoreData
 
     /// The read cursor has been advanced to the start of the property value
@@ -8,14 +8,13 @@ extension JSON {
 
     /// The object is complete
     case complete
-
   }
 
 }
 
 extension JSON.DecodingStream {
 
-  public mutating func decodeObjectStart() throws -> JSON.ObjectDecodingResult {
+  public mutating func decodeObjectStart() throws -> JSON.ObjectDecodingState {
     readWhitespace()
 
     let start = createCheckpoint()
@@ -55,7 +54,7 @@ extension JSON.DecodingStream {
     }
   }
 
-  public mutating func decodeNextObjectProperty() throws -> JSON.ObjectDecodingResult {
+  public mutating func decodeNextObjectProperty() throws -> JSON.ObjectDecodingState {
     readWhitespace()
 
     let start = createCheckpoint()
