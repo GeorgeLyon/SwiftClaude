@@ -69,6 +69,12 @@ private struct StructSchema<
   func encodeSchemaDefinition(to encoder: ToolInput.SchemaEncoder<Self>) throws {
     try propertiesSchema.encodeSchemaDefinition(to: encoder.map())
   }
+  
+  func encodeSchemaDefinition(to encoder: inout ToolInput.NewSchemaEncoder<Self>) {
+    encoder.withMapped { encoder in
+      propertiesSchema.encodeSchemaDefinition(to: &encoder)
+    }
+  }
 
   func encode(_ value: Value, to encoder: ToolInput.Encoder<Self>) throws {
     try propertiesSchema.encode(

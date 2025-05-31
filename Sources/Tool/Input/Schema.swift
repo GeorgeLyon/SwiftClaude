@@ -1,3 +1,5 @@
+import JSONSupport
+
 public enum ToolInput {
 
   public protocol SchemaCodable {
@@ -21,6 +23,8 @@ public enum ToolInput {
 
     func encodeSchemaDefinition(to encoder: SchemaEncoder<Self>) throws
 
+    func encodeSchemaDefinition(to encoder: inout NewSchemaEncoder<Self>)
+
     func encode(_ value: Value, to encoder: Encoder<Self>) throws
 
     func decodeValue(from decoder: Decoder<Self>) throws -> Value
@@ -30,6 +34,45 @@ public enum ToolInput {
 }
 
 extension ToolInput {
+
+  public struct NewSchemaEncoder<Schema>: ~Copyable {
+
+    init(
+      stream: consuming JSON.EncodingStream,
+      descriptionPrefix: String? = nil,
+      descriptionSuffix: String? = nil
+    ) {
+      self.stream = stream
+      self.descriptionPrefix = descriptionPrefix
+      self.descriptionSuffix = descriptionSuffix
+    }
+
+    func contextualDescription(_ description: String?) -> String? {
+      combineDescriptions(descriptionPrefix, description, descriptionSuffix)
+    }
+    
+    mutating func withMapped<T>(
+      _ body: (inout NewSchemaEncoder<T>) -> Void
+    ) {
+      var encoder = NewSchemaEncoder<T>(
+        stream: stream,
+        descriptionPrefix: descriptionPrefix,
+        descriptionSuffix: descriptionSuffix
+      )
+      body(&encoder)
+      self = NewSchemaEncoder(
+        stream: encoder.stream,
+        descriptionPrefix: descriptionPrefix,
+        descriptionSuffix: descriptionSuffix
+      )
+    }
+
+    var stream: JSON.EncodingStream
+
+    private let descriptionPrefix: String?
+    private let descriptionSuffix: String?
+
+  }
 
   public struct SchemaEncoder<Value> {
 
@@ -123,6 +166,16 @@ extension LeafSchema {
     }
   }
 
+  public func encodeSchemaDefinition(to encoder: inout ToolInput.NewSchemaEncoder<Self>) {
+    let description = encoder.contextualDescription(nil)
+    encoder.stream.encodeObject { encoder in
+      if let description {
+        encoder.encodeProperty(name: "description") { $0.encode(description) }
+      }
+      encoder.encodeProperty(name: "type") { $0.encode(type) }
+    }
+  }
+
 }
 
 extension LeafSchema where Value: Codable {
@@ -134,6 +187,27 @@ extension LeafSchema where Value: Codable {
 
   func decodeValue(from decoder: ToolInput.Decoder<Self>) throws -> Value {
     try decoder.wrapped.singleValueContainer().decode(Value.self)
+  }
+
+}
+
+// MARK: - Convenience
+
+extension JSON.EncodingStream {
+
+  /// Convenience method to encode a schema definition
+  mutating func encodeSchemaDefinition<Schema: ToolInput.Schema>(
+    _ schema: Schema,
+    descriptionPrefix: String? = nil,
+    descriptionSuffix: String? = nil
+  ) {
+    var encoder = ToolInput.NewSchemaEncoder<Schema>(
+      stream: self,
+      descriptionPrefix: descriptionPrefix,
+      descriptionSuffix: descriptionSuffix
+    )
+    schema.encodeSchemaDefinition(to: &encoder)
+    self = encoder.stream
   }
 
 }

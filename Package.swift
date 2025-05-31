@@ -74,7 +74,8 @@ let package = Package(
     .target(
       name: "Tool",
       dependencies: [
-        "ToolMacros"
+        "ToolMacros",
+        "JSONSupport",
       ],
       swiftSettings: .claude
     ),

@@ -38,6 +38,23 @@ struct ObjectPropertiesSchema<
     )
   }
 
+  func encodeSchemaDefinition(to encoder: inout ToolInput.NewSchemaEncoder<Self>) {
+    let description = encoder.contextualDescription(description)
+    encoder.stream.encodeObject { encoder in
+      encoder.encodeProperty(name: "type") { $0.encode("object") }
+
+      if let description {
+        encoder.encodeProperty(name: "description") { $0.encode(description) }
+      }
+
+      encoder.encodeProperty(name: "additionalProperties") { $0.encode(false) }
+
+      encoder.encodeProperty(name: "properties") { stream in
+        stream.encodeSchemaDefinition(properties: repeat each properties)
+      }
+    }
+  }
+
   func encode(_ value: Value, to encoder: ToolInput.Encoder<Self>) throws {
     var container = encoder.wrapped.container(keyedBy: PropertyKey.self)
     try container.encode(

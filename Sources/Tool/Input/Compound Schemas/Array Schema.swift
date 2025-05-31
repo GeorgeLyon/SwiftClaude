@@ -38,6 +38,17 @@ private struct ArraySchema<ElementSchema: ToolInput.Schema>: InternalSchema {
       )
     )
   }
+  
+  func encodeSchemaDefinition(to encoder: inout ToolInput.NewSchemaEncoder<Self>) {
+    let description = encoder.contextualDescription(nil)
+    encoder.stream.encodeObject { encoder in
+      encoder.encodeProperty(name: "type") { $0.encode("array") }
+      
+      encoder.encodeProperty(name: "items") { stream in
+        stream.encodeSchemaDefinition(elementSchema)
+      }
+    }
+  }
 
   func encode(_ values: Value, to encoder: ToolInput.Encoder<Self>) throws {
     var container = encoder.wrapped.unkeyedContainer()

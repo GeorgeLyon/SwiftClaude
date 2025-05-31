@@ -1,3 +1,5 @@
+import JSONSupport
+
 // MARK: - Defining Schemas
 
 /// This extension defines a family of `enumSchema` methods.
@@ -27,7 +29,7 @@ extension ToolInput {
   ) -> some Schema<Value>
   where Value.RawValue == String {
     /// Fall back to case iterable conformance if an enum is case iterable
-    return CaseIterableEnumSchema(description: description)
+    return CaseIterableStringEnumSchema(description: description)
   }
 
   @_disfavoredOverload
@@ -54,7 +56,7 @@ extension ToolInput {
   ) -> some Schema<Value>
   where Value.RawValue: BinaryInteger & Codable & Sendable {
     /// Fall back to case iterable conformance if an enum is case iterable
-    return CaseIterableEnumSchema(description: description)
+    return CaseIterableIntegerEnumSchema(description: description)
   }
 
   @_disfavoredOverload
@@ -101,7 +103,7 @@ extension ToolInput {
     description: String? = nil
   ) -> some Schema<Value>
   where Value.RawValue == String {
-    CaseIterableEnumSchema(description: description)
+    CaseIterableStringEnumSchema(description: description)
   }
 
   public static func enumSchema<Value: CaseIterable & RawRepresentable>(
@@ -109,7 +111,7 @@ extension ToolInput {
     description: String? = nil
   ) -> some Schema<Value>
   where Value.RawValue: BinaryInteger & Codable & Sendable {
-    CaseIterableEnumSchema(description: description)
+    CaseIterableIntegerEnumSchema(description: description)
   }
 
 }
@@ -214,10 +216,16 @@ extension ToolInput {
 
 // MARK: Case Iterable
 
-private struct CaseIterableEnumSchema<Value: CaseIterable & RawRepresentable>: InternalSchema
-where Value.RawValue: Codable & Sendable {
+private protocol CaseIterableEnumSchema: InternalSchema
+where
+  Value: CaseIterable & RawRepresentable,
+  Value.RawValue: Codable & Sendable
+{
+  var description: String? { get }
+  static func encode(_ value: Value, to stream: inout JSON.EncodingStream)
+}
 
-  let description: String?
+extension CaseIterableEnumSchema {
 
   func encodeSchemaDefinition(to encoder: ToolInput.SchemaEncoder<Self>) throws {
     var container = encoder.wrapped.container(keyedBy: SchemaCodingKey.self)
@@ -227,6 +235,22 @@ where Value.RawValue: Codable & Sendable {
     }
 
     try container.encode(Value.allCases.map(\.rawValue), forKey: .enum)
+  }
+
+  func encodeSchemaDefinition(to encoder: inout ToolInput.NewSchemaEncoder<Self>) {
+    let description = encoder.contextualDescription(description)
+    encoder.stream.encodeObject { stream in
+      if let description {
+        stream.encodeProperty(name: "description") { $0.encode(description) }
+      }
+      stream.encodeProperty(name: "enum") { stream in
+        stream.encodeArray { array in
+          for value in Value.allCases {
+            array.encodeElement { Self.encode(value, to: &$0) }
+          }
+        }
+      }
+    }
   }
 
   func encode(_ value: Value, to encoder: ToolInput.Encoder<Self>) throws {
@@ -243,6 +267,24 @@ where Value.RawValue: Codable & Sendable {
     return value
   }
 
+}
+
+private struct CaseIterableStringEnumSchema<Value: CaseIterable & RawRepresentable>:
+  CaseIterableEnumSchema
+where Value.RawValue == String {
+  let description: String?
+  static func encode(_ value: Value, to stream: inout JSON.EncodingStream) {
+    stream.encode(value.rawValue)
+  }
+}
+
+private struct CaseIterableIntegerEnumSchema<Value: CaseIterable & RawRepresentable>:
+  CaseIterableEnumSchema
+where Value.RawValue: BinaryInteger & Codable & Sendable {
+  let description: String?
+  static func encode(_ value: Value, to stream: inout JSON.EncodingStream) {
+    stream.encode(value.rawValue)
+  }
 }
 
 // MARK: Standard Enum

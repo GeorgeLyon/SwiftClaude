@@ -1,3 +1,5 @@
+import JSONSupport
+
 extension ToolInput {
 
   public static func schema<Wrapped: ToolInput.SchemaCodable>(
@@ -26,6 +28,57 @@ extension Optional: ToolInput.SchemaCodable where Wrapped: ToolInput.SchemaCodab
  Optionals outside of objects are represented as a value that can either be `null` or the wrapped value.
  If the wrapped value is itself nullable and thr optional is not an object property, we add a wrapper struct to disambiguate between wrapping and wrapped `nil`.
  */
+
+extension JSON.EncodingStream {
+
+  mutating func encodeSchemaDefinition<
+    PropertyKey: CodingKey, each PropertySchema: ToolInput.Schema
+  >(
+    properties: repeat ObjectPropertySchema<PropertyKey, each PropertySchema>
+  ) {
+    encodeObject { encoder in
+      var requiredProperties: [PropertyKey] = []
+
+      encoder.encodeProperty(name: "properties") { encoder in
+        encoder.encodeObject { encoder in
+          for property in repeat each properties {
+            if let optionalSchema = property.schema as? any OptionalSchemaProtocol {
+              encoder.encodeProperty(name: property.key.stringValue) { stream in
+                optionalSchema.encodeWrappedSchemaDefinition(
+                  to: &stream,
+                  descriptionPrefix: property.description,
+                  descriptionSuffix: nil
+                )
+              }
+            } else {
+              requiredProperties.append(property.key)
+              encoder.encodeProperty(name: property.key.stringValue) { stream in
+                stream.encodeSchemaDefinition(
+                  property.schema,
+                  descriptionPrefix: property.description,
+                  descriptionSuffix: nil
+                )
+              }
+            }
+          }
+        }
+      }
+
+      if !requiredProperties.isEmpty {
+        /// An empty `required` array is invalid in JSONSchema
+        /// https://json-schema.org/understanding-json-schema/reference/object#required
+        encoder.encodeProperty(name: "required") { encoder in
+          encoder.encodeArray { encoder in
+            for key in requiredProperties {
+              encoder.encodeElement { $0.encode(key.stringValue) }
+            }
+          }
+        }
+      }
+    }
+  }
+
+}
 
 extension KeyedEncodingContainer {
 
@@ -143,6 +196,12 @@ private protocol OptionalSchemaProtocol<Value>: InternalSchema {
     descriptionSuffix: String?
   ) throws
 
+  func encodeWrappedSchemaDefinition(
+    to stream: inout JSON.EncodingStream,
+    descriptionPrefix: String?,
+    descriptionSuffix: String?
+  )
+
 }
 
 private struct OptionalSchema<WrappedSchema: ToolInput.Schema>: OptionalSchemaProtocol {
@@ -194,6 +253,56 @@ private struct OptionalSchema<WrappedSchema: ToolInput.Schema>: OptionalSchemaPr
         }
       }
     }
+  }
+
+  func encodeSchemaDefinition(to encoder: inout ToolInput.NewSchemaEncoder<Self>) {
+    let description = encoder.contextualDescription(nil)
+    encoder.stream.encodeObject { encoder in
+      if let description {
+        encoder.encodeProperty(name: "description") { $0.encode(description) }
+      }
+
+      if let leafType = (wrappedSchema as? any LeafSchema)?.type {
+        encoder.encodeProperty(name: "type") { encoder in
+          encoder.encodeArray { encoder in
+            encoder.encodeElement { $0.encode("null") }
+            encoder.encodeElement { $0.encode(leafType) }
+          }
+        }
+      } else {
+        encoder.encodeProperty(name: "oneOf") { encoder in
+          encoder.encodeArray { encoder in
+            /// Encode `"null"`
+            encoder.encodeElement { encoder in
+              encoder.encodeObject { encoder in
+                encoder.encodeProperty(name: "type") { $0.encode("null") }
+              }
+            }
+
+            /// Encode wrapped schema
+            encoder.encodeElement { stream in
+              if wrappedSchema.mayAcceptNullValue {
+                /// If the wrapped schema may accept a null value, we use a non-nullable wrappper object to encode it.
+                stream.encodeObject { encoder in
+                  encoder.encodeProperty(name: "type") { $0.encode("object") }
+                  encoder.encodeProperty(name: "properties") { encoder in
+                    encoder.encodeObject { encoder in
+                      encoder.encodeProperty(name: "value") { stream in
+                        stream.encodeSchemaDefinition(wrappedSchema)
+                      }
+                    }
+                  }
+                }
+              } else {
+                /// If the wrapped schema does not accept null, we can encode it directly
+                stream.encodeSchemaDefinition(wrappedSchema)
+              }
+            }
+          }
+        }
+      }
+    }
+
   }
 
   private enum SchemaCodingKey: Swift.CodingKey {
@@ -276,6 +385,18 @@ private struct OptionalSchema<WrappedSchema: ToolInput.Schema>: OptionalSchemaPr
         descriptionPrefix: descriptionPrefix,
         descriptionSuffix: descriptionSuffix
       )
+    )
+  }
+
+  func encodeWrappedSchemaDefinition(
+    to stream: inout JSON.EncodingStream,
+    descriptionPrefix: String?,
+    descriptionSuffix: String?
+  ) {
+    stream.encodeSchemaDefinition(
+      wrappedSchema,
+      descriptionPrefix: descriptionPrefix,
+      descriptionSuffix: descriptionSuffix
     )
   }
 
