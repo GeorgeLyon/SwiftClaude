@@ -1,13 +1,18 @@
 import Foundation
+import JSONSupport
 
 @testable import Tool
 
 extension ToolInput.Schema {
 
   var schemaJSON: String {
-    let encoder = JSONEncoder()
-    encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-    return String(decoding: try! encoder.encode(self), as: UTF8.self)
+    var encoder = ToolInput.NewSchemaEncoder<Self>(
+      stream: JSON.EncodingStream(),
+      descriptionPrefix: nil,
+      descriptionSuffix: nil
+    )
+    encodeSchemaDefinition(to: &encoder)
+    return encoder.stream.stringRepresentation
   }
 
   func value(fromJSON json: String) -> Value {

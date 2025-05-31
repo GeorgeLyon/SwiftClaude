@@ -2,7 +2,7 @@ import Testing
 
 @testable import Tool
 
-@Suite("Array")
+@Suite("Array Schema")
 struct ArraySchemaTests {
 
   @Test

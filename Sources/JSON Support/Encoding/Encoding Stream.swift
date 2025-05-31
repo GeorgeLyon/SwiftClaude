@@ -10,6 +10,10 @@ extension JSON {
       string.unicodeScalars.removeAll(keepingCapacity: true)
     }
 
+    public var stringRepresentation: String {
+      string
+    }
+
     mutating func write(_ rawString: String) {
       string.append(rawString)
     }

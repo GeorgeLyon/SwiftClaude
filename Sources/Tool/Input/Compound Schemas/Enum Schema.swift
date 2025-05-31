@@ -319,6 +319,17 @@ private struct StandardEnumSchema<
     }
   }
 
+  func encodeSchemaDefinition(to encoder: inout ToolInput.NewSchemaEncoder<Self>) {
+    switch style {
+    case .singleCase:
+      encodeSingleCaseSchemaDefinition(to: &encoder)
+    case .noAssociatedValues:
+      encodeNoAssociatedValuesSchemaDefinition(to: &encoder)
+    case .objectProperties:
+      encodeObjectPropertiesSchemaDefinition(to: &encoder)
+    }
+  }
+
   private func encodeSingleCaseSchemaDefinition(
     to encoder: ToolInput.SchemaEncoder<Self>
   ) throws {
@@ -396,6 +407,94 @@ private struct StandardEnumSchema<
           descriptionPrefix: `case`.description
         )
       )
+    }
+  }
+
+  private func encodeSingleCaseSchemaDefinition(
+    to encoder: inout ToolInput.NewSchemaEncoder<Self>
+  ) {
+    /// There should only be a single case
+    let contextualDescription = encoder.contextualDescription(description)
+    for `case` in repeat each cases {
+      encoder.stream.encodeSchemaDefinition(
+        `case`.schema,
+        descriptionPrefix: combineDescriptions(
+          contextualDescription,
+          `case`.description
+        )
+      )
+    }
+  }
+
+  private func encodeNoAssociatedValuesSchemaDefinition(
+    to encoder: inout ToolInput.NewSchemaEncoder<Self>
+  ) {
+    let description = encoder.contextualDescription(description)
+    encoder.stream.encodeObject { stream in
+      var possibleValues: [String] = []
+      var valueDescriptions: [String] = []
+      for `case` in repeat each cases {
+        possibleValues.append(`case`.key.stringValue)
+
+        if let caseDescription = `case`.description {
+          valueDescriptions.append(" - \(`case`.key): \(caseDescription)")
+        }
+      }
+
+      let combinedDescription: String?
+      switch (description, valueDescriptions.isEmpty) {
+      case (nil, true):
+        combinedDescription = nil
+      case (nil, false):
+        combinedDescription = valueDescriptions.joined(separator: "\n")
+      case (let description?, true):
+        combinedDescription = description
+      case (let description?, false):
+        combinedDescription = [[description], valueDescriptions]
+          .flatMap(\.self)
+          .joined(separator: "\n")
+      }
+
+      if let combinedDescription {
+        stream.encodeProperty(name: "description") { $0.encode(combinedDescription) }
+      }
+
+      stream.encodeProperty(name: "enum") { stream in
+        stream.encodeArray { array in
+          for value in possibleValues {
+            array.encodeElement { $0.encode(value) }
+          }
+        }
+      }
+    }
+  }
+
+  private func encodeObjectPropertiesSchemaDefinition(
+    to encoder: inout ToolInput.NewSchemaEncoder<Self>
+  ) {
+    let description = encoder.contextualDescription(description)
+    encoder.stream.encodeObject { stream in
+      if let description {
+        stream.encodeProperty(name: "description") { $0.encode(description) }
+      }
+
+      stream.encodeProperty(name: "type") { $0.encode("object") }
+      stream.encodeProperty(name: "minProperties") { $0.encode(1) }
+      stream.encodeProperty(name: "maxProperties") { $0.encode(1) }
+      stream.encodeProperty(name: "additionalProperties") { $0.encode(false) }
+
+      stream.encodeProperty(name: "properties") { stream in
+        stream.encodeObject { stream in
+          for `case` in repeat each cases {
+            stream.encodeProperty(name: `case`.key.stringValue) { stream in
+              stream.encodeSchemaDefinition(
+                `case`.schema,
+                descriptionPrefix: `case`.description
+              )
+            }
+          }
+        }
+      }
     }
   }
 
