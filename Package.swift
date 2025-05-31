@@ -92,7 +92,8 @@ let package = Package(
         .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
         .product(name: "SwiftDiagnostics", package: "swift-syntax"),
       ],
-      path: "Sources/Tool Macros"
+      path: "Sources/Tool Macros",
+      swiftSettings: .claude
     ),
     .testTarget(
       name: "ToolMacrosTests",
