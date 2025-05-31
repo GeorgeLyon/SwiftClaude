@@ -59,17 +59,18 @@ struct TupleSchema<each ElementSchema: ToolInput.Schema>: InternalSchema {
 
     try container.encode(itemsCount, forKey: .minItems)
   }
-  
+
   func encodeSchemaDefinition(to encoder: inout ToolInput.NewSchemaEncoder<Self>) {
     let description = encoder.contextualDescription(nil)
     encoder.stream.encodeObject { encoder in
       if let description {
         encoder.encodeProperty(name: "description") { $0.encode(description) }
       }
-      
-      encoder.encodeProperty(name: "type") { $0.encode("array") }
-      
-      encoder.encodeProperty(name: "items") { stream in
+
+      /// This is implied by `prefixItems`, and we're being economic with tokens.
+      // encoder.encodeProperty(name: "type") { $0.encode("array") }
+
+      encoder.encodeProperty(name: "prefixItems") { stream in
         stream.encodeArray { encoder in
           for element in repeat each elements {
             encoder.encodeElement { encoder in

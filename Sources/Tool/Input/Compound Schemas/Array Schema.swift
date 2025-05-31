@@ -46,7 +46,8 @@ private struct ArraySchema<ElementSchema: ToolInput.Schema>: InternalSchema {
         encoder.encodeProperty(name: "description") { $0.encode(description) }
       }
 
-      encoder.encodeProperty(name: "type") { $0.encode("array") }
+      /// This is implied by `items`, and we're being economic with tokens.
+      // encoder.encodeProperty(name: "type") { $0.encode("array") }
 
       encoder.encodeProperty(name: "items") { stream in
         stream.encodeSchemaDefinition(elementSchema)

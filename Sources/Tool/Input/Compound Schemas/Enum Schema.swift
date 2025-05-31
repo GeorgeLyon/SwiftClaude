@@ -478,10 +478,8 @@ private struct StandardEnumSchema<
         stream.encodeProperty(name: "description") { $0.encode(description) }
       }
 
-      stream.encodeProperty(name: "type") { $0.encode("object") }
-      stream.encodeProperty(name: "minProperties") { $0.encode(1) }
-      stream.encodeProperty(name: "maxProperties") { $0.encode(1) }
-      stream.encodeProperty(name: "additionalProperties") { $0.encode(false) }
+      /// This is implied by `properties`, and we're being economic with tokens.
+      // stream.encodeProperty(name: "type") { $0.encode("object") }
 
       stream.encodeProperty(name: "properties") { stream in
         stream.encodeObject { stream in
@@ -495,6 +493,12 @@ private struct StandardEnumSchema<
           }
         }
       }
+
+      stream.encodeProperty(name: "minProperties") { $0.encode(1) }
+      stream.encodeProperty(name: "maxProperties") { $0.encode(1) }
+
+      /// We can add this if Claude begins hallucinating additional properties
+      // stream.encodeProperty(name: "additionalProperties") { $0.encode(false) }
     }
   }
 

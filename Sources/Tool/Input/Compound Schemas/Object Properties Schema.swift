@@ -41,17 +41,18 @@ struct ObjectPropertiesSchema<
   func encodeSchemaDefinition(to encoder: inout ToolInput.NewSchemaEncoder<Self>) {
     let description = encoder.contextualDescription(description)
     encoder.stream.encodeObject { encoder in
-      encoder.encodeProperty(name: "type") { $0.encode("object") }
+
+      /// This is implied by `properties`, and we're being economic with tokens.
+      // encoder.encodeProperty(name: "type") { $0.encode("object") }
 
       if let description {
         encoder.encodeProperty(name: "description") { $0.encode(description) }
       }
 
-      encoder.encodeProperty(name: "additionalProperties") { $0.encode(false) }
+      /// We can add this if Claude begins to hallucinate additional properties.
+      // encoder.encodeProperty(name: "additionalProperties") { $0.encode(false) }
 
-      encoder.encodeProperty(name: "properties") { stream in
-        stream.encodeSchemaDefinition(properties: repeat each properties)
-      }
+      encoder.encodeSchemaDefinitionProperties(for: repeat each properties)
     }
   }
 
