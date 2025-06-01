@@ -380,11 +380,8 @@ private struct OptionalSchema<WrappedSchema: ToolInput.Schema>: OptionalSchemaPr
       }
       return nil
     } else {
-      let peekNull = try await decoder.decode { stream in
-        try stream.peekNull()
-      }
-      if peekNull {
-        try await decoder.decode { try $0.decodeNull() }
+      if try await decoder.peekNull() {
+        try await decoder.decodeNull()
         return nil
       } else {
         return try await wrappedSchema.decodeValue(from: &decoder)

@@ -1,3 +1,5 @@
+import JSONSupport
+
 extension ToolInput {
 
   public static func schema<Element: ToolInput.SchemaCodable>(
@@ -81,6 +83,16 @@ private struct ArraySchema<ElementSchema: ToolInput.Schema>: InternalSchema {
           )
         )
       )
+    }
+    return elements
+  }
+
+  func decodeValue(from decoder: inout ToolInput.NewDecoder) async throws -> [ElementSchema.Value] {
+    var elements: Value = []
+    var state = JSON.ArrayDecodingState()
+    while (try await decoder.decodeArrayElementHeader(&state)) != nil {
+      let element = try await elementSchema.decodeValue(from: &decoder)
+      elements.append(element)
     }
     return elements
   }
