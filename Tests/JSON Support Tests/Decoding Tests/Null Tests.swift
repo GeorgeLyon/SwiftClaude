@@ -123,4 +123,94 @@ private struct NullTests {
     }
   }
 
+  @Test
+  func peekNullTest() async throws {
+    /// Peek at null value
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("null")
+      stream.finish()
+
+      #expect(try stream.peekNull().getValue() == true)
+      let result = try stream.decodeNull()
+      #expect(try result.getValue() == ())
+    }
+
+    /// Peek at non-null values
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("42")
+      stream.finish()
+      #expect(try stream.peekNull().getValue() == false)
+
+      stream = JSON.DecodingStream()
+      stream.push("\"string\"")
+      stream.finish()
+      #expect(try stream.peekNull().getValue() == false)
+
+      stream = JSON.DecodingStream()
+      stream.push("true")
+      stream.finish()
+      #expect(try stream.peekNull().getValue() == false)
+
+      stream = JSON.DecodingStream()
+      stream.push("[1, 2, 3]")
+      stream.finish()
+      #expect(try stream.peekNull().getValue() == false)
+
+      stream = JSON.DecodingStream()
+      stream.push("{\"key\": \"value\"}")
+      stream.finish()
+      #expect(try stream.peekNull().getValue() == false)
+    }
+
+    /// Peek with whitespace
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("  null")
+      stream.finish()
+
+      #expect(try stream.peekNull().getValue() == true)
+      let result = try stream.decodeNull()
+      #expect(try result.getValue() == ())
+    }
+
+    /// Peek with incremental parsing
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("nu")
+      
+      #expect(try stream.peekNull().needsMoreData)
+      
+      stream.push("ll")
+      stream.finish()
+      
+      #expect(try stream.peekNull().getValue() == true)
+      let result = try stream.decodeNull()
+      #expect(try result.getValue() == ())
+    }
+
+    /// Peek doesn't consume the value
+    do {
+      var stream = JSON.DecodingStream()
+      stream.push("null, 42")
+      stream.finish()
+
+      // Peek multiple times
+      #expect(try stream.peekNull().getValue() == true)
+      #expect(try stream.peekNull().getValue() == true)
+      #expect(try stream.peekNull().getValue() == true)
+      
+      // Value should still be there to decode
+      let result = try stream.decodeNull()
+      #expect(try result.getValue() == ())
+      
+      // Can read the comma and next value
+      #expect(try stream.readCharacter().decodingResult().getValue() == ",")
+      #expect(try stream.readCharacter().decodingResult().getValue() == " ")
+      let number = try stream.decodeNumber().getValue()
+      #expect(number.integerPart == "42")
+    }
+  }
+
 }
