@@ -12,13 +12,17 @@ extension JSON {
     fileprivate var phase: Phase = .decodingArrayStart
   }
 
+  public struct ArrayElement {
+    fileprivate init() {}
+  }
+
 }
 
 extension JSON.DecodingStream {
 
   public mutating func decodeArrayElement(
     _ state: inout JSON.ArrayDecodingState
-  ) throws -> JSON.DecodingResult<Bool> {
+  ) throws -> JSON.DecodingResult<JSON.ArrayElement?> {
     switch state.phase {
     case .decodingArrayStart:
       state.phase = .decodingElements
@@ -30,7 +34,7 @@ extension JSON.DecodingStream {
   }
 
   mutating func decodeArrayUpToFirstElement() throws
-    -> JSON.DecodingResult<Bool>
+    -> JSON.DecodingResult<JSON.ArrayElement?>
   {
     readWhitespace()
 
@@ -51,9 +55,9 @@ extension JSON.DecodingStream {
       }
       switch isEmpty {
       case .matched:
-        return .decoded(false)
+        return .decoded(nil)
       case .notMatched:
-        return .decoded(true)
+        return .decoded(JSON.ArrayElement())
       case .needsMoreData:
         /// Restore to start so we don't need to keep track of the fact that we've read "["
         restore(start)
@@ -63,7 +67,7 @@ extension JSON.DecodingStream {
   }
 
   mutating func decodeArrayUpToNextElement() throws
-    -> JSON.DecodingResult<Bool>
+    -> JSON.DecodingResult<JSON.ArrayElement?>
   {
     readWhitespace()
 
@@ -82,7 +86,7 @@ extension JSON.DecodingStream {
     case .needsMoreData:
       return .needsMoreData
     case .decoded(let isComplete):
-      return .decoded(!isComplete)
+      return .decoded(isComplete ? nil : JSON.ArrayElement())
     }
   }
 

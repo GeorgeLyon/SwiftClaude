@@ -14,6 +14,10 @@ extension JSON {
 
   public struct ObjectProperty {
     public let name: Substring
+
+    fileprivate init(name: Substring) {
+      self.name = name
+    }
   }
 
 }

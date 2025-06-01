@@ -13,7 +13,8 @@ private struct ObjectTests {
       stream.push("{}  ")
       stream.finish()
 
-      let result = try stream.decodeObjectUpToFirstPropertyValue()
+      var state = JSON.ObjectDecodingState()
+      let result = try stream.decodeObjectProperty(&state)
       #expect(result.isComplete)
 
       #expect(try stream.readCharacter().decodingResult().getValue() == " ")
@@ -25,7 +26,8 @@ private struct ObjectTests {
       stream.push("{ } ")
       stream.finish()
 
-      let result = try stream.decodeObjectUpToFirstPropertyValue()
+      var state = JSON.ObjectDecodingState()
+      let result = try stream.decodeObjectProperty(&state)
       #expect(result.isComplete)
     }
   }
@@ -42,14 +44,15 @@ private struct ObjectTests {
 
       var result = try stream.decodeObjectUpToFirstPropertyValue()
 
-      while let key = result.decodingPropertyName {
+      var state = JSON.ObjectDecodingState()
+      while case .decoded(let property?) = try stream.decodeObjectProperty(&state) {
         // Decode value
         var valueState = try stream.decodeStringStart().getValue()
         var valueFragments: [String] = []
         try stream.decodeStringFragments(state: &valueState) { fragment in
           valueFragments.append(String(fragment))
         }
-        properties.append((key: String(key), value: valueFragments.joined()))
+        properties.append((key: String(property.name), value: valueFragments.joined()))
 
         result = try stream.decodeObjectUpToNextPropertyValue()
       }
@@ -653,9 +656,10 @@ private struct ObjectTests {
 
 // MARK: - Support
 
-extension JSON.ObjectDecodingState {
+extension JSON.DecodingResult where Value == JSON.ObjectProperty? {
+  
   fileprivate var isComplete: Bool {
-    if case .complete = self {
+    if case .decoded(.none) = self {
       return true
     } else {
       return false
@@ -671,8 +675,8 @@ extension JSON.ObjectDecodingState {
   }
 
   fileprivate var decodingPropertyName: Substring? {
-    if case .decodingPropertyValue(let name) = self {
-      return name
+    if case .decoded(let property?) = self {
+      return property.name
     } else {
       return nil
     }

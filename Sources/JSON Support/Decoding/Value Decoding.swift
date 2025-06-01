@@ -78,11 +78,11 @@ extension JSON.DecodingStream {
             case .needsMoreData:
               restore(start)
               return .needsMoreData
-            case .decoded(true):
+            case .decoded(.some):
               state.nesting.append(.array)
               state.phase = .decodingValue
               continue
-            case .decoded(false):
+            case .decoded(.none):
               break
             }
           case .object:
@@ -112,10 +112,10 @@ extension JSON.DecodingStream {
         switch try decodeArrayUpToNextElement() {
         case .needsMoreData:
           return .needsMoreData
-        case .decoded(true):
+        case .decoded(.some):
           state.phase = .decodingValue
           continue
-        case .decoded(false):
+        case .decoded(.none):
           let nesting = state.nesting.popLast()
           assert(nesting == .array)
           break

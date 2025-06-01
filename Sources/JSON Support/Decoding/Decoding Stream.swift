@@ -281,6 +281,8 @@ extension JSON {
 
 extension JSON.DecodingResult: Copyable where Value: Copyable {}
 
+extension JSON.DecodingResult: Sendable where Value: Sendable {}
+
 /// The result of reading data from the stream.
 /// Similar to a `DecodingResult` but it returns errors as a separate case.
 /// This is because we expect the "didn't match" case to happen on the happy path, and don't want to trip error breakpoints when this happens.
