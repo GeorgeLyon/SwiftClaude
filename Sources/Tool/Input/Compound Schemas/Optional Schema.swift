@@ -368,15 +368,26 @@ private struct OptionalSchema<WrappedSchema: ToolInput.Schema>: OptionalSchemaPr
     }
   }
 
-  func decodeValue(from decoder: inout ToolInput.NewDecoder<Self>) async throws -> WrappedSchema
-    .Value?
-  {
+  func decodeValue(
+    from decoder: inout ToolInput.NewDecoder
+  ) async throws -> WrappedSchema.Value? {
     if wrappedSchema.mayAcceptNullValue {
-      let state = try await decoder.decode { stream in
-        try stream.decodeObjectUpToFirstPropertyValue()
+      var state = JSON.ObjectDecodingState()
+      while let property = try await decoder.decodeObjectPropertyHeader(&state) {
+        if property.name == "value" {
+          return try await wrappedSchema.decodeValue(from: &decoder)
+        }
       }
-      switch state {
-      case .isComplete:
+      return nil
+    } else {
+      let peekNull = try await decoder.decode { stream in
+        try stream.peekNull()
+      }
+      if peekNull {
+        try await decoder.decode { try $0.decodeNull() }
+        return nil
+      } else {
+        return try await wrappedSchema.decodeValue(from: &decoder)
       }
     }
   }
@@ -421,4 +432,8 @@ private struct OptionalSchema<WrappedSchema: ToolInput.Schema>: OptionalSchemaPr
     case value
   }
 
+}
+
+private enum Error: Swift.Error {
+  case missingValue
 }

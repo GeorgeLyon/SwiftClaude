@@ -29,7 +29,7 @@ public enum ToolInput {
 
     func encodeSchemaDefinition(to encoder: inout NewSchemaEncoder<Self>)
 
-    func decodeValue(from decoder: inout NewDecoder<Self>) async throws -> Value
+    func decodeValue(from decoder: inout NewDecoder) async throws -> Value
 
   }
 
@@ -123,12 +123,20 @@ extension ToolInput {
     }
   }
 
-  public struct NewDecoder<Schema>: ~Copyable {
+  public struct NewDecoder: ~Copyable {
 
     mutating func decode<T>(
       _ body: (inout JSON.DecodingStream) throws -> JSON.DecodingResult<T>
     ) async throws -> T {
       fatalError()
+    }
+
+    mutating func decodeObjectPropertyHeader(
+      _ state: inout JSON.ObjectDecodingState
+    ) async throws -> JSON.ObjectPropertyHeader? {
+      try await decode { stream in
+        try stream.decodeObjectPropertyHeader(&state)
+      }
     }
 
   }
