@@ -147,7 +147,7 @@ extension JSON.DecodingStream {
     significand = substringRead(since: start)
 
     /// Read exponent
-    switch read(whileCharactersIn: "E", "e", minCount: 1, maxCount: 1) {
+    switch read(whileCharactersIn: ["E", "e"], minCount: 1, maxCount: 1) {
     case .needsMoreData:
       restore(start)
       return .needsMoreData
@@ -156,7 +156,7 @@ extension JSON.DecodingStream {
       let exponentStart = createCheckpoint()
 
       guard
-        try !read(whileCharactersIn: "+", "-", maxCount: 1).needsMoreData,
+        try !read(whileCharactersIn: ["+", "-"], maxCount: 1).needsMoreData,
         try !read(whileCharactersIn: "0"..."9", minCount: 1).needsMoreData
       else {
         restore(start)

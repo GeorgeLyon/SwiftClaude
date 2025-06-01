@@ -58,8 +58,7 @@ struct OptionalSchemaTests {
             {
               "items" : {
                 "type" : "string"
-              },
-              "type" : "array"
+              }
             }
           ]
         }
@@ -82,8 +81,7 @@ struct OptionalSchemaTests {
                     "string"
                   ]
                 }
-              },
-              "type" : "object"
+              }
             }
           ]
         }

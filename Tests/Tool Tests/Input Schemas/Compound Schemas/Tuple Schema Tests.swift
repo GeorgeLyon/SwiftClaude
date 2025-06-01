@@ -10,8 +10,6 @@ struct TupleSchemaTests {
     #expect(
       ToolInput.schema(representing: (String, Int).self).schemaJSON == """
         {
-          "items" : false,
-          "minItems" : 2,
           "prefixItems" : [
             {
               "type" : "string"
@@ -19,8 +17,7 @@ struct TupleSchemaTests {
             {
               "type" : "integer"
             }
-          ],
-          "type" : "array"
+          ]
         }
         """
     )

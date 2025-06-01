@@ -2,6 +2,8 @@ extension JSON {
 
   public struct ReencodableValueDecodingState {
 
+    public init() {}
+
     fileprivate var start: JSON.DecodingStream.Checkpoint?
     fileprivate var valueState = JSON.ValueDecodingState()
   }

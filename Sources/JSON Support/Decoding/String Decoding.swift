@@ -85,18 +85,46 @@ extension JSON.DecodingStream {
     onFragment: (_ fragment: Substring) -> Void
   ) -> ReadResult<Void> {
     readingStream: while true {
-      /// Read scalars until we reach a control character or the end of the string
-      _ = read(
-        untilCharacterIn: "\"", "\\",
-        processPartialMatchAtEndOfBuffer: true,
-        process: { substring, terminatingCharacter in
-          guard !substring.isEmpty else {
-            /// Empty fragments that are not lastcould mess with our last-character-may-be-modified-by-subsequent-characters mitigation efforts
-            return
+      do {
+        /// Read scalars until we reach a control character or the end of the string
+        let result = read(
+          processCharacter: { character in
+            guard let first = character.unicodeScalars.first else {
+              return .fail
+            }
+            switch first {
+            case "\"", "\\":
+              guard character.unicodeScalars.count == 1 else {
+                return .fail
+              }
+              return .reject
+            case "\u{0000}"..."\u{001F}":
+              /// Unescaped control characters are not allowed in strings
+              return .fail
+            default:
+              return .accept
+            }
+          },
+          processPartialMatchAtEndOfBuffer: true,
+          process: { substring, terminatingCharacter in
+            guard !substring.isEmpty else {
+              /// Empty fragments that are not lastcould mess with our last-character-may-be-modified-by-subsequent-characters mitigation efforts
+              return
+            }
+            onFragment(substring)
           }
-          onFragment(substring)
+        )
+        switch result {
+        case .matched:
+          break
+        case .needsMoreData:
+          /// This shouldn't be possible since the above condition can match an empty fragment
+          assertionFailure()
+          return .needsMoreData
+        case .notMatched(let error):
+          return .notMatched(error)
         }
-      )
+      }
 
       let readStart = createCheckpoint()
 
@@ -228,29 +256,43 @@ extension JSON.DecodingStream {
 
   private mutating func readUnicodeEscapeSequence() -> ReadResult<UnicodeEscapeSequence> {
     read(
-      whileCharactersIn: "0"..."9", "a"..."f", "A"..."F",
+      whileCharactersIn: ["0"..."9", "a"..."f", "A"..."F"],
       minCount: 4,
-      maxCount: 4
-    ) { substring, _ -> UnicodeEscapeSequence in
-      guard let intValue = Int(substring, radix: 16) else {
-        /// This shouldn't be possible because we only read hex characters
-        assertionFailure()
-        return .invalid
-      }
-      switch intValue {
-      case 0xDC00...0xDFFF:
-        return .lowSurrogate(intValue - 0xDC00)
-      case 0xD800...0xDBFF:
-        return .highSurrogate(0x10000 + ((intValue - 0xD800) << 10))
-      default:
-        guard let scalar = UnicodeScalar(intValue) else {
-          /// This shouldn't be possible, because other than surrogate pairs all values in the range 0x0000...0xFFFF are valid.
+      maxCount: 4,
+      process: { substring, _ -> UnicodeEscapeSequence in
+        guard let intValue = Int(substring, radix: 16) else {
+          /// This shouldn't be possible because we only read hex characters
           assertionFailure()
           return .invalid
         }
-        return .encoded(Substring(String(String.UnicodeScalarView([scalar]))))
+        switch intValue {
+        case 0xDC00...0xDFFF:
+          return .lowSurrogate(intValue - 0xDC00)
+        case 0xD800...0xDBFF:
+          return .highSurrogate(0x10000 + ((intValue - 0xD800) << 10))
+        default:
+          guard let scalar = UnicodeScalar(intValue) else {
+            /// This shouldn't be possible, because other than surrogate pairs all values in the range 0x0000...0xFFFF are valid.
+            assertionFailure()
+            return .invalid
+          }
+          return .encoded(Substring(String(String.UnicodeScalarView([scalar]))))
+        }
       }
+    )
+  }
+
+}
+
+// MARK: - Implementation Details
+
+extension Character {
+
+  var isControl: Bool {
+    guard let scalar = unicodeScalars.first, unicodeScalars.count == 1 else {
+      return false
     }
+    return scalar.properties.generalCategory == .control
   }
 
 }

@@ -3,16 +3,30 @@ import JSONSupport
 
 @testable import Tool
 
+struct JSONString: ExpressibleByStringLiteral, Equatable {
+  init(stringLiteral string: String) {
+    /// A "best effort" minification...
+    minifiedString = string
+      .split(separator: "\n")
+      .map { $0.drop(while: \.isWhitespace) }
+      .joined()
+  }
+  init(minifiedString: String) {
+    self.minifiedString = minifiedString
+  }
+  let minifiedString: String
+}
+
 extension ToolInput.Schema {
 
-  var schemaJSON: String {
+  var schemaJSON: JSONString {
     var encoder = ToolInput.NewSchemaEncoder<Self>(
       stream: JSON.EncodingStream(),
       descriptionPrefix: nil,
       descriptionSuffix: nil
     )
     encodeSchemaDefinition(to: &encoder)
-    return encoder.stream.stringRepresentation
+    return JSONString(minifiedString: encoder.stream.stringRepresentation)
   }
 
   func value(fromJSON json: String) -> Value {

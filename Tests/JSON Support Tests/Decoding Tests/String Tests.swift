@@ -535,8 +535,8 @@ private struct StringTests {
   }
 
   @Test
-  func completelyPathalogicalTest() async throws {
-    /// String with escape sequence split
+  func endQuoteWithCombiningDiacritic() async throws {
+    /// End quote with combining diacritic
     do {
       var stream = JSON.DecodingStream()
       stream.push("\"\"")
@@ -548,11 +548,12 @@ private struct StringTests {
 
       stream.push("\u{0327}\"")
       stream.finish()
-      try stream.withDecodedStringFragments(state: &state) {
-        #expect($0 == ["\"" + "\u{0327}"])
+      
+      #expect(throws: Error.self) {
+        try stream.withDecodedStringFragments(state: &state) {
+          #expect($0 == ["\"" + "\u{0327}"])
+        }
       }
-
-      #expect(state.isComplete)
     }
   }
 

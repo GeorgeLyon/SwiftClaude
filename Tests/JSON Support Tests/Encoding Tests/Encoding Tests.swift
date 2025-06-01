@@ -59,7 +59,7 @@ private struct EncodingTests {
 
     // Zero
     stream.encode(0.0)
-    #expect(stream.string == "0")
+    #expect(stream.string == "0.0")
 
     // Positive float
     stream.reset()

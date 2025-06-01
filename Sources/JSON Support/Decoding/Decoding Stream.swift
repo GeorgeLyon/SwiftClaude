@@ -84,52 +84,22 @@ extension JSON.DecodingStream {
   mutating func read(_ string: String) -> ReadResult<Void> {
     var expectedCharacters = string.makeIterator()
     return read(
-      while: { $0 == expectedCharacters.next() },
+      processCharacter: { $0 == expectedCharacters.next() ? .accept : .reject },
       minCount: string.count,
       maxCount: string.count,
       processPartialMatchAtEndOfBuffer: false,
     ) { _, _ in }
   }
 
-  mutating func read(
-    whileCharactersIn acceptedCharacters: CharacterCondition...,
-    minCount: Int? = nil,
-    maxCount: Int? = nil,
-    processPartialMatchAtEndOfBuffer: Bool = false,
-  ) -> ReadResult<Void> {
-    self.read(
-      while: { acceptedCharacters.accepts($0) },
-      minCount: minCount,
-      maxCount: maxCount,
-      processPartialMatchAtEndOfBuffer: processPartialMatchAtEndOfBuffer,
-      process: { _, _ in }
-    )
-  }
-
-  mutating func read(
-    untilCharacterIn terminationCharacters: CharacterCondition...,
-    minCount: Int? = nil,
-    maxCount: Int? = nil,
-    processPartialMatchAtEndOfBuffer: Bool = false,
-  ) -> ReadResult<Void> {
-    self.read(
-      while: { !terminationCharacters.accepts($0) },
-      minCount: minCount,
-      maxCount: maxCount,
-      processPartialMatchAtEndOfBuffer: processPartialMatchAtEndOfBuffer,
-      process: { _, _ in }
-    )
-  }
-
   mutating func read<T>(
-    whileCharactersIn acceptedCharacters: CharacterCondition...,
+    whileCharactersIn acceptCondition: ReadCondition,
     minCount: Int? = nil,
     maxCount: Int? = nil,
     processPartialMatchAtEndOfBuffer: Bool = false,
-    process: (inout Substring, Character?) throws -> T
-  ) rethrows -> ReadResult<T> {
-    try self.read(
-      while: { acceptedCharacters.accepts($0) },
+    process: (inout Substring, Character?) throws -> T = { _, _ in }
+  ) -> ReadResult<T> {
+    read(
+      processCharacter: { acceptCondition.accepts($0) ? .accept : .reject },
       minCount: minCount,
       maxCount: maxCount,
       processPartialMatchAtEndOfBuffer: processPartialMatchAtEndOfBuffer,
@@ -138,40 +108,29 @@ extension JSON.DecodingStream {
   }
 
   mutating func read<T>(
-    untilCharacterIn terminationCharacters: CharacterCondition...,
+    processCharacter: (Character) -> ReadDirective,
     minCount: Int? = nil,
     maxCount: Int? = nil,
     processPartialMatchAtEndOfBuffer: Bool = false,
     process: (inout Substring, Character?) throws -> T
-  ) rethrows -> ReadResult<T> {
-    try self.read(
-      while: { !terminationCharacters.accepts($0) },
-      minCount: minCount,
-      maxCount: maxCount,
-      processPartialMatchAtEndOfBuffer: processPartialMatchAtEndOfBuffer,
-      process: process
-    )
-  }
-
-  private mutating func read<T>(
-    while acceptCondition: (Character) -> Bool,
-    minCount: Int?,
-    maxCount: Int?,
-    processPartialMatchAtEndOfBuffer: Bool,
-    process: (inout Substring, Character?) throws -> T
-  ) rethrows -> ReadResult<T> {
+  ) -> ReadResult<T> {
     let readableSubstring = readableSubstring
     let endIndex: String.Index
     let continuableMatch: Bool
     var readCount = 0
     reading: do {
-      let indices = readableSubstring.indices
-      for index in indices {
+      let readableSubstring = readableSubstring
+      for index in readableSubstring.indices {
         let character = readableSubstring[index]
-        guard acceptCondition(character) else {
+        switch processCharacter(character) {
+        case .accept:
+          break
+        case .reject:
           endIndex = index
           continuableMatch = false
           break reading
+        case .fail:
+          return .notMatched(Error.unexpectedCharacter(character, at: index))
         }
         readCount += 1
 
@@ -215,9 +174,13 @@ extension JSON.DecodingStream {
     var substring = readableSubstring[..<endIndex]
     let terminatingCharacter =
       endIndex < readableSubstring.endIndex ? readableSubstring[endIndex] : nil
-    let result = try process(&substring, terminatingCharacter)
-    nextReadIndex = substring.endIndex
-    return .matched(result)
+    do {
+      let result = try process(&substring, terminatingCharacter)
+      nextReadIndex = substring.endIndex
+      return .matched(result)
+    } catch {
+      return .notMatched(error)
+    }
   }
 
   var possiblyIncompleteIncomingGraphemeCluster: Character? {
@@ -267,8 +230,8 @@ extension JSON.DecodingStream {
       /**
        If the string is incomplete, the last character may be changed by subsequent unicode scalars.
        For example, the incomplete string `fac` may become `facts` or `façade` depending on future unicode scalars; also, emojis can be modified by a `ZWJ`.
-       This can change the meaning of the string, and make `endIndex` invalid.
-       To solve this, we do not consider the last character readable until the stream is complete.
+       This can make `endIndex` invalid, so we we only consider the substring up to the last character.
+       This way `readableSubstring.endIndex` is always guaranteed to be valid.
        */
       return string[nextReadIndex...].dropLast()
     }
@@ -355,31 +318,51 @@ extension ReadResult {
 
 }
 
-// MARK: - Character Conditions
-
-struct CharacterCondition: ExpressibleByUnicodeScalarLiteral {
-  init(unicodeScalarLiteral value: Character) {
-    range = value...value
-  }
-  fileprivate init(range: ClosedRange<Character>) {
-    self.range = range
-  }
-  fileprivate let range: ClosedRange<Character>
+enum ReadDirective {
+  case accept
+  case reject
+  case fail
 }
 
-func ... (lhs: Character, rhs: Character) -> CharacterCondition {
-  CharacterCondition(range: lhs...rhs)
-}
-
-extension Array where Element == CharacterCondition {
-  fileprivate func accepts(_ character: Character) -> Bool {
-    return contains { condition in
-      condition.range.contains(character)
+struct ReadCondition: ExpressibleByUnicodeScalarLiteral, ExpressibleByArrayLiteral {
+  static var all: ReadCondition {
+    return ReadCondition(rangeSet: nil)
+  }
+  static var none: ReadCondition {
+    return ReadCondition(rangeSet: RangeSet<Character>())
+  }
+  init(arrayLiteral elements: ReadCondition...) {
+    self.rangeSet = RangeSet<Character>(
+      elements.compactMap(\.rangeSet).flatMap(\.ranges)
+    )
+  }
+  init(unicodeScalarLiteral scalar: UnicodeScalar) {
+    self.init(scalar...scalar)
+  }
+  init(_ range: ClosedRange<UnicodeScalar>) {
+    self.rangeSet = RangeSet(
+      Character(range.lowerBound)..<Character(UnicodeScalar(range.upperBound.value + 1)!)
+    )
+  }
+  fileprivate func accepts(_ scalar: Character) -> Bool {
+    if let rangeSet = rangeSet {
+      return rangeSet.contains(scalar)
+    } else {
+      /// `nil` indicates that all scalars are accepted.
+      return true
     }
   }
+  fileprivate init(rangeSet: RangeSet<Character>?) {
+    self.rangeSet = rangeSet
+  }
+  fileprivate let rangeSet: RangeSet<Character>?
 }
 
-// MARK: - Implementation Details
+func ... (lhs: UnicodeScalar, rhs: UnicodeScalar) -> ReadCondition {
+  ReadCondition(lhs...rhs)
+}
+
+// MARK: - Errors
 
 private enum Error: Swift.Error {
   case needsMoreData

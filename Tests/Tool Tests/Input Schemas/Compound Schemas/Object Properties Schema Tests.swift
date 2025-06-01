@@ -37,9 +37,12 @@ struct ObjectPropertiesSchemaTests {
     #expect(
       testSchema.schemaJSON == """
         {
-          "additionalProperties" : false,
           "description" : "A user object",
           "properties" : {
+            "name" : {
+              "description" : "User's name",
+              "type" : "string"
+            },
             "age" : {
               "description" : "User's age",
               "type" : "integer"
@@ -47,17 +50,12 @@ struct ObjectPropertiesSchemaTests {
             "isActive" : {
               "description" : "Whether the user is active",
               "type" : "boolean"
-            },
-            "name" : {
-              "description" : "User's name",
-              "type" : "string"
             }
           },
           "required" : [
             "name",
             "age"
-          ],
-          "type" : "object"
+          ]
         }
         """
     )

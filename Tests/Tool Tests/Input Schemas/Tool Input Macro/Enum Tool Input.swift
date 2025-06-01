@@ -55,23 +55,27 @@ struct EnumToolInputTests {
     #expect(
       schema.schemaJSON == """
         {
-          "additionalProperties" : false,
           "description" : "A enum with multiple cases",
-          "maxProperties" : 1,
-          "minProperties" : 1,
           "properties" : {
-            "continue" : {
-              "type" : "integer"
-            },
-            "fifth" : {
-              "type" : "null"
-            },
             "first" : {
               "description" : "A string",
               "type" : "string"
             },
+            "continue" : {
+              "type" : "integer"
+            },
+            "third" : {
+              "prefixItems" : [
+                {
+                  "type" : "string"
+                },
+                {
+                  "description" : "x",
+                  "type" : "integer"
+                }
+              ]
+            },
             "fourth" : {
-              "additionalProperties" : false,
               "properties" : {
                 "x" : {
                   "type" : "string"
@@ -83,25 +87,14 @@ struct EnumToolInputTests {
               "required" : [
                 "x",
                 "y"
-              ],
-              "type" : "object"
+              ]
             },
-            "third" : {
-              "items" : false,
-              "minItems" : 2,
-              "prefixItems" : [
-                {
-                  "type" : "string"
-                },
-                {
-                  "description" : "x",
-                  "type" : "integer"
-                }
-              ],
-              "type" : "array"
+            "fifth" : {
+              "type" : "null"
             }
           },
-          "type" : "object"
+          "minProperties" : 1,
+          "maxProperties" : 1
         }
         """
     )

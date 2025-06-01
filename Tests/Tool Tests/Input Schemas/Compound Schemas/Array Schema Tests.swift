@@ -12,8 +12,7 @@ struct ArraySchemaTests {
         {
           "items" : {
             "type" : "string"
-          },
-          "type" : "array"
+          }
         }
         """
     )

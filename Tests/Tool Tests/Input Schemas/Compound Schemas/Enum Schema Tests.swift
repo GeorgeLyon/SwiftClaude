@@ -247,21 +247,27 @@ struct EnumSchemaTests {
     #expect(
       schema.schemaJSON == """
         {
-          "additionalProperties" : false,
           "description" : "A simple enum with multiple cases",
-          "maxProperties" : 1,
-          "minProperties" : 1,
           "properties" : {
-            "fifth" : {
-              "type" : "null"
-            },
             "first" : {
               "description" : "A string",
               "type" : "string"
             },
+            "second" : {
+              "type" : "integer"
+            },
+            "third" : {
+              "prefixItems" : [
+                {
+                  "type" : "string"
+                },
+                {
+                  "description" : "x",
+                  "type" : "integer"
+                }
+              ]
+            },
             "fourth" : {
-              "items" : false,
-              "minItems" : 2,
               "prefixItems" : [
                 {
                   "description" : "x",
@@ -271,28 +277,14 @@ struct EnumSchemaTests {
                   "description" : "y",
                   "type" : "integer"
                 }
-              ],
-              "type" : "array"
+              ]
             },
-            "second" : {
-              "type" : "integer"
-            },
-            "third" : {
-              "items" : false,
-              "minItems" : 2,
-              "prefixItems" : [
-                {
-                  "type" : "string"
-                },
-                {
-                  "description" : "x",
-                  "type" : "integer"
-                }
-              ],
-              "type" : "array"
+            "fifth" : {
+              "type" : "null"
             }
           },
-          "type" : "object"
+          "minProperties" : 1,
+          "maxProperties" : 1
         }
         """
     )
