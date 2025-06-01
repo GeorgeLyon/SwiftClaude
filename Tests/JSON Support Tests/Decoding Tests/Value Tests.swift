@@ -797,15 +797,7 @@ extension JSON.DecodingStream {
 }
 
 extension JSON.DecodingResult {
-  var needsMoreData: Bool {
-    switch self {
-    case .needsMoreData:
-      return true
-    case .decoded:
-      return false
-    }
-  }
-  var isDecoded: Bool {
+  fileprivate var isDecoded: Bool {
     switch self {
     case .needsMoreData:
       return false

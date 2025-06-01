@@ -12,7 +12,7 @@ extension JSON {
     fileprivate var phase: Phase = .decodingObjectStart
   }
 
-  public struct ObjectProperty {
+  public struct ObjectPropertyHeader {
     public let name: Substring
 
     fileprivate init(name: Substring) {
@@ -24,13 +24,16 @@ extension JSON {
 
 extension JSON.DecodingStream {
 
-  public mutating func decodeObjectProperty(
+  public mutating func decodeObjectPropertyHeader(
     _ state: inout JSON.ObjectDecodingState
-  ) throws -> JSON.DecodingResult<JSON.ObjectProperty?> {
+  ) throws -> JSON.DecodingResult<JSON.ObjectPropertyHeader?> {
     switch state.phase {
     case .decodingObjectStart:
-      state.phase = .decodingProperties
-      return try decodeObjectUpToFirstPropertyValue()
+      let result = try decodeObjectUpToFirstPropertyValue()
+      if case .decoded = result {
+        state.phase = .decodingProperties
+      }
+      return result
 
     case .decodingProperties:
       return try decodeObjectUpToNextPropertyValue()
@@ -38,7 +41,7 @@ extension JSON.DecodingStream {
   }
 
   mutating func decodeObjectUpToFirstPropertyValue() throws
-    -> JSON.DecodingResult<JSON.ObjectProperty?>
+    -> JSON.DecodingResult<JSON.ObjectPropertyHeader?>
   {
     readWhitespace()
 
@@ -65,7 +68,7 @@ extension JSON.DecodingStream {
       case .notMatched:
         switch readNextPropertyName() {
         case .matched(let name):
-          return .decoded(JSON.ObjectProperty(name: name))
+          return .decoded(JSON.ObjectPropertyHeader(name: name))
         case .notMatched(let error):
           throw error
         case .needsMoreData:
@@ -80,7 +83,7 @@ extension JSON.DecodingStream {
   }
 
   mutating func decodeObjectUpToNextPropertyValue() throws
-    -> JSON.DecodingResult<JSON.ObjectProperty?>
+    -> JSON.DecodingResult<JSON.ObjectPropertyHeader?>
   {
     readWhitespace()
 
@@ -107,7 +110,7 @@ extension JSON.DecodingStream {
       } else {
         switch readNextPropertyName() {
         case .matched(let name):
-          return .decoded(JSON.ObjectProperty(name: name))
+          return .decoded(JSON.ObjectPropertyHeader(name: name))
         case .notMatched(let error):
           throw error
         case .needsMoreData:

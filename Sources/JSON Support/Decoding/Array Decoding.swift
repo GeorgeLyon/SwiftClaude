@@ -12,21 +12,24 @@ extension JSON {
     fileprivate var phase: Phase = .decodingArrayStart
   }
 
-  public struct ArrayElement {
-    fileprivate init() {}
+  public enum ArrayElementHeader {
+    case elementHeader
   }
 
 }
 
 extension JSON.DecodingStream {
 
-  public mutating func decodeArrayElement(
+  public mutating func decodeArrayElementHeader(
     _ state: inout JSON.ArrayDecodingState
-  ) throws -> JSON.DecodingResult<JSON.ArrayElement?> {
+  ) throws -> JSON.DecodingResult<JSON.ArrayElementHeader?> {
     switch state.phase {
     case .decodingArrayStart:
-      state.phase = .decodingElements
-      return try decodeArrayUpToFirstElement()
+      let result = try decodeArrayUpToFirstElement()
+      if case .decoded = result {
+        state.phase = .decodingElements
+      }
+      return result
 
     case .decodingElements:
       return try decodeArrayUpToNextElement()
@@ -34,7 +37,7 @@ extension JSON.DecodingStream {
   }
 
   mutating func decodeArrayUpToFirstElement() throws
-    -> JSON.DecodingResult<JSON.ArrayElement?>
+    -> JSON.DecodingResult<JSON.ArrayElementHeader?>
   {
     readWhitespace()
 
@@ -55,9 +58,9 @@ extension JSON.DecodingStream {
       }
       switch isEmpty {
       case .matched:
-        return .decoded(nil)
+        return .decoded(.none)
       case .notMatched:
-        return .decoded(JSON.ArrayElement())
+        return .decoded(.elementHeader)
       case .needsMoreData:
         /// Restore to start so we don't need to keep track of the fact that we've read "["
         restore(start)
@@ -67,7 +70,7 @@ extension JSON.DecodingStream {
   }
 
   mutating func decodeArrayUpToNextElement() throws
-    -> JSON.DecodingResult<JSON.ArrayElement?>
+    -> JSON.DecodingResult<JSON.ArrayElementHeader?>
   {
     readWhitespace()
 
@@ -86,7 +89,7 @@ extension JSON.DecodingStream {
     case .needsMoreData:
       return .needsMoreData
     case .decoded(let isComplete):
-      return .decoded(isComplete ? nil : JSON.ArrayElement())
+      return .decoded(isComplete ? .none : .elementHeader)
     }
   }
 
