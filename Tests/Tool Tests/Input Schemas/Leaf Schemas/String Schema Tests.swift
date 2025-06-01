@@ -10,7 +10,7 @@ struct StringSchemaTests {
     #expect(
       ToolInput.schema(representing: String.self).schemaJSON == """
         {
-          "type" : "string"
+          "type":"string"
         }
         """
     )

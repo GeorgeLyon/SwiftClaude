@@ -283,7 +283,8 @@ private struct OptionalSchema<WrappedSchema: ToolInput.Schema>: OptionalSchemaPr
               if wrappedSchema.mayAcceptNullValue {
                 /// If the wrapped schema may accept a null value, we use a non-nullable wrappper object to encode it.
                 stream.encodeObject { encoder in
-                  encoder.encodeProperty(name: "type") { $0.encode("object") }
+                  /// This is implied by `properties`
+                  // encoder.encodeProperty(name: "type") { $0.encode("object") }
                   encoder.encodeProperty(name: "properties") { encoder in
                     encoder.encodeObject { encoder in
                       encoder.encodeProperty(name: "value") { stream in

@@ -11,7 +11,7 @@ struct OptionalSchemaTests {
     #expect(
       ToolInput.schema(representing: String?.self).schemaJSON == """
         {
-          "type" : [
+          "type":[
             "null",
             "string"
           ]
@@ -23,7 +23,7 @@ struct OptionalSchemaTests {
     #expect(
       ToolInput.schema(representing: Int?.self).schemaJSON == """
         {
-          "type" : [
+          "type":[
             "null",
             "integer"
           ]
@@ -35,7 +35,7 @@ struct OptionalSchemaTests {
     #expect(
       ToolInput.schema(representing: Bool?.self).schemaJSON == """
         {
-          "type" : [
+          "type":[
             "null",
             "boolean"
           ]
@@ -51,13 +51,13 @@ struct OptionalSchemaTests {
     #expect(
       arraySchema.schemaJSON == """
         {
-          "oneOf" : [
+          "oneOf":[
             {
-              "type" : "null"
+              "type":"null"
             },
             {
-              "items" : {
-                "type" : "string"
+              "items":{
+                "type":"string"
               }
             }
           ]
@@ -69,14 +69,14 @@ struct OptionalSchemaTests {
     #expect(
       nestedOptionalSchema.schemaJSON == """
         {
-          "oneOf" : [
+          "oneOf":[
             {
-              "type" : "null"
+              "type":"null"
             },
             {
-              "properties" : {
-                "value" : {
-                  "type" : [
+              "properties":{
+                "value":{
+                  "type":[
                     "null",
                     "string"
                   ]

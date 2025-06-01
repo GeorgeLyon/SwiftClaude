@@ -55,46 +55,46 @@ struct EnumToolInputTests {
     #expect(
       schema.schemaJSON == """
         {
-          "description" : "A enum with multiple cases",
-          "properties" : {
-            "first" : {
-              "description" : "A string",
-              "type" : "string"
+          "description":"A enum with multiple cases",
+          "properties":{
+            "first":{
+              "description":"A string",
+              "type":"string"
             },
-            "continue" : {
-              "type" : "integer"
+            "continue":{
+              "type":"integer"
             },
-            "third" : {
-              "prefixItems" : [
+            "third":{
+              "prefixItems":[
                 {
-                  "type" : "string"
+                  "type":"string"
                 },
                 {
-                  "description" : "x",
-                  "type" : "integer"
+                  "description":"x",
+                  "type":"integer"
                 }
               ]
             },
-            "fourth" : {
-              "properties" : {
-                "x" : {
-                  "type" : "string"
+            "fourth":{
+              "properties":{
+                "x":{
+                  "type":"string"
                 },
-                "y" : {
-                  "type" : "integer"
+                "y":{
+                  "type":"integer"
                 }
               },
-              "required" : [
+              "required":[
                 "x",
                 "y"
               ]
             },
-            "fifth" : {
-              "type" : "null"
+            "fifth":{
+              "type":"null"
             }
           },
-          "minProperties" : 1,
-          "maxProperties" : 1
+          "minProperties":1,
+          "maxProperties":1
         }
         """
     )
@@ -139,8 +139,8 @@ struct EnumToolInputTests {
     #expect(
       schema.schemaJSON == """
         {
-          "description" : "A simple string-based enum",
-          "enum" : [
+          "description":"A simple string-based enum",
+          "enum":[
             "one",
             "two",
             "three"
@@ -177,8 +177,8 @@ struct EnumToolInputTests {
     #expect(
       schema.schemaJSON == """
         {
-          "description" : "An integer-based enum",
-          "enum" : [
+          "description":"An integer-based enum",
+          "enum":[
             0,
             1,
             2
@@ -215,8 +215,8 @@ struct EnumToolInputTests {
     #expect(
       schema.schemaJSON == """
         {
-          "description" : "An enum with only one case\\nThe only case",
-          "type" : "string"
+          "description":"An enum with only one case\\nThe only case",
+          "type":"string"
         }
         """
     )
@@ -249,8 +249,8 @@ struct EnumToolInputTests {
     #expect(
       schema.schemaJSON == """
         {
-          "description" : "A simple enum",
-          "enum" : [
+          "description":"A simple enum",
+          "enum":[
             "one",
             "two",
             "three"

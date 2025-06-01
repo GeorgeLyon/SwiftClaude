@@ -10,7 +10,7 @@ struct NumberSchemaTests {
     #expect(
       ToolInput.schema(representing: Double.self).schemaJSON == """
         {
-          "type" : "number"
+          "type":"number"
         }
         """
     )

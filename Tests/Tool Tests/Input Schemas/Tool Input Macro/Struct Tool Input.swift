@@ -29,21 +29,21 @@ struct StructToolInputTests {
     #expect(
       schema.schemaJSON == """
         {
-          "description" : "A person object",
-          "properties" : {
-            "name" : {
-              "type" : "string"
+          "description":"A person object",
+          "properties":{
+            "name":{
+              "type":"string"
             },
-            "age" : {
-              "description" : "The person's age",
-              "type" : "integer"
+            "age":{
+              "description":"The person's age",
+              "type":"integer"
             },
-            "isActive" : {
-              "description" : "Whether the person is active",
-              "type" : "boolean"
+            "isActive":{
+              "description":"Whether the person is active",
+              "type":"boolean"
             }
           },
-          "required" : [
+          "required":[
             "name",
             "age"
           ]
