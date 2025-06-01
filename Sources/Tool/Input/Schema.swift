@@ -23,11 +23,13 @@ public enum ToolInput {
 
     func encodeSchemaDefinition(to encoder: SchemaEncoder<Self>) throws
 
-    func encodeSchemaDefinition(to encoder: inout NewSchemaEncoder<Self>)
-
     func encode(_ value: Value, to encoder: Encoder<Self>) throws
 
     func decodeValue(from decoder: Decoder<Self>) throws -> Value
+
+    func encodeSchemaDefinition(to encoder: inout NewSchemaEncoder<Self>)
+
+    func decodeValue(from decoder: inout NewDecoder<Self>) async throws -> Value
 
   }
 
@@ -50,7 +52,7 @@ extension ToolInput {
     func contextualDescription(_ description: String?) -> String? {
       combineDescriptions(descriptionPrefix, description, descriptionSuffix)
     }
-    
+
     mutating func withMapped<T>(
       _ body: (inout NewSchemaEncoder<T>) -> Void
     ) {
@@ -119,6 +121,16 @@ extension ToolInput {
     func map<T>(_ type: T.Type = T.self) -> Decoder<T> {
       Decoder<T>(wrapped: wrapped)
     }
+  }
+
+  public struct NewDecoder<Schema>: ~Copyable {
+
+    mutating func decode<T>(
+      _ body: (inout JSON.DecodingStream) throws -> JSON.DecodingResult<T>
+    ) async throws -> T {
+      fatalError()
+    }
+
   }
 
 }

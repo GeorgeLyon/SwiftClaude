@@ -78,11 +78,11 @@ extension JSON.DecodingStream {
             case .needsMoreData:
               restore(start)
               return .needsMoreData
-            case .decodingElement:
+            case .decoded(true):
               state.nesting.append(.array)
               state.phase = .decodingValue
               continue
-            case .complete:
+            case .decoded(false):
               break
             }
           case .object:
@@ -90,11 +90,11 @@ extension JSON.DecodingStream {
             case .needsMoreData:
               restore(start)
               return .needsMoreData
-            case .decodingPropertyValue:
+            case .decoded(.some):
               state.nesting.append(.object)
               state.phase = .decodingValue
               continue
-            case .complete:
+            case .decoded(.none):
               break
             }
           }
@@ -112,10 +112,10 @@ extension JSON.DecodingStream {
         switch try decodeArrayUpToNextElement() {
         case .needsMoreData:
           return .needsMoreData
-        case .decodingElement:
+        case .decoded(true):
           state.phase = .decodingValue
           continue
-        case .complete:
+        case .decoded(false):
           let nesting = state.nesting.popLast()
           assert(nesting == .array)
           break
@@ -125,10 +125,10 @@ extension JSON.DecodingStream {
         switch try decodeObjectUpToNextPropertyValue() {
         case .needsMoreData:
           return .needsMoreData
-        case .decodingPropertyValue:
+        case .decoded(.some):
           state.phase = .decodingValue
           continue
-        case .complete:
+        case .decoded(.none):
           let nesting = state.nesting.popLast()
           assert(nesting == .object)
           break

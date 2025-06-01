@@ -1,20 +1,37 @@
 extension JSON {
 
-  public enum ArrayDecodingState {
-    case needsMoreData
+  public struct ArrayDecodingState {
+    public init() {
 
-    /// The read cursor has been advanced to the start of the next element in the array
-    case decodingElement
+    }
 
-    /// The array is complete
-    case complete
+    fileprivate enum Phase {
+      case decodingArrayStart
+      case decodingElements
+    }
+    fileprivate var phase: Phase = .decodingArrayStart
   }
 
 }
 
 extension JSON.DecodingStream {
 
-  public mutating func decodeArrayUpToFirstElement() throws -> JSON.ArrayDecodingState {
+  public mutating func decodeArrayElement(
+    _ state: inout JSON.ArrayDecodingState
+  ) throws -> JSON.DecodingResult<Bool> {
+    switch state.phase {
+    case .decodingArrayStart:
+      state.phase = .decodingElements
+      return try decodeArrayUpToFirstElement()
+
+    case .decodingElements:
+      return try decodeArrayUpToNextElement()
+    }
+  }
+
+  mutating func decodeArrayUpToFirstElement() throws
+    -> JSON.DecodingResult<Bool>
+  {
     readWhitespace()
 
     let start = createCheckpoint()
@@ -34,9 +51,9 @@ extension JSON.DecodingStream {
       }
       switch isEmpty {
       case .matched:
-        return .complete
+        return .decoded(false)
       case .notMatched:
-        return .decodingElement
+        return .decoded(true)
       case .needsMoreData:
         /// Restore to start so we don't need to keep track of the fact that we've read "["
         restore(start)
@@ -45,7 +62,9 @@ extension JSON.DecodingStream {
     }
   }
 
-  public mutating func decodeArrayUpToNextElement() throws -> JSON.ArrayDecodingState {
+  mutating func decodeArrayUpToNextElement() throws
+    -> JSON.DecodingResult<Bool>
+  {
     readWhitespace()
 
     let isComplete = try readCharacter { character in
@@ -63,7 +82,7 @@ extension JSON.DecodingStream {
     case .needsMoreData:
       return .needsMoreData
     case .decoded(let isComplete):
-      return isComplete ? .complete : .decodingElement
+      return .decoded(!isComplete)
     }
   }
 

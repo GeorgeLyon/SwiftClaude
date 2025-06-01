@@ -1,20 +1,41 @@
 extension JSON {
 
-  public enum ObjectDecodingState {
-    case needsMoreData
+  public struct ObjectDecodingState {
+    public init() {
 
-    /// The read cursor has been advanced to the start of the property value
-    case decodingPropertyValue(name: Substring)
+    }
 
-    /// The object is complete
-    case complete
+    fileprivate enum Phase {
+      case decodingObjectStart
+      case decodingProperties
+    }
+    fileprivate var phase: Phase = .decodingObjectStart
+  }
+
+  public struct ObjectProperty {
+    public let name: Substring
   }
 
 }
 
 extension JSON.DecodingStream {
 
-  public mutating func decodeObjectUpToFirstPropertyValue() throws -> JSON.ObjectDecodingState {
+  public mutating func decodeObjectProperty(
+    _ state: inout JSON.ObjectDecodingState
+  ) throws -> JSON.DecodingResult<JSON.ObjectProperty?> {
+    switch state.phase {
+    case .decodingObjectStart:
+      state.phase = .decodingProperties
+      return try decodeObjectUpToFirstPropertyValue()
+
+    case .decodingProperties:
+      return try decodeObjectUpToNextPropertyValue()
+    }
+  }
+
+  mutating func decodeObjectUpToFirstPropertyValue() throws
+    -> JSON.DecodingResult<JSON.ObjectProperty?>
+  {
     readWhitespace()
 
     let start = createCheckpoint()
@@ -36,11 +57,11 @@ extension JSON.DecodingStream {
 
       switch isEmpty {
       case .matched:
-        return .complete
+        return .decoded(nil)
       case .notMatched:
         switch readNextPropertyName() {
         case .matched(let name):
-          return .decodingPropertyValue(name: name)
+          return .decoded(JSON.ObjectProperty(name: name))
         case .notMatched(let error):
           throw error
         case .needsMoreData:
@@ -54,7 +75,9 @@ extension JSON.DecodingStream {
     }
   }
 
-  public mutating func decodeObjectUpToNextPropertyValue() throws -> JSON.ObjectDecodingState {
+  mutating func decodeObjectUpToNextPropertyValue() throws
+    -> JSON.DecodingResult<JSON.ObjectProperty?>
+  {
     readWhitespace()
 
     let start = createCheckpoint()
@@ -76,11 +99,11 @@ extension JSON.DecodingStream {
       return .needsMoreData
     case .decoded(let isComplete):
       if isComplete {
-        return .complete
+        return .decoded(nil)
       } else {
         switch readNextPropertyName() {
         case .matched(let name):
-          return .decodingPropertyValue(name: name)
+          return .decoded(JSON.ObjectProperty(name: name))
         case .notMatched(let error):
           throw error
         case .needsMoreData:

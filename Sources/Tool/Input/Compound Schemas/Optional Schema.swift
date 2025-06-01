@@ -368,6 +368,19 @@ private struct OptionalSchema<WrappedSchema: ToolInput.Schema>: OptionalSchemaPr
     }
   }
 
+  func decodeValue(from decoder: inout ToolInput.NewDecoder<Self>) async throws -> WrappedSchema
+    .Value?
+  {
+    if wrappedSchema.mayAcceptNullValue {
+      let state = try await decoder.decode { stream in
+        try stream.decodeObjectUpToFirstPropertyValue()
+      }
+      switch state {
+      case .isComplete:
+      }
+    }
+  }
+
   var valueWhenOmitted: Value { nil }
 
   func shouldOmit(_ value: Value) -> Bool {
