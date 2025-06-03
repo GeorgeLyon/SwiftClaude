@@ -258,8 +258,8 @@ private struct ArrayTests {
 
       let secondNumber = try stream.decodeNumber().getValue()
       #expect(secondNumber.integerPart == "2")
-
-      result = try stream.decodeArrayUpToNextElement()
+      
+      result = try stream.decodeArrayElementHeader(&state)
       #expect(result.isComplete)
     }
 
@@ -269,7 +269,7 @@ private struct ArrayTests {
       stream.push("[\"hel")
 
       var state = JSON.ArrayDecodingState()
-      var result = try stream.decodeArrayElementHeader(&state)
+      let result = try stream.decodeArrayElementHeader(&state)
       #expect(result.isElementHeader)
 
       do {
@@ -286,9 +286,6 @@ private struct ArrayTests {
         }
         #expect(state.isComplete)
       }
-
-      result = try stream.decodeArrayUpToNextElement()
-      #expect(result.isComplete)
     }
   }
 
@@ -321,7 +318,7 @@ private struct ArrayTests {
       stream.finish()
 
       // Should complete after the closing bracket
-      result = try stream.decodeArrayUpToNextElement()
+      result = try stream.decodeArrayElementHeader(&state)
       #expect(result.isComplete)
 
       #expect(elements == [1, 2, 3])
@@ -342,14 +339,13 @@ private struct ArrayTests {
 
       let first = try stream.decodeNumber().getValue()
       #expect(first.integerPart == "1")
-
-      result = try stream.decodeArrayUpToNextElement()
-      #expect(result.isElementHeader)
+      
+      result = try stream.decodeArrayElementHeader(&state)
 
       let second = try stream.decodeNumber().getValue()
       #expect(second.integerPart == "2")
 
-      result = try stream.decodeArrayUpToNextElement()
+      result = try stream.decodeArrayElementHeader(&state)
       #expect(result.isComplete)
     }
 
@@ -365,8 +361,9 @@ private struct ArrayTests {
 
       let number = try stream.decodeNumber().getValue()
       #expect(number.integerPart == "42")
-
-      result = try stream.decodeArrayUpToNextElement()
+      
+      result = try stream.decodeArrayElementHeader(&state)
+      
       #expect(result.isComplete)
     }
   }
@@ -380,7 +377,7 @@ private struct ArrayTests {
 
       // Navigate through 5 levels of nesting
       for _ in 0..<5 {
-        let result = try stream.decodeArrayUpToFirstElement()
+        let result = try stream.readArrayUpToFirstElement().decodingResult()
         #expect(result.isElementHeader)
       }
 
@@ -390,7 +387,7 @@ private struct ArrayTests {
 
       // Close all arrays
       for _ in 0..<5 {
-        let result = try stream.decodeArrayUpToNextElement()
+        let result = try stream.readArrayUpToNextElement().decodingResult()
         #expect(result.isComplete)
       }
     }
