@@ -15,7 +15,7 @@ private struct StringTests {
       stream.push("\"Hello, World!\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["Hello, World!"])
       }
@@ -32,7 +32,7 @@ private struct StringTests {
       var stream = JSON.DecodingStream()
       stream.push("\"Hello, ")
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
 
       /// Trailing space is omitted because the last character can be modified by subsequent characters.
       try stream.withDecodedStringFragments(state: &state) {
@@ -65,7 +65,7 @@ private struct StringTests {
       var stream = JSON.DecodingStream()
       stream.push("\"\"")
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == [])
       }
@@ -87,7 +87,7 @@ private struct StringTests {
       stream.push("\"こんにちは世界\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["こんにちは世界"])
       }
@@ -99,7 +99,7 @@ private struct StringTests {
       var stream = JSON.DecodingStream()
       stream.push("\"こんに")
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["こん"])
       }
@@ -121,7 +121,7 @@ private struct StringTests {
       stream.push("\"\\\"\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["\""])
       }
@@ -134,7 +134,7 @@ private struct StringTests {
       stream.push("\"\\\\\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["\\"])
       }
@@ -147,7 +147,7 @@ private struct StringTests {
       stream.push("\"\\/\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["/"])
       }
@@ -159,7 +159,7 @@ private struct StringTests {
       var stream = JSON.DecodingStream()
       stream.push("\"\\")
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == [])
       }
@@ -181,7 +181,7 @@ private struct StringTests {
       stream.push("\"\\n\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["\n"])
       }
@@ -194,7 +194,7 @@ private struct StringTests {
       stream.push("\"\\t\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["\t"])
       }
@@ -207,7 +207,7 @@ private struct StringTests {
       stream.push("\"\\r\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["\r"])
       }
@@ -220,7 +220,7 @@ private struct StringTests {
       stream.push("\"Line 1\\nLine 2\\tTabbed\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["Line 1", "\n", "Line 2", "\t", "Tabbed"])
       }
@@ -236,7 +236,7 @@ private struct StringTests {
       stream.push("\"\\b\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�"])
       }
@@ -249,7 +249,7 @@ private struct StringTests {
       stream.push("\"\\f\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�"])
       }
@@ -265,7 +265,7 @@ private struct StringTests {
       stream.push("\"\\z\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�"])
       }
@@ -278,7 +278,7 @@ private struct StringTests {
       stream.push("\"\\n\u{0301}\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�"])
       }
@@ -294,7 +294,7 @@ private struct StringTests {
       stream.push("\"\\u0041\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["A"])
       }
@@ -307,7 +307,7 @@ private struct StringTests {
       stream.push("\"\\u00A9\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["©"])
       }
@@ -320,7 +320,7 @@ private struct StringTests {
       stream.push("\"\\u00a9\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["©"])
       }
@@ -333,7 +333,7 @@ private struct StringTests {
       stream.push("\"Copyright \\u00A9 2025\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["Copyright ", "©", " 2025"])
       }
@@ -349,7 +349,7 @@ private struct StringTests {
       stream.push("\"\\u0XYZ\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�", "0XYZ"])
       }
@@ -365,7 +365,7 @@ private struct StringTests {
       stream.push("\"\\uD83D\\uDE00\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["😀"])
       }
@@ -377,7 +377,7 @@ private struct StringTests {
       var stream = JSON.DecodingStream()
       stream.push("\"\\uD83D")
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == [])
       }
@@ -404,7 +404,7 @@ private struct StringTests {
       stream.push("\"\\uD83D\\u00A9\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�", "©"])  // Waiting on the low surrogate
       }
@@ -417,7 +417,7 @@ private struct StringTests {
       stream.push("\"\\uD83D\\uD83D\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�", "�"])
       }
@@ -430,7 +430,7 @@ private struct StringTests {
       stream.push("\"\\uD83D🥸\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�", "🥸"])
       }
@@ -443,7 +443,7 @@ private struct StringTests {
       stream.push("\"\\uD83D\\n\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�", "\n"])
       }
@@ -456,7 +456,7 @@ private struct StringTests {
       stream.push("\"\\uD83D\\uD83D\\uDE00\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�", "😀"])
       }
@@ -472,7 +472,7 @@ private struct StringTests {
       stream.push("\"\\u0000\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["\0"])
       }
@@ -485,7 +485,7 @@ private struct StringTests {
       stream.push("\"Hello\\tWorld\\nNew\\\"Line\\\\Path\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["Hello", "\t", "World", "\n", "New", "\"", "Line", "\\", "Path"])
       }
@@ -500,7 +500,7 @@ private struct StringTests {
       var stream = JSON.DecodingStream()
       stream.push("\"fac\\")
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         /// 'c' gets dropped as it could be modified
         #expect($0 == ["fa"])
@@ -520,7 +520,7 @@ private struct StringTests {
       var stream = JSON.DecodingStream()
       stream.push("\"\\u00")
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == [])
       }
@@ -541,7 +541,7 @@ private struct StringTests {
       var stream = JSON.DecodingStream()
       stream.push("\"\"")
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == [])
       }
@@ -565,7 +565,7 @@ private struct StringTests {
       stream.push("\"\\uDE00\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�"])
       }
@@ -578,7 +578,7 @@ private struct StringTests {
       stream.push("\"\\uDE00Hello\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�", "Hello"])
       }
@@ -591,7 +591,7 @@ private struct StringTests {
       stream.push("\"\\uDE00\\uDE01\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�", "�"])
       }
@@ -604,7 +604,7 @@ private struct StringTests {
       stream.push("\"Hello\\uD83D\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["Hello", "�"])
       }
@@ -620,7 +620,7 @@ private struct StringTests {
       stream.push("\"\\u0\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�", "0"])
       }
@@ -633,7 +633,7 @@ private struct StringTests {
       stream.push("\"\\u00\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�", "00"])
       }
@@ -646,7 +646,7 @@ private struct StringTests {
       stream.push("\"\\u004\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�", "004"])
       }
@@ -659,7 +659,7 @@ private struct StringTests {
       stream.push("\"\\u\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�"])
       }
@@ -674,7 +674,7 @@ private struct StringTests {
       var stream = JSON.DecodingStream()
       stream.push("\"test\\")
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["tes"])  // 't' is dropped because it could be part of escape
       }
@@ -693,7 +693,7 @@ private struct StringTests {
       stream.push("\"\\\\\\\\\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["\\", "\\"])
       }
@@ -706,7 +706,7 @@ private struct StringTests {
       stream.push("\"\\n\\u0041\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["\n", "A"])
       }
@@ -719,7 +719,7 @@ private struct StringTests {
       stream.push("\"\\u0041\\n\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["A", "\n"])
       }
@@ -735,7 +735,7 @@ private struct StringTests {
       stream.push(" \"Hello\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["Hello"])
       }
@@ -748,7 +748,7 @@ private struct StringTests {
       stream.push("   \"World\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["World"])
       }
@@ -761,7 +761,7 @@ private struct StringTests {
       stream.push("\t\"Tab\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["Tab"])
       }
@@ -774,7 +774,7 @@ private struct StringTests {
       stream.push("\n\"Newline\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["Newline"])
       }
@@ -787,7 +787,7 @@ private struct StringTests {
       stream.push(" \t\n\"Mixed\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["Mixed"])
       }
@@ -801,13 +801,13 @@ private struct StringTests {
 
       // Can't decode string start until we have the opening quote
       #expect(throws: Error.self) {
-        _ = try stream.decodeStringStart().getValue()
+        _ = JSON.StringDecodingState()
       }
 
       stream.push("\"Incremental\"")
       stream.finish()
 
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["Incremental"])
       }
@@ -822,15 +822,29 @@ private struct StringTests {
 extension JSON.DecodingStream {
 
   /// Takes a closure since Swift Testing doesn't currently support non-copyable type in `#expect` expressions.
+  @discardableResult
   mutating func withDecodedStringFragments(
     state: inout JSON.StringDecodingState,
     _ body: ([String]) -> Void
-  ) throws {
+  ) throws -> JSON.DecodingResult<JSON.StringComponent> {
     var fragments: [String] = []
-    _ = try decodeStringFragments(state: &state) { decoded in
+    let result = try decodeStringFragments(state: &state) { decoded in
       fragments.append(String(decoded))
     }
     body(fragments)
+    return result
   }
 
+}
+
+extension JSON.DecodingResult where Value == JSON.StringComponent {
+  
+  var isComplete: Bool {
+    if case .decoded(.end) = self {
+      return true
+    } else {
+      return false
+    }
+  }
+  
 }

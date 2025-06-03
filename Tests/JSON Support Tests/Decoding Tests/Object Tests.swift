@@ -13,7 +13,7 @@ private struct ObjectTests {
        stream.finish()
   
        var state = JSON.ObjectDecodingState()
-       let result = try stream.decodeObjectPropertyHeader(&state)
+       let result = try stream.decodeObjectComponent(&state)
        #expect(result.isComplete)
   
        #expect(try stream.readCharacter().decodingResult().getValue() == " ")
@@ -26,7 +26,7 @@ private struct ObjectTests {
        stream.finish()
   
        var state = JSON.ObjectDecodingState()
-       let result = try stream.decodeObjectPropertyHeader(&state)
+       let result = try stream.decodeObjectComponent(&state)
        #expect(result.isComplete)
      }
    }
@@ -42,18 +42,18 @@ private struct ObjectTests {
        var properties: [(key: String, value: String)] = []
   
        var state = JSON.ObjectDecodingState()
-       var result = try stream.decodeObjectPropertyHeader(&state)
+       var result = try stream.decodeObjectComponent(&state)
   
-       while case .decoded(let property?) = result {
+       while case .decoded(.propertyValueStart(let name)) = result {
          // Decode value
-         var valueState = try stream.decodeStringStart().getValue()
+         var valueState = JSON.StringDecodingState()
          var valueFragments: [String] = []
          try stream.decodeStringFragments(state: &valueState) { fragment in
            valueFragments.append(String(fragment))
          }
-         properties.append((key: String(property.name), value: valueFragments.joined()))
+         properties.append((key: String(name), value: valueFragments.joined()))
   
-         result = try stream.decodeObjectPropertyHeader(&state)
+         result = try stream.decodeObjectComponent(&state)
        }
   
        #expect(result.isComplete)
@@ -72,12 +72,12 @@ private struct ObjectTests {
        var properties: [(key: String, value: JSON.Number)] = []
   
        var state = JSON.ObjectDecodingState()
-       var result = try stream.decodeObjectPropertyHeader(&state)
+       var result = try stream.decodeObjectComponent(&state)
   
-       while case .decoded(let property?) = result {
+       while case .decoded(.propertyValueStart(let name)) = result {
          let number = try stream.decodeNumber().getValue()
-         properties.append((key: String(property.name), value: number))
-         result = try stream.decodeObjectPropertyHeader(&state)
+         properties.append((key: String(name), value: number))
+         result = try stream.decodeObjectComponent(&state)
        }
   
        #expect(result.isComplete)
@@ -100,12 +100,12 @@ private struct ObjectTests {
        var properties: [(key: String, value: Bool)] = []
   
        var state = JSON.ObjectDecodingState()
-       var result = try stream.decodeObjectPropertyHeader(&state)
+       var result = try stream.decodeObjectComponent(&state)
   
-       while case .decoded(let property?) = result {
+       while case .decoded(.propertyValueStart(let name)) = result {
          let boolean = try stream.decodeBoolean().getValue()
-         properties.append((key: String(property.name), value: boolean))
-         result = try stream.decodeObjectPropertyHeader(&state)
+         properties.append((key: String(name), value: boolean))
+         result = try stream.decodeObjectComponent(&state)
        }
   
        #expect(result.isComplete)
@@ -124,12 +124,12 @@ private struct ObjectTests {
        var nullProperties: [String] = []
   
        var state = JSON.ObjectDecodingState()
-       var result = try stream.decodeObjectPropertyHeader(&state)
+       var result = try stream.decodeObjectComponent(&state)
   
-       while case .decoded(let property?) = result {
+       while case .decoded(.propertyValueStart(let name)) = result {
          _ = try stream.decodeNull().getValue()
-         nullProperties.append(String(property.name))
-         result = try stream.decodeObjectPropertyHeader(&state)
+         nullProperties.append(String(name))
+         result = try stream.decodeObjectComponent(&state)
        }
   
        #expect(result.isComplete)
@@ -148,30 +148,30 @@ private struct ObjectTests {
        var properties: [(key: String, nestedProps: [(key: String, value: String)])] = []
   
        var state = JSON.ObjectDecodingState()
-       var result = try stream.decodeObjectPropertyHeader(&state)
+       var result = try stream.decodeObjectComponent(&state)
   
-       while case .decoded(let property?) = result {
+       while case .decoded(.propertyValueStart(let name)) = result {
          var nestedProps: [(key: String, value: String)] = []
   
          var nestedState = JSON.ObjectDecodingState()
-         var nestedResult = try stream.decodeObjectPropertyHeader(&nestedState)
-         while case .decoded(let nestedProperty?) = nestedResult {
-           if nestedProperty.name == "age" {
+         var nestedResult = try stream.decodeObjectComponent(&nestedState)
+         while case .decoded(.propertyValueStart(let nestedName)) = nestedResult {
+           if nestedName == "age" {
              let number = try stream.decodeNumber().getValue()
-             nestedProps.append((key: String(nestedProperty.name), value: String(number.integerPart)))
+             nestedProps.append((key: String(nestedName), value: String(number.integerPart)))
            } else {
-             var stringState = try stream.decodeStringStart().getValue()
+             var stringState = JSON.StringDecodingState()
              var fragments: [String] = []
-             try stream.decodeStringFragments(state: &stringState) { fragment in
+             _ = try stream.decodeStringFragments(state: &stringState) { fragment in
                fragments.append(String(fragment))
              }
-             nestedProps.append((key: String(nestedProperty.name), value: fragments.joined()))
+             nestedProps.append((key: String(nestedName), value: fragments.joined()))
            }
-           nestedResult = try stream.decodeObjectPropertyHeader(&nestedState)
+           nestedResult = try stream.decodeObjectComponent(&nestedState)
          }
   
-         properties.append((key: String(property.name), nestedProps: nestedProps))
-         result = try stream.decodeObjectPropertyHeader(&state)
+         properties.append((key: String(name), nestedProps: nestedProps))
+         result = try stream.decodeObjectComponent(&state)
        }
   
        #expect(result.isComplete)
@@ -195,38 +195,38 @@ private struct ObjectTests {
        stream.finish()
   
        var state = JSON.ObjectDecodingState()
-       var result = try stream.decodeObjectPropertyHeader(&state)
+       var result = try stream.decodeObjectComponent(&state)
   
        // First property: number
        #expect(result.propertyName == "count")
        let number1 = try stream.decodeNumber().getValue()
        #expect(number1.integerPart == "42")
   
-       result = try stream.decodeObjectPropertyHeader(&state)
+       result = try stream.decodeObjectComponent(&state)
   
        // Second property: string
        #expect(result.propertyName == "name")
-       var stringState = try stream.decodeStringStart().getValue()
+       var stringState = JSON.StringDecodingState()
        var fragments: [String] = []
-       try stream.decodeStringFragments(state: &stringState) { fragment in
+       _ = try stream.decodeStringFragments(state: &stringState) { fragment in
          fragments.append(String(fragment))
        }
        #expect(fragments.joined() == "test")
   
-       result = try stream.decodeObjectPropertyHeader(&state)
+       result = try stream.decodeObjectComponent(&state)
   
        // Third property: boolean
        #expect(result.propertyName == "active")
        let boolean = try stream.decodeBoolean().getValue()
        #expect(boolean == true)
   
-       result = try stream.decodeObjectPropertyHeader(&state)
+       result = try stream.decodeObjectComponent(&state)
   
        // Fourth property: null
        #expect(result.propertyName == "data")
        _ = try stream.decodeNull().getValue()
   
-       result = try stream.decodeObjectPropertyHeader(&state)
+       result = try stream.decodeObjectComponent(&state)
   
        // Fifth property: decimal number
        #expect(result.propertyName == "price")
@@ -234,7 +234,7 @@ private struct ObjectTests {
        #expect(decimal.integerPart == "19")
        #expect(decimal.fractionalPart == "99")
   
-       result = try stream.decodeObjectPropertyHeader(&state)
+       result = try stream.decodeObjectComponent(&state)
        #expect(result.isComplete)
      }
    }
@@ -250,13 +250,13 @@ private struct ObjectTests {
        var properties: [(key: String, value: Int)] = []
   
        var state = JSON.ObjectDecodingState()
-       var result = try stream.decodeObjectPropertyHeader(&state)
+       var result = try stream.decodeObjectComponent(&state)
   
-       while case .decoded(let property?) = result {
+       while case .decoded(.propertyValueStart(let name)) = result {
          let number = try stream.decodeNumber().getValue()
          let intValue = try number.decode(as: Int.self)
-         properties.append((key: String(property.name), value: intValue))
-         result = try stream.decodeObjectPropertyHeader(&state)
+         properties.append((key: String(name), value: intValue))
+         result = try stream.decodeObjectComponent(&state)
        }
   
        #expect(result.isComplete)
@@ -273,13 +273,13 @@ private struct ObjectTests {
        var properties: [(key: String, value: Int)] = []
   
        var state = JSON.ObjectDecodingState()
-       var result = try stream.decodeObjectPropertyHeader(&state)
+       var result = try stream.decodeObjectComponent(&state)
   
-       while case .decoded(let property?) = result {
+       while case .decoded(.propertyValueStart(let name)) = result {
          let number = try stream.decodeNumber().getValue()
          let intValue = try number.decode(as: Int.self)
-         properties.append((key: String(property.name), value: intValue))
-         result = try stream.decodeObjectPropertyHeader(&state)
+         properties.append((key: String(name), value: intValue))
+         result = try stream.decodeObjectComponent(&state)
        }
   
        #expect(result.isComplete)
@@ -296,15 +296,15 @@ private struct ObjectTests {
        stream.push("{")
   
        var state = JSON.ObjectDecodingState()
-       var result = try stream.decodeObjectPropertyHeader(&state)
+       var result = try stream.decodeObjectComponent(&state)
        #expect(result.needsMoreData)
   
        stream.push("\"ke")
-       result = try stream.decodeObjectPropertyHeader(&state)
+       result = try stream.decodeObjectComponent(&state)
        #expect(result.needsMoreData)
   
        stream.push("y1\": 4")
-       result = try stream.decodeObjectPropertyHeader(&state)
+       result = try stream.decodeObjectComponent(&state)
   
        #expect(result.propertyName == "key1")
   
@@ -315,31 +315,31 @@ private struct ObjectTests {
        let firstNumber = try stream.decodeNumber().getValue()
        #expect(firstNumber.integerPart == "42")
   
-       result = try stream.decodeObjectPropertyHeader(&state)
+       result = try stream.decodeObjectComponent(&state)
        #expect(result.needsMoreData)
   
        stream.push("\"key2\": \"val")
-       result = try stream.decodeObjectPropertyHeader(&state)
+       result = try stream.decodeObjectComponent(&state)
   
        #expect(result.propertyName == "key2")
   
-       var stringState = try stream.decodeStringStart().getValue()
+       var stringState = JSON.StringDecodingState()
        var collectedFragments: [String] = []
-       try stream.decodeStringFragments(state: &stringState) { fragment in
+       var stringResult = try stream.decodeStringFragments(state: &stringState) { fragment in
          collectedFragments.append(String(fragment))
        }
-       #expect(!stringState.isComplete)  // String is not complete yet
+       #expect(!stringResult.isComplete)  // String is not complete yet
   
        stream.push("ue\"}")
        stream.finish()
   
-       try stream.decodeStringFragments(state: &stringState) { fragment in
+       stringResult = try stream.decodeStringFragments(state: &stringState) { fragment in
          collectedFragments.append(String(fragment))
        }
        #expect(collectedFragments.joined() == "value")
-       #expect(stringState.isComplete)
+       #expect(stringResult.isComplete)
   
-       result = try stream.decodeObjectPropertyHeader(&state)
+       result = try stream.decodeObjectComponent(&state)
        #expect(result.isComplete)
      }
    }
@@ -353,19 +353,19 @@ private struct ObjectTests {
        stream.finish()
   
        var state = JSON.ObjectDecodingState()
-       var result = try stream.decodeObjectPropertyHeader(&state)
+       var result = try stream.decodeObjectComponent(&state)
        #expect(result.propertyName == "x")
   
        let first = try stream.decodeNumber().getValue()
        #expect(first.integerPart == "1")
   
-       result = try stream.decodeObjectPropertyHeader(&state)
+       result = try stream.decodeObjectComponent(&state)
        #expect(result.propertyName == "y")
   
        let second = try stream.decodeNumber().getValue()
        #expect(second.integerPart == "2")
   
-       result = try stream.decodeObjectPropertyHeader(&state)
+       result = try stream.decodeObjectComponent(&state)
        #expect(result.isComplete)
      }
   
@@ -376,13 +376,13 @@ private struct ObjectTests {
        stream.finish()
   
        var state = JSON.ObjectDecodingState()
-       var result = try stream.decodeObjectPropertyHeader(&state)
+       var result = try stream.decodeObjectComponent(&state)
        #expect(result.propertyName == "value")
   
        let number = try stream.decodeNumber().getValue()
        #expect(number.integerPart == "42")
   
-       result = try stream.decodeObjectPropertyHeader(&state)
+       result = try stream.decodeObjectComponent(&state)
        #expect(result.isComplete)
      }
    }
@@ -400,7 +400,7 @@ private struct ObjectTests {
        for level in ["a", "b", "c", "d", "e"] {
          let state = JSON.ObjectDecodingState()
          states.append(state)
-         let result = try stream.decodeObjectPropertyHeader(&states[states.count - 1])
+         let result = try stream.decodeObjectComponent(&states[states.count - 1])
          #expect(result.propertyName! == level)
   
          if level == "e" {
@@ -412,7 +412,7 @@ private struct ObjectTests {
   
        // Close all objects
        for i in (0..<5).reversed() {
-         let result = try stream.decodeObjectPropertyHeader(&states[i])
+         let result = try stream.decodeObjectComponent(&states[i])
          #expect(result.isComplete)
        }
      }
@@ -426,7 +426,7 @@ private struct ObjectTests {
        stream.finish()
   
        var state = JSON.ObjectDecodingState()
-       var result = try stream.decodeObjectPropertyHeader(&state)
+       var result = try stream.decodeObjectComponent(&state)
   
        // First property: array of numbers
        #expect(result.propertyName == "numbers")
@@ -434,14 +434,14 @@ private struct ObjectTests {
        var numbers: [Int] = []
        var arrayState = JSON.ArrayDecodingState()
   
-       while case .decoded(.some) = try stream.decodeArrayElementHeader(&arrayState) {
+       while case .decoded(.elementStart) = try stream.decodeArrayComponent(&arrayState) {
          let number = try stream.decodeNumber().getValue()
          let intValue = try number.decode(as: Int.self)
          numbers.append(intValue)
        }
        #expect(numbers == [1, 2, 3])
   
-       result = try stream.decodeObjectPropertyHeader(&state)
+       result = try stream.decodeObjectComponent(&state)
   
        // Second property: array of strings
        #expect(result.propertyName == "names")
@@ -449,17 +449,17 @@ private struct ObjectTests {
        var names: [String] = []
        var arrayState2 = JSON.ArrayDecodingState()
   
-       while case .decoded(.some) = try stream.decodeArrayElementHeader(&arrayState2) {
-         var stringState = try stream.decodeStringStart().getValue()
+       while case .decoded(.elementStart) = try stream.decodeArrayComponent(&arrayState2) {
+         var stringState = JSON.StringDecodingState()
          var fragments: [String] = []
-         try stream.decodeStringFragments(state: &stringState) { fragment in
+         _ = try stream.decodeStringFragments(state: &stringState) { fragment in
            fragments.append(String(fragment))
          }
          names.append(fragments.joined())
        }
        #expect(names == ["Alice", "Bob"])
   
-       result = try stream.decodeObjectPropertyHeader(&state)
+       result = try stream.decodeObjectComponent(&state)
        #expect(result.isComplete)
      }
    }
@@ -472,13 +472,13 @@ private struct ObjectTests {
        stream.push("{")
   
        var state = JSON.ObjectDecodingState()
-       var result = try stream.decodeObjectPropertyHeader(&state)
+       var result = try stream.decodeObjectComponent(&state)
        #expect(result.needsMoreData)
   
        stream.push("}")
        stream.finish()
   
-       result = try stream.decodeObjectPropertyHeader(&state)
+       result = try stream.decodeObjectComponent(&state)
        #expect(result.isComplete)
      }
   
@@ -488,19 +488,19 @@ private struct ObjectTests {
        stream.push("{\"pro")
   
        var state = JSON.ObjectDecodingState()
-       var result = try stream.decodeObjectPropertyHeader(&state)
+       var result = try stream.decodeObjectComponent(&state)
        #expect(result.needsMoreData)
   
        stream.push("perty\": 42}")
        stream.finish()
   
-       result = try stream.decodeObjectPropertyHeader(&state)
+       result = try stream.decodeObjectComponent(&state)
        #expect(result.propertyName == "property")
   
        let number = try stream.decodeNumber().getValue()
        #expect(number.integerPart == "42")
   
-       result = try stream.decodeObjectPropertyHeader(&state)
+       result = try stream.decodeObjectComponent(&state)
        #expect(result.isComplete)
      }
   
@@ -510,23 +510,23 @@ private struct ObjectTests {
        stream.push("{\"key\"")
   
        var state = JSON.ObjectDecodingState()
-       var result = try stream.decodeObjectPropertyHeader(&state)
+       var result = try stream.decodeObjectComponent(&state)
        #expect(result.needsMoreData)
   
        stream.push(": \"value\"}")
        stream.finish()
   
-       result = try stream.decodeObjectPropertyHeader(&state)
+       result = try stream.decodeObjectComponent(&state)
        #expect(result.propertyName == "key")
   
-       var stringState = try stream.decodeStringStart().getValue()
+       var stringState = JSON.StringDecodingState()
        var fragments: [String] = []
        try stream.decodeStringFragments(state: &stringState) { fragment in
          fragments.append(String(fragment))
        }
        #expect(fragments.joined() == "value")
   
-       result = try stream.decodeObjectPropertyHeader(&state)
+       result = try stream.decodeObjectComponent(&state)
        #expect(result.isComplete)
      }
   
@@ -536,25 +536,25 @@ private struct ObjectTests {
        stream.push("{\"a\": 1, ")
   
        var state = JSON.ObjectDecodingState()
-       var result = try stream.decodeObjectPropertyHeader(&state)
+       var result = try stream.decodeObjectComponent(&state)
        #expect(result.propertyName == "a")
   
        let first = try stream.decodeNumber().getValue()
        #expect(first.integerPart == "1")
   
-       result = try stream.decodeObjectPropertyHeader(&state)
+       result = try stream.decodeObjectComponent(&state)
        #expect(result.needsMoreData)
   
        stream.push(" \"b\": 2}")
        stream.finish()
   
-       result = try stream.decodeObjectPropertyHeader(&state)
+       result = try stream.decodeObjectComponent(&state)
        #expect(result.propertyName == "b")
   
        let second = try stream.decodeNumber().getValue()
        #expect(second.integerPart == "2")
   
-       result = try stream.decodeObjectPropertyHeader(&state)
+       result = try stream.decodeObjectComponent(&state)
        #expect(result.isComplete)
      }
   
@@ -564,11 +564,11 @@ private struct ObjectTests {
        stream.push("{ \"a\" ")
   
        var state = JSON.ObjectDecodingState()
-       var result = try stream.decodeObjectPropertyHeader(&state)
+       var result = try stream.decodeObjectComponent(&state)
        #expect(result.needsMoreData)
   
        stream.push(" : ")
-       result = try stream.decodeObjectPropertyHeader(&state)
+       result = try stream.decodeObjectComponent(&state)
        #expect(!result.needsMoreData)
        #expect(result.propertyName == "a")
   
@@ -576,19 +576,19 @@ private struct ObjectTests {
        let number = try stream.decodeNumber().getValue()
        #expect(number.integerPart == "1")
   
-       result = try stream.decodeObjectPropertyHeader(&state)
+       result = try stream.decodeObjectComponent(&state)
        #expect(result.needsMoreData)
   
        stream.push(" , \"b\" : 2 }")
        stream.finish()
   
-       result = try stream.decodeObjectPropertyHeader(&state)
+       result = try stream.decodeObjectComponent(&state)
        #expect(result.propertyName == "b")
   
        let second = try stream.decodeNumber().getValue()
        #expect(second.integerPart == "2")
   
-       result = try stream.decodeObjectPropertyHeader(&state)
+       result = try stream.decodeObjectComponent(&state)
        #expect(result.isComplete)
      }
    }
@@ -604,13 +604,13 @@ private struct ObjectTests {
        var properties: [(key: String, value: Int)] = []
   
        var state = JSON.ObjectDecodingState()
-       var result = try stream.decodeObjectPropertyHeader(&state)
+       var result = try stream.decodeObjectComponent(&state)
   
-       while case .decoded(let property?) = result {
+       while case .decoded(.propertyValueStart(let name)) = result {
          let number = try stream.decodeNumber().getValue()
          let intValue = try number.decode(as: Int.self)
-         properties.append((key: String(property.name), value: intValue))
-         result = try stream.decodeObjectPropertyHeader(&state)
+         properties.append((key: String(name), value: intValue))
+         result = try stream.decodeObjectComponent(&state)
        }
   
        #expect(result.isComplete)
@@ -628,17 +628,17 @@ private struct ObjectTests {
        stream.finish()
   
        var state = JSON.ObjectDecodingState()
-       var result = try stream.decodeObjectPropertyHeader(&state)
+       var result = try stream.decodeObjectComponent(&state)
        #expect(result.propertyName == "Hello")  // Unicode escapes are decoded to "Hello"
   
-       var stringState = try stream.decodeStringStart().getValue()
+       var stringState = JSON.StringDecodingState()
        var fragments: [String] = []
        try stream.decodeStringFragments(state: &stringState) { fragment in
          fragments.append(String(fragment))
        }
        #expect(fragments.joined() == "world")
   
-       result = try stream.decodeObjectPropertyHeader(&state)
+       result = try stream.decodeObjectComponent(&state)
        #expect(result.isComplete)
      }
    }
@@ -652,13 +652,13 @@ private struct ObjectTests {
        stream.finish()
   
        var state = JSON.ObjectDecodingState()
-       var result = try stream.decodeObjectPropertyHeader(&state)
+       var result = try stream.decodeObjectComponent(&state)
        #expect(result.propertyName == "x")
   
        let number = try stream.decodeNumber().getValue()
        #expect(number.integerPart == "1")
   
-       result = try stream.decodeObjectPropertyHeader(&state)
+       result = try stream.decodeObjectComponent(&state)
        #expect(result.isComplete)
   
        // Verify we can read the trailing whitespace
