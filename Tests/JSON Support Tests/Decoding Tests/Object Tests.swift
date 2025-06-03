@@ -48,7 +48,7 @@ private struct ObjectTests {
          // Decode value
          var valueState = JSON.StringDecodingState()
          var valueFragments: [String] = []
-         try stream.decodeStringFragments(state: &valueState) { fragment in
+         _ = try stream.decodeStringFragments(state: &valueState) { fragment in
            valueFragments.append(String(fragment))
          }
          properties.append((key: String(name), value: valueFragments.joined()))
@@ -521,7 +521,7 @@ private struct ObjectTests {
   
        var stringState = JSON.StringDecodingState()
        var fragments: [String] = []
-       try stream.decodeStringFragments(state: &stringState) { fragment in
+       _ = try stream.decodeStringFragments(state: &stringState) { fragment in
          fragments.append(String(fragment))
        }
        #expect(fragments.joined() == "value")
@@ -633,7 +633,7 @@ private struct ObjectTests {
   
        var stringState = JSON.StringDecodingState()
        var fragments: [String] = []
-       try stream.decodeStringFragments(state: &stringState) { fragment in
+       _ = try stream.decodeStringFragments(state: &stringState) { fragment in
          fragments.append(String(fragment))
        }
        #expect(fragments.joined() == "world")

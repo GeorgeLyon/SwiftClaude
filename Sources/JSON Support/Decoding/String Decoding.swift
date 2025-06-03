@@ -83,6 +83,8 @@ extension JSON.DecodingStream {
       }
 
       onFragment(lastFragment)
+    } else {
+      state.phase = .readingFragments(trailingCharacter: trailingCharacter)
     }
     if isComplete {
       state.phase = .readingComplete

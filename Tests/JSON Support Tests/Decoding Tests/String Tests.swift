@@ -16,11 +16,11 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["Hello, World!"])
       }
 
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
   }
@@ -35,27 +35,27 @@ private struct StringTests {
       var state = JSON.StringDecodingState()
 
       /// Trailing space is omitted because the last character can be modified by subsequent characters.
-      try stream.withDecodedStringFragments(state: &state) {
+      var result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["Hello,"])
       }
 
       stream.push("World!")
       /// Exclamation mark is omitted because the last character can be modified by subsequent characters, but the space after the comma is returned now.
-      try stream.withDecodedStringFragments(state: &state) {
+      result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == [" World"])
       }
 
       stream.push("\"")
-      try stream.withDecodedStringFragments(state: &state) {
+      result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["!"])
       }
-      #expect(!state.isComplete)
+      #expect(!result.isComplete)
 
       stream.finish()
-      try stream.withDecodedStringFragments(state: &state) {
+      result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == [])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
   }
 
@@ -66,16 +66,16 @@ private struct StringTests {
       stream.push("\"\"")
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      var result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == [])
       }
-      #expect(!state.isComplete)
+      #expect(!result.isComplete)
 
       stream.finish()
-      try stream.withDecodedStringFragments(state: &state) {
+      result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == [])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
   }
 
@@ -88,10 +88,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["こんにちは世界"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
     /// Incremental non-ASCII parsing
@@ -106,10 +106,10 @@ private struct StringTests {
 
       stream.push("ちは世界\"")
       stream.finish()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["にちは世界"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
   }
 
@@ -122,10 +122,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["\""])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
     /// Backslash escape
@@ -135,10 +135,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["\\"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
     /// Forward slash escape
@@ -148,10 +148,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["/"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
     /// Split Escape
@@ -160,16 +160,16 @@ private struct StringTests {
       stream.push("\"\\")
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      var result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == [])
       }
 
       stream.push("\"\"")
       stream.finish()
-      try stream.withDecodedStringFragments(state: &state) {
+      result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["\""])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
   }
 
@@ -182,10 +182,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["\n"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
     /// Tab
@@ -195,10 +195,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["\t"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
     /// Carriage return
@@ -208,10 +208,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["\r"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
     /// Mixed control characters
@@ -221,10 +221,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["Line 1", "\n", "Line 2", "\t", "Tabbed"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
   }
 
@@ -237,10 +237,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
     /// Unsupported \f
@@ -250,10 +250,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
   }
 
@@ -266,10 +266,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
     /// Modified escape character
@@ -279,10 +279,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
   }
 
@@ -295,10 +295,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["A"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
     /// Non-ASCII unicode escape
@@ -308,10 +308,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["©"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
     /// Non-ASCII unicode escape (lowercase letters)
@@ -321,10 +321,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["©"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
     /// Mixed regular and unicode-escaped characters
@@ -334,10 +334,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["Copyright ", "©", " 2025"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
   }
 
@@ -350,10 +350,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�", "0XYZ"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
   }
 
@@ -366,10 +366,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["😀"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
     /// Incremental surrogate pair parsing
@@ -389,10 +389,10 @@ private struct StringTests {
 
       stream.push("DE00\"")
       stream.finish()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["😀"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
   }
 
@@ -405,10 +405,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�", "©"])  // Waiting on the low surrogate
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
     /// High surrogate followed by a high surrogate
@@ -418,10 +418,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�", "�"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
     /// High surrogate without low surrogate
@@ -431,10 +431,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�", "🥸"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
     /// High surrogate followed by a different escape sequence
@@ -444,10 +444,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�", "\n"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
     /// HIgh surrogate followed by a valid surrogate pair
@@ -457,10 +457,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�", "😀"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
   }
 
@@ -473,10 +473,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["\0"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
     /// String with mixed escapes and regular characters
@@ -486,10 +486,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["Hello", "\t", "World", "\n", "New", "\"", "Line", "\\", "Path"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
   }
 
@@ -508,11 +508,11 @@ private struct StringTests {
 
       stream.push("u0327ade\"")
       stream.finish()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["c", "\u{0327}", "ade"])
         #expect($0.joined() == "çade")
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
     /// Unicode escape split across buffers
@@ -527,10 +527,10 @@ private struct StringTests {
 
       stream.push("A9 copyright\"")
       stream.finish()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["©", " copyright"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
   }
 
@@ -566,10 +566,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
     /// Low surrogate at start of string
@@ -579,10 +579,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�", "Hello"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
     /// Multiple invalid surrogates
@@ -592,10 +592,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�", "�"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
     /// High surrogate at end of string (no low surrogate)
@@ -605,10 +605,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["Hello", "�"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
   }
 
@@ -621,10 +621,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�", "0"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
     /// Unicode escape with only 2 hex digits
@@ -634,10 +634,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�", "00"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
     /// Unicode escape with only 3 hex digits
@@ -647,10 +647,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�", "004"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
     /// Unicode escape cut off at \\u
@@ -660,10 +660,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["�"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
   }
 
@@ -681,10 +681,10 @@ private struct StringTests {
 
       stream.push("n\"")
       stream.finish()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["t", "\n"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
     /// Multiple consecutive escapes
@@ -694,10 +694,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["\\", "\\"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
     /// Escape followed by unicode escape
@@ -707,10 +707,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["\n", "A"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
     /// Unicode escape followed by regular escape
@@ -720,10 +720,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["A", "\n"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
   }
 
@@ -736,10 +736,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["Hello"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
     /// Multiple spaces before opening quote
@@ -749,10 +749,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["World"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
     /// Tab before opening quote
@@ -762,10 +762,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["Tab"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
     /// Newline before opening quote
@@ -775,10 +775,10 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["Newline"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
     /// Mixed whitespace before opening quote
@@ -788,30 +788,24 @@ private struct StringTests {
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["Mixed"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
 
     /// Incremental whitespace parsing
     do {
       var stream = JSON.DecodingStream()
       stream.push("  ")
-
-      // Can't decode string start until we have the opening quote
-      #expect(throws: Error.self) {
-        _ = JSON.StringDecodingState()
-      }
-
       stream.push("\"Incremental\"")
       stream.finish()
 
       var state = JSON.StringDecodingState()
-      try stream.withDecodedStringFragments(state: &state) {
+      let result = try stream.withDecodedStringFragments(state: &state) {
         #expect($0 == ["Incremental"])
       }
-      #expect(state.isComplete)
+      #expect(result.isComplete)
     }
   }
 
