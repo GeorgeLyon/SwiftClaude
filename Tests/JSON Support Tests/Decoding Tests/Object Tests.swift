@@ -671,18 +671,18 @@ private struct ObjectTests {
 
 // MARK: - Support
 
-extension JSON.DecodingResult where Value == JSON.ObjectPropertyHeader? {
+extension JSON.DecodingResult where Value == JSON.ObjectComponent {
 
   fileprivate var propertyName: Substring? {
-    if case .decoded(let property?) = self {
-      return property.name
+    if case .decoded(.propertyValueStart(let name)) = self {
+      return name
     } else {
       return nil
     }
   }
   
   fileprivate var isComplete: Bool {
-    if case .decoded(.none) = self {
+    if case .decoded(.end) = self {
       return true
     } else {
       return false

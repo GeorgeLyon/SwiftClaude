@@ -14,8 +14,8 @@ private struct ArrayTests {
       stream.finish()
 
       var state = JSON.ArrayDecodingState()
-      let result = try stream.decodeArrayElementHeader(&state)
-      #expect(result.isComplete)
+      let result = try stream.decodeArrayComponent(&state)
+      #expect(result.isArrayEnd)
 
       #expect(try stream.readCharacter().decodingResult().getValue() == " ")
     }
@@ -27,8 +27,8 @@ private struct ArrayTests {
       stream.finish()
 
       var state = JSON.ArrayDecodingState()
-      let result = try stream.decodeArrayElementHeader(&state)
-      #expect(result.isComplete)
+      let result = try stream.decodeArrayComponent(&state)
+      #expect(result.isArrayEnd)
     }
   }
 
@@ -43,7 +43,7 @@ private struct ArrayTests {
       var elements: [Int] = []
       var state = JSON.ArrayDecodingState()
 
-      while case .decoded(.some) = try stream.decodeArrayElementHeader(&state) {
+      while case .decoded(.elementStart) = try stream.decodeArrayComponent(&state) {
         let value = try stream.decodeNumber().getValue().decode(as: Int.self)
         elements.append(value)
       }
@@ -62,10 +62,10 @@ private struct ArrayTests {
       var elements: [String] = []
       
       var arrayState = JSON.ArrayDecodingState()
-      while try stream.decodeArrayElementHeader(&arrayState).isElementHeader {
-        var state = try stream.decodeStringStart().getValue()
+      while try stream.decodeArrayComponent(&arrayState).isElementStart {
+        var state = JSON.StringDecodingState()
         var fragments: [String] = []
-        try stream.decodeStringFragments(state: &state) { fragment in
+        _ = try stream.decodeStringFragments(state: &state) { fragment in
           fragments.append(String(fragment))
         }
         elements.append(fragments.joined())
@@ -84,7 +84,7 @@ private struct ArrayTests {
 
       var elements: [Bool] = []
       var arrayState = JSON.ArrayDecodingState()
-      while try stream.decodeArrayElementHeader(&arrayState).isElementHeader {
+      while try stream.decodeArrayComponent(&arrayState).isElementStart {
         let boolean = try stream.decodeBoolean().getValue()
         elements.append(boolean)
       }
@@ -102,7 +102,7 @@ private struct ArrayTests {
 
       var nullCount = 0
       var arrayState = JSON.ArrayDecodingState()
-      while try stream.decodeArrayElementHeader(&arrayState).isElementHeader {
+      while try stream.decodeArrayComponent(&arrayState).isElementStart {
         _ = try stream.decodeNull().getValue()
         nullCount += 1
       }
@@ -120,11 +120,11 @@ private struct ArrayTests {
 
       var arrays: [[Int]] = []
       var arrayState = JSON.ArrayDecodingState()
-      while try stream.decodeArrayElementHeader(&arrayState).isElementHeader {
+      while try stream.decodeArrayComponent(&arrayState).isElementStart {
         var innerArray: [Int] = []
         
         var arrayState = JSON.ArrayDecodingState()
-        while try stream.decodeArrayElementHeader(&arrayState).isElementHeader {
+        while try stream.decodeArrayComponent(&arrayState).isElementStart {
           let number = try stream.decodeNumber().getValue()
           let intValue = try number.decode(as: Int.self)
           innerArray.append(intValue)
@@ -146,47 +146,47 @@ private struct ArrayTests {
       stream.finish()
 
       var arrayState = JSON.ArrayDecodingState()
-      var result = try stream.decodeArrayElementHeader(&arrayState)
-      #expect(result.isElementHeader)
+      var result = try stream.decodeArrayComponent(&arrayState)
+      #expect(result.isElementStart)
 
       // First element: number
       let number = try stream.decodeNumber().getValue()
       #expect(number.integerPart == "42")
 
-      result = try stream.decodeArrayElementHeader(&arrayState)
-      #expect(result.isElementHeader)
+      result = try stream.decodeArrayComponent(&arrayState)
+      #expect(result.isElementStart)
 
       // Second element: string
-      var state = try stream.decodeStringStart().getValue()
+      var state = JSON.StringDecodingState()
       var fragments: [String] = []
-      try stream.decodeStringFragments(state: &state) { fragment in
+      _ = try stream.decodeStringFragments(state: &state) { fragment in
         fragments.append(String(fragment))
       }
       #expect(fragments.joined() == "hello")
 
-      result = try stream.decodeArrayElementHeader(&arrayState)
-      #expect(result.isElementHeader)
+      result = try stream.decodeArrayComponent(&arrayState)
+      #expect(result.isElementStart)
 
       // Third element: boolean
       let boolean = try stream.decodeBoolean().getValue()
       #expect(boolean == true)
 
-      result = try stream.decodeArrayElementHeader(&arrayState)
-      #expect(result.isElementHeader)
+      result = try stream.decodeArrayComponent(&arrayState)
+      #expect(result.isElementStart)
 
       // Fourth element: null
       _ = try stream.decodeNull().getValue()
 
-      result = try stream.decodeArrayElementHeader(&arrayState)
-      #expect(result.isElementHeader)
+      result = try stream.decodeArrayComponent(&arrayState)
+      #expect(result.isElementStart)
 
       // Fifth element: decimal number
       let decimal = try stream.decodeNumber().getValue()
       #expect(decimal.integerPart == "3")
       #expect(decimal.fractionalPart == "14")
 
-      result = try stream.decodeArrayElementHeader(&arrayState)
-      #expect(result.isComplete)
+      result = try stream.decodeArrayComponent(&arrayState)
+      #expect(result.isArrayEnd)
     }
   }
 
@@ -200,7 +200,7 @@ private struct ArrayTests {
 
       var elements: [Int] = []
       var arrayState = JSON.ArrayDecodingState()
-      while try stream.decodeArrayElementHeader(&arrayState).isElementHeader {
+      while try stream.decodeArrayComponent(&arrayState).isElementStart {
         let number = try stream.decodeNumber().getValue()
         let intValue = try number.decode(as: Int.self)
         elements.append(intValue)
@@ -217,7 +217,7 @@ private struct ArrayTests {
 
       var elements: [Int] = []
       var arrayState = JSON.ArrayDecodingState()
-      while try stream.decodeArrayElementHeader(&arrayState).isElementHeader {
+      while try stream.decodeArrayComponent(&arrayState).isElementStart {
         let number = try stream.decodeNumber().getValue()
         let intValue = try number.decode(as: Int.self)
         elements.append(intValue)
@@ -236,12 +236,12 @@ private struct ArrayTests {
 
       var state = JSON.ArrayDecodingState()
       
-      var result = try stream.decodeArrayElementHeader(&state)
+      var result = try stream.decodeArrayComponent(&state)
       #expect(result.needsMoreData)
 
       stream.push("12")
-      result = try stream.decodeArrayElementHeader(&state)
-      #expect(result.isElementHeader)
+      result = try stream.decodeArrayComponent(&state)
+      #expect(result.isElementStart)
 
       let needsMoreData = try stream.decodeNumber().needsMoreData
       #expect(needsMoreData)
@@ -251,16 +251,16 @@ private struct ArrayTests {
       let firstNumber = try stream.decodeNumber().getValue()
       #expect(firstNumber.integerPart == "12")
       
-      result = try stream.decodeArrayElementHeader(&state)
-      #expect(result.isElementHeader)
+      result = try stream.decodeArrayComponent(&state)
+      #expect(result.isElementStart)
 
       stream.push("2] ")
 
       let secondNumber = try stream.decodeNumber().getValue()
       #expect(secondNumber.integerPart == "2")
       
-      result = try stream.decodeArrayElementHeader(&state)
-      #expect(result.isComplete)
+      result = try stream.decodeArrayComponent(&state)
+      #expect(result.isArrayEnd)
     }
 
     /// Incremental parsing with strings
@@ -269,22 +269,24 @@ private struct ArrayTests {
       stream.push("[\"hel")
 
       var state = JSON.ArrayDecodingState()
-      let result = try stream.decodeArrayElementHeader(&state)
-      #expect(result.isElementHeader)
+      let result = try stream.decodeArrayComponent(&state)
+      #expect(result.isElementStart)
 
       do {
-        var state = try stream.decodeStringStart().getValue()
-        try stream.withDecodedStringFragments(state: &state) { fragments in
+        var stringState = JSON.StringDecodingState()
+        try stream.withDecodedStringFragments(state: &stringState) { fragments in
           #expect(fragments == ["he"])
         }
         
         stream.push("lo\"]")
         stream.finish()
         
-        try stream.withDecodedStringFragments(state: &state) { fragments in
+        try stream.withDecodedStringFragments(state: &stringState) { fragments in
           #expect(fragments == ["llo"])
         }
-        #expect(state.isComplete)
+        
+        let result = try stream.decodeArrayComponent(&state)
+        #expect(result.isArrayEnd)
       }
     }
   }
@@ -298,28 +300,28 @@ private struct ArrayTests {
 
       var elements: [Int] = []
       var state = JSON.ArrayDecodingState()
-      var result = try stream.decodeArrayElementHeader(&state)
-      #expect(result.isElementHeader)
+      var result = try stream.decodeArrayComponent(&state)
+      #expect(result.isElementStart)
 
       // Parse first three elements
       for _ in 0..<3 {
         let number = try stream.decodeNumber().getValue()
         let intValue = try number.decode(as: Int.self)
         elements.append(intValue)
-        result = try stream.decodeArrayElementHeader(&state)
-        #expect(result.isElementHeader)
+        result = try stream.decodeArrayComponent(&state)
+        #expect(result.isElementStart)
       }
 
       // Now we're after the trailing comma, waiting for next element or ]
-      result = try stream.decodeArrayElementHeader(&state)
+      result = try stream.decodeArrayComponent(&state)
       #expect(result.needsMoreData)
 
       stream.push("]")
       stream.finish()
 
       // Should complete after the closing bracket
-      result = try stream.decodeArrayElementHeader(&state)
-      #expect(result.isComplete)
+      result = try stream.decodeArrayComponent(&state)
+      #expect(result.isArrayEnd)
 
       #expect(elements == [1, 2, 3])
     }
@@ -334,19 +336,19 @@ private struct ArrayTests {
       stream.finish()
 
       var state = JSON.ArrayDecodingState()
-      var result = try stream.decodeArrayElementHeader(&state)
-      #expect(result.isElementHeader)
+      var result = try stream.decodeArrayComponent(&state)
+      #expect(result.isElementStart)
 
       let first = try stream.decodeNumber().getValue()
       #expect(first.integerPart == "1")
       
-      result = try stream.decodeArrayElementHeader(&state)
+      result = try stream.decodeArrayComponent(&state)
 
       let second = try stream.decodeNumber().getValue()
       #expect(second.integerPart == "2")
 
-      result = try stream.decodeArrayElementHeader(&state)
-      #expect(result.isComplete)
+      result = try stream.decodeArrayComponent(&state)
+      #expect(result.isArrayEnd)
     }
 
     /// Mixed whitespace before opening bracket
@@ -356,15 +358,15 @@ private struct ArrayTests {
       stream.finish()
 
       var state = JSON.ArrayDecodingState()
-      var result = try stream.decodeArrayElementHeader(&state)
-      #expect(result.isElementHeader)
+      var result = try stream.decodeArrayComponent(&state)
+      #expect(result.isElementStart)
 
       let number = try stream.decodeNumber().getValue()
       #expect(number.integerPart == "42")
       
-      result = try stream.decodeArrayElementHeader(&state)
+      result = try stream.decodeArrayComponent(&state)
       
-      #expect(result.isComplete)
+      #expect(result.isArrayEnd)
     }
   }
 
@@ -378,7 +380,7 @@ private struct ArrayTests {
       // Navigate through 5 levels of nesting
       for _ in 0..<5 {
         let result = try stream.readArrayUpToFirstElement().decodingResult()
-        #expect(result.isElementHeader)
+        #expect(result.isElementStart)
       }
 
       // Get the value
@@ -388,24 +390,24 @@ private struct ArrayTests {
       // Close all arrays
       for _ in 0..<5 {
         let result = try stream.readArrayUpToNextElement().decodingResult()
-        #expect(result.isComplete)
+        #expect(result.isArrayEnd)
       }
     }
   }
 }
 
-extension JSON.DecodingResult where Value == JSON.ArrayElementHeader? {
+extension JSON.DecodingResult where Value == JSON.ArrayComponent {
 
-  var isElementHeader: Bool {
-    if case .decoded(.some) = self {
+  var isElementStart: Bool {
+    if case .decoded(.elementStart) = self {
       return true
     } else {
       return false
     }
   }
   
-  var isComplete: Bool {
-    if case .decoded(.none) = self {
+  var isArrayEnd: Bool {
+    if case .decoded(.end) = self {
       return true
     } else {
       return false

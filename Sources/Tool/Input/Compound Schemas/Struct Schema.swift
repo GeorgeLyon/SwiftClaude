@@ -1,3 +1,5 @@
+import JSONSupport
+
 extension ToolInput {
 
   public static func structSchema<
@@ -69,7 +71,7 @@ private struct StructSchema<
   func encodeSchemaDefinition(to encoder: ToolInput.SchemaEncoder<Self>) throws {
     try propertiesSchema.encodeSchemaDefinition(to: encoder.map())
   }
-  
+
   func encodeSchemaDefinition(to encoder: inout ToolInput.NewSchemaEncoder<Self>) {
     encoder.withMapped { encoder in
       propertiesSchema.encodeSchemaDefinition(to: &encoder)
@@ -92,6 +94,29 @@ private struct StructSchema<
         propertyValues: (repeat each properties)
       )
     )
+  }
+
+  typealias ValueDecodingState = ObjectPropertiesDecodingState<
+    PropertyKey, repeat each PropertySchema
+  >
+
+  var initialValueDecodingState: ValueDecodingState {
+    propertiesSchema.initialValueDecodingState
+  }
+
+  func decodeValue(
+    from stream: inout JSON.DecodingStream,
+    state: inout ValueDecodingState
+  ) throws -> JSON.DecodingResult<Value> {
+    try propertiesSchema
+      .decodeValue(from: &stream, state: &state)
+      .map { values in
+        initializer(
+          ToolInput.StructSchemaDecoder(
+            propertyValues: (repeat each values)
+          )
+        )
+      }
   }
 
 }

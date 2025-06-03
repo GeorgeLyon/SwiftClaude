@@ -87,14 +87,41 @@ private struct ArraySchema<ElementSchema: ToolInput.Schema>: InternalSchema {
     return elements
   }
 
-  func decodeValue(from decoder: inout ToolInput.NewDecoder) async throws -> [ElementSchema.Value] {
+  struct ValueDecodingState {
     var elements: Value = []
-    var state = JSON.ArrayDecodingState()
-    while (try await decoder.decodeArrayElementHeader(&state)) != nil {
-      let element = try await elementSchema.decodeValue(from: &decoder)
-      elements.append(element)
+    var arrayState = JSON.ArrayDecodingState()
+    var elementState: ElementSchema.ValueDecodingState?
+  }
+
+  var initialValueDecodingState: ValueDecodingState {
+    ValueDecodingState()
+  }
+
+  func decodeValue(
+    from stream: inout JSON.DecodingStream,
+    state: inout ValueDecodingState
+  ) throws -> JSON.DecodingResult<Value> {
+    while true {
+      if var elementState = state.elementState {
+        switch try elementSchema.decodeValue(from: &stream, state: &elementState) {
+        case .needsMoreData:
+          state.elementState = elementState
+          return .needsMoreData
+        case .decoded(let element):
+          state.elements.append(element)
+          state.elementState = nil
+        }
+      }
+
+      switch try stream.decodeArrayComponent(&state.arrayState) {
+      case .needsMoreData:
+        return .needsMoreData
+      case .decoded(.elementStart):
+        state.elementState = elementSchema.initialValueDecodingState
+      case .decoded(.end):
+        return .decoded(state.elements)
+      }
     }
-    return elements
   }
 
 }

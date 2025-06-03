@@ -1,3 +1,5 @@
+import JSONSupport
+
 /// This schema is not instantiated directly by a user.
 /// Instead it is used in the implementation of `StructSchema` and `EnumSchema`
 struct ObjectPropertiesSchema<
@@ -12,13 +14,18 @@ struct ObjectPropertiesSchema<
     properties: repeat ObjectPropertySchema<PropertyKey, each PropertySchema>
   ) {
     self.description = description
-    self.properties = (repeat each properties)
+    self.stateProvider = ObjectPropertiesDecodingStateProvider(
+      properties: repeat each properties
+    )
   }
 
   fileprivate let description: String?
 
   fileprivate typealias Properties = (repeat ObjectPropertySchema<PropertyKey, each PropertySchema>)
-  fileprivate let properties: Properties
+  fileprivate var properties: Properties {
+    stateProvider.properties
+  }
+  fileprivate let stateProvider: ObjectPropertiesDecodingStateProvider<PropertyKey, repeat each PropertySchema>
 
   func encodeSchemaDefinition(to encoder: ToolInput.SchemaEncoder<Self>) throws {
     var container = encoder.wrapped.container(keyedBy: SchemaCodingKey.self)
@@ -67,6 +74,20 @@ struct ObjectPropertiesSchema<
   func decodeValue(from decoder: ToolInput.Decoder<Self>) throws -> Value {
     let container = try decoder.wrapped.container(keyedBy: PropertyKey.self)
     return (try container.decodeProperties(repeat each properties))
+  }
+
+  typealias ValueDecodingState = ObjectPropertiesDecodingState<PropertyKey, repeat each PropertySchema>
+
+  /// By making this a stored property, we cache the creation of the property decoder dictionary
+  var initialValueDecodingState: ValueDecodingState {
+    stateProvider.initialDecodingState
+  }
+
+  func decodeValue(
+    from stream: inout JSON.DecodingStream,
+    state: inout ValueDecodingState
+  ) throws -> JSON.DecodingResult<(repeat (each PropertySchema).Value)> {
+    try stream.decodeProperties(&state)
   }
 
 }

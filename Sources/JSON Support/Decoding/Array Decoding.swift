@@ -13,23 +13,24 @@ extension JSON {
     fileprivate var phase: Phase = .readingArrayStart
   }
 
-  public enum ArrayElementHeader {
-    case elementHeader
+  public enum ArrayComponent {
+    case elementStart
+    case end
   }
 
 }
 
 extension JSON.DecodingStream {
 
-  public mutating func decodeArrayElementHeader(
+  public mutating func decodeArrayComponent(
     _ state: inout JSON.ArrayDecodingState
-  ) throws -> JSON.DecodingResult<JSON.ArrayElementHeader?> {
-    try readArrayElementHeader(&state).decodingResult()
+  ) throws -> JSON.DecodingResult<JSON.ArrayComponent> {
+    try readArrayComponent(&state).decodingResult()
   }
 
-  mutating func readArrayElementHeader(
+  mutating func readArrayComponent(
     _ state: inout JSON.ArrayDecodingState
-  ) throws -> ReadResult<JSON.ArrayElementHeader?> {
+  ) throws -> ReadResult<JSON.ArrayComponent> {
     switch state.phase {
     case .readingArrayStart:
       let result = readArrayUpToFirstElement()
@@ -43,12 +44,12 @@ extension JSON.DecodingStream {
 
     case .readingComplete:
       assertionFailure()
-      return .matched(nil)
+      return .matched(.end)
     }
   }
 
   mutating func readArrayUpToFirstElement()
-    -> ReadResult<JSON.ArrayElementHeader?>
+    -> ReadResult<JSON.ArrayComponent>
   {
     readWhitespace()
 
@@ -71,9 +72,9 @@ extension JSON.DecodingStream {
       }
       switch isEmpty {
       case .matched:
-        return .matched(.none)
+        return .matched(.end)
       case .notMatched:
-        return .matched(.elementHeader)
+        return .matched(.elementStart)
       case .needsMoreData:
         /// Restore to start so we don't need to keep track of the fact that we've read "["
         restore(start)
@@ -83,7 +84,7 @@ extension JSON.DecodingStream {
   }
 
   mutating func readArrayUpToNextElement()
-    -> ReadResult<JSON.ArrayElementHeader?>
+    -> ReadResult<JSON.ArrayComponent>
   {
     readWhitespace()
 
@@ -102,7 +103,7 @@ extension JSON.DecodingStream {
     case .needsMoreData:
       return .needsMoreData
     case .matched(let isComplete):
-      return .matched(isComplete ? .none : .elementHeader)
+      return .matched(isComplete ? .end : .elementStart)
     case .notMatched(let error):
       return .notMatched(error)
     }

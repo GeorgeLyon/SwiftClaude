@@ -1,3 +1,5 @@
+import JSONSupport
+
 extension ToolInput {
 
   // Needs to be disfavored because otherwise it catches single-element tuples
@@ -99,6 +101,13 @@ struct TupleSchema<each ElementSchema: ToolInput.Schema>: InternalSchema {
       (repeat (each elements).schema.decodeValue(
         from: ToolInput.Decoder(wrapped: container.superDecoder())
       ))
+  }
+  
+  func decodeValue(
+    from stream: inout JSON.DecodingStream,
+    state: inout ()
+  ) throws -> JSON.DecodingResult<(repeat (each ElementSchema).Value)> {
+    fatalError()
   }
 
 }

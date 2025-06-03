@@ -22,44 +22,41 @@ extension JSON {
     fileprivate var ignoredPropertyState: JSON.ValueDecodingState?
   }
 
-  public struct ObjectPropertyHeader {
-    public let name: Substring
-
-    fileprivate init(name: Substring) {
-      self.name = name
-    }
+  public enum ObjectComponent {
+    case propertyValueStart(name: Substring)
+    case end
   }
 
 }
 
 extension JSON.DecodingStream {
 
-  public mutating func decodeObjectPropertyHeader(
+  public mutating func decodeObjectComponent(
     _ state: inout JSON.ObjectDecodingState
-  ) throws -> JSON.DecodingResult<JSON.ObjectPropertyHeader?> {
-    try readObjectPropertyHeader(&state).decodingResult()
+  ) throws -> JSON.DecodingResult<JSON.ObjectComponent> {
+    try readObjectComponent(&state).decodingResult()
   }
 
   public mutating func decodeObjectUntilComplete(
     _ state: inout JSON.ObjectDecodingState
   ) throws -> JSON.DecodingResult<Void> {
     while true {
-      switch readObjectPropertyHeader(&state) {
+      switch readObjectComponent(&state) {
       case .needsMoreData:
         return .needsMoreData
       case .notMatched(let error):
         throw error
-      case .matched(.some):
+      case .matched(.propertyValueStart):
         state.ignorePropertyValue()
-      case .matched(.none):
+      case .matched(.end):
         return .decoded(())
       }
     }
   }
 
-  mutating func readObjectPropertyHeader(
+  mutating func readObjectComponent(
     _ state: inout JSON.ObjectDecodingState
-  ) -> ReadResult<JSON.ObjectPropertyHeader?> {
+  ) -> ReadResult<JSON.ObjectComponent> {
     switch state.phase {
     case .readingObjectStart:
       let result = readObjectUpToFirstPropertyValue()
@@ -87,12 +84,12 @@ extension JSON.DecodingStream {
 
     case .readingComplete:
       assertionFailure()
-      return .matched(nil)
+      return .matched(.end)
     }
   }
 
   mutating func readObjectUpToFirstPropertyValue()
-    -> ReadResult<JSON.ObjectPropertyHeader?>
+    -> ReadResult<JSON.ObjectComponent>
   {
     readWhitespace()
 
@@ -117,11 +114,11 @@ extension JSON.DecodingStream {
 
       switch isEmpty {
       case .matched:
-        return .matched(nil)
+        return .matched(.end)
       case .notMatched:
         switch readNextPropertyName() {
         case .matched(let name):
-          return .matched(JSON.ObjectPropertyHeader(name: name))
+          return .matched(.propertyValueStart(name: name))
         case .notMatched(let error):
           return .notMatched(error)
         case .needsMoreData:
@@ -136,7 +133,7 @@ extension JSON.DecodingStream {
   }
 
   mutating func readObjectUpToNextPropertyValue()
-    -> ReadResult<JSON.ObjectPropertyHeader?>
+    -> ReadResult<JSON.ObjectComponent>
   {
     readWhitespace()
 
@@ -161,11 +158,11 @@ extension JSON.DecodingStream {
       return .notMatched(error)
     case .matched(let isComplete):
       if isComplete {
-        return .matched(nil)
+        return .matched(.end)
       } else {
         switch readNextPropertyName() {
         case .matched(let name):
-          return .matched(JSON.ObjectPropertyHeader(name: name))
+          return .matched(.propertyValueStart(name: name))
         case .notMatched(let error):
           return .notMatched(error)
         case .needsMoreData:
@@ -184,15 +181,7 @@ extension JSON.DecodingStream {
 
     let propertyFragments: [Substring]
     do {
-      var state: JSON.StringDecodingState
-      switch readStringStart() {
-      case .matched(let s):
-        state = s
-      case .needsMoreData:
-        return .needsMoreData
-      case .notMatched(let error):
-        return .notMatched(error)
-      }
+      var state = JSON.StringDecodingState()
 
       var fragments: [Substring] = []
       let result = readStringFragments(state: &state) { fragment in
@@ -203,12 +192,7 @@ extension JSON.DecodingStream {
         return .needsMoreData
       case .notMatched(let error):
         return .notMatched(error)
-      case .matched:
-        guard state.isComplete else {
-          /// `state` should be complete if we matched
-          assertionFailure()
-          return .notMatched(Error.invalidState)
-        }
+      case .matched(.end):
         propertyFragments = fragments
       }
     }

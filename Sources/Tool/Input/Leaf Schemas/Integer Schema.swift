@@ -1,6 +1,8 @@
+import JSONSupport
+
 extension ToolInput {
 
-  public static func schema<T: ToolInput.SchemaCodable & BinaryInteger & Codable & Sendable>(
+  public static func schema<T: ToolInput.SchemaCodable & FixedWidthInteger & Codable & Sendable>(
     representing _: T.Type = T.self
   ) -> some Schema<T> {
     IntegerSchema()
@@ -22,7 +24,7 @@ extension UInt64: ToolInput.SchemaCodable {}
 
 // MARK: - Implementation Details
 
-extension ToolInput.SchemaCodable where Self: BinaryInteger & Codable & Sendable {
+extension ToolInput.SchemaCodable where Self: FixedWidthInteger & Codable & Sendable {
 
   public static var toolInputSchema: some ToolInput.Schema<Self> {
     ToolInput.schema()
@@ -30,8 +32,16 @@ extension ToolInput.SchemaCodable where Self: BinaryInteger & Codable & Sendable
 
 }
 
-private struct IntegerSchema<Value: Codable & Sendable>: LeafSchema {
+private struct IntegerSchema<Value: FixedWidthInteger & Codable & Sendable>: LeafSchema {
 
   let type = "integer"
+  
+  func decodeValue(
+    from stream: inout JSON.DecodingStream,
+    state: inout ()
+  ) throws -> JSON.DecodingResult<Value> {
+    try stream.decodeNumber().map { try $0.decode() }
+  }
+
 
 }

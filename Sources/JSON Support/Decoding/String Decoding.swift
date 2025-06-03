@@ -1,57 +1,60 @@
 extension JSON {
 
   public struct StringDecodingState {
-    internal fileprivate(set) var isComplete = false
-    fileprivate var trailingCharacter: Character?
+    
+    public init() {
+      
+    }
+    
+    fileprivate enum Phase {
+      case readingStart
+      case readingFragments(trailingCharacter: Character?)
+      case readingComplete
+    }
+    fileprivate var phase: Phase = .readingStart
+  }
+  
+  public enum StringComponent {
+    case end
   }
 
 }
 
 extension JSON.DecodingStream {
 
-  public mutating func decodeStringStart() throws -> JSON.DecodingResult<JSON.StringDecodingState> {
-    try readStringStart().decodingResult()
-  }
-
   public mutating func decodeStringFragments(
     state: inout JSON.StringDecodingState,
     onFragment: (_ fragment: Substring) -> Void
-  ) throws {
-    switch readStringFragments(state: &state, onFragment: onFragment) {
-    case .needsMoreData:
-      break
-    case .matched(()):
-      state.isComplete = true
-    case .notMatched(let error):
-      throw error
-    }
+  ) throws -> JSON.DecodingResult<JSON.StringComponent> {
+    try readStringFragments(state: &state, onFragment: onFragment)
+      .decodingResult()
   }
-
-  mutating func readStringStart() -> ReadResult<JSON.StringDecodingState> {
-    readWhitespace()
-
-    switch read("\"") {
-    case .needsMoreData:
-      return .needsMoreData
-    case .matched:
-      return .matched(JSON.StringDecodingState())
-    case .notMatched(let error):
-      return .notMatched(error)
-    }
-  }
-
-  /// We recover from many errors by emitting a "�" character, but we can still fail if the stream finishes without emitting a closing quote.
+  
   mutating func readStringFragments(
     state: inout JSON.StringDecodingState,
     onFragment: (_ fragment: Substring) -> Void
-  ) -> ReadResult<Void> {
-    guard !state.isComplete else {
+  ) -> ReadResult<JSON.StringComponent> {
+    let trailingCharacter: Character?
+    
+    switch state.phase {
+    case .readingStart:
+      switch readStringStart() {
+      case .needsMoreData:
+        return .needsMoreData
+      case .notMatched(let error):
+        return .notMatched(error)
+      case .matched(()):
+        trailingCharacter = nil
+      }
+    case .readingFragments(let character):
+      trailingCharacter = character
+    case .readingComplete:
       assertionFailure()
-      return .matched(())
+      return .matched(.end)
     }
-
+    
     var nextFragment: Substring?
-    if let trailingCharacter = state.trailingCharacter {
+    if let trailingCharacter {
       nextFragment = Substring(String(trailingCharacter))
     }
     let result = readRawStringFragments { fragment in
@@ -61,29 +64,51 @@ extension JSON.DecodingStream {
       }
       nextFragment = fragment
     }
+    let isComplete = if case .matched = result {
+      true
+    } else {
+      false
+    }
     if var lastFragment = nextFragment {
-
-      if !state.isComplete, possiblyIncompleteIncomingGraphemeCluster == "\\" {
+      if !isComplete, possiblyIncompleteIncomingGraphemeCluster == "\\" {
         /// `DecodingStream` handles the possibility of a combining diacritic or a `ZWJ` being streamed as unicode, but we also need to handle modifications caused by escaped unicode sequences such as `\u0327`.
-        state.trailingCharacter = lastFragment.popLast()
-        assert(state.trailingCharacter != nil)
+        let trailingCharacter = lastFragment.popLast()
+        
+        /// Empty fragments can break the logic which ensures character boundaries don't change on append.
+        assert(trailingCharacter != nil)
+        
+        state.phase = .readingFragments(trailingCharacter: trailingCharacter)
       } else {
-        state.trailingCharacter = nil
+        state.phase = .readingFragments(trailingCharacter: nil)
       }
 
       onFragment(lastFragment)
     }
-    if case .matched = result {
-      state.isComplete = true
+    if isComplete {
+      state.phase = .readingComplete
     }
     return result
+    
+  }
+
+  mutating func readStringStart() -> ReadResult<Void> {
+    readWhitespace()
+
+    switch read("\"") {
+    case .needsMoreData:
+      return .needsMoreData
+    case .matched:
+      return .matched(())
+    case .notMatched(let error):
+      return .notMatched(error)
+    }
   }
 
   /// Unlike other `read` methods, this method advances the read cursor even if `needsMoreData` is returned.
   /// - Returns: `true` if the end of the string was read
   mutating func readRawStringFragments(
     onFragment: (_ fragment: Substring) -> Void
-  ) -> ReadResult<Void> {
+  ) -> ReadResult<JSON.StringComponent> {
     readingStream: while true {
       do {
         /// Read scalars until we reach a control character or the end of the string
@@ -141,7 +166,7 @@ extension JSON.DecodingStream {
       switch nextCharacter {
       case "\"":
         /// We've reached the end of the string
-        return .matched(())
+        return .matched(.end)
       case "\\":
         /// This is an escape sequence
         let escapedCharacter: Character

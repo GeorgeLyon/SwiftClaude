@@ -1,3 +1,5 @@
+import JSONSupport
+
 extension ToolInput {
 
   public static func schema(
@@ -23,5 +25,30 @@ private struct StringSchema: LeafSchema {
   typealias Value = String
 
   let type = "string"
+  
+  struct ValueDecodingState {
+    var fragments: [Substring] = []
+    var decodingState = JSON.StringDecodingState()
+  }
+  
+  var initialValueDecodingState: ValueDecodingState {
+    ValueDecodingState()
+  }
+  
+  func decodeValue(
+    from stream: inout JSON.DecodingStream,
+    state: inout ValueDecodingState
+  ) throws -> JSON.DecodingResult<String> {
+    let result = try stream.decodeStringFragments(
+      state: &state.decodingState,
+      onFragment: { state.fragments.append($0) }
+    )
+    switch result {
+    case .needsMoreData:
+      return .needsMoreData
+    case .decoded(.end):
+      return .decoded(state.fragments.joined())
+    }
+  }
 
 }

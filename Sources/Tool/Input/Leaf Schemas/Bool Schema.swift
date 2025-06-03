@@ -1,3 +1,5 @@
+import JSONSupport
+
 extension ToolInput {
 
   public static func schema(
@@ -23,4 +25,11 @@ private struct BoolSchema: LeafSchema {
 
   let type = "boolean"
 
+  func decodeValue(
+    from stream: inout JSON.DecodingStream,
+    state: inout ()
+  ) throws -> JSON.DecodingResult<Bool> {
+    try stream.decodeBoolean()
+  }
+  
 }

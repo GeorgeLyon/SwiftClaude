@@ -96,11 +96,11 @@ extension JSON.DecodingStream {
               return .needsMoreData
             case .notMatched(let error):
               return .notMatched(error)
-            case .matched(.some):
+            case .matched(.elementStart):
               state.nesting.append(.array)
               state.phase = .readingValue
               continue
-            case .matched(.none):
+            case .matched(.end):
               break
             }
           case .object:
@@ -110,11 +110,11 @@ extension JSON.DecodingStream {
               return .needsMoreData
             case .notMatched(let error):
               return .notMatched(error)
-            case .matched(.some):
+            case .matched(.propertyValueStart):
               state.nesting.append(.object)
               state.phase = .readingValue
               continue
-            case .matched(.none):
+            case .matched(.end):
               break
             }
           }
@@ -136,10 +136,10 @@ extension JSON.DecodingStream {
           return .needsMoreData
         case .notMatched(let error):
           return .notMatched(error)
-        case .matched(.some):
+        case .matched(.elementStart):
           state.phase = .readingValue
           continue
-        case .matched(.none):
+        case .matched(.end):
           let nesting = state.nesting.popLast()
           assert(nesting == .array)
           break
@@ -151,10 +151,10 @@ extension JSON.DecodingStream {
           return .needsMoreData
         case .notMatched(let error):
           return .notMatched(error)
-        case .matched(.some):
+        case .matched(.propertyValueStart):
           state.phase = .readingValue
           continue
-        case .matched(.none):
+        case .matched(.end):
           let nesting = state.nesting.popLast()
           assert(nesting == .object)
           break

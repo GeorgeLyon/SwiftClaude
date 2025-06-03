@@ -237,38 +237,6 @@ extension JSON.EncodingStream {
 
 }
 
-extension ToolInput.NewDecoder {
-
-  mutating func decodeObjectPropertyHeader(
-    _ state: inout JSON.ObjectDecodingState
-  ) async throws -> JSON.ObjectPropertyHeader? {
-    try await decode { stream in
-      try stream.decodeObjectPropertyHeader(&state)
-    }
-  }
-
-  mutating func decodeArrayElementHeader(
-    _ state: inout JSON.ArrayDecodingState
-  ) async throws -> JSON.ArrayElementHeader? {
-    try await decode { stream in
-      try stream.decodeArrayElementHeader(&state)
-    }
-  }
-
-  mutating func peekNull() async throws -> Bool {
-    try await decode { stream in
-      try stream.peekNull()
-    }
-  }
-
-  mutating func decodeNull() async throws {
-    try await decode { stream in
-      try stream.decodeNull()
-    }
-  }
-
-}
-
 // MARK: - Implementation Details
 
 private enum SchemaCodingKey: CodingKey {
