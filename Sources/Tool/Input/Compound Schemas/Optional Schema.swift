@@ -246,16 +246,18 @@ struct ObjectPropertiesDecodingStateProvider<
     ObjectPropertiesDecodingState(provider: self)
   }
   
-  private typealias PropertyStates = (
+  let properties: (repeat ObjectPropertySchema<Key, each PropertySchema>)
+  
+  fileprivate typealias PropertyStates = (
     repeat ObjectPropertySchema<Key, (each PropertySchema)>.DecodingState
   )
-  private typealias PropertyDecoder = @Sendable (
+  fileprivate typealias PropertyDecoder = @Sendable (
     inout JSON.DecodingStream,
     inout PropertyStates
   ) throws -> JSON.DecodingResult<Void>
+  fileprivate let decoders: [Substring: PropertyDecoder]
   
-  let properties: (repeat ObjectPropertySchema<Key, each PropertySchema>)
-  private let decoders: [Substring: PropertyDecoder]
+  
 
   
 }
@@ -282,7 +284,7 @@ struct ObjectPropertiesDecodingState<
       case .decoded(.end):
         break decodeProperties
       case .decoded(.propertyValueStart(let name)):
-        switch try decoders[name]?(&stream, &states) {
+        switch try provider.decoders[name]?(&stream, &states) {
         case .none:
           objectState.ignorePropertyValue()
         case .decoded:
@@ -556,20 +558,20 @@ private struct OptionalSchema<WrappedSchema: ToolInput.Schema>: OptionalSchemaPr
     while true {
       switch state {
       case .decodingNonNullableWrapperPrologue(var objectState):
-        let header = try stream.decodeObjectPropertyHeader(&objectState)
+        let header = try stream.decodeObjectComponent(&objectState)
         switch header {
         case .needsMoreData:
           state = .decodingNonNullableWrapperPrologue(objectState)
           return .needsMoreData
-        case .decoded(let property?):
-          if property.name == "value" {
+        case .decoded(.propertyValueStart(let name)):
+          if name == "value" {
             state = .decodingValue(wrappedSchema.initialValueDecodingState, objectState)
           } else {
             /// Ignore properties
             objectState.ignorePropertyValue()
             state = .decodingNonNullableWrapperPrologue(objectState)
           }
-        case .decoded(.none):
+        case .decoded(.end):
           return .decoded(nil)
         }
       case .decodingValue(var valueState, let objectState):

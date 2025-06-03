@@ -173,28 +173,20 @@ extension JSON.DecodingStream {
     }
   }
 
-  /// Does not restore the read cursor when it `needsMoreData`.
+  /// This relies on the method calling it to restore the state of the stream on failure.
   /// Also reads the ":" character.
   /// - Returns: The property name
   private mutating func readNextPropertyName() -> ReadResult<Substring> {
     readWhitespace()
 
-    let propertyFragments: [Substring]
-    do {
-      var state = JSON.StringDecodingState()
-
-      var fragments: [Substring] = []
-      let result = readStringFragments(state: &state) { fragment in
-        fragments.append(fragment)
-      }
-      switch result {
-      case .needsMoreData:
-        return .needsMoreData
-      case .notMatched(let error):
-        return .notMatched(error)
-      case .matched(.end):
-        propertyFragments = fragments
-      }
+    let name: Substring
+    switch readString() {
+    case .matched(let string):
+      name = string
+    case .notMatched(let error):
+      return .notMatched(error)
+    case .needsMoreData:
+      return .needsMoreData
     }
 
     readWhitespace()
@@ -203,13 +195,7 @@ extension JSON.DecodingStream {
     case .needsMoreData:
       return .needsMoreData
     case .matched:
-      if propertyFragments.count == 1 {
-        /// Fast path for a single fragment
-        return .matched(propertyFragments[0])
-      } else {
-        /// Join all fragments
-        return .matched(Substring(propertyFragments.joined()))
-      }
+      return .matched(name)
     case .notMatched(let error):
       return .notMatched(error)
     }

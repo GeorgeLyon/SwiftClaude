@@ -21,6 +21,10 @@ extension JSON {
 }
 
 extension JSON.DecodingStream {
+  
+  public mutating func decodeString() throws -> JSON.DecodingResult<Substring> {
+    try readString().decodingResult()
+  }
 
   public mutating func decodeStringFragments(
     state: inout JSON.StringDecodingState,
@@ -28,6 +32,35 @@ extension JSON.DecodingStream {
   ) throws -> JSON.DecodingResult<JSON.StringComponent> {
     try readStringFragments(state: &state, onFragment: onFragment)
       .decodingResult()
+  }
+  
+  mutating func readString() -> ReadResult<Substring> {
+    readWhitespace()
+    
+    let checkpoint = createCheckpoint()
+
+    var state = JSON.StringDecodingState()
+    var fragments: [Substring] = []
+    let result = readStringFragments(state: &state) { fragment in
+      fragments.append(fragment)
+    }
+    switch result {
+    case .needsMoreData:
+      restore(checkpoint)
+      return .needsMoreData
+    case .notMatched(let error):
+      return .notMatched(error)
+    case .matched(.end):
+      break
+    }
+    
+    if fragments.count == 1 {
+      /// Fast path for a single fragment
+      return .matched(fragments[0])
+    } else {
+      /// Join all fragments
+      return .matched(Substring(fragments.joined()))
+    }
   }
   
   mutating func readStringFragments(

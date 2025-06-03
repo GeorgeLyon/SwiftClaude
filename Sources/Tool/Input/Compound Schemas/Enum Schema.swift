@@ -54,7 +54,7 @@ extension ToolInput {
       repeat ((each AssociatedValuesSchema).Value) throws -> Void
     ) throws -> Void
   ) -> some Schema<Value>
-  where Value.RawValue: BinaryInteger & Codable & Sendable {
+  where Value.RawValue: FixedWidthInteger & Codable & Sendable {
     /// Fall back to case iterable conformance if an enum is case iterable
     return CaseIterableIntegerEnumSchema(description: description)
   }
@@ -110,7 +110,7 @@ extension ToolInput {
     representing _: Value.Type = Value.self,
     description: String? = nil
   ) -> some Schema<Value>
-  where Value.RawValue: BinaryInteger & Codable & Sendable {
+  where Value.RawValue: FixedWidthInteger & Codable & Sendable {
     CaseIterableIntegerEnumSchema(description: description)
   }
 
@@ -202,10 +202,16 @@ extension ToolInput {
 
     func decodeValue(from decoder: ToolInput.Decoder<Self>) throws -> Value {
       guard try decoder.wrapped.singleValueContainer().decodeNil() else {
-        struct ExpectedNil: Error {}
-        throw ExpectedNil()
+        throw Error.expectedNull
       }
       return ()
+    }
+
+    func decodeValue(
+      from stream: inout JSON.DecodingStream,
+      state: inout ()
+    ) throws -> JSON.DecodingResult<Void> {
+      try stream.decodeNull()
     }
 
   }
@@ -223,6 +229,8 @@ where
 {
   var description: String? { get }
   static func encode(_ value: Value, to stream: inout JSON.EncodingStream)
+  static func decodeRawValue(from stream: inout JSON.DecodingStream) throws
+    -> JSON.DecodingResult<Value.RawValue>
 }
 
 extension CaseIterableEnumSchema {
@@ -262,9 +270,22 @@ extension CaseIterableEnumSchema {
     let rawValue = try decoder.wrapped.singleValueContainer()
       .decode(Value.RawValue.self)
     guard let value = Value(rawValue: rawValue) else {
-      throw EnumCaseKeyNotFound(allKeys: ["\(rawValue)"])
+      throw Error.unknownEnumCase(allKeys: ["\(rawValue)"])
     }
     return value
+  }
+
+  func decodeValue(
+    from stream: inout JSON.DecodingStream,
+    state: inout ()
+  ) throws -> JSON.DecodingResult<Value> {
+    try Self.decodeRawValue(from: &stream)
+      .map { rawValue in
+        guard let value = Value(rawValue: rawValue) else {
+          throw Error.unknownEnumCase(allKeys: ["\(rawValue)"])
+        }
+        return value
+      }
   }
 
 }
@@ -276,14 +297,24 @@ where Value.RawValue == String {
   static func encode(_ value: Value, to stream: inout JSON.EncodingStream) {
     stream.encode(value.rawValue)
   }
+  static func decodeRawValue(from stream: inout JSON.DecodingStream) throws
+    -> JSON.DecodingResult<Value.RawValue>
+  {
+    try stream.decodeString().map(String.init)
+  }
 }
 
 private struct CaseIterableIntegerEnumSchema<Value: CaseIterable & RawRepresentable>:
   CaseIterableEnumSchema
-where Value.RawValue: BinaryInteger & Codable & Sendable {
+where Value.RawValue: FixedWidthInteger & Codable & Sendable {
   let description: String?
   static func encode(_ value: Value, to stream: inout JSON.EncodingStream) {
     stream.encode(value.rawValue)
+  }
+  static func decodeRawValue(from stream: inout JSON.DecodingStream) throws
+    -> JSON.DecodingResult<Value.RawValue>
+  {
+    try stream.decodeNumber().map { try $0.decode() }
   }
 }
 
@@ -533,7 +564,7 @@ private struct StandardEnumSchema<
       }
 
       assertionFailure()
-      throw EnumCaseKeyNotFound(allKeys: [])
+      throw Error.unknownEnumCase(allKeys: [])
     case .noAssociatedValues:
       let stringValue = try decoder.wrapped.singleValueContainer().decode(String.self)
       for `case` in repeat each cases {
@@ -541,7 +572,7 @@ private struct StandardEnumSchema<
           return try `case`.initializeVoidSchemaValue()
         }
       }
-      throw EnumCaseKeyNotFound(allKeys: [stringValue])
+      throw Error.unknownEnumCase(allKeys: [stringValue])
     case .objectProperties:
       let container = try decoder.wrapped.container(keyedBy: CaseKey.self)
 
@@ -557,7 +588,7 @@ private struct StandardEnumSchema<
         }
       }
 
-      throw EnumCaseKeyNotFound(allKeys: container.allKeys.map(\.stringValue))
+      throw Error.unknownEnumCase(allKeys: container.allKeys.map(\.stringValue))
     }
   }
 
@@ -601,18 +632,19 @@ private struct EnumSchemaCase<
 
   func initializeVoidSchemaValue() throws -> Value {
     guard let value = () as? Schema.Value else {
-      throw NonVoidSchema()
+      throw Error.expectedVoidSchema
     }
     return initializer(value)
   }
 
-  private struct NonVoidSchema: Error {}
 }
 
 private enum SchemaCodingKey: CodingKey {
   case type, description, properties, additionalProperties, minProperties, maxProperties, `enum`
 }
 
-private struct EnumCaseKeyNotFound: Error {
-  let allKeys: [String]
+private enum Error: Swift.Error {
+  case expectedNull
+  case expectedVoidSchema
+  case unknownEnumCase(allKeys: [String])
 }
