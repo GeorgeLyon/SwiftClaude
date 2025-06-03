@@ -204,47 +204,36 @@ struct ObjectPropertiesDecodingStateProvider<
 
     typealias TupleAccessor = VariadicTupleAccessor<PropertyStates>
     let tupleAccessor = TupleAccessor()
-    let elementReferences: (repeat TupleAccessor.ElementReference<(each PropertySchema).Value>) =
-      tupleAccessor.elementReferences
-
-    var decoders: [Substring: PropertyDecoder] = [:]
-    func insertDecoder<Schema: ToolInput.Schema>(
-      for property: ObjectPropertySchema<Key, Schema>,
-      reference: TupleAccessor.ElementReference<ObjectPropertySchema<Key, Schema>.DecodingState>
-    ) {
-
+    for (property, reference) in repeat (each properties, each tupleAccessor.elementReferences) {
+      let key = Substring(property.key.stringValue)
+      let decoder: PropertyDecoder = { stream, states in
+        try tupleAccessor.mutate(reference, on: &states) { decodingState in
+          while true {
+            switch decodingState {
+            case .missing:
+              decodingState = property.initialDecodingState
+            case .decoding(var state):
+              switch try property.schema.decodeValue(from: &stream, state: &state) {
+              case .needsMoreData:
+                decodingState = .decoding(state)
+                return .needsMoreData
+              case .decoded(let value):
+                decodingState = .decoded(value)
+                return .decoded(())
+              }
+            case .decoded:
+              throw Error.repeatedPropertyName(property.key.stringValue)
+            }
+          }
+        }
+      }
+      if decoders.updateValue(decoder, forKey: key) != nil {
+        assertionFailure()
+        decoders[key] = { _, _ in
+          throw Error.multiplePropertiesWithSameName(property.key.stringValue)
+        }
+      }
     }
-    repeat insertDecoder(for: each properties, reference: each elementReferences)
-    // for (property, reference) in repeat (each properties, each tupleAccessor.elementReferences) {
-    //   let key = Substring(property.key.stringValue)
-    //   let decoder: PropertyDecoder = { stream, states in
-    //     try tupleAccessor.mutate(reference, on: &states) { decodingState in
-    //       while true {
-    //         switch decodingState {
-    //         case .missing:
-    //           decodingState = property.initialDecodingState
-    //         case .decoding(var state):
-    //           switch try property.schema.decodeValue(from: &stream, state: &state) {
-    //           case .needsMoreData:
-    //             decodingState = .decoding(state)
-    //             return .needsMoreData
-    //           case .decoded(let value):
-    //             decodingState = .decoded(value)
-    //             return .decoded(())
-    //           }
-    //         case .decoded:
-    //           throw Error.repeatedPropertyName(property.key.stringValue)
-    //         }
-    //       }
-    //     }
-    //   }
-    //   if decoders.updateValue(decoder, forKey: key) != nil {
-    //     assertionFailure()
-    //     decoders[key] = { _, _ in
-    //       throw Error.multiplePropertiesWithSameName(property.key.stringValue)
-    //     }
-    //   }
-    // }
     self.decoders = decoders
   }
 
