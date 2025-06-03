@@ -5,7 +5,7 @@ struct VariadicTupleAccessor<each Element>: Sendable {
     func referenceNextElement<T>(as type: T.Type) -> ElementReference<T> {
       let alignment = MemoryLayout<T>.alignment
       let offset = (offsetCursor + alignment - 1) & ~(alignment - 1)
-      offsetCursor = offset
+      offsetCursor = offset + MemoryLayout<T>.size
       return ElementReference(offset: offset)
     }
     elementReferences = (repeat referenceNextElement(as: (each Element).self))
