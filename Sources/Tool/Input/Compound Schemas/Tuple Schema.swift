@@ -179,28 +179,28 @@ struct TupleSchema<each ElementSchema: ToolInput.Schema>: InternalSchema {
         VariadicTupleAccessor<repeat TupleElement<each ElementSchema>.DecodingState>()
 
       var decoders: [ElementDecoder] = []
-      // for (element, reference) in repeat (each elements, each tupleAccessor.elementReferences) {
-      //   decoders.append({ stream, states in
-      //     try tupleAccessor.mutate(reference, on: &states) { decodingState in
-      //       while true {
-      //         switch decodingState {
-      //         case .decoding(var state):
-      //           switch try element.schema.decodeValue(from: &stream, state: &state) {
-      //           case .needsMoreData:
-      //             decodingState = .decoding(state)
-      //             return .needsMoreData
-      //           case .decoded(let value):
-      //             decodingState = .decoded(value)
-      //             return .decoded(())
-      //           }
-      //         case .decoded:
-      //           assertionFailure()
-      //           return .decoded(())
-      //         }
-      //       }
-      //     }
-      //   })
-      // }
+      for (element, reference) in repeat (each elements, each tupleAccessor.elementReferences) {
+        decoders.append({ stream, states in
+          try tupleAccessor.mutate(reference, on: &states) { decodingState in
+            while true {
+              switch decodingState {
+              case .decoding(var state):
+                switch try element.schema.decodeValue(from: &stream, state: &state) {
+                case .needsMoreData:
+                  decodingState = .decoding(state)
+                  return .needsMoreData
+                case .decoded(let value):
+                  decodingState = .decoded(value)
+                  return .decoded(())
+                }
+              case .decoded:
+                assertionFailure()
+                return .decoded(())
+              }
+            }
+          }
+        })
+      }
       self.decoders = decoders
     }
     let elements: (repeat TupleElement<each ElementSchema>)
