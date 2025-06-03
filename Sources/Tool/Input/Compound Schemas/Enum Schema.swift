@@ -591,12 +591,13 @@ private struct StandardEnumSchema<
       throw Error.unknownEnumCase(allKeys: container.allKeys.map(\.stringValue))
     }
   }
-  
+
   func decodeValue(
     from stream: inout JSON.DecodingStream,
     state: inout ()
   ) throws -> JSON.DecodingResult<Value> {
-    
+    #warning("implement")
+    fatalError()
   }
 
   private var style: EnumSchemaStyle {

@@ -107,7 +107,7 @@ struct TupleSchema<each ElementSchema: ToolInput.Schema>: InternalSchema {
         from: ToolInput.Decoder(wrapped: container.superDecoder())
       ))
   }
-  
+
   struct ValueDecodingState {
     fileprivate var arrayState = JSON.ArrayDecodingState()
     fileprivate var elementStates: (repeat TupleElement<each ElementSchema>.DecodingState)
@@ -120,20 +120,22 @@ struct TupleSchema<each ElementSchema: ToolInput.Schema>: InternalSchema {
       elementDecoders: provider.decoders[0...]
     )
   }
-  
+
   func decodeValue(
     from stream: inout JSON.DecodingStream,
     state: inout ValueDecodingState
   ) throws -> JSON.DecodingResult<(repeat (each ElementSchema).Value)> {
     while true {
-      
+
       switch try stream.decodeArrayComponent(&state.arrayState) {
       case .needsMoreData:
         return .needsMoreData
       case .decoded(.elementStart):
         break
       case .decoded(.end):
-        func getElement<Schema>(from state: TupleElement<Schema>.DecodingState) throws -> Schema.Value {
+        func getElement<Schema>(from state: TupleElement<Schema>.DecodingState) throws
+          -> Schema.Value
+        {
           guard case .decoded(let element) = state else {
             assertionFailure()
             throw Error.invalidState
@@ -142,12 +144,12 @@ struct TupleSchema<each ElementSchema: ToolInput.Schema>: InternalSchema {
         }
         return .decoded(try (repeat getElement(from: each state.elementStates)))
       }
-      
+
       guard let decoder = state.elementDecoders.first else {
         assertionFailure()
         throw Error.invalidState
       }
-      
+
       switch try decoder(&stream, &state.elementStates) {
       case .needsMoreData:
         return .needsMoreData
@@ -177,28 +179,28 @@ struct TupleSchema<each ElementSchema: ToolInput.Schema>: InternalSchema {
         VariadicTupleAccessor<repeat TupleElement<each ElementSchema>.DecodingState>()
 
       var decoders: [ElementDecoder] = []
-      for (element, reference) in repeat (each elements, each tupleAccessor.elementReferences) {
-        decoders.append({ stream, states in
-          try tupleAccessor.mutate(reference, on: &states) { decodingState in
-            while true {
-              switch decodingState {
-              case .decoding(var state):
-                switch try element.schema.decodeValue(from: &stream, state: &state) {
-                case .needsMoreData:
-                  decodingState = .decoding(state)
-                  return .needsMoreData
-                case .decoded(let value):
-                  decodingState = .decoded(value)
-                  return .decoded(())
-                }
-              case .decoded:
-                assertionFailure()
-                return .decoded(())
-              }
-            }
-          }
-        })
-      }
+      // for (element, reference) in repeat (each elements, each tupleAccessor.elementReferences) {
+      //   decoders.append({ stream, states in
+      //     try tupleAccessor.mutate(reference, on: &states) { decodingState in
+      //       while true {
+      //         switch decodingState {
+      //         case .decoding(var state):
+      //           switch try element.schema.decodeValue(from: &stream, state: &state) {
+      //           case .needsMoreData:
+      //             decodingState = .decoding(state)
+      //             return .needsMoreData
+      //           case .decoded(let value):
+      //             decodingState = .decoded(value)
+      //             return .decoded(())
+      //           }
+      //         case .decoded:
+      //           assertionFailure()
+      //           return .decoded(())
+      //         }
+      //       }
+      //     }
+      //   })
+      // }
       self.decoders = decoders
     }
     let elements: (repeat TupleElement<each ElementSchema>)
