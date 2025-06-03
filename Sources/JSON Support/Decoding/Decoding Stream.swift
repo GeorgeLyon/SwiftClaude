@@ -265,7 +265,7 @@ extension JSON {
       }
     }
 
-    consuming func map<T>(
+    public consuming func map<T>(
       _ transform: (consuming Value) throws -> T
     ) rethrows -> DecodingResult<T> {
       switch consume self {

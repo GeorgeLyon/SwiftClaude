@@ -181,7 +181,151 @@ extension KeyedDecodingContainer {
 
 }
 
+extension ToolInput.NewDecoder {
+
+  struct ObjectPropertiesDecodingState<
+    Key: CodingKey,
+    each PropertySchema: ToolInput.Schema
+  > {
+
+    init(properties: repeat ObjectPropertySchema<Key, each PropertySchema>) {
+      self.properties = (repeat each properties)
+      self.states = (repeat ObjectPropertySchema<Key, (each PropertySchema)>.DecodingState.missing)
+
+      var decoders: [Substring: PropertyDecoder] = [:]
+      var offsetCursor = 0
+      for property in repeat each properties {
+        let key = Substring(property.key.stringValue)
+        let alignment = property.alignment
+        let offset = (offsetCursor + alignment - 1) & ~(alignment - 1)
+        offsetCursor = offset
+        let decoder: PropertyDecoder = { stream, states in
+          try withUnsafeMutableBytes(of: &states) { buffer in
+            assert(offset < buffer.count)
+            let pointer = (buffer.baseAddress! + offset)
+              .assumingMemoryBound(to: property.decodingStateType)
+            while true {
+              switch pointer.pointee {
+              case .missing:
+                pointer.pointee = property.initialDecodingState
+              case .decoding(var state):
+                switch try property.schema.decodeValue(from: &stream, state: &state) {
+                case .needsMoreData:
+                  pointer.pointee = .decoding(state)
+                  return .needsMoreData
+                case .decoded(let value):
+                  pointer.pointee = .decoded(value)
+                  return .decoded(())
+                }
+              case .decoded:
+                throw Error.repeatedPropertyName(property.key.stringValue)
+              }
+            }
+          }
+        }
+        if decoders.updateValue(decoder, forKey: key) != nil {
+          assertionFailure()
+          decoders[key] = { _, _ in
+            throw Error.multiplePropertiesWithSameName(property.key.stringValue)
+          }
+        }
+      }
+      self.decoders = decoders
+    }
+
+    fileprivate mutating func decode(
+      _ stream: inout JSON.DecodingStream
+    ) throws -> JSON.DecodingResult<(repeat (each PropertySchema).Value)> {
+      decodeProperties: while true {
+        switch try stream.decodeObjectPropertyHeader(&objectState) {
+        case .needsMoreData:
+          return .needsMoreData
+        case .decoded(.none):
+          break decodeProperties
+        case .decoded(let property?):
+          switch try decoders[property.name]?(&stream, &states) {
+          case .none:
+            objectState.ignorePropertyValue()
+          case .decoded:
+            break
+          case .needsMoreData:
+            return .needsMoreData
+          }
+        }
+      }
+
+      func getPropertyValue<Schema: ToolInput.Schema>(
+        name: String,
+        schema: Schema,
+        decodedValue: Schema.Value?
+      ) throws -> Schema.Value {
+        if let decodedValue {
+          decodedValue
+        } else if let optionalSchema = schema as? any OptionalSchemaProtocol<Schema.Value> {
+          optionalSchema.valueWhenOmitted
+        } else {
+          throw Error.missingPropertyValue(name)
+        }
+      }
+
+      return .decoded(
+        (repeat try getPropertyValue(
+          name: (each properties).key.stringValue,
+          schema: (each properties).schema,
+          decodedValue: (each states).decodedValue
+        ))
+      )
+    }
+
+    private typealias PropertyStates = (
+      repeat ObjectPropertySchema<Key, (each PropertySchema)>.DecodingState
+    )
+    private typealias PropertyDecoder = (
+      inout JSON.DecodingStream,
+      inout PropertyStates
+    ) throws -> JSON.DecodingResult<Void>
+    private let properties: (repeat ObjectPropertySchema<Key, each PropertySchema>)
+    private let decoders: [Substring: PropertyDecoder]
+    private var objectState = JSON.ObjectDecodingState()
+    private var states: (repeat ObjectPropertySchema<Key, (each PropertySchema)>.DecodingState)
+  }
+
+  mutating func decodeProperties<Key: CodingKey, each PropertySchema: ToolInput.Schema>(
+    _ state: inout ObjectPropertiesDecodingState<Key, repeat each PropertySchema>
+  ) async throws -> (repeat (each PropertySchema).Value) {
+    try await decode { stream in
+      try state.decode(&stream)
+    }
+  }
+
+}
+
 // MARK: - Implementation Details
+
+extension ObjectPropertySchema {
+  fileprivate enum DecodingState {
+    case missing
+    case decoding(Schema.ValueDecodingState)
+    case decoded(Schema.Value)
+
+    var decodedValue: Schema.Value? {
+      if case .decoded(let value) = self {
+        value
+      } else {
+        nil
+      }
+    }
+  }
+  fileprivate var initialDecodingState: DecodingState {
+    .decoding(schema.initialValueDecodingState)
+  }
+  fileprivate var alignment: Int {
+    MemoryLayout<DecodingState>.alignment
+  }
+  fileprivate var decodingStateType: DecodingState.Type {
+    DecodingState.self
+  }
+}
 
 private protocol OptionalSchemaProtocol<Value>: InternalSchema {
 
@@ -368,23 +512,62 @@ private struct OptionalSchema<WrappedSchema: ToolInput.Schema>: OptionalSchemaPr
     }
   }
 
-  func decodeValue(
-    from decoder: inout ToolInput.NewDecoder
-  ) async throws -> WrappedSchema.Value? {
+  enum ValueDecodingState {
+    case decodingNonNullableWrapperPrologue(JSON.ObjectDecodingState)
+    case decodingValue(WrappedSchema.ValueDecodingState, JSON.ObjectDecodingState?)
+    case decodingNonNullableWrapperEpilogue(Value, JSON.ObjectDecodingState)
+  }
+  var initialValueDecodingState: ValueDecodingState {
     if wrappedSchema.mayAcceptNullValue {
-      var state = JSON.ObjectDecodingState()
-      while let property = try await decoder.decodeObjectPropertyHeader(&state) {
-        if property.name == "value" {
-          return try await wrappedSchema.decodeValue(from: &decoder)
-        }
-      }
-      return nil
+      /// We are using the non-nullable wrapper
+      .decodingNonNullableWrapperPrologue(JSON.ObjectDecodingState())
     } else {
-      if try await decoder.peekNull() {
-        try await decoder.decodeNull()
-        return nil
-      } else {
-        return try await wrappedSchema.decodeValue(from: &decoder)
+      .decodingValue(wrappedSchema.initialValueDecodingState, nil)
+    }
+  }
+
+  func decodeValue(
+    from stream: inout JSON.DecodingStream,
+    state: inout ValueDecodingState
+  ) throws -> JSON.DecodingResult<WrappedSchema.Value?> {
+    while true {
+      switch state {
+      case .decodingNonNullableWrapperPrologue(var objectState):
+        let header = try stream.decodeObjectPropertyHeader(&objectState)
+        switch header {
+        case .needsMoreData:
+          state = .decodingNonNullableWrapperPrologue(objectState)
+          return .needsMoreData
+        case .decoded(let property?):
+          if property.name == "value" {
+            state = .decodingValue(wrappedSchema.initialValueDecodingState, objectState)
+          } else {
+            /// Ignore properties
+            objectState.ignorePropertyValue()
+            state = .decodingNonNullableWrapperPrologue(objectState)
+          }
+        case .decoded(.none):
+          return .decoded(nil)
+        }
+      case .decodingValue(var valueState, let objectState):
+        switch try wrappedSchema.decodeValue(from: &stream, state: &valueState) {
+        case .needsMoreData:
+          state = .decodingValue(valueState, objectState)
+          return .needsMoreData
+        case .decoded(let value):
+          if let objectState {
+            state = .decodingNonNullableWrapperEpilogue(value, objectState)
+          } else {
+            return .decoded(value)
+          }
+        }
+      case .decodingNonNullableWrapperEpilogue(let value, var objectState):
+        switch try stream.decodeObjectUntilComplete(&objectState) {
+        case .needsMoreData:
+          return .needsMoreData
+        case .decoded(()):
+          return .decoded(value)
+        }
       }
     }
   }
@@ -432,5 +615,7 @@ private struct OptionalSchema<WrappedSchema: ToolInput.Schema>: OptionalSchemaPr
 }
 
 private enum Error: Swift.Error {
-  case missingValue
+  case missingPropertyValue(String)
+  case repeatedPropertyName(String)
+  case multiplePropertiesWithSameName(String)
 }

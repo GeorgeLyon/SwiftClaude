@@ -1,4 +1,4 @@
-import JSONSupport
+public import JSONSupport
 
 public enum ToolInput {
 
@@ -29,9 +29,22 @@ public enum ToolInput {
 
     func encodeSchemaDefinition(to encoder: inout NewSchemaEncoder<Self>)
 
-    func decodeValue(from decoder: inout NewDecoder) async throws -> Value
+    associatedtype ValueDecodingState = ()
+
+    var initialValueDecodingState: ValueDecodingState { get }
+
+    func decodeValue(
+      from stream: inout JSON.DecodingStream,
+      state: inout ValueDecodingState
+    ) throws -> JSON.DecodingResult<Value>
 
   }
+
+}
+
+extension ToolInput.Schema where ValueDecodingState == Void {
+
+  var initialValueDecodingState: Void { () }
 
 }
 

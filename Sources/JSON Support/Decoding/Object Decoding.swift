@@ -5,11 +5,21 @@ extension JSON {
 
     }
 
-    fileprivate enum Phase {
-      case decodingObjectStart
-      case decodingProperties
+    /// This method can be used so that the next call to `decodeObjectPropertyHeader` will decode up to the **next** header without explicitly decoding the property value.
+    public mutating func ignorePropertyValue() {
+      assert(ignoredPropertyState == nil)
+      assert(phase == .readingProperties)
+      ignoredPropertyState = JSON.ValueDecodingState()
     }
-    fileprivate var phase: Phase = .decodingObjectStart
+
+    fileprivate enum Phase {
+      case readingObjectStart
+      case readingProperties
+      case readingComplete
+    }
+    fileprivate var phase: Phase = .readingObjectStart
+
+    fileprivate var ignoredPropertyState: JSON.ValueDecodingState?
   }
 
   public struct ObjectPropertyHeader {
@@ -27,30 +37,73 @@ extension JSON.DecodingStream {
   public mutating func decodeObjectPropertyHeader(
     _ state: inout JSON.ObjectDecodingState
   ) throws -> JSON.DecodingResult<JSON.ObjectPropertyHeader?> {
-    switch state.phase {
-    case .decodingObjectStart:
-      let result = try decodeObjectUpToFirstPropertyValue()
-      if case .decoded = result {
-        state.phase = .decodingProperties
-      }
-      return result
+    try readObjectPropertyHeader(&state).decodingResult()
+  }
 
-    case .decodingProperties:
-      return try decodeObjectUpToNextPropertyValue()
+  public mutating func decodeObjectUntilComplete(
+    _ state: inout JSON.ObjectDecodingState
+  ) throws -> JSON.DecodingResult<Void> {
+    while true {
+      switch readObjectPropertyHeader(&state) {
+      case .needsMoreData:
+        return .needsMoreData
+      case .notMatched(let error):
+        throw error
+      case .matched(.some):
+        state.ignorePropertyValue()
+      case .matched(.none):
+        return .decoded(())
+      }
     }
   }
 
-  mutating func decodeObjectUpToFirstPropertyValue() throws
-    -> JSON.DecodingResult<JSON.ObjectPropertyHeader?>
+  mutating func readObjectPropertyHeader(
+    _ state: inout JSON.ObjectDecodingState
+  ) -> ReadResult<JSON.ObjectPropertyHeader?> {
+    switch state.phase {
+    case .readingObjectStart:
+      let result = readObjectUpToFirstPropertyValue()
+      if case .matched = result {
+        state.phase = .readingProperties
+      }
+      return result
+
+    case .readingProperties:
+
+      if var propertyState = state.ignoredPropertyState {
+        /// We are ignoring this property, so just read it as an arbitrary value
+        switch readValue(&propertyState) {
+        case .needsMoreData:
+          return .needsMoreData
+        case .matched:
+          state.ignoredPropertyState = nil
+        case .notMatched(let error):
+          state.ignoredPropertyState = propertyState
+          return .notMatched(error)
+        }
+      }
+
+      return readObjectUpToNextPropertyValue()
+
+    case .readingComplete:
+      assertionFailure()
+      return .matched(nil)
+    }
+  }
+
+  mutating func readObjectUpToFirstPropertyValue()
+    -> ReadResult<JSON.ObjectPropertyHeader?>
   {
     readWhitespace()
 
     let start = createCheckpoint()
 
-    switch try read("{").decodingResult() {
+    switch read("{") {
     case .needsMoreData:
       return .needsMoreData
-    case .decoded:
+    case .notMatched(let error):
+      return .notMatched(error)
+    case .matched:
       readWhitespace()
 
       let isEmpty = readCharacter { character in
@@ -64,13 +117,13 @@ extension JSON.DecodingStream {
 
       switch isEmpty {
       case .matched:
-        return .decoded(nil)
+        return .matched(nil)
       case .notMatched:
         switch readNextPropertyName() {
         case .matched(let name):
-          return .decoded(JSON.ObjectPropertyHeader(name: name))
+          return .matched(JSON.ObjectPropertyHeader(name: name))
         case .notMatched(let error):
-          throw error
+          return .notMatched(error)
         case .needsMoreData:
           restore(start)
           return .needsMoreData
@@ -82,14 +135,14 @@ extension JSON.DecodingStream {
     }
   }
 
-  mutating func decodeObjectUpToNextPropertyValue() throws
-    -> JSON.DecodingResult<JSON.ObjectPropertyHeader?>
+  mutating func readObjectUpToNextPropertyValue()
+    -> ReadResult<JSON.ObjectPropertyHeader?>
   {
     readWhitespace()
 
     let start = createCheckpoint()
 
-    let isComplete = try readCharacter { character in
+    let isComplete = readCharacter { character in
       switch character {
       case "}":
         return true
@@ -98,21 +151,23 @@ extension JSON.DecodingStream {
       default:
         return nil
       }
-    }.decodingResult()
+    }
 
     switch isComplete {
     case .needsMoreData:
       restore(start)
       return .needsMoreData
-    case .decoded(let isComplete):
+    case .notMatched(let error):
+      return .notMatched(error)
+    case .matched(let isComplete):
       if isComplete {
-        return .decoded(nil)
+        return .matched(nil)
       } else {
         switch readNextPropertyName() {
         case .matched(let name):
-          return .decoded(JSON.ObjectPropertyHeader(name: name))
+          return .matched(JSON.ObjectPropertyHeader(name: name))
         case .notMatched(let error):
-          throw error
+          return .notMatched(error)
         case .needsMoreData:
           restore(start)
           return .needsMoreData

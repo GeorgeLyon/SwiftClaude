@@ -1,9 +1,13 @@
 extension JSON.DecodingStream {
 
   public mutating func decodeBoolean() throws -> JSON.DecodingResult<Bool> {
+    try readBoolean().decodingResult()
+  }
+
+  mutating func readBoolean() -> ReadResult<Bool> {
     readWhitespace()
 
-    let expectedValue = try peekCharacter { character in
+    let expectedValue = peekCharacter { character in
       switch character {
       case "t":
         return true
@@ -12,15 +16,23 @@ extension JSON.DecodingStream {
       default:
         return nil
       }
-    }.decodingResult()
+    }
 
     switch expectedValue {
     case .needsMoreData:
       return .needsMoreData
-    case .decoded(let value):
+    case .notMatched(let error):
+      return .notMatched(error)
+    case .matched(let value):
       /// Read cursor is only updated if the read is successful
-      let result = read(value ? "true" : "false")
-      return try result.decodingResult().map { _ in value }
+      switch read(value ? "true" : "false") {
+      case .needsMoreData:
+        return .needsMoreData
+      case .notMatched(let error):
+        return .notMatched(error)
+      case .matched:
+        return .matched(value)
+      }
     }
   }
 

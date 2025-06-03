@@ -1,21 +1,38 @@
 extension JSON.DecodingStream {
 
   public mutating func decodeNull() throws -> JSON.DecodingResult<Void> {
-    readWhitespace()
-    return try read("null").decodingResult()
+    try readNull().decodingResult()
   }
 
-  /// Returns: - `.decoded(true)` if we expect to decode a null value next
-  public mutating func peekNull() throws -> JSON.DecodingResult<Bool> {
+  /// Returns: - `.decoded(true)` if we decoded a null
+  public mutating func decodeIfNull() throws -> JSON.DecodingResult<Bool> {
     readWhitespace()
-    return try peekCharacter { character in
+
+    let peekNull = peekCharacter { character in
       switch character {
       case "n":
         return true
       default:
         return false
       }
-    }.decodingResult()
+    }
+
+    switch peekNull {
+    case .needsMoreData:
+      return .needsMoreData
+    case .matched(true):
+      return try decodeNull()
+        .map { _ in true }
+    case .matched(false):
+      return .decoded(false)
+    case .notMatched(let error):
+      throw error
+    }
+  }
+
+  mutating func readNull() -> ReadResult<Void> {
+    readWhitespace()
+    return read("null")
   }
 
 }

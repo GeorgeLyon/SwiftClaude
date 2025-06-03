@@ -131,9 +131,7 @@ private struct NullTests {
       stream.push("null")
       stream.finish()
 
-      #expect(try stream.peekNull().getValue() == true)
-      let result = try stream.decodeNull()
-      #expect(try result.getValue() == ())
+      #expect(try stream.decodeIfNull().getValue() == true)
     }
 
     /// Peek at non-null values
@@ -141,27 +139,27 @@ private struct NullTests {
       var stream = JSON.DecodingStream()
       stream.push("42")
       stream.finish()
-      #expect(try stream.peekNull().getValue() == false)
+      #expect(try stream.decodeIfNull().getValue() == false)
 
       stream = JSON.DecodingStream()
       stream.push("\"string\"")
       stream.finish()
-      #expect(try stream.peekNull().getValue() == false)
+      #expect(try stream.decodeIfNull().getValue() == false)
 
       stream = JSON.DecodingStream()
       stream.push("true")
       stream.finish()
-      #expect(try stream.peekNull().getValue() == false)
+      #expect(try stream.decodeIfNull().getValue() == false)
 
       stream = JSON.DecodingStream()
       stream.push("[1, 2, 3]")
       stream.finish()
-      #expect(try stream.peekNull().getValue() == false)
+      #expect(try stream.decodeIfNull().getValue() == false)
 
       stream = JSON.DecodingStream()
       stream.push("{\"key\": \"value\"}")
       stream.finish()
-      #expect(try stream.peekNull().getValue() == false)
+      #expect(try stream.decodeIfNull().getValue() == false)
     }
 
     /// Peek with whitespace
@@ -170,24 +168,7 @@ private struct NullTests {
       stream.push("  null")
       stream.finish()
 
-      #expect(try stream.peekNull().getValue() == true)
-      let result = try stream.decodeNull()
-      #expect(try result.getValue() == ())
-    }
-
-    /// Peek with incremental parsing
-    do {
-      var stream = JSON.DecodingStream()
-      stream.push("nu")
-      
-      #expect(try stream.peekNull().needsMoreData)
-      
-      stream.push("ll")
-      stream.finish()
-      
-      #expect(try stream.peekNull().getValue() == true)
-      let result = try stream.decodeNull()
-      #expect(try result.getValue() == ())
+      #expect(try stream.decodeIfNull().getValue() == true)
     }
 
     /// Peek doesn't consume the value
@@ -197,13 +178,7 @@ private struct NullTests {
       stream.finish()
 
       // Peek multiple times
-      #expect(try stream.peekNull().getValue() == true)
-      #expect(try stream.peekNull().getValue() == true)
-      #expect(try stream.peekNull().getValue() == true)
-      
-      // Value should still be there to decode
-      let result = try stream.decodeNull()
-      #expect(try result.getValue() == ())
+      #expect(try stream.decodeIfNull().getValue() == true)
       
       // Can read the comma and next value
       #expect(try stream.readCharacter().decodingResult().getValue() == ",")

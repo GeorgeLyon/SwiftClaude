@@ -7,12 +7,12 @@ extension JSON {
     }
 
     fileprivate enum Phase {
-      case decodingValue
-      case decodingStringFragments
-      case decodingNextArrayElement
-      case decodingNextObjectProperty
+      case readingValue
+      case readingStringFragments
+      case readingNextArrayElement
+      case readingNextObjectProperty
     }
-    fileprivate var phase: Phase = .decodingValue
+    fileprivate var phase: Phase = .readingValue
 
     fileprivate enum Nesting {
       case array
@@ -29,106 +29,132 @@ extension JSON.DecodingStream {
   public mutating func decodeValue(
     _ state: inout JSON.ValueDecodingState
   ) throws -> JSON.DecodingResult<Void> {
+    try readValue(&state).decodingResult()
+  }
+
+  mutating func readValue(
+    _ state: inout JSON.ValueDecodingState
+  ) -> ReadResult<Void> {
     while true {
       switch state.phase {
-      case .decodingValue:
+      case .readingValue:
         readWhitespace()
 
         let start = createCheckpoint()
-        switch try peekValueKind() {
+        switch peekValueKind() {
         case .needsMoreData:
           return .needsMoreData
-        case .decoded(let kind):
+        case .notMatched(let error):
+          return .notMatched(error)
+        case .matched(let kind):
           switch kind {
           case .null:
-            switch try decodeNull() {
-            case .decoded:
+            switch readNull() {
+            case .matched:
               break
+            case .notMatched(let error):
+              return .notMatched(error)
             case .needsMoreData:
               restore(start)
               return .needsMoreData
             }
           case .boolean:
-            switch try decodeBoolean() {
-            case .decoded:
+            switch readBoolean() {
+            case .matched:
               break
+            case .notMatched(let error):
+              return .notMatched(error)
             case .needsMoreData:
               restore(start)
               return .needsMoreData
             }
           case .number:
-            switch try decodeNumber() {
-            case .decoded:
+            switch readNumber() {
+            case .matched:
               break
+            case .notMatched(let error):
+              return .notMatched(error)
             case .needsMoreData:
               restore(start)
               return .needsMoreData
             }
           case .string:
-            switch try decodeStringStart() {
+            switch readStringStart() {
             case .needsMoreData:
               restore(start)
               return .needsMoreData
-            case .decoded:
-              state.phase = .decodingStringFragments
+            case .notMatched(let error):
+              return .notMatched(error)
+            case .matched:
+              state.phase = .readingStringFragments
               continue
             }
           case .array:
-            switch try decodeArrayUpToFirstElement() {
+            switch readArrayUpToFirstElement() {
             case .needsMoreData:
               restore(start)
               return .needsMoreData
-            case .decoded(.some):
+            case .notMatched(let error):
+              return .notMatched(error)
+            case .matched(.some):
               state.nesting.append(.array)
-              state.phase = .decodingValue
+              state.phase = .readingValue
               continue
-            case .decoded(.none):
+            case .matched(.none):
               break
             }
           case .object:
-            switch try decodeObjectUpToFirstPropertyValue() {
+            switch readObjectUpToFirstPropertyValue() {
             case .needsMoreData:
               restore(start)
               return .needsMoreData
-            case .decoded(.some):
+            case .notMatched(let error):
+              return .notMatched(error)
+            case .matched(.some):
               state.nesting.append(.object)
-              state.phase = .decodingValue
+              state.phase = .readingValue
               continue
-            case .decoded(.none):
+            case .matched(.none):
               break
             }
           }
         }
 
-      case .decodingStringFragments:
-        switch try readRawStringFragments(onFragment: { _ in }).decodingResult() {
+      case .readingStringFragments:
+        switch readRawStringFragments(onFragment: { _ in }) {
         case .needsMoreData:
           return .needsMoreData
-        case .decoded:
+        case .notMatched(let error):
+          return .notMatched(error)
+        case .matched:
           break
         }
 
-      case .decodingNextArrayElement:
-        switch try decodeArrayUpToNextElement() {
+      case .readingNextArrayElement:
+        switch readArrayUpToNextElement() {
         case .needsMoreData:
           return .needsMoreData
-        case .decoded(.some):
-          state.phase = .decodingValue
+        case .notMatched(let error):
+          return .notMatched(error)
+        case .matched(.some):
+          state.phase = .readingValue
           continue
-        case .decoded(.none):
+        case .matched(.none):
           let nesting = state.nesting.popLast()
           assert(nesting == .array)
           break
         }
 
-      case .decodingNextObjectProperty:
-        switch try decodeObjectUpToNextPropertyValue() {
+      case .readingNextObjectProperty:
+        switch readObjectUpToNextPropertyValue() {
         case .needsMoreData:
           return .needsMoreData
-        case .decoded(.some):
-          state.phase = .decodingValue
+        case .notMatched(let error):
+          return .notMatched(error)
+        case .matched(.some):
+          state.phase = .readingValue
           continue
-        case .decoded(.none):
+        case .matched(.none):
           let nesting = state.nesting.popLast()
           assert(nesting == .object)
           break
@@ -137,14 +163,13 @@ extension JSON.DecodingStream {
 
       switch state.nesting.last {
       case .none:
-        return .decoded(())
+        return .matched(())
       case .array:
-        state.phase = .decodingNextArrayElement
+        state.phase = .readingNextArrayElement
       case .object:
-        state.phase = .decodingNextObjectProperty
+        state.phase = .readingNextObjectProperty
       }
     }
-    fatalError()
   }
 
 }
@@ -166,8 +191,8 @@ extension JSON {
 
 extension JSON.DecodingStream {
 
-  fileprivate func peekValueKind() throws -> JSON.DecodingResult<JSON.ValueKind> {
-    try peekCharacter { character in
+  fileprivate func peekValueKind() -> ReadResult<JSON.ValueKind> {
+    peekCharacter { character in
       switch character {
       case "{":
         return .object
@@ -184,7 +209,7 @@ extension JSON.DecodingStream {
       default:
         return nil
       }
-    }.decodingResult()
+    }
   }
 
 }

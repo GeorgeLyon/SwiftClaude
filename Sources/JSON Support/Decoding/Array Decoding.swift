@@ -6,10 +6,11 @@ extension JSON {
     }
 
     fileprivate enum Phase {
-      case decodingArrayStart
-      case decodingElements
+      case readingArrayStart
+      case readingElements
+      case readingComplete
     }
-    fileprivate var phase: Phase = .decodingArrayStart
+    fileprivate var phase: Phase = .readingArrayStart
   }
 
   public enum ArrayElementHeader {
@@ -23,30 +24,42 @@ extension JSON.DecodingStream {
   public mutating func decodeArrayElementHeader(
     _ state: inout JSON.ArrayDecodingState
   ) throws -> JSON.DecodingResult<JSON.ArrayElementHeader?> {
+    try readArrayElementHeader(&state).decodingResult()
+  }
+
+  mutating func readArrayElementHeader(
+    _ state: inout JSON.ArrayDecodingState
+  ) throws -> ReadResult<JSON.ArrayElementHeader?> {
     switch state.phase {
-    case .decodingArrayStart:
-      let result = try decodeArrayUpToFirstElement()
-      if case .decoded = result {
-        state.phase = .decodingElements
+    case .readingArrayStart:
+      let result = readArrayUpToFirstElement()
+      if case .matched = result {
+        state.phase = .readingElements
       }
       return result
 
-    case .decodingElements:
-      return try decodeArrayUpToNextElement()
+    case .readingElements:
+      return readArrayUpToNextElement()
+
+    case .readingComplete:
+      assertionFailure()
+      return .matched(nil)
     }
   }
 
-  mutating func decodeArrayUpToFirstElement() throws
-    -> JSON.DecodingResult<JSON.ArrayElementHeader?>
+  mutating func readArrayUpToFirstElement()
+    -> ReadResult<JSON.ArrayElementHeader?>
   {
     readWhitespace()
 
     let start = createCheckpoint()
 
-    switch try read("[").decodingResult() {
+    switch read("[") {
     case .needsMoreData:
       return .needsMoreData
-    case .decoded:
+    case .notMatched(let error):
+      return .notMatched(error)
+    case .matched:
       readWhitespace()
       let isEmpty = readCharacter { character in
         switch character {
@@ -58,9 +71,9 @@ extension JSON.DecodingStream {
       }
       switch isEmpty {
       case .matched:
-        return .decoded(.none)
+        return .matched(.none)
       case .notMatched:
-        return .decoded(.elementHeader)
+        return .matched(.elementHeader)
       case .needsMoreData:
         /// Restore to start so we don't need to keep track of the fact that we've read "["
         restore(start)
@@ -69,12 +82,12 @@ extension JSON.DecodingStream {
     }
   }
 
-  mutating func decodeArrayUpToNextElement() throws
-    -> JSON.DecodingResult<JSON.ArrayElementHeader?>
+  mutating func readArrayUpToNextElement()
+    -> ReadResult<JSON.ArrayElementHeader?>
   {
     readWhitespace()
 
-    let isComplete = try readCharacter { character in
+    let isComplete = readCharacter { character in
       switch character {
       case "]":
         return true
@@ -83,13 +96,15 @@ extension JSON.DecodingStream {
       default:
         return nil
       }
-    }.decodingResult()
+    }
 
     switch isComplete {
     case .needsMoreData:
       return .needsMoreData
-    case .decoded(let isComplete):
-      return .decoded(isComplete ? .none : .elementHeader)
+    case .matched(let isComplete):
+      return .matched(isComplete ? .none : .elementHeader)
+    case .notMatched(let error):
+      return .notMatched(error)
     }
   }
 

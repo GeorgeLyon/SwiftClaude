@@ -90,6 +90,10 @@ extension JSON.Number {
 extension JSON.DecodingStream {
 
   public mutating func decodeNumber() throws -> JSON.DecodingResult<JSON.Number> {
+    try readNumber().decodingResult()
+  }
+
+  mutating func readNumber() -> ReadResult<JSON.Number> {
     let significand: Substring
     let integerPart: Substring
     let fractionalPart: Substring?
@@ -101,24 +105,33 @@ extension JSON.DecodingStream {
 
     /// Read integer part
     do {
-      guard try !read(whileCharactersIn: "-", maxCount: 1).needsMoreData else {
+      switch read(whileCharactersIn: "-", maxCount: 1) {
+      case .matched:
+        break
+      case .needsMoreData:
         restore(start)
         return .needsMoreData
+      case .notMatched(let error):
+        return .notMatched(error)
       }
 
-      guard
-        try !read(
-          whileCharactersIn: "0"..."9",
-          minCount: 1,
-          process: { substring, _ in
-            guard substring.prefix(while: { $0 == "0" }).count < 2 else {
-              throw Error.numberWithLeadingZeroes
-            }
+      let result = read(
+        whileCharactersIn: "0"..."9",
+        minCount: 1,
+        process: { substring, _ in
+          guard substring.prefix(while: { $0 == "0" }).count < 2 else {
+            throw Error.numberWithLeadingZeroes
           }
-        ).needsMoreData
-      else {
+        }
+      )
+      switch result {
+      case .matched:
+        break
+      case .needsMoreData:
         restore(start)
         return .needsMoreData
+      case .notMatched(let error):
+        return .notMatched(error)
       }
       integerPart = substringRead(since: start)
     }
@@ -132,9 +145,14 @@ extension JSON.DecodingStream {
     case .matched:
       let fractionStart = createCheckpoint()
 
-      guard try !read(whileCharactersIn: "0"..."9", minCount: 1).needsMoreData else {
+      switch read(whileCharactersIn: "0"..."9", minCount: 1) {
+      case .matched:
+        break
+      case .needsMoreData:
         restore(start)
         return .needsMoreData
+      case .notMatched(let error):
+        return .notMatched(error)
       }
 
       fractionalPart = substringRead(since: fractionStart)
@@ -155,12 +173,24 @@ extension JSON.DecodingStream {
     case .matched:
       let exponentStart = createCheckpoint()
 
-      guard
-        try !read(whileCharactersIn: ["+", "-"], maxCount: 1).needsMoreData,
-        try !read(whileCharactersIn: "0"..."9", minCount: 1).needsMoreData
-      else {
+      switch read(whileCharactersIn: ["+", "-"], maxCount: 1) {
+      case .matched:
+        break
+      case .needsMoreData:
         restore(start)
         return .needsMoreData
+      case .notMatched(let error):
+        return .notMatched(error)
+      }
+
+      switch read(whileCharactersIn: "0"..."9", minCount: 1) {
+      case .matched:
+        break
+      case .needsMoreData:
+        restore(start)
+        return .needsMoreData
+      case .notMatched(let error):
+        return .notMatched(error)
       }
 
       exponentPart = substringRead(since: exponentStart)
@@ -170,7 +200,7 @@ extension JSON.DecodingStream {
       break
     }
 
-    return .decoded(
+    return .matched(
       JSON.Number(
         stringValue: substringRead(since: start),
         significand: significand,
