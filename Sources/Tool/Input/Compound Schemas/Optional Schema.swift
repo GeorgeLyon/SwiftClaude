@@ -193,37 +193,35 @@ extension JSON.DecodingStream {
 
 }
 
+/// This is currently in the `OptionalSchema` file since it depends on internals of `OptionalSchema`
 struct ObjectPropertiesDecodingStateProvider<
   Key: CodingKey,
   each PropertySchema: ToolInput.Schema
 >: Sendable {
-  
+
   init(properties: repeat ObjectPropertySchema<Key, each PropertySchema>) {
     self.properties = (repeat each properties)
-    
+
+    let tupleAccessor = VariadicTupleAccessor<
+      repeat ObjectPropertySchema<Key, (each PropertySchema)>.DecodingState
+    >()
+
     var decoders: [Substring: PropertyDecoder] = [:]
-    var offsetCursor = 0
-    for property in repeat each properties {
+    for (property, reference) in repeat (each properties, each tupleAccessor.elementReferences) {
       let key = Substring(property.key.stringValue)
-      let alignment = property.decodingStateAligment
-      let offset = (offsetCursor + alignment - 1) & ~(alignment - 1)
-      offsetCursor = offset
       let decoder: PropertyDecoder = { stream, states in
-        try withUnsafeMutableBytes(of: &states) { buffer in
-          assert(offset < buffer.count)
-          let pointer = (buffer.baseAddress! + offset)
-            .assumingMemoryBound(to: property.decodingStateType)
+        try tupleAccessor.mutate(reference, on: &states) { decodingState in
           while true {
-            switch pointer.pointee {
+            switch decodingState {
             case .missing:
-              pointer.pointee = property.initialDecodingState
+              decodingState = property.initialDecodingState
             case .decoding(var state):
               switch try property.schema.decodeValue(from: &stream, state: &state) {
               case .needsMoreData:
-                pointer.pointee = .decoding(state)
+                decodingState = .decoding(state)
                 return .needsMoreData
               case .decoded(let value):
-                pointer.pointee = .decoded(value)
+                decodingState = .decoded(value)
                 return .decoded(())
               }
             case .decoded:
@@ -241,13 +239,13 @@ struct ObjectPropertiesDecodingStateProvider<
     }
     self.decoders = decoders
   }
-  
+
   var initialDecodingState: ObjectPropertiesDecodingState<Key, repeat each PropertySchema> {
     ObjectPropertiesDecodingState(provider: self)
   }
-  
+
   let properties: (repeat ObjectPropertySchema<Key, each PropertySchema>)
-  
+
   fileprivate typealias PropertyStates = (
     repeat ObjectPropertySchema<Key, (each PropertySchema)>.DecodingState
   )
@@ -256,10 +254,7 @@ struct ObjectPropertiesDecodingStateProvider<
     inout PropertyStates
   ) throws -> JSON.DecodingResult<Void>
   fileprivate let decoders: [Substring: PropertyDecoder]
-  
-  
 
-  
 }
 
 struct ObjectPropertiesDecodingState<
@@ -267,11 +262,12 @@ struct ObjectPropertiesDecodingState<
   each PropertySchema: ToolInput.Schema
 > {
 
-  fileprivate init(provider: ObjectPropertiesDecodingStateProvider<Key, repeat each PropertySchema>) {
+  fileprivate init(provider: ObjectPropertiesDecodingStateProvider<Key, repeat each PropertySchema>)
+  {
     self.provider = provider
     self.states = (repeat ObjectPropertySchema<Key, (each PropertySchema)>.DecodingState.missing)
   }
-  
+
   fileprivate let provider: ObjectPropertiesDecodingStateProvider<Key, repeat each PropertySchema>
 
   fileprivate mutating func decode(

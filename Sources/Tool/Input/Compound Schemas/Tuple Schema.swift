@@ -25,14 +25,19 @@ struct TupleSchema<each ElementSchema: ToolInput.Schema>: InternalSchema {
 
   typealias Value = (repeat (each ElementSchema).Value)
 
-  let elements:
-    (
+  init(
+    elements: (
       repeat
         (
           name: String?,
           schema: each ElementSchema
         )
     )
+  ) {
+    provider = ValueDecodingStateProvider(
+      elements: (repeat TupleElement(name: (each elements).name, schema: (each elements).schema))
+    )
+  }
 
   func encodeSchemaDefinition(to encoder: ToolInput.SchemaEncoder<Self>) throws {
     var container = encoder.wrapped.container(keyedBy: SchemaCodingKey.self)
@@ -103,13 +108,124 @@ struct TupleSchema<each ElementSchema: ToolInput.Schema>: InternalSchema {
       ))
   }
   
-  func decodeValue(
-    from stream: inout JSON.DecodingStream,
-    state: inout ()
-  ) throws -> JSON.DecodingResult<(repeat (each ElementSchema).Value)> {
-    fatalError()
+  struct ValueDecodingState {
+    fileprivate var arrayState = JSON.ArrayDecodingState()
+    fileprivate var elementStates: (repeat TupleElement<each ElementSchema>.DecodingState)
+    fileprivate var elementDecoders: ArraySlice<ElementDecoder>
   }
 
+  var initialValueDecodingState: ValueDecodingState {
+    ValueDecodingState(
+      elementStates: (repeat (each elements).initialDecodingState),
+      elementDecoders: provider.decoders[0...]
+    )
+  }
+  
+  func decodeValue(
+    from stream: inout JSON.DecodingStream,
+    state: inout ValueDecodingState
+  ) throws -> JSON.DecodingResult<(repeat (each ElementSchema).Value)> {
+    while true {
+      
+      switch try stream.decodeArrayComponent(&state.arrayState) {
+      case .needsMoreData:
+        return .needsMoreData
+      case .decoded(.elementStart):
+        break
+      case .decoded(.end):
+        func getElement<Schema>(from state: TupleElement<Schema>.DecodingState) throws -> Schema.Value {
+          guard case .decoded(let element) = state else {
+            assertionFailure()
+            throw Error.invalidState
+          }
+          return element
+        }
+        return .decoded(try (repeat getElement(from: each state.elementStates)))
+      }
+      
+      guard let decoder = state.elementDecoders.first else {
+        assertionFailure()
+        throw Error.invalidState
+      }
+      
+      switch try decoder(&stream, &state.elementStates) {
+      case .needsMoreData:
+        return .needsMoreData
+      case .decoded:
+        state.elementDecoders.removeFirst()
+        continue
+      }
+    }
+  }
+
+  private var elements: (repeat TupleElement<each ElementSchema>) {
+    provider.elements
+  }
+
+  fileprivate typealias ElementStates = (repeat TupleElement<each ElementSchema>.DecodingState)
+
+  fileprivate typealias ElementDecoder = @Sendable (
+    inout JSON.DecodingStream,
+    inout ElementStates
+  ) throws -> JSON.DecodingResult<Void>
+
+  private struct ValueDecodingStateProvider: Sendable {
+    init(elements: (repeat TupleElement<each ElementSchema>)) {
+      self.elements = elements
+
+      let tupleAccessor =
+        VariadicTupleAccessor<repeat TupleElement<each ElementSchema>.DecodingState>()
+
+      var decoders: [ElementDecoder] = []
+      for (element, reference) in repeat (each elements, each tupleAccessor.elementReferences) {
+        decoders.append({ stream, states in
+          try tupleAccessor.mutate(reference, on: &states) { decodingState in
+            while true {
+              switch decodingState {
+              case .decoding(var state):
+                switch try element.schema.decodeValue(from: &stream, state: &state) {
+                case .needsMoreData:
+                  decodingState = .decoding(state)
+                  return .needsMoreData
+                case .decoded(let value):
+                  decodingState = .decoded(value)
+                  return .decoded(())
+                }
+              case .decoded:
+                assertionFailure()
+                return .decoded(())
+              }
+            }
+          }
+        })
+      }
+      self.decoders = decoders
+    }
+    let elements: (repeat TupleElement<each ElementSchema>)
+    let decoders: [ElementDecoder]
+  }
+  private let provider: ValueDecodingStateProvider
+
+}
+
+private struct TupleElement<Schema: ToolInput.Schema> {
+  enum DecodingState {
+    case decoding(Schema.ValueDecodingState)
+    case decoded(Schema.Value)
+  }
+  var initialDecodingState: DecodingState {
+    .decoding(schema.initialValueDecodingState)
+  }
+
+  var decodingStateAligment: Int {
+    MemoryLayout<DecodingState>.alignment
+  }
+  var decodingStateType: DecodingState.Type {
+    DecodingState.self
+  }
+
+  let name: String?
+  let schema: Schema
 }
 
 private enum SchemaCodingKey: Swift.CodingKey {
@@ -118,4 +234,8 @@ private enum SchemaCodingKey: Swift.CodingKey {
   case prefixItems
   case minItems
   case items
+}
+
+private enum Error: Swift.Error {
+  case invalidState
 }
