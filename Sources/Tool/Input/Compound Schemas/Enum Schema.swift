@@ -326,16 +326,28 @@ private struct StandardEnumSchema<
   each AssociatedValuesSchema: ToolInput.Schema
 >: InternalSchema {
 
-  let description: String?
-
   typealias Cases = (repeat EnumSchemaCase<Value, CaseKey, each AssociatedValuesSchema>)
-  let cases: Cases
 
-  let encodeValue:
-    @Sendable (
-      Value,
-      repeat @escaping ((each AssociatedValuesSchema).Value) throws -> Void
-    ) throws -> Void
+  typealias EncodeValue = @Sendable (
+    Value,
+    repeat @escaping ((each AssociatedValuesSchema).Value) throws -> Void
+  ) throws -> Void
+
+  init(
+    description: String?,
+    cases: Cases,
+    encodeValue: @escaping EncodeValue
+  ) {
+    self.description = description
+    self.cases = cases
+    self.encodeValue = encodeValue
+    self.decoderProvider = EnumCaseDecoderProvider(cases: repeat each cases)
+  }
+
+  private let description: String?
+  private let cases: Cases
+  private let decoderProvider: EnumCaseDecoderProvider
+  private let encodeValue: EncodeValue
 
   func encodeSchemaDefinition(
     to encoder: ToolInput.SchemaEncoder<Self>
@@ -592,14 +604,6 @@ private struct StandardEnumSchema<
     }
   }
 
-  func decodeValue(
-    from stream: inout JSON.DecodingStream,
-    state: inout ()
-  ) throws -> JSON.DecodingResult<Value> {
-    #warning("implement")
-    fatalError()
-  }
-
   private var style: EnumSchemaStyle {
     var caseCount = 0
     var allCaseAssociatedValuesAreVoid = true
@@ -618,6 +622,120 @@ private struct StandardEnumSchema<
     }
   }
 
+}
+
+// MARK: - JSON Stream Decoding
+
+extension StandardEnumSchema {
+
+  typealias AssociatedValueDecodingStates = (
+    repeat (each AssociatedValuesSchema).ValueDecodingState
+  )
+
+  typealias EnumCaseDecoder = @Sendable (
+    inout JSON.DecodingStream,
+    inout AssociatedValueDecodingStates
+  ) throws -> JSON.DecodingResult<Value>
+
+  struct EnumCaseDecoderProvider {
+    init(cases: repeat EnumSchemaCase<Value, CaseKey, each AssociatedValuesSchema>) {
+      var decoders: [Substring: EnumCaseDecoder] = [:]
+      var tupleArchetype = VariadicTupleArchetype<AssociatedValueDecodingStates>()
+      for enumCase in repeat each cases {
+        let accessor = tupleArchetype.nextElementAccessor(of: enumCase.decodingStateType)
+        let key = Substring(enumCase.key.stringValue)
+        let decoder: EnumCaseDecoder = { stream, states in
+          try accessor.mutate(&states) { state in
+            switch try enumCase.schema.decodeValue(from: &stream, state: &state) {
+            case .needsMoreData:
+              return .needsMoreData
+            case .decoded(let value):
+              return .decoded(enumCase.initializer(value))
+            }
+          }
+        }
+
+        if decoders.updateValue(decoder, forKey: key) != nil {
+          assertionFailure()
+          decoders[key] = { _, _ in
+            throw Error.multipleEnumCasesWithSameName(enumCase.key.stringValue)
+          }
+        }
+      }
+      self.decoders = decoders
+    }
+    
+    func decoder(for caseName: Substring) throws -> EnumCaseDecoder {
+      guard let decoder = decoders[caseName] else {
+        throw Error.unknownEnumCase(allKeys: [String(caseName)])
+      }
+      return decoder
+    }
+    
+    private let decoders: [Substring: EnumCaseDecoder]
+  }
+
+  struct ValueDecodingState {
+    /// We can't have enums with parameter packs, so we just splat the associated values
+
+    var associatedValueStates: AssociatedValueDecodingStates
+    var objectState = JSON.ObjectDecodingState()
+    var decoder: EnumCaseDecoder?
+    var value: Value?
+
+    var phase: EnumObjectDecodingPhase = .decodingPrologue
+  }
+
+  var initialValueDecodingState: ValueDecodingState {
+    ValueDecodingState(
+      associatedValueStates: (repeat (each cases).schema.initialValueDecodingState)
+    )
+  }
+
+  func decodeValue(
+    from stream: inout JSON.DecodingStream,
+    state: inout ValueDecodingState
+  ) throws -> JSON.DecodingResult<Value> {
+    outerLoop: while true {
+        if let decoder = state.decoder {
+          /// We are decoding the value
+          switch try decoder(&stream, &state.associatedValueStates) {
+          case .needsMoreData:
+            return .needsMoreData
+          case .decoded(let value):
+            state.decoder = nil
+            state.value = value
+          }
+        } else if let value = state.value {
+          /// We are decoding the epilogue
+          switch try stream.decodeObjectComponent(&state.objectState) {
+          case .needsMoreData:
+            return .needsMoreData
+          case .decoded(.propertyValueStart(let name)):
+            throw Error.additionalPropertyFound(String(name))
+          case .decoded(.end):
+            return .decoded(value)
+          }
+        } else {
+          /// We are decoding the prologue
+          switch try stream.decodeObjectComponent(&state.objectState) {
+          case .needsMoreData:
+            return .needsMoreData
+          case .decoded(.propertyValueStart(let name)):
+            state.decoder = try decoderProvider.decoder(for: name)
+          case .decoded(.end):
+            throw Error.noEnumCaseFound
+        }
+      
+      }
+    }
+  }
+
+}
+
+private enum EnumObjectDecodingPhase {
+  case decodingPrologue
+  case decodingEpilogue
 }
 
 // MARK: - Implementation Details
@@ -645,6 +763,9 @@ private struct EnumSchemaCase<
     return initializer(value)
   }
 
+  fileprivate var decodingStateType: Schema.ValueDecodingState.Type {
+    Schema.ValueDecodingState.self
+  }
 }
 
 private enum SchemaCodingKey: CodingKey {
@@ -652,6 +773,9 @@ private enum SchemaCodingKey: CodingKey {
 }
 
 private enum Error: Swift.Error {
+  case noEnumCaseFound
+  case additionalPropertyFound(String)
+  case multipleEnumCasesWithSameName(String)
   case expectedNull
   case expectedVoidSchema
   case unknownEnumCase(allKeys: [String])
