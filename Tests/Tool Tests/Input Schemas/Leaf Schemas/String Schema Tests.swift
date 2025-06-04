@@ -17,7 +17,7 @@ struct StringSchemaTests {
   }
 
   @Test
-  private func testValueDecoding() throws {
+  private func testValueEncoding() throws {
     #expect(
       ToolInput.schema(representing: String.self).encodedJSON(for: "foo") == """
         "foo"
@@ -27,6 +27,16 @@ struct StringSchemaTests {
       ToolInput.schema(representing: String.self).encodedJSON(for: "bar") == """
         "bar"
         """
+    )
+  }
+
+  @Test
+  private func testValueDecoding() throws {
+    #expect(
+      ToolInput.schema(representing: String.self).value(fromJSON: "\"foo\"") == "foo"
+    )
+    #expect(
+      ToolInput.schema(representing: String.self).value(fromJSON: "\"bar\"") == "bar"
     )
   }
 

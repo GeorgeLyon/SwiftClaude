@@ -671,6 +671,19 @@ extension StandardEnumSchema {
       }
       return decoder
     }
+    
+    var singleCaseDecoder: EnumCaseDecoder {
+      get throws {
+        guard
+          let decoder = decoders.values.first,
+          decoders.count == 1
+        else {
+          assertionFailure()
+          throw Error.invalidState
+        }
+        return decoder
+      }
+    }
 
     private let decoders: [Substring: EnumCaseDecoder]
   }
@@ -682,7 +695,6 @@ extension StandardEnumSchema {
     var objectState = JSON.ObjectDecodingState()
     var decoder: EnumCaseDecoder?
     var value: Value?
-
     var phase: EnumObjectDecodingPhase = .decodingPrologue
   }
 
@@ -696,35 +708,52 @@ extension StandardEnumSchema {
     from stream: inout JSON.DecodingStream,
     state: inout ValueDecodingState
   ) throws -> JSON.DecodingResult<Value> {
-    while true {
-      if let decoder = state.decoder {
-        /// We are decoding the value
-        switch try decoder(&stream, &state.associatedValueStates) {
-        case .needsMoreData:
-          return .needsMoreData
-        case .decoded(let value):
-          state.decoder = nil
-          state.value = value
+    switch style {
+    case .singleCase:
+      return try decoderProvider.singleCaseDecoder(&stream, &state.associatedValueStates)
+    case .noAssociatedValues:
+      switch try stream.decodeString() {
+      case .needsMoreData:
+        return .needsMoreData
+      case .decoded(let name):
+        for `case` in repeat each cases {
+          if name == `case`.key.stringValue {
+            return try .decoded(`case`.initializeVoidSchemaValue())
+          }
         }
-      } else if let value = state.value {
-        /// We are decoding the epilogue
-        switch try stream.decodeObjectComponent(&state.objectState) {
-        case .needsMoreData:
-          return .needsMoreData
-        case .decoded(.propertyValueStart(let name)):
-          throw Error.additionalPropertyFound(String(name))
-        case .decoded(.end):
-          return .decoded(value)
-        }
-      } else {
-        /// We are decoding the prologue
-        switch try stream.decodeObjectComponent(&state.objectState) {
-        case .needsMoreData:
-          return .needsMoreData
-        case .decoded(.propertyValueStart(let name)):
-          state.decoder = try decoderProvider.decoder(for: name)
-        case .decoded(.end):
-          throw Error.noEnumCaseFound
+        throw Error.unknownEnumCase(allKeys: [String(name)])
+      }
+    case .objectProperties:
+      while true {
+        if let decoder = state.decoder {
+          /// We are decoding the value
+          switch try decoder(&stream, &state.associatedValueStates) {
+          case .needsMoreData:
+            return .needsMoreData
+          case .decoded(let value):
+            state.decoder = nil
+            state.value = value
+          }
+        } else if let value = state.value {
+          /// We are decoding the epilogue
+          switch try stream.decodeObjectComponent(&state.objectState) {
+          case .needsMoreData:
+            return .needsMoreData
+          case .decoded(.propertyValueStart(let name)):
+            throw Error.additionalPropertyFound(String(name))
+          case .decoded(.end):
+            return .decoded(value)
+          }
+        } else {
+          /// We are decoding the prologue
+          switch try stream.decodeObjectComponent(&state.objectState) {
+          case .needsMoreData:
+            return .needsMoreData
+          case .decoded(.propertyValueStart(let name)):
+            state.decoder = try decoderProvider.decoder(for: name)
+          case .decoded(.end):
+            throw Error.noEnumCaseFound
+          }
         }
       }
     }
@@ -772,6 +801,7 @@ private enum SchemaCodingKey: CodingKey {
 }
 
 private enum Error: Swift.Error {
+  case invalidState
   case noEnumCaseFound
   case additionalPropertyFound(String)
   case multipleEnumCasesWithSameName(String)

@@ -532,13 +532,14 @@ private struct OptionalSchema<WrappedSchema: ToolInput.Schema>: OptionalSchemaPr
     case decodingNonNullableWrapperPrologue(JSON.ObjectDecodingState)
     case decodingValue(WrappedSchema.ValueDecodingState, JSON.ObjectDecodingState?)
     case decodingNonNullableWrapperEpilogue(Value, JSON.ObjectDecodingState)
+    case decodingValueOrNull
   }
   var initialValueDecodingState: ValueDecodingState {
     if wrappedSchema.mayAcceptNullValue {
       /// We are using the non-nullable wrapper
       .decodingNonNullableWrapperPrologue(JSON.ObjectDecodingState())
     } else {
-      .decodingValue(wrappedSchema.initialValueDecodingState, nil)
+      .decodingValueOrNull
     }
   }
 
@@ -564,6 +565,17 @@ private struct OptionalSchema<WrappedSchema: ToolInput.Schema>: OptionalSchemaPr
           }
         case .decoded(.end):
           return .decoded(nil)
+        }
+      case .decodingValueOrNull:
+        switch try stream.decodeNullIfPresent() {
+        case .needsMoreData:
+          return .needsMoreData
+        case .decoded(let isNull):
+          if isNull {
+            return .decoded(nil)
+          } else {
+            state = .decodingValue(wrappedSchema.initialValueDecodingState, nil)
+          }
         }
       case .decodingValue(var valueState, let objectState):
         switch try wrappedSchema.decodeValue(from: &stream, state: &valueState) {

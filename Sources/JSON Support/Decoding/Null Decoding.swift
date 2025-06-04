@@ -5,7 +5,7 @@ extension JSON.DecodingStream {
   }
 
   /// Returns: - `.decoded(true)` if we decoded a null
-  public mutating func decodeIfNull() throws -> JSON.DecodingResult<Bool> {
+  public mutating func decodeNullIfPresent() throws -> JSON.DecodingResult<Bool> {
     readWhitespace()
 
     let peekNull = peekCharacter { character in

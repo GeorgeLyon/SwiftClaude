@@ -131,7 +131,7 @@ private struct NullTests {
       stream.push("null")
       stream.finish()
 
-      #expect(try stream.decodeIfNull().getValue() == true)
+      #expect(try stream.decodeNullIfPresent().getValue() == true)
     }
 
     /// Peek at non-null values
@@ -139,27 +139,27 @@ private struct NullTests {
       var stream = JSON.DecodingStream()
       stream.push("42")
       stream.finish()
-      #expect(try stream.decodeIfNull().getValue() == false)
+      #expect(try stream.decodeNullIfPresent().getValue() == false)
 
       stream = JSON.DecodingStream()
       stream.push("\"string\"")
       stream.finish()
-      #expect(try stream.decodeIfNull().getValue() == false)
+      #expect(try stream.decodeNullIfPresent().getValue() == false)
 
       stream = JSON.DecodingStream()
       stream.push("true")
       stream.finish()
-      #expect(try stream.decodeIfNull().getValue() == false)
+      #expect(try stream.decodeNullIfPresent().getValue() == false)
 
       stream = JSON.DecodingStream()
       stream.push("[1, 2, 3]")
       stream.finish()
-      #expect(try stream.decodeIfNull().getValue() == false)
+      #expect(try stream.decodeNullIfPresent().getValue() == false)
 
       stream = JSON.DecodingStream()
       stream.push("{\"key\": \"value\"}")
       stream.finish()
-      #expect(try stream.decodeIfNull().getValue() == false)
+      #expect(try stream.decodeNullIfPresent().getValue() == false)
     }
 
     /// Peek with whitespace
@@ -168,7 +168,7 @@ private struct NullTests {
       stream.push("  null")
       stream.finish()
 
-      #expect(try stream.decodeIfNull().getValue() == true)
+      #expect(try stream.decodeNullIfPresent().getValue() == true)
     }
 
     /// Peek doesn't consume the value
@@ -178,7 +178,7 @@ private struct NullTests {
       stream.finish()
 
       // Peek multiple times
-      #expect(try stream.decodeIfNull().getValue() == true)
+      #expect(try stream.decodeNullIfPresent().getValue() == true)
       
       // Can read the comma and next value
       #expect(try stream.readCharacter().decodingResult().getValue() == ",")
