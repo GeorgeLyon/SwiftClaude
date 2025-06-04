@@ -6,7 +6,8 @@ import JSONSupport
 struct JSONString: ExpressibleByStringLiteral, Equatable {
   init(stringLiteral string: String) {
     /// A "best effort" minification...
-    minifiedString = string
+    minifiedString =
+      string
       .split(separator: "\n")
       .map { $0.drop(while: \.isWhitespace) }
       .joined()
@@ -30,8 +31,11 @@ extension ToolInput.Schema {
   }
 
   func value(fromJSON json: String) -> Value {
-    let decoder = JSONDecoder()
-    return try! decoder.decodeValue(using: self, from: Data(json.utf8))
+    var stream = JSON.DecodingStream()
+    stream.push(json)
+    stream.finish()
+    var state = initialValueDecodingState
+    return try! decodeValue(from: &stream, state: &state).getValue()
   }
 
   func encodedJSON(for value: Value) -> String {

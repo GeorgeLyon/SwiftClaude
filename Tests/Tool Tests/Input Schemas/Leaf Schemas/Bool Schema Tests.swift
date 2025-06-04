@@ -17,7 +17,7 @@ struct BoolSchemaTests {
   }
 
   @Test
-  private func testValueDecoding() throws {
+  private func testValueEncoding() throws {
     #expect(
       ToolInput.schema(representing: Bool.self).encodedJSON(for: true) == """
         true
@@ -27,6 +27,16 @@ struct BoolSchemaTests {
       ToolInput.schema(representing: Bool.self).encodedJSON(for: false) == """
         false
         """
+    )
+  }
+
+  @Test
+  private func testValueDecoding() throws {
+    #expect(
+      ToolInput.schema(representing: Bool.self).value(fromJSON: "true") == true
+    )
+    #expect(
+      ToolInput.schema(representing: Bool.self).value(fromJSON: "false") == false
     )
   }
 

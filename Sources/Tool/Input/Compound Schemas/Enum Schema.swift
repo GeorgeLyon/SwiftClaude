@@ -664,14 +664,14 @@ extension StandardEnumSchema {
       }
       self.decoders = decoders
     }
-    
+
     func decoder(for caseName: Substring) throws -> EnumCaseDecoder {
       guard let decoder = decoders[caseName] else {
         throw Error.unknownEnumCase(allKeys: [String(caseName)])
       }
       return decoder
     }
-    
+
     private let decoders: [Substring: EnumCaseDecoder]
   }
 
@@ -696,37 +696,36 @@ extension StandardEnumSchema {
     from stream: inout JSON.DecodingStream,
     state: inout ValueDecodingState
   ) throws -> JSON.DecodingResult<Value> {
-    outerLoop: while true {
-        if let decoder = state.decoder {
-          /// We are decoding the value
-          switch try decoder(&stream, &state.associatedValueStates) {
-          case .needsMoreData:
-            return .needsMoreData
-          case .decoded(let value):
-            state.decoder = nil
-            state.value = value
-          }
-        } else if let value = state.value {
-          /// We are decoding the epilogue
-          switch try stream.decodeObjectComponent(&state.objectState) {
-          case .needsMoreData:
-            return .needsMoreData
-          case .decoded(.propertyValueStart(let name)):
-            throw Error.additionalPropertyFound(String(name))
-          case .decoded(.end):
-            return .decoded(value)
-          }
-        } else {
-          /// We are decoding the prologue
-          switch try stream.decodeObjectComponent(&state.objectState) {
-          case .needsMoreData:
-            return .needsMoreData
-          case .decoded(.propertyValueStart(let name)):
-            state.decoder = try decoderProvider.decoder(for: name)
-          case .decoded(.end):
-            throw Error.noEnumCaseFound
+    while true {
+      if let decoder = state.decoder {
+        /// We are decoding the value
+        switch try decoder(&stream, &state.associatedValueStates) {
+        case .needsMoreData:
+          return .needsMoreData
+        case .decoded(let value):
+          state.decoder = nil
+          state.value = value
         }
-      
+      } else if let value = state.value {
+        /// We are decoding the epilogue
+        switch try stream.decodeObjectComponent(&state.objectState) {
+        case .needsMoreData:
+          return .needsMoreData
+        case .decoded(.propertyValueStart(let name)):
+          throw Error.additionalPropertyFound(String(name))
+        case .decoded(.end):
+          return .decoded(value)
+        }
+      } else {
+        /// We are decoding the prologue
+        switch try stream.decodeObjectComponent(&state.objectState) {
+        case .needsMoreData:
+          return .needsMoreData
+        case .decoded(.propertyValueStart(let name)):
+          state.decoder = try decoderProvider.decoder(for: name)
+        case .decoded(.end):
+          throw Error.noEnumCaseFound
+        }
       }
     }
   }
