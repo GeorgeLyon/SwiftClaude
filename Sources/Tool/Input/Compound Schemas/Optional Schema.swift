@@ -202,12 +202,13 @@ struct ObjectPropertiesDecodingStateProvider<
   init(properties: repeat ObjectPropertySchema<Key, each PropertySchema>) {
     self.properties = (repeat each properties)
 
-    typealias TupleAccessor = VariadicTupleAccessor<PropertyStates>
-    let tupleAccessor = TupleAccessor()
-    for (property, reference) in repeat (each properties, each tupleAccessor.elementReferences) {
+    var decoders: [Substring: PropertyDecoder] = [:]
+    var tupleArchetype = VariadicTupleArchetype<PropertyStates>()
+    for property in repeat each properties {
+      let accessor = tupleArchetype.nextElementAccessor(of: property.decodingStateType)
       let key = Substring(property.key.stringValue)
       let decoder: PropertyDecoder = { stream, states in
-        try tupleAccessor.mutate(reference, on: &states) { decodingState in
+        try accessor.mutate(&states) { decodingState in
           while true {
             switch decodingState {
             case .missing:
@@ -336,9 +337,6 @@ extension ObjectPropertySchema {
   }
   fileprivate var initialDecodingState: DecodingState {
     .decoding(schema.initialValueDecodingState)
-  }
-  fileprivate var decodingStateAligment: Int {
-    MemoryLayout<DecodingState>.alignment
   }
   fileprivate var decodingStateType: DecodingState.Type {
     DecodingState.self

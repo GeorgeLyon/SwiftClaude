@@ -175,13 +175,13 @@ struct TupleSchema<each ElementSchema: ToolInput.Schema>: InternalSchema {
     init(elements: (repeat TupleElement<each ElementSchema>)) {
       self.elements = elements
 
-      let tupleAccessor =
-        VariadicTupleAccessor<repeat TupleElement<each ElementSchema>.DecodingState>()
-
       var decoders: [ElementDecoder] = []
-      for (element, reference) in repeat (each elements, each tupleAccessor.elementReferences) {
-        decoders.append({ stream, states in
-          try tupleAccessor.mutate(reference, on: &states) { decodingState in
+      var tupleArchetype =
+        VariadicTupleArchetype<(repeat TupleElement<each ElementSchema>.DecodingState)>()
+      for element in repeat each elements {
+        let accessor = tupleArchetype.nextElementAccessor(of: element.decodingStateType)
+        decoders.append { stream, states in
+          try accessor.mutate(&states) { decodingState in
             while true {
               switch decodingState {
               case .decoding(var state):
@@ -199,7 +199,7 @@ struct TupleSchema<each ElementSchema: ToolInput.Schema>: InternalSchema {
               }
             }
           }
-        })
+        }
       }
       self.decoders = decoders
     }
@@ -219,9 +219,6 @@ private struct TupleElement<Schema: ToolInput.Schema> {
     .decoding(schema.initialValueDecodingState)
   }
 
-  var decodingStateAligment: Int {
-    MemoryLayout<DecodingState>.alignment
-  }
   var decodingStateType: DecodingState.Type {
     DecodingState.self
   }
