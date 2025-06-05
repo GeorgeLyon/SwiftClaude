@@ -343,7 +343,7 @@ extension ObjectPropertySchema {
   }
 }
 
-private protocol OptionalSchemaProtocol<Value>: InternalSchema {
+protocol OptionalSchemaProtocol<Value>: InternalSchema {
 
   var valueWhenOmitted: Value { get }
 
@@ -634,6 +634,14 @@ private struct OptionalSchema<WrappedSchema: ToolInput.Schema>: OptionalSchemaPr
 
   var mayAcceptNullValue: Bool {
     true
+  }
+
+  func encodeValue(_ value: Value, to stream: inout JSON.EncodingStream) {
+    if let value = value {
+      wrappedSchema.encodeValue(value, to: &stream)
+    } else {
+      stream.encodeNull()
+    }
   }
 
   private enum NonNullableWrapperCodingKey: Swift.CodingKey {

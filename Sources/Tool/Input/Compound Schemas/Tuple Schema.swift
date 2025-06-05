@@ -160,6 +160,17 @@ struct TupleSchema<each ElementSchema: ToolInput.Schema>: InternalSchema {
     }
   }
 
+  func encodeValue(_ value: Value, to stream: inout JSON.EncodingStream) {
+    stream.encodeArray { encoder in
+      func encodeElement<S: ToolInput.Schema>(_ schema: S, _ elementValue: S.Value) {
+        encoder.encodeElement { stream in
+          schema.encodeValue(elementValue, to: &stream)
+        }
+      }
+      repeat encodeElement((each elements).schema, each value)
+    }
+  }
+
   private var elements: (repeat TupleElement<each ElementSchema>) {
     provider.elements
   }

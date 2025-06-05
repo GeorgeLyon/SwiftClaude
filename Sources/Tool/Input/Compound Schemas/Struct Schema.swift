@@ -119,4 +119,11 @@ private struct StructSchema<
       }
   }
 
+  func encodeValue(_ value: Value, to stream: inout JSON.EncodingStream) {
+    propertiesSchema.encodeValue(
+      (repeat value[keyPath: each keyPaths]),
+      to: &stream
+    )
+  }
+
 }

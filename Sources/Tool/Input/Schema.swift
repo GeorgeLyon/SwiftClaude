@@ -38,6 +38,8 @@ public enum ToolInput {
       state: inout ValueDecodingState
     ) throws -> JSON.DecodingResult<Value>
 
+    func encodeValue(_ value: Value, to stream: inout JSON.EncodingStream)
+
   }
 
 }
@@ -233,6 +235,14 @@ extension JSON.EncodingStream {
     )
     schema.encodeSchemaDefinition(to: &encoder)
     self = encoder.stream
+  }
+
+  /// Convenience method to encode a value using a schema
+  mutating func encodeValue<Schema: ToolInput.Schema>(
+    _ value: Schema.Value,
+    using schema: Schema
+  ) {
+    schema.encodeValue(value, to: &self)
   }
 
 }

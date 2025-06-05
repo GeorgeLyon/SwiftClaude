@@ -39,10 +39,22 @@ extension ToolInput.Schema {
   }
 
   func encodedJSON(for value: Value) -> String {
-    let encoder = JSONEncoder()
-    encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-    let data = try! encoder.encode(value, using: self)
-    return String(decoding: data, as: UTF8.self)
+    var stream = JSON.EncodingStream()
+    encodeValue(value, to: &stream)
+    let compactJSON = stream.stringRepresentation
+    
+    // Pretty print the JSON using JSONSerialization
+    guard let data = compactJSON.data(using: .utf8),
+          let jsonObject = try? JSONSerialization.jsonObject(with: data),
+          let prettyData = try? JSONSerialization.data(
+            withJSONObject: jsonObject,
+            options: [.prettyPrinted, .sortedKeys]
+          ),
+          let prettyString = String(data: prettyData, encoding: .utf8) else {
+      return compactJSON
+    }
+    
+    return prettyString
   }
 
 }

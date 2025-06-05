@@ -25,7 +25,8 @@ struct ObjectPropertiesSchema<
   fileprivate var properties: Properties {
     stateProvider.properties
   }
-  fileprivate let stateProvider: ObjectPropertiesDecodingStateProvider<PropertyKey, repeat each PropertySchema>
+  fileprivate let stateProvider:
+    ObjectPropertiesDecodingStateProvider<PropertyKey, repeat each PropertySchema>
 
   func encodeSchemaDefinition(to encoder: ToolInput.SchemaEncoder<Self>) throws {
     var container = encoder.wrapped.container(keyedBy: SchemaCodingKey.self)
@@ -76,7 +77,9 @@ struct ObjectPropertiesSchema<
     return (try container.decodeProperties(repeat each properties))
   }
 
-  typealias ValueDecodingState = ObjectPropertiesDecodingState<PropertyKey, repeat each PropertySchema>
+  typealias ValueDecodingState = ObjectPropertiesDecodingState<
+    PropertyKey, repeat each PropertySchema
+  >
 
   /// By making this a stored property, we cache the creation of the property decoder dictionary
   var initialValueDecodingState: ValueDecodingState {
@@ -88,6 +91,28 @@ struct ObjectPropertiesSchema<
     state: inout ValueDecodingState
   ) throws -> JSON.DecodingResult<(repeat (each PropertySchema).Value)> {
     try stream.decodeProperties(&state)
+  }
+
+  func encodeValue(_ value: Value, to stream: inout JSON.EncodingStream) {
+    stream.encodeObject { encoder in
+      func encodeProperty<S: ToolInput.Schema>(
+        _ property: ObjectPropertySchema<PropertyKey, S>, _ value: S.Value
+      ) {
+        // Check if this is an optional schema that should omit the value
+        if let optionalSchema = property.schema as? any OptionalSchemaProtocol<S.Value>,
+          optionalSchema.shouldOmit(value)
+        {
+          // Skip encoding this property
+          return
+        }
+
+        encoder.encodeProperty(name: property.key.stringValue) { stream in
+          property.schema.encodeValue(value, to: &stream)
+        }
+      }
+
+      repeat encodeProperty(each properties, each value)
+    }
   }
 
 }

@@ -25,16 +25,16 @@ private struct StringSchema: LeafSchema {
   typealias Value = String
 
   let type = "string"
-  
+
   struct ValueDecodingState {
     var fragments: [Substring] = []
     var decodingState = JSON.StringDecodingState()
   }
-  
+
   var initialValueDecodingState: ValueDecodingState {
     ValueDecodingState()
   }
-  
+
   func decodeValue(
     from stream: inout JSON.DecodingStream,
     state: inout ValueDecodingState
@@ -49,6 +49,10 @@ private struct StringSchema: LeafSchema {
     case .decoded(.end):
       return .decoded(state.fragments.joined())
     }
+  }
+
+  func encodeValue(_ value: String, to stream: inout JSON.EncodingStream) {
+    stream.encode(value)
   }
 
 }

@@ -214,6 +214,10 @@ extension ToolInput {
       try stream.decodeNull()
     }
 
+    func encodeValue(_ value: Void, to stream: inout JSON.EncodingStream) {
+      stream.encodeNull()
+    }
+
   }
 
 }
@@ -286,6 +290,10 @@ extension CaseIterableEnumSchema {
         }
         return value
       }
+  }
+
+  func encodeValue(_ value: Value, to stream: inout JSON.EncodingStream) {
+    Self.encode(value, to: &stream)
   }
 
 }
@@ -671,7 +679,7 @@ extension StandardEnumSchema {
       }
       return decoder
     }
-    
+
     var singleCaseDecoder: EnumCaseDecoder {
       get throws {
         guard
@@ -757,6 +765,12 @@ extension StandardEnumSchema {
         }
       }
     }
+  }
+
+  func encodeValue(_ value: Value, to stream: inout JSON.EncodingStream) {
+    // For StandardEnumSchema, we need to delegate to the existing encode mechanism
+    // This is a temporary implementation that uses the Codable path
+    fatalError("StandardEnumSchema.encodeValue not yet implemented - use Codable path for now")
   }
 
 }

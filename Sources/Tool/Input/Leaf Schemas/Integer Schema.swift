@@ -35,7 +35,7 @@ extension ToolInput.SchemaCodable where Self: FixedWidthInteger & Codable & Send
 private struct IntegerSchema<Value: FixedWidthInteger & Codable & Sendable>: LeafSchema {
 
   let type = "integer"
-  
+
   func decodeValue(
     from stream: inout JSON.DecodingStream,
     state: inout ()
@@ -43,5 +43,8 @@ private struct IntegerSchema<Value: FixedWidthInteger & Codable & Sendable>: Lea
     try stream.decodeNumber().map { try $0.decode() }
   }
 
+  func encodeValue(_ value: Value, to stream: inout JSON.EncodingStream) {
+    stream.encode(value)
+  }
 
 }
