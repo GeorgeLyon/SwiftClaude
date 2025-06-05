@@ -41,7 +41,7 @@ private struct NumberSchema<
     try stream.decodeNumber().map { try $0.decode() }
   }
 
-  func encodeValue(_ value: Value, to stream: inout JSON.EncodingStream) {
+  func encode(_ value: Value, to stream: inout JSON.EncodingStream) {
     if let float16 = value as? Float16 {
       stream.encode(float16)
     } else if let float32 = value as? Float32 {

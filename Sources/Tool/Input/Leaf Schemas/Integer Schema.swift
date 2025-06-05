@@ -43,7 +43,7 @@ private struct IntegerSchema<Value: FixedWidthInteger & Codable & Sendable>: Lea
     try stream.decodeNumber().map { try $0.decode() }
   }
 
-  func encodeValue(_ value: Value, to stream: inout JSON.EncodingStream) {
+  func encode(_ value: Value, to stream: inout JSON.EncodingStream) {
     stream.encode(value)
   }
 

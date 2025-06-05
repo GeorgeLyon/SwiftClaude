@@ -27,7 +27,7 @@ extension ToolInput.Schema {
   func encodedJSON(for value: Value) -> String {
     var stream = JSON.EncodingStream()
     stream.options = [.prettyPrint]
-    encodeValue(value, to: &stream)
+    encode(value, to: &stream)
     return stream.stringRepresentation
   }
 

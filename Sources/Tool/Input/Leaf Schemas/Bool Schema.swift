@@ -32,7 +32,7 @@ private struct BoolSchema: LeafSchema {
     try stream.decodeBoolean()
   }
 
-  func encodeValue(_ value: Bool, to stream: inout JSON.EncodingStream) {
+  func encode(_ value: Bool, to stream: inout JSON.EncodingStream) {
     stream.encode(value)
   }
 

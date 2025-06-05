@@ -93,7 +93,7 @@ struct ObjectPropertiesSchema<
     try stream.decodeProperties(&state)
   }
 
-  func encodeValue(_ value: Value, to stream: inout JSON.EncodingStream) {
+  func encode(_ value: Value, to stream: inout JSON.EncodingStream) {
     stream.encodeObject { encoder in
       func encodeProperty<S: ToolInput.Schema>(
         _ property: ObjectPropertySchema<PropertyKey, S>, _ value: S.Value
@@ -107,7 +107,7 @@ struct ObjectPropertiesSchema<
         }
 
         encoder.encodeProperty(name: property.key.stringValue) { stream in
-          property.schema.encodeValue(value, to: &stream)
+          property.schema.encode(value, to: &stream)
         }
       }
 

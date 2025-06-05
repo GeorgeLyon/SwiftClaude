@@ -215,7 +215,7 @@ struct EnumToolInputTests {
     #expect(
       schema.schemaJSON == """
         {
-          "description":"An enum with only one case\\nThe only case",
+          "description": "An enum with only one case\\nThe only case",
           "type": "string"
         }
         """

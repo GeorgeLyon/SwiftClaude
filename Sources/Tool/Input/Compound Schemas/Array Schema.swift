@@ -124,11 +124,11 @@ private struct ArraySchema<ElementSchema: ToolInput.Schema>: InternalSchema {
     }
   }
 
-  func encodeValue(_ value: Value, to stream: inout JSON.EncodingStream) {
+  func encode(_ value: Value, to stream: inout JSON.EncodingStream) {
     stream.encodeArray { encoder in
       for element in value {
         encoder.encodeElement { stream in
-          elementSchema.encodeValue(element, to: &stream)
+          elementSchema.encode(element, to: &stream)
         }
       }
     }

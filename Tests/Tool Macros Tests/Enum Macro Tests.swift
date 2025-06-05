@@ -153,18 +153,18 @@ private struct EnumMacroTests {
                   }
                 )
               ),
-              encodeValue: { @Sendable value, encoder_0, encoder_1, encoder_2, encoder_3, encoder_4 in
+              caseEncoder: { @Sendable value, encoder_0, encoder_1, encoder_2, encoder_3, encoder_4 in
                 switch value {
                 case .`simple`:
-                  try encoder_0(())
+                  encoder_0(())
                 case .singleAssociatedValue(let _0):
-                  try encoder_1((_0))
+                  encoder_1((_0))
                 case .mutlipleUnnamedAssociatedValues(let _0, let _1):
-                  try encoder_2((_0, _1))
+                  encoder_2((_0, _1))
                 case .multipleNamedAssociatedValues(let a, let b, let c):
-                  try encoder_3((a, b, c))
+                  encoder_3((a, b, c))
                 case .mixedAssociatedValues(let _0, let b, let c):
-                  try encoder_4((_0, b, c))
+                  encoder_4((_0, b, c))
                 }
               }
             )

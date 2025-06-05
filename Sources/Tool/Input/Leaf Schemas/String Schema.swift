@@ -51,7 +51,7 @@ private struct StringSchema: LeafSchema {
     }
   }
 
-  func encodeValue(_ value: String, to stream: inout JSON.EncodingStream) {
+  func encode(_ value: String, to stream: inout JSON.EncodingStream) {
     stream.encode(value)
   }
 

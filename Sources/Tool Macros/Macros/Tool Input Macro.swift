@@ -557,9 +557,9 @@ extension EnumDeclSyntax {
               trailingComma: .commaToken(trailingTrivia: .newline)
             )
 
-            /// encodeValue: { … }
+            /// caseEncoder: { … }
             LabeledExprSyntax(
-              label: "encodeValue",
+              label: "caseEncoder",
               colon: .colonToken(),
               expression: ClosureExprSyntax(
                 signature: ClosureSignatureSyntax(
@@ -851,24 +851,22 @@ extension EnumCaseElementListSyntax.Element {
       /// case .enumCase(…):
       statements: CodeBlockItemListSyntax {
         /// enumCaseEncoder(…)
-        TryExprSyntax(
-          expression: FunctionCallExprSyntax(
-            calledExpression: DeclReferenceExprSyntax(baseName: encoderName),
-            leftParen: .leftParenToken(),
-            arguments: LabeledExprListSyntax {
-              LabeledExprSyntax(
-                expression: TupleExprSyntax {
-                  let parameters = parameterClause?.parameters ?? []
-                  for (name, _) in parameters.named() {
-                    LabeledExprSyntax(
-                      expression: DeclReferenceExprSyntax(baseName: name)
-                    )
-                  }
+        FunctionCallExprSyntax(
+          calledExpression: DeclReferenceExprSyntax(baseName: encoderName),
+          leftParen: .leftParenToken(),
+          arguments: LabeledExprListSyntax {
+            LabeledExprSyntax(
+              expression: TupleExprSyntax {
+                let parameters = parameterClause?.parameters ?? []
+                for (name, _) in parameters.named() {
+                  LabeledExprSyntax(
+                    expression: DeclReferenceExprSyntax(baseName: name)
+                  )
                 }
-              )
-            },
-            rightParen: .rightParenToken()
-          )
+              }
+            )
+          },
+          rightParen: .rightParenToken()
         )
       }
     )

@@ -636,9 +636,9 @@ private struct OptionalSchema<WrappedSchema: ToolInput.Schema>: OptionalSchemaPr
     true
   }
 
-  func encodeValue(_ value: Value, to stream: inout JSON.EncodingStream) {
+  func encode(_ value: Value, to stream: inout JSON.EncodingStream) {
     if let value = value {
-      wrappedSchema.encodeValue(value, to: &stream)
+      wrappedSchema.encode(value, to: &stream)
     } else {
       stream.encodeNull()
     }

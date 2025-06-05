@@ -99,13 +99,13 @@ struct EnumSchemaTests {
             initializer: { @Sendable fifth in Self.fifth }
           )
         ),
-        encodeValue: { value, encodeFirst, encodeSecond, encodeThird, encodeFourth, encodeFifth in
+        caseEncoder: { value, encodeFirst, encodeSecond, encodeThird, encodeFourth, encodeFifth in
           switch value {
-          case .first(let first): try encodeFirst((first))
-          case .second(let second): try encodeSecond((second))
-          case .third(let third_0, let third_x): try encodeThird((third_0, third_x))
-          case let .fourth(x, y): try encodeFourth((x, y))
-          case .fifth: try encodeFifth(())
+          case .first(let first): encodeFirst((first))
+          case .second(let second): encodeSecond((second))
+          case .third(let third_0, let third_x): encodeThird((third_0, third_x))
+          case let .fourth(x, y): encodeFourth((x, y))
+          case .fifth: encodeFifth(())
           }
         }
       )
@@ -174,11 +174,11 @@ struct EnumSchemaTests {
             initializer: { @Sendable _ in .three }
           )
         ),
-        encodeValue: { @Sendable value, encodeOne, encodeTwo, encodeThree in
+        caseEncoder: { @Sendable value, encodeOne, encodeTwo, encodeThree in
           switch value {
-          case .one: try encodeOne(())
-          case .two: try encodeTwo(())
-          case .three: try encodeThree(())
+          case .one: encodeOne(())
+          case .two: encodeTwo(())
+          case .three: encodeThree(())
           }
         }
       )
@@ -229,9 +229,9 @@ struct EnumSchemaTests {
         associatedValuesSchema: ToolInput.schema(),
         initializer: { @Sendable value in .only(value) }
       )),
-      encodeValue: { value, encode in
-        if case .only(let value) = value {
-          try encode(value)
+      caseEncoder: { value, encode in
+        switch value {
+        case .only(let value): encode(value)
         }
       }
     )
@@ -405,7 +405,7 @@ struct EnumSchemaTests {
     #expect(
       schema.schemaJSON == """
         {
-          "description":"An enum with only one case\\nThe only case",
+          "description": "An enum with only one case\\nThe only case",
           "type": "string"
         }
         """

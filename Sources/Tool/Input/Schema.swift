@@ -38,7 +38,7 @@ public enum ToolInput {
       state: inout ValueDecodingState
     ) throws -> JSON.DecodingResult<Value>
 
-    func encodeValue(_ value: Value, to stream: inout JSON.EncodingStream)
+    func encode(_ value: Value, to stream: inout JSON.EncodingStream)
 
   }
 
@@ -138,16 +138,6 @@ extension ToolInput {
     }
   }
 
-  public struct NewDecoder: ~Copyable {
-
-    mutating func decode<T>(
-      _ body: (inout JSON.DecodingStream) throws -> JSON.DecodingResult<T>
-    ) async throws -> T {
-      fatalError()
-    }
-
-  }
-
 }
 
 // MARK: - Internal API
@@ -242,7 +232,7 @@ extension JSON.EncodingStream {
     _ value: Schema.Value,
     using schema: Schema
   ) {
-    schema.encodeValue(value, to: &self)
+    schema.encode(value, to: &self)
   }
 
 }

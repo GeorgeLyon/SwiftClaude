@@ -22,10 +22,10 @@ extension ToolInput {
         initializer: @Sendable ((each AssociatedValuesSchema).Value) -> Value
       )
     ),
-    encodeValue: @escaping @Sendable (
+    caseEncoder: @escaping @Sendable (
       Value,
-      repeat ((each AssociatedValuesSchema).Value) throws -> Void
-    ) throws -> Void
+      repeat ((each AssociatedValuesSchema).Value) -> EnumCaseEncoder
+    ) -> EnumCaseEncoder
   ) -> some Schema<Value>
   where Value.RawValue == String {
     /// Fall back to case iterable conformance if an enum is case iterable
@@ -49,10 +49,10 @@ extension ToolInput {
         initializer: @Sendable ((each AssociatedValuesSchema).Value) -> Value
       )
     ),
-    encodeValue: @escaping @Sendable (
+    caseEncoder: @escaping @Sendable (
       Value,
-      repeat ((each AssociatedValuesSchema).Value) throws -> Void
-    ) throws -> Void
+      repeat ((each AssociatedValuesSchema).Value) -> EnumCaseEncoder
+    ) -> EnumCaseEncoder
   ) -> some Schema<Value>
   where Value.RawValue: FixedWidthInteger & Codable & Sendable {
     /// Fall back to case iterable conformance if an enum is case iterable
@@ -76,10 +76,10 @@ extension ToolInput {
         initializer: @Sendable ((each AssociatedValuesSchema).Value) -> Value
       )
     ),
-    encodeValue: @escaping @Sendable (
+    caseEncoder: @escaping @Sendable (
       Value,
-      repeat ((each AssociatedValuesSchema).Value) throws -> Void
-    ) throws -> Void
+      repeat ((each AssociatedValuesSchema).Value) -> EnumCaseEncoder
+    ) -> EnumCaseEncoder
   ) -> some Schema<Value> {
     StandardEnumSchema(
       description: description,
@@ -89,7 +89,7 @@ extension ToolInput {
         schema: (each cases).associatedValuesSchema,
         initializer: (each cases).initializer
       )),
-      encodeValue: encodeValue
+      caseEncoder: caseEncoder
     )
   }
 
@@ -112,6 +112,31 @@ extension ToolInput {
   ) -> some Schema<Value>
   where Value.RawValue: FixedWidthInteger & Codable & Sendable {
     CaseIterableIntegerEnumSchema(description: description)
+  }
+
+}
+
+// MARK: - Encoding Enums
+
+extension ToolInput {
+
+  public struct EnumCaseEncoder {
+    fileprivate let key: String
+    fileprivate let implementation: EnumCaseEncoderImplementationProtocol
+  }
+
+  fileprivate protocol EnumCaseEncoderImplementationProtocol {
+    func encode(to stream: inout JSON.EncodingStream)
+  }
+
+  fileprivate struct EnumCaseEncoderImplementation<
+    Schema: ToolInput.Schema
+  >: EnumCaseEncoderImplementationProtocol {
+    func encode(to stream: inout JSON.EncodingStream) {
+      schema.encode(value, to: &stream)
+    }
+    let schema: Schema
+    let value: Schema.Value
   }
 
 }
@@ -214,7 +239,7 @@ extension ToolInput {
       try stream.decodeNull()
     }
 
-    func encodeValue(_ value: Void, to stream: inout JSON.EncodingStream) {
+    func encode(_ value: Void, to stream: inout JSON.EncodingStream) {
       stream.encodeNull()
     }
 
@@ -292,7 +317,7 @@ extension CaseIterableEnumSchema {
       }
   }
 
-  func encodeValue(_ value: Value, to stream: inout JSON.EncodingStream) {
+  func encode(_ value: Value, to stream: inout JSON.EncodingStream) {
     Self.encode(value, to: &stream)
   }
 
@@ -338,24 +363,24 @@ private struct StandardEnumSchema<
 
   typealias EncodeValue = @Sendable (
     Value,
-    repeat @escaping ((each AssociatedValuesSchema).Value) throws -> Void
-  ) throws -> Void
+    repeat @escaping ((each AssociatedValuesSchema).Value) -> ToolInput.EnumCaseEncoder
+  ) -> ToolInput.EnumCaseEncoder
 
   init(
     description: String?,
     cases: Cases,
-    encodeValue: @escaping EncodeValue
+    caseEncoder: @escaping EncodeValue
   ) {
     self.description = description
     self.cases = cases
-    self.encodeValue = encodeValue
+    self.caseEncoder = caseEncoder
     self.decoderProvider = EnumCaseDecoderProvider(cases: repeat each cases)
   }
 
   private let description: String?
   private let cases: Cases
   private let decoderProvider: EnumCaseDecoderProvider
-  private let encodeValue: EncodeValue
+  private let caseEncoder: EncodeValue
 
   func encodeSchemaDefinition(
     to encoder: ToolInput.SchemaEncoder<Self>
@@ -554,26 +579,54 @@ private struct StandardEnumSchema<
   }
 
   func encode(_ value: Value, to encoder: ToolInput.Encoder<Self>) throws {
-    try encodeValue(
+    fatalError()
+    // caseEncoder(
+    //   value,
+    //   repeat { value in
+    //     switch style {
+    //     case .singleCase:
+    //       try! (each cases).schema.encode(value, to: encoder.map())
+    //     case .noAssociatedValues:
+    //       var container = encoder.wrapped.singleValueContainer()
+    //       try! container.encode((each cases).key.stringValue)
+    //     case .objectProperties:
+    //       var container = encoder.wrapped.container(keyedBy: CaseKey.self)
+    //       try! (each cases).schema.encode(
+    //         value,
+    //         to: ToolInput.Encoder(
+    //           wrapped: container.superEncoder(forKey: (each cases).key)
+    //         )
+    //       )
+    //     }
+    //   }
+    // )
+  }
+
+  func encode(_ value: Value, to stream: inout JSON.EncodingStream) {
+    let encoder = caseEncoder(
       value,
       repeat { value in
-        switch style {
-        case .singleCase:
-          try (each cases).schema.encode(value, to: encoder.map())
-        case .noAssociatedValues:
-          var container = encoder.wrapped.singleValueContainer()
-          try container.encode((each cases).key.stringValue)
-        case .objectProperties:
-          var container = encoder.wrapped.container(keyedBy: CaseKey.self)
-          try (each cases).schema.encode(
-            value,
-            to: ToolInput.Encoder(
-              wrapped: container.superEncoder(forKey: (each cases).key)
-            )
+        ToolInput.EnumCaseEncoder(
+          key: (each cases).key.stringValue,
+          implementation: ToolInput.EnumCaseEncoderImplementation(
+            schema: (each cases).schema,
+            value: value
           )
-        }
+        )
       }
     )
+    switch style {
+    case .singleCase:
+      encoder.implementation.encode(to: &stream)
+    case .noAssociatedValues:
+      stream.encode(encoder.key)
+    case .objectProperties:
+      stream.encodeObject { objectEncoder in
+        objectEncoder.encodeProperty(name: encoder.key) { stream in
+          encoder.implementation.encode(to: &stream)
+        }
+      }
+    }
   }
 
   func decodeValue(from decoder: ToolInput.Decoder<Self>) throws -> Value {
@@ -765,12 +818,6 @@ extension StandardEnumSchema {
         }
       }
     }
-  }
-
-  func encodeValue(_ value: Value, to stream: inout JSON.EncodingStream) {
-    // For StandardEnumSchema, we need to delegate to the existing encode mechanism
-    // This is a temporary implementation that uses the Codable path
-    fatalError("StandardEnumSchema.encodeValue not yet implemented - use Codable path for now")
   }
 
 }
