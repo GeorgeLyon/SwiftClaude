@@ -42,18 +42,19 @@ extension ToolInput.Schema {
     var stream = JSON.EncodingStream()
     encodeValue(value, to: &stream)
     let compactJSON = stream.stringRepresentation
-    
+
     // Pretty print the JSON using JSONSerialization
     guard let data = compactJSON.data(using: .utf8),
-          let jsonObject = try? JSONSerialization.jsonObject(with: data),
-          let prettyData = try? JSONSerialization.data(
-            withJSONObject: jsonObject,
-            options: [.prettyPrinted, .sortedKeys]
-          ),
-          let prettyString = String(data: prettyData, encoding: .utf8) else {
+      let jsonObject = try? JSONSerialization.jsonObject(with: data),
+      let prettyData = try? JSONSerialization.data(
+        withJSONObject: jsonObject,
+        options: [.prettyPrinted, .sortedKeys]
+      ),
+      let prettyString = String(data: prettyData, encoding: .utf8)
+    else {
       return compactJSON
     }
-    
+
     return prettyString
   }
 

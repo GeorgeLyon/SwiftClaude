@@ -55,7 +55,7 @@ extension JSON.EncodingStream {
   private mutating func encodePrimitive(
     _ value: Any
   ) {
-    
+
   }
 
 }

@@ -179,7 +179,7 @@ private struct NullTests {
 
       // Peek multiple times
       #expect(try stream.decodeNullIfPresent().getValue() == true)
-      
+
       // Can read the comma and next value
       #expect(try stream.readCharacter().decodingResult().getValue() == ",")
       #expect(try stream.readCharacter().decodingResult().getValue() == " ")

@@ -60,7 +60,7 @@ private struct ArrayTests {
       stream.finish()
 
       var elements: [String] = []
-      
+
       var arrayState = JSON.ArrayDecodingState()
       while try stream.decodeArrayComponent(&arrayState).isElementStart {
         var state = JSON.StringDecodingState()
@@ -122,7 +122,7 @@ private struct ArrayTests {
       var arrayState = JSON.ArrayDecodingState()
       while try stream.decodeArrayComponent(&arrayState).isElementStart {
         var innerArray: [Int] = []
-        
+
         var arrayState = JSON.ArrayDecodingState()
         while try stream.decodeArrayComponent(&arrayState).isElementStart {
           let number = try stream.decodeNumber().getValue()
@@ -235,7 +235,7 @@ private struct ArrayTests {
       stream.push("[")
 
       var state = JSON.ArrayDecodingState()
-      
+
       var result = try stream.decodeArrayComponent(&state)
       #expect(result.needsMoreData)
 
@@ -250,7 +250,7 @@ private struct ArrayTests {
 
       let firstNumber = try stream.decodeNumber().getValue()
       #expect(firstNumber.integerPart == "12")
-      
+
       result = try stream.decodeArrayComponent(&state)
       #expect(result.isElementStart)
 
@@ -258,7 +258,7 @@ private struct ArrayTests {
 
       let secondNumber = try stream.decodeNumber().getValue()
       #expect(secondNumber.integerPart == "2")
-      
+
       result = try stream.decodeArrayComponent(&state)
       #expect(result.isArrayEnd)
     }
@@ -277,14 +277,14 @@ private struct ArrayTests {
         try stream.withDecodedStringFragments(state: &stringState) { fragments in
           #expect(fragments == ["he"])
         }
-        
+
         stream.push("lo\"]")
         stream.finish()
-        
+
         try stream.withDecodedStringFragments(state: &stringState) { fragments in
           #expect(fragments == ["llo"])
         }
-        
+
         let result = try stream.decodeArrayComponent(&state)
         #expect(result.isArrayEnd)
       }
@@ -341,7 +341,7 @@ private struct ArrayTests {
 
       let first = try stream.decodeNumber().getValue()
       #expect(first.integerPart == "1")
-      
+
       result = try stream.decodeArrayComponent(&state)
 
       let second = try stream.decodeNumber().getValue()
@@ -363,9 +363,9 @@ private struct ArrayTests {
 
       let number = try stream.decodeNumber().getValue()
       #expect(number.integerPart == "42")
-      
+
       result = try stream.decodeArrayComponent(&state)
-      
+
       #expect(result.isArrayEnd)
     }
   }
@@ -405,7 +405,7 @@ extension JSON.DecodingResult where Value == JSON.ArrayComponent {
       return false
     }
   }
-  
+
   var isArrayEnd: Bool {
     if case .decoded(.end) = self {
       return true

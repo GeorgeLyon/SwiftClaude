@@ -9,15 +9,20 @@ extension JSON {
         isFirstElement = false
       } else {
         stream.write(",")
+        stream.writeLineBreak()
       }
+      stream.writeIndentation()
       encodeValue(&stream)
     }
 
     fileprivate init(stream: consuming EncodingStream) {
       self.stream = stream
+      self.stream.writeLineBreak(depthChange: 1)
     }
 
     fileprivate consuming func finish() -> EncodingStream {
+      stream.writeLineBreak(depthChange: -1)
+      stream.writeIndentation()
       stream.write("]")
       return stream
     }

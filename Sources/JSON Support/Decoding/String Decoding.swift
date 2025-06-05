@@ -1,11 +1,11 @@
 extension JSON {
 
   public struct StringDecodingState {
-    
+
     public init() {
-      
+
     }
-    
+
     fileprivate enum Phase {
       case readingStart
       case readingFragments(trailingCharacter: Character?)
@@ -13,7 +13,7 @@ extension JSON {
     }
     fileprivate var phase: Phase = .readingStart
   }
-  
+
   public enum StringComponent {
     case end
   }
@@ -21,7 +21,7 @@ extension JSON {
 }
 
 extension JSON.DecodingStream {
-  
+
   public mutating func decodeString() throws -> JSON.DecodingResult<Substring> {
     try readString().decodingResult()
   }
@@ -33,10 +33,10 @@ extension JSON.DecodingStream {
     try readStringFragments(state: &state, onFragment: onFragment)
       .decodingResult()
   }
-  
+
   mutating func readString() -> ReadResult<Substring> {
     readWhitespace()
-    
+
     let checkpoint = createCheckpoint()
 
     var state = JSON.StringDecodingState()
@@ -53,7 +53,7 @@ extension JSON.DecodingStream {
     case .matched(.end):
       break
     }
-    
+
     if fragments.count == 1 {
       /// Fast path for a single fragment
       return .matched(fragments[0])
@@ -62,13 +62,13 @@ extension JSON.DecodingStream {
       return .matched(Substring(fragments.joined()))
     }
   }
-  
+
   mutating func readStringFragments(
     state: inout JSON.StringDecodingState,
     onFragment: (_ fragment: Substring) -> Void
   ) -> ReadResult<JSON.StringComponent> {
     let trailingCharacter: Character?
-    
+
     switch state.phase {
     case .readingStart:
       switch readStringStart() {
@@ -85,7 +85,7 @@ extension JSON.DecodingStream {
       assertionFailure()
       return .matched(.end)
     }
-    
+
     var nextFragment: Substring?
     if let trailingCharacter {
       nextFragment = Substring(String(trailingCharacter))
@@ -97,19 +97,20 @@ extension JSON.DecodingStream {
       }
       nextFragment = fragment
     }
-    let isComplete = if case .matched = result {
-      true
-    } else {
-      false
-    }
+    let isComplete =
+      if case .matched = result {
+        true
+      } else {
+        false
+      }
     if var lastFragment = nextFragment {
       if !isComplete, possiblyIncompleteIncomingGraphemeCluster == "\\" {
         /// `DecodingStream` handles the possibility of a combining diacritic or a `ZWJ` being streamed as unicode, but we also need to handle modifications caused by escaped unicode sequences such as `\u0327`.
         let trailingCharacter = lastFragment.popLast()
-        
+
         /// Empty fragments can break the logic which ensures character boundaries don't change on append.
         assert(trailingCharacter != nil)
-        
+
         state.phase = .readingFragments(trailingCharacter: trailingCharacter)
       } else {
         state.phase = .readingFragments(trailingCharacter: nil)
@@ -123,7 +124,7 @@ extension JSON.DecodingStream {
       state.phase = .readingComplete
     }
     return result
-    
+
   }
 
   mutating func readStringStart() -> ReadResult<Void> {

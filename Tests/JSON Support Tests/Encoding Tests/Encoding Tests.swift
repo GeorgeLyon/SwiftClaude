@@ -370,4 +370,182 @@ private struct EncodingTests {
     stream.encode(42)
     #expect(stream.string == "42")
   }
+
+  // MARK: - Pretty Printing Tests
+
+  @Test
+  func testPrettyPrintSimpleObject() {
+    var stream = JSON.EncodingStream()
+    stream.options = [.prettyPrint]
+
+    stream.encodeObject { object in
+      object.encodeProperty(name: "name") { $0.encode("John") }
+      object.encodeProperty(name: "age") { $0.encode(30) }
+    }
+
+    let expected = """
+      {
+        "name": "John",
+        "age": 30
+      }
+      """
+    #expect(stream.string == expected)
+  }
+
+  @Test
+  func testPrettyPrintSimpleArray() {
+    var stream = JSON.EncodingStream()
+    stream.options = [.prettyPrint]
+
+    stream.encodeArray { array in
+      array.encodeElement { $0.encode(1) }
+      array.encodeElement { $0.encode(2) }
+      array.encodeElement { $0.encode(3) }
+    }
+
+    let expected = """
+      [
+        1,
+        2,
+        3
+      ]
+      """
+    #expect(stream.string == expected)
+  }
+
+  @Test
+  func testPrettyPrintNestedStructure() {
+    var stream = JSON.EncodingStream()
+    stream.options = [.prettyPrint]
+
+    stream.encodeObject { object in
+      object.encodeProperty(name: "user") { userStream in
+        userStream.encodeObject { userObject in
+          userObject.encodeProperty(name: "name") { $0.encode("Alice") }
+          userObject.encodeProperty(name: "tags") { tagsStream in
+            tagsStream.encodeArray { tagsArray in
+              tagsArray.encodeElement { $0.encode("admin") }
+              tagsArray.encodeElement { $0.encode("active") }
+            }
+          }
+        }
+      }
+      object.encodeProperty(name: "count") { $0.encode(1) }
+    }
+
+    let expected = """
+      {
+        "user": {
+          "name": "Alice",
+          "tags": [
+            "admin",
+            "active"
+          ]
+        },
+        "count": 1
+      }
+      """
+    #expect(stream.string == expected)
+  }
+
+  @Test
+  func testPrettyPrintEmptyStructures() {
+    var stream = JSON.EncodingStream()
+    stream.options = [.prettyPrint]
+
+    // Empty object
+    stream.encodeObject { _ in }
+    let expected1 = """
+      {
+      
+      }
+      """
+    #expect(stream.string == expected1)
+
+    // Empty array
+    stream.reset()
+    stream.options = [.prettyPrint]
+    stream.encodeArray { _ in }
+    let expected2 = """
+      [
+      
+      ]
+      """
+    #expect(stream.string == expected2)
+  }
+
+  @Test
+  func testPrettyPrintArrayOfObjects() {
+    var stream = JSON.EncodingStream()
+    stream.options = [.prettyPrint]
+
+    stream.encodeArray { array in
+      array.encodeElement { element in
+        element.encodeObject { object in
+          object.encodeProperty(name: "id") { $0.encode(1) }
+          object.encodeProperty(name: "name") { $0.encode("Alice") }
+        }
+      }
+      array.encodeElement { element in
+        element.encodeObject { object in
+          object.encodeProperty(name: "id") { $0.encode(2) }
+          object.encodeProperty(name: "name") { $0.encode("Bob") }
+        }
+      }
+    }
+
+    let expected = """
+      [
+        {
+          "id": 1,
+          "name": "Alice"
+        },
+        {
+          "id": 2,
+          "name": "Bob"
+        }
+      ]
+      """
+    #expect(stream.string == expected)
+  }
+
+  @Test
+  func testPrettyPrintOffByDefault() {
+    var stream = JSON.EncodingStream()
+    // Don't set options - should default to compact output
+
+    stream.encodeObject { object in
+      object.encodeProperty(name: "name") { $0.encode("John") }
+      object.encodeProperty(name: "age") { $0.encode(30) }
+    }
+
+    #expect(stream.string == "{\"name\":\"John\",\"age\":30}")
+  }
+
+  @Test
+  func testResetWithPrettyPrint() {
+    var stream = JSON.EncodingStream()
+    stream.options = [.prettyPrint]
+
+    stream.encodeObject { object in
+      object.encodeProperty(name: "test") { $0.encode(1) }
+    }
+
+    let firstResult = stream.string
+    #expect(firstResult.contains("\n"))
+
+    stream.reset()
+    stream.options = [.prettyPrint]
+
+    stream.encodeArray { array in
+      array.encodeElement { $0.encode(1) }
+    }
+
+    let expected = """
+      [
+        1
+      ]
+      """
+    #expect(stream.string == expected)
+  }
 }

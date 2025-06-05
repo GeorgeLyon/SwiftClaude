@@ -548,7 +548,7 @@ private struct StringTests {
 
       stream.push("\u{0327}\"")
       stream.finish()
-      
+
       #expect(throws: Error.self) {
         try stream.withDecodedStringFragments(state: &state) {
           #expect($0 == ["\"" + "\u{0327}"])
@@ -832,7 +832,7 @@ extension JSON.DecodingStream {
 }
 
 extension JSON.DecodingResult where Value == JSON.StringComponent {
-  
+
   var isComplete: Bool {
     if case .decoded(.end) = self {
       return true
@@ -840,5 +840,5 @@ extension JSON.DecodingResult where Value == JSON.StringComponent {
       return false
     }
   }
-  
+
 }
