@@ -470,4 +470,24 @@ struct EnumSchemaTests {
           """) == .three
     )
   }
+
+  @Test
+  private func testStandardEnumValueEncoding() throws {
+    let schema = ToolInput.schema(representing: TestEnum.self)
+    #expect(
+      schema.encodedJSON(for: .first("hello")) == """
+        {
+          "first": "hello"
+        }
+        """
+    )
+    
+    #expect(
+      schema.encodedJSON(for: .fifth) == """
+        {
+          "fifth": null
+        }
+        """
+    )
+  }
 }
