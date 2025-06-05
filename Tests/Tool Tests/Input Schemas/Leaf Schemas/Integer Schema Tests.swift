@@ -10,7 +10,7 @@ struct IntegerSchemaTests {
     #expect(
       ToolInput.schema(representing: Int.self).schemaJSON == """
         {
-          "type":"integer"
+          "type": "integer"
         }
         """
     )

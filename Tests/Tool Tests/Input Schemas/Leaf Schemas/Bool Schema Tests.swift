@@ -10,7 +10,7 @@ struct BoolSchemaTests {
     #expect(
       ToolInput.schema(representing: Bool.self).schemaJSON == """
         {
-          "type":"boolean"
+          "type": "boolean"
         }
         """
     )

@@ -60,21 +60,21 @@ struct StructSchemaTests {
     #expect(
       schema.schemaJSON == """
         {
-          "description":"A person object",
-          "properties":{
-            "name":{
-              "type":"string"
+          "description": "A person object",
+          "properties": {
+            "name": {
+              "type": "string"
             },
-            "age":{
-              "description":"The person's age",
-              "type":"integer"
+            "age": {
+              "description": "The person's age",
+              "type": "integer"
             },
-            "isActive":{
-              "description":"Whether the person is active",
-              "type":"boolean"
+            "isActive": {
+              "description": "Whether the person is active",
+              "type": "boolean"
             }
           },
-          "required":[
+          "required": [
             "name",
             "age"
           ]
@@ -90,8 +90,8 @@ struct StructSchemaTests {
       schema.encodedJSON(for: Person(name: "John Doe", age: 30, isActive: nil))
         == """
         {
-          "age" : 30,
-          "name" : "John Doe"
+          "name": "John Doe",
+          "age": 30
         }
         """
     )
@@ -104,9 +104,9 @@ struct StructSchemaTests {
       schema.encodedJSON(for: Person(name: "Jane Smith", age: 25, isActive: true))
         == """
         {
-          "age" : 25,
-          "isActive" : true,
-          "name" : "Jane Smith"
+          "name": "Jane Smith",
+          "age": 25,
+          "isActive": true
         }
         """
     )

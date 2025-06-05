@@ -37,22 +37,22 @@ struct ObjectPropertiesSchemaTests {
     #expect(
       testSchema.schemaJSON == """
         {
-          "description":"A user object",
-          "properties":{
-            "name":{
-              "description":"User's name",
-              "type":"string"
+          "description": "A user object",
+          "properties": {
+            "name": {
+              "description": "User's name",
+              "type": "string"
             },
-            "age":{
-              "description":"User's age",
-              "type":"integer"
+            "age": {
+              "description": "User's age",
+              "type": "integer"
             },
-            "isActive":{
-              "description":"Whether the user is active",
-              "type":"boolean"
+            "isActive": {
+              "description": "Whether the user is active",
+              "type": "boolean"
             }
           },
-          "required":[
+          "required": [
             "name",
             "age"
           ]
@@ -66,8 +66,8 @@ struct ObjectPropertiesSchemaTests {
     #expect(
       testSchema.encodedJSON(for: ("John Doe", 30, nil)) == """
         {
-          "age" : 30,
-          "name" : "John Doe"
+          "name": "John Doe",
+          "age": 30
         }
         """
     )

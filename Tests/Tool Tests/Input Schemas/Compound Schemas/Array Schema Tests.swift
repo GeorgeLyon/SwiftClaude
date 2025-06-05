@@ -10,8 +10,8 @@ struct ArraySchemaTests {
     #expect(
       ToolInput.schema(representing: [String].self).schemaJSON == """
         {
-          "items":{
-            "type":"string"
+          "items": {
+            "type": "string"
           }
         }
         """
