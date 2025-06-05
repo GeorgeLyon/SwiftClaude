@@ -375,12 +375,32 @@ private struct StandardEnumSchema<
     self.cases = cases
     self.caseEncoder = caseEncoder
     self.decoderProvider = EnumCaseDecoderProvider(cases: repeat each cases)
+
+    /// Resolve style
+    do {
+      var caseCount = 0
+      var allCaseAssociatedValuesAreVoid = true
+      for `case` in repeat each cases {
+        caseCount += 1
+        if !(`case`.schema is any ToolInput.Schema<Void>) {
+          allCaseAssociatedValuesAreVoid = false
+        }
+      }
+      if caseCount == 1 {
+        self.style = .singleCase
+      } else if allCaseAssociatedValuesAreVoid {
+        self.style = .noAssociatedValues
+      } else {
+        self.style = .objectProperties
+      }
+    }
   }
 
   private let description: String?
   private let cases: Cases
   private let decoderProvider: EnumCaseDecoderProvider
   private let caseEncoder: EncodeValue
+  private let style: EnumStyle
 
   func encodeSchemaDefinition(
     to encoder: ToolInput.SchemaEncoder<Self>
@@ -580,26 +600,6 @@ private struct StandardEnumSchema<
 
   func encode(_ value: Value, to encoder: ToolInput.Encoder<Self>) throws {
     fatalError()
-    // caseEncoder(
-    //   value,
-    //   repeat { value in
-    //     switch style {
-    //     case .singleCase:
-    //       try! (each cases).schema.encode(value, to: encoder.map())
-    //     case .noAssociatedValues:
-    //       var container = encoder.wrapped.singleValueContainer()
-    //       try! container.encode((each cases).key.stringValue)
-    //     case .objectProperties:
-    //       var container = encoder.wrapped.container(keyedBy: CaseKey.self)
-    //       try! (each cases).schema.encode(
-    //         value,
-    //         to: ToolInput.Encoder(
-    //           wrapped: container.superEncoder(forKey: (each cases).key)
-    //         )
-    //       )
-    //     }
-    //   }
-    // )
   }
 
   func encode(_ value: Value, to stream: inout JSON.EncodingStream) {
@@ -662,24 +662,6 @@ private struct StandardEnumSchema<
       }
 
       throw Error.unknownEnumCase(allKeys: container.allKeys.map(\.stringValue))
-    }
-  }
-
-  private var style: EnumSchemaStyle {
-    var caseCount = 0
-    var allCaseAssociatedValuesAreVoid = true
-    for `case` in repeat each cases {
-      caseCount += 1
-      if !(`case`.schema is any ToolInput.Schema<Void>) {
-        allCaseAssociatedValuesAreVoid = false
-      }
-    }
-    if caseCount == 1 {
-      return .singleCase
-    } else if allCaseAssociatedValuesAreVoid {
-      return .noAssociatedValues
-    } else {
-      return .objectProperties
     }
   }
 
@@ -822,14 +804,14 @@ extension StandardEnumSchema {
 
 }
 
+// MARK: - Implementation Details
+
 private enum EnumObjectDecodingPhase {
   case decodingPrologue
   case decodingEpilogue
 }
 
-// MARK: - Implementation Details
-
-private enum EnumSchemaStyle {
+private enum EnumStyle {
   case singleCase
   case noAssociatedValues
   case objectProperties
