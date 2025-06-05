@@ -481,7 +481,7 @@ struct EnumSchemaTests {
         }
         """
     )
-    
+
     #expect(
       schema.encodedJSON(for: .fifth) == """
         {

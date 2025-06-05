@@ -30,8 +30,7 @@ extension ToolInput {
           key: (each properties).key,
           description: (each properties).description,
           schema: (each properties).schema
-        )
-      ),
+        )),
       initializer: initializer
     )
   }
@@ -96,9 +95,7 @@ private struct StructSchema<
     )
   }
 
-  typealias ValueDecodingState = ObjectPropertiesDecodingState<
-    PropertyKey, repeat each PropertySchema
-  >
+  typealias ValueDecodingState = PropertiesSchema.ValueDecodingState
 
   var initialValueDecodingState: ValueDecodingState {
     propertiesSchema.initialValueDecodingState

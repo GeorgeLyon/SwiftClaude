@@ -14,19 +14,15 @@ struct ObjectPropertiesSchema<
     properties: repeat ObjectPropertySchema<PropertyKey, each PropertySchema>
   ) {
     self.description = description
-    self.stateProvider = ObjectPropertiesDecodingStateProvider(
-      properties: repeat each properties
+    self.properties = (repeat each properties)
+    self.propertyDecoderProvider = PropertyDecoderProvider(
+      properties: (repeat each properties)
     )
   }
 
-  fileprivate let description: String?
-
-  fileprivate typealias Properties = (repeat ObjectPropertySchema<PropertyKey, each PropertySchema>)
-  fileprivate var properties: Properties {
-    stateProvider.properties
-  }
-  fileprivate let stateProvider:
-    ObjectPropertiesDecodingStateProvider<PropertyKey, repeat each PropertySchema>
+  private let description: String?
+  private let properties: Properties
+  private let propertyDecoderProvider: PropertyDecoderProvider
 
   func encodeSchemaDefinition(to encoder: ToolInput.SchemaEncoder<Self>) throws {
     var container = encoder.wrapped.container(keyedBy: SchemaCodingKey.self)
@@ -39,11 +35,7 @@ struct ObjectPropertiesSchema<
     /// Since properties can only be decoded if they are created ahead of time, additional properties are disallowed.
     try container.encode(false, forKey: .additionalProperties)
 
-    try container.encodeSchemaDefinition(
-      properties: repeat each properties,
-      propertiesKey: .properties,
-      requiredPropertiesKey: .required
-    )
+    fatalError()
   }
 
   func encodeSchemaDefinition(to encoder: inout ToolInput.NewSchemaEncoder<Self>) {
@@ -65,11 +57,7 @@ struct ObjectPropertiesSchema<
   }
 
   func encode(_ value: Value, to encoder: ToolInput.Encoder<Self>) throws {
-    var container = encoder.wrapped.container(keyedBy: PropertyKey.self)
-    try container.encode(
-      properties: repeat each properties,
-      values: repeat each value
-    )
+    fatalError()
   }
 
   func decodeValue(from decoder: ToolInput.Decoder<Self>) throws -> Value {
@@ -77,20 +65,58 @@ struct ObjectPropertiesSchema<
     return (try container.decodeProperties(repeat each properties))
   }
 
-  typealias ValueDecodingState = ObjectPropertiesDecodingState<
-    PropertyKey, repeat each PropertySchema
-  >
+  struct ValueDecodingState {
+    fileprivate var objectState = JSON.ObjectDecodingState()
+    fileprivate var propertyStates: PropertyStates
+  }
 
-  /// By making this a stored property, we cache the creation of the property decoder dictionary
   var initialValueDecodingState: ValueDecodingState {
-    stateProvider.initialDecodingState
+    ValueDecodingState(
+      propertyStates: (repeat .decoding((each properties).schema.initialValueDecodingState))
+    )
   }
 
   func decodeValue(
     from stream: inout JSON.DecodingStream,
     state: inout ValueDecodingState
   ) throws -> JSON.DecodingResult<(repeat (each PropertySchema).Value)> {
-    try stream.decodeProperties(&state)
+    decodeProperties: while true {
+      switch try stream.decodeObjectComponent(&state.objectState) {
+      case .needsMoreData:
+        return .needsMoreData
+      case .decoded(.end):
+        break decodeProperties
+      case .decoded(.propertyValueStart(let name)):
+        switch try propertyDecoderProvider.decoder(for: name)(&stream, &state.propertyStates) {
+        case .needsMoreData:
+          return .needsMoreData
+        case .decoded:
+          break
+        }
+      }
+    }
+
+    func getPropertyValue<Schema: ToolInput.Schema>(
+      name: String,
+      schema: Schema,
+      decodedValue: Schema.Value?
+    ) throws -> Schema.Value {
+      if let decodedValue {
+        decodedValue
+      } else if let optionalSchema = schema as? any OptionalSchemaProtocol<Schema.Value> {
+        optionalSchema.valueWhenOmitted
+      } else {
+        throw Error.missingRequiredPropertyValue(name)
+      }
+    }
+
+    return .decoded(
+      (repeat try getPropertyValue(
+        name: (each properties).key.stringValue,
+        schema: (each properties).schema,
+        decodedValue: (each state.propertyStates).decodedValue
+      ))
+    )
   }
 
   func encode(_ value: Value, to stream: inout JSON.EncodingStream) {
@@ -115,13 +141,98 @@ struct ObjectPropertiesSchema<
     }
   }
 
+  fileprivate typealias Properties = (repeat ObjectPropertySchema<PropertyKey, each PropertySchema>)
+  fileprivate typealias PropertyStates = (
+    repeat ObjectPropertySchema<PropertyKey, (each PropertySchema)>.DecodingState
+  )
+  private typealias PropertyDecoder = @Sendable (
+    inout JSON.DecodingStream,
+    inout PropertyStates
+  ) throws -> JSON.DecodingResult<Void>
+
 }
 
 struct ObjectPropertySchema<PropertyKey: CodingKey, Schema: ToolInput.Schema> {
   let key: PropertyKey
   let description: String?
   let schema: Schema
+
+  fileprivate enum DecodingState {
+    case missing
+    case decoding(Schema.ValueDecodingState)
+    case decoded(Schema.Value)
+
+    var decodedValue: Schema.Value? {
+      if case .decoded(let value) = self {
+        value
+      } else {
+        nil
+      }
+    }
+  }
+  fileprivate var decodingStateType: DecodingState.Type {
+    DecodingState.self
+  }
 }
+
+// MARK: - Decoding
+
+extension ObjectPropertiesSchema {
+
+  private struct PropertyDecoderProvider: Sendable {
+
+    init(properties: Properties) {
+      var decoders: [Substring: PropertyDecoder] = [:]
+      var tupleArchetype = VariadicTupleArchetype<PropertyStates>()
+      for property in repeat each properties {
+        let accessor = tupleArchetype.nextElementAccessor(of: property.decodingStateType)
+        let key = Substring(property.key.stringValue)
+        let decoder: PropertyDecoder = { stream, states in
+          try accessor.mutate(&states) { decodingState in
+            while true {
+              switch decodingState {
+              case .missing:
+                decodingState = .decoding(property.schema.initialValueDecodingState)
+              case .decoding(var state):
+                switch try property.schema.decodeValue(from: &stream, state: &state) {
+                case .needsMoreData:
+                  decodingState = .decoding(state)
+                  return .needsMoreData
+                case .decoded(let value):
+                  decodingState = .decoded(value)
+                  return .decoded(())
+                }
+              case .decoded:
+                throw Error.repeatedPropertyName(property.key.stringValue)
+              }
+            }
+          }
+        }
+        if decoders.updateValue(decoder, forKey: key) != nil {
+          assertionFailure()
+          decoders[key] = { _, _ in
+            throw Error.multiplePropertiesWithSameName(property.key.stringValue)
+          }
+        }
+      }
+      self.decoders = decoders
+    }
+
+    func decoder(for propertyName: Substring) throws -> PropertyDecoder {
+      guard let decoder = decoders[propertyName] else {
+        /// We conservatively fail parsing on unknown properties, since Claude should be good at recovering from this type of error and Claude can become confused if it hallucinates a property that is then either dropped or silently passed through
+        throw Error.unknownProperty(String(propertyName))
+      }
+      return decoder
+    }
+
+    private let decoders: [Substring: PropertyDecoder]
+
+  }
+
+}
+
+// MARK: - Implementation Details
 
 private enum SchemaCodingKey: Swift.CodingKey {
   case type
@@ -129,4 +240,11 @@ private enum SchemaCodingKey: Swift.CodingKey {
   case properties
   case additionalProperties
   case required
+}
+
+private enum Error: Swift.Error {
+  case unknownProperty(String)
+  case missingRequiredPropertyValue(String)
+  case repeatedPropertyName(String)
+  case multiplePropertiesWithSameName(String)
 }

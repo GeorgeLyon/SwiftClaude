@@ -457,7 +457,7 @@ private struct EncodingTests {
     stream.encodeObject { _ in }
     let expected1 = """
       {
-      
+
       }
       """
     #expect(stream.string == expected1)
@@ -468,7 +468,7 @@ private struct EncodingTests {
     stream.encodeArray { _ in }
     let expected2 = """
       [
-      
+
       ]
       """
     #expect(stream.string == expected2)
