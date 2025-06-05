@@ -1,11 +1,35 @@
 import JSONSupport
 
+protocol ObjectPropertiesSchemaProtocol<Value, ValueDecodingState>: InternalSchema {
+
+  func encodeSchemaDefinition(
+    to stream: inout ToolInput.NewSchemaEncoder<Self>,
+    discriminator: Discriminator?
+  )
+
+  func decodeValue(
+    from stream: inout JSON.DecodingStream,
+    state: inout ValueDecodingState,
+    discriminator: Discriminator?
+  ) throws -> JSON.DecodingResult<Value>
+
+  func encode(
+    _ value: Value,
+    discriminator: Discriminator?,
+    to stream: inout JSON.EncodingStream
+  )
+
+}
+extension ObjectPropertiesSchemaProtocol {
+  typealias Discriminator = (name: String, value: String)
+}
+
 /// This schema is not instantiated directly by a user.
 /// Instead it is used in the implementation of `StructSchema` and `EnumSchema`
 struct ObjectPropertiesSchema<
   PropertyKey: CodingKey,
   each PropertySchema: ToolInput.Schema
->: InternalSchema {
+>: ObjectPropertiesSchemaProtocol {
 
   typealias Value = (repeat (each PropertySchema).Value)
 
@@ -41,15 +65,12 @@ struct ObjectPropertiesSchema<
   func encodeSchemaDefinition(to encoder: inout ToolInput.NewSchemaEncoder<Self>) {
     encodeSchemaDefinition(to: &encoder, discriminator: nil)
   }
-  
+
   /// - Parameters:
   ///   - discriminator: If provided, this schema will encode an additional property with this specified value. This is used for internally-tagged enums
   func encodeSchemaDefinition(
     to encoder: inout ToolInput.NewSchemaEncoder<Self>,
-    discriminator: (
-      name: String,
-      value: String
-    )?
+    discriminator: Discriminator?
   ) {
     let description = encoder.contextualDescription(description)
     encoder.stream.encodeObject { encoder in
@@ -74,7 +95,7 @@ struct ObjectPropertiesSchema<
               stream.encode(discriminator.value)
             }
           }
-          
+
           /// Encode properties
           for property in repeat each properties {
             assert(property.key.stringValue != discriminator?.name)
@@ -141,14 +162,11 @@ struct ObjectPropertiesSchema<
   ) throws -> JSON.DecodingResult<(repeat (each PropertySchema).Value)> {
     try decodeValue(from: &stream, state: &state, discriminator: nil)
   }
-  
+
   func decodeValue(
     from stream: inout JSON.DecodingStream,
     state: inout ValueDecodingState,
-    discriminator: (
-      name: String,
-      value: String
-    )?
+    discriminator: Discriminator?
   ) throws -> JSON.DecodingResult<(repeat (each PropertySchema).Value)> {
     decodeProperties: while true {
       switch try stream.decodeObjectComponent(&state.objectState) {
@@ -200,16 +218,34 @@ struct ObjectPropertiesSchema<
     )
   }
 
-  func encode(_ value: Value, to stream: inout JSON.EncodingStream) {
+  func encode(
+    _ value: Value,
+    to stream: inout JSON.EncodingStream
+  ) {
+    encode((repeat each value), discriminator: nil, to: &stream)
+  }
+
+  func encode(
+    _ value: Value,
+    discriminator: Discriminator?,
+    to stream: inout JSON.EncodingStream
+  ) {
     stream.encodeObject { encoder in
+
+      if let discriminator {
+        encoder.encodeProperty(name: discriminator.name) { stream in
+          stream.encode(discriminator.value)
+        }
+      }
+
       func encodeProperty<S: ToolInput.Schema>(
         _ property: ObjectPropertySchema<PropertyKey, S>, _ value: S.Value
       ) {
-        // Check if this is an optional schema that should omit the value
+        assert(discriminator?.name != property.key.stringValue)
+
         if let optionalSchema = property.schema as? any OptionalSchemaProtocol<S.Value>,
           optionalSchema.shouldOmit(value)
         {
-          // Skip encoding this property
           return
         }
 
@@ -217,7 +253,6 @@ struct ObjectPropertiesSchema<
           property.schema.encode(value, to: &stream)
         }
       }
-
       repeat encodeProperty(each properties, each value)
     }
   }

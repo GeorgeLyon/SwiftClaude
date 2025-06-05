@@ -54,6 +54,41 @@ extension JSON.DecodingStream {
     }
   }
 
+  public mutating func peekObjectProperty<T>(
+    _ name: String,
+    peek: (inout JSON.DecodingStream) throws -> JSON.DecodingResult<T>
+  ) throws -> JSON.DecodingResult<T?> {
+    let checkpoint = createCheckpoint()
+
+    /// Because we restore the state on all non-error code paths, it is safe to discard
+    var state = JSON.ObjectDecodingState()
+
+    while true {
+      switch readObjectComponent(&state) {
+      case .needsMoreData:
+        restore(checkpoint)
+        return .needsMoreData
+      case .notMatched(let error):
+        throw error
+      case .matched(.propertyValueStart(let propertyName)):
+        if propertyName == name {
+          let result = try peek(&self)
+          restore(checkpoint)
+          switch result {
+          case .needsMoreData:
+            return .needsMoreData
+          case .decoded(T)
+          }
+          return .decoded(result)
+        }
+        state.ignorePropertyValue()
+      case .matched(.end):
+        restore(checkpoint)
+        return .decoded(nil)
+      }
+    }
+  }
+
   mutating func readObjectComponent(
     _ state: inout JSON.ObjectDecodingState
   ) -> ReadResult<JSON.ObjectComponent> {
