@@ -29,56 +29,6 @@ extension Optional: ToolInput.SchemaCodable where Wrapped: ToolInput.SchemaCodab
  If the wrapped value is itself nullable and thr optional is not an object property, we add a wrapper struct to disambiguate between wrapping and wrapped `nil`.
  */
 
-extension JSON.ObjectEncoder {
-
-  mutating func encodeSchemaDefinitionProperties<
-    PropertyKey: CodingKey, each PropertySchema: ToolInput.Schema
-  >(
-    for objectProperties: repeat ObjectPropertySchema<PropertyKey, each PropertySchema>
-  ) {
-    var requiredProperties: [PropertyKey] = []
-
-    encodeProperty(name: "properties") { encoder in
-      encoder.encodeObject { encoder in
-        for property in repeat each objectProperties {
-          if let optionalSchema = property.schema as? any OptionalSchemaProtocol {
-            encoder.encodeProperty(name: property.key.stringValue) { stream in
-              optionalSchema.encodeWrappedSchemaDefinition(
-                to: &stream,
-                descriptionPrefix: property.description,
-                descriptionSuffix: nil
-              )
-            }
-          } else {
-            requiredProperties.append(property.key)
-            encoder.encodeProperty(name: property.key.stringValue) { stream in
-              stream.encodeSchemaDefinition(
-                property.schema,
-                descriptionPrefix: property.description,
-                descriptionSuffix: nil
-              )
-            }
-          }
-        }
-      }
-    }
-
-    if !requiredProperties.isEmpty {
-      /// An empty `required` array is invalid in JSONSchema
-      /// https://json-schema.org/understanding-json-schema/reference/object#required
-      encodeProperty(name: "required") { encoder in
-        encoder.encodeArray { encoder in
-          for key in requiredProperties {
-            encoder.encodeElement { $0.encode(key.stringValue) }
-          }
-        }
-      }
-    }
-
-  }
-
-}
-
 extension KeyedEncodingContainer {
 
   mutating func encodeSchemaDefinition<

@@ -39,6 +39,18 @@ struct ObjectPropertiesSchema<
   }
 
   func encodeSchemaDefinition(to encoder: inout ToolInput.NewSchemaEncoder<Self>) {
+    encodeSchemaDefinition(to: &encoder, discriminator: nil)
+  }
+  
+  /// - Parameters:
+  ///   - discriminator: If provided, this schema will encode an additional property with this specified value. This is used for internally-tagged enums
+  func encodeSchemaDefinition(
+    to encoder: inout ToolInput.NewSchemaEncoder<Self>,
+    discriminator: (
+      name: String,
+      value: String
+    )?
+  ) {
     let description = encoder.contextualDescription(description)
     encoder.stream.encodeObject { encoder in
 
@@ -52,7 +64,54 @@ struct ObjectPropertiesSchema<
       /// We can add this if Claude begins to hallucinate additional properties.
       // encoder.encodeProperty(name: "additionalProperties") { $0.encode(false) }
 
-      encoder.encodeSchemaDefinitionProperties(for: repeat each properties)
+      var requiredProperties: [PropertyKey] = []
+
+      encoder.encodeProperty(name: "properties") { encoder in
+        encoder.encodeObject { encoder in
+          /// Encode discriminator if one was specified
+          if let discriminator {
+            encoder.encodeProperty(name: discriminator.name) { stream in
+              stream.encode(discriminator.value)
+            }
+          }
+          
+          /// Encode properties
+          for property in repeat each properties {
+            assert(property.key.stringValue != discriminator?.name)
+            if let optionalSchema = property.schema as? any OptionalSchemaProtocol {
+              encoder.encodeProperty(name: property.key.stringValue) { stream in
+                optionalSchema.encodeWrappedSchemaDefinition(
+                  to: &stream,
+                  descriptionPrefix: property.description,
+                  descriptionSuffix: nil
+                )
+              }
+            } else {
+              requiredProperties.append(property.key)
+              encoder.encodeProperty(name: property.key.stringValue) { stream in
+                stream.encodeSchemaDefinition(
+                  property.schema,
+                  descriptionPrefix: property.description,
+                  descriptionSuffix: nil
+                )
+              }
+            }
+          }
+        }
+      }
+
+      if !requiredProperties.isEmpty {
+        /// An empty `required` array is invalid in JSONSchema
+        /// https://json-schema.org/understanding-json-schema/reference/object#required
+        encoder.encodeProperty(name: "required") { encoder in
+          encoder.encodeArray { encoder in
+            for key in requiredProperties {
+              encoder.encodeElement { $0.encode(key.stringValue) }
+            }
+          }
+        }
+      }
+
     }
   }
 
@@ -80,6 +139,17 @@ struct ObjectPropertiesSchema<
     from stream: inout JSON.DecodingStream,
     state: inout ValueDecodingState
   ) throws -> JSON.DecodingResult<(repeat (each PropertySchema).Value)> {
+    try decodeValue(from: &stream, state: &state, discriminator: nil)
+  }
+  
+  func decodeValue(
+    from stream: inout JSON.DecodingStream,
+    state: inout ValueDecodingState,
+    discriminator: (
+      name: String,
+      value: String
+    )?
+  ) throws -> JSON.DecodingResult<(repeat (each PropertySchema).Value)> {
     decodeProperties: while true {
       switch try stream.decodeObjectComponent(&state.objectState) {
       case .needsMoreData:
@@ -87,11 +157,22 @@ struct ObjectPropertiesSchema<
       case .decoded(.end):
         break decodeProperties
       case .decoded(.propertyValueStart(let name)):
-        switch try propertyDecoderProvider.decoder(for: name)(&stream, &state.propertyStates) {
-        case .needsMoreData:
-          return .needsMoreData
-        case .decoded:
-          break
+        if let discriminator, name == discriminator.name {
+          switch try stream.decodeString() {
+          case .needsMoreData:
+            return .needsMoreData
+          case .decoded(let value):
+            guard value == discriminator.value else {
+              throw Error.invalidDiscriminatorValue(String(value))
+            }
+          }
+        } else {
+          switch try propertyDecoderProvider.decoder(for: name)(&stream, &state.propertyStates) {
+          case .needsMoreData:
+            return .needsMoreData
+          case .decoded:
+            break
+          }
         }
       }
     }
@@ -244,6 +325,7 @@ private enum SchemaCodingKey: Swift.CodingKey {
 
 private enum Error: Swift.Error {
   case unknownProperty(String)
+  case invalidDiscriminatorValue(String)
   case missingRequiredPropertyValue(String)
   case repeatedPropertyName(String)
   case multiplePropertiesWithSameName(String)
