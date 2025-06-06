@@ -1,3 +1,5 @@
+public import SchemaCoding
+
 // MARK: - Tool
 
 public protocol Tool<Output> {
@@ -59,3 +61,38 @@ public struct ClientDefinedToolDefinition<InputSchema: Schema>: ToolDefinition {
   public let inputSchema: InputSchema
 
 }
+
+// MARK: - Tool Input
+
+public enum ToolInput {
+
+  /// Alias SchemaCoding Types
+  public typealias SchemaCodable = SchemaCoding.SchemaCodable
+  public typealias Schema = SchemaCoding.Schema
+  public typealias SchemaSupport = SchemaCoding.SchemaSupport
+
+}
+
+// MARK: - Macros
+
+@attached(
+  extension,
+  conformances: Tool,
+  names: named(definition), named(Input), named(invoke)
+)
+public macro Tool() =
+  #externalMacro(
+    module: "ToolMacros",
+    type: "ToolMacro"
+  )
+
+@attached(
+  extension,
+  conformances: SchemaCodable,
+  names: named(schema), named(init)
+)
+public macro ToolInput() =
+  #externalMacro(
+    module: "ToolMacros",
+    type: "ToolInputMacro"
+  )

@@ -71,19 +71,19 @@ let package = Package(
     //   path: "Tests/Claude Tests"
     // ),
 
-    // .target(
-    //   name: "Tool",
-    //   dependencies: [
-    //     "ToolMacros",
-    //     "JSONSupport",
-    //   ],
-    //   swiftSettings: .claude
-    // ),
-    // .testTarget(
-    //   name: "ToolTests",
-    //   dependencies: ["Tool"],
-    //   path: "Tests/Tool Tests"
-    // ),
+    .target(
+      name: "Tool",
+      dependencies: [
+        "ToolMacros",
+        "JSONSupport",
+      ],
+      swiftSettings: .projectDefaults,
+    ),
+    .testTarget(
+      name: "ToolTests",
+      dependencies: ["Tool"],
+      path: "Tests/Tool Tests"
+    ),
 
     .macro(
       name: "ToolMacros",
