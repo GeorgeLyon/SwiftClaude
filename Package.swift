@@ -111,7 +111,8 @@ let package = Package(
     .target(
       name: "SchemaCoding",
       dependencies: [
-        "JSONSupport"
+        "JSONSupport",
+        "SchemaCodingMacros",
       ],
       path: "Sources/Schema Coding",
       swiftSettings: .projectDefaults
@@ -122,13 +123,47 @@ let package = Package(
       path: "Tests/Schema Coding Tests"
     ),
 
+    .macro(
+      name: "SchemaCodingMacros",
+      dependencies: [
+        "MacrosSupport",
+        .product(name: "SwiftSyntax", package: "swift-syntax"),
+        .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+        .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
+        .product(name: "SwiftDiagnostics", package: "swift-syntax"),
+      ],
+      path: "Sources/Schema Coding Macros",
+      swiftSettings: .projectDefaults
+    ),
+    .testTarget(
+      name: "SchemaCodingMacrosTests",
+      dependencies: [
+        "SchemaCodingMacros",
+        .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+        .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
+      ],
+      path: "Tests/Schema Coding Macros Tests"
+    ),
+
+    // MARK: - Macros Support
+
+    .target(
+      name: "MacrosSupport",
+      dependencies: [
+        .product(name: "SwiftDiagnostics", package: "swift-syntax"),
+        .product(name: "SwiftSyntax", package: "swift-syntax"),
+        .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
+        .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+      ],
+      path: "Sources/Macros Support",
+      swiftSettings: .projectDefaults
+    ),
+
     // MARK: - JSON Support
 
     .target(
       name: "JSONSupport",
-      dependencies: [
-        .product(name: "Collections", package: "swift-collections")
-      ],
+      dependencies: [],
       path: "Sources/JSON Support",
       swiftSettings: .projectDefaults
     ),
