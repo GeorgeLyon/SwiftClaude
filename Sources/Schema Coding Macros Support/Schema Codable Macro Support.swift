@@ -905,7 +905,7 @@ extension VariableDeclSyntax {
               someOrAnySpecifier: .keyword(.some),
               constraint: MemberTypeSyntax(
                 baseType: IdentifierTypeSyntax(name: schemaCodingNamespace),
-                name: "SchemaSupport",
+                name: "Schema",
                 genericArgumentClause: GenericArgumentClauseSyntax {
                   GenericArgumentSyntax(
                     argument: IdentifierTypeSyntax(name: "Self")
