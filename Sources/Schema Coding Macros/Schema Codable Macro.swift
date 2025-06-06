@@ -35,7 +35,10 @@ extension ExtensionDeclSyntax {
       extendedType: type,
       inheritanceClause: InheritanceClauseSyntax {
         InheritedTypeSyntax(
-          type: IdentifierTypeSyntax(name: "SchemaCodable")
+          type: MemberTypeSyntax(
+            baseType: IdentifierTypeSyntax(name: "SchemaCoding"),
+            name: "SchemaCodable"
+          )
         )
       }
     ) {

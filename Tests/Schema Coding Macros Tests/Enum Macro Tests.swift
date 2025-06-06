@@ -44,7 +44,7 @@ private struct EnumMacroTests {
           case mixedAssociatedValues(Int, b: String, c: Bool)
         }
 
-        extension TestEnum: SchemaCodable {
+        extension TestEnum: SchemaCoding.SchemaCodable {
           static var schema: some Schema<Self> {
             let associatedValuesSchema_0_0 = SchemaProvider.enumCaseAssociatedValuesSchema(
               values: (
@@ -63,11 +63,13 @@ private struct EnumMacroTests {
             )
             let associatedValuesSchema_2_0 = SchemaProvider.enumCaseAssociatedValuesSchema(
               values: (
+
               ),
               keyedBy: __macro_local_7CaseKeyfMu_.AssociatedValuesKey.oneCase.self
             )
             let associatedValuesSchema_2_1 = SchemaProvider.enumCaseAssociatedValuesSchema(
               values: (
+
               ),
               keyedBy: __macro_local_7CaseKeyfMu_.AssociatedValuesKey.twoCase.self
             )

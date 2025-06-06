@@ -34,7 +34,7 @@ private struct StructMacroTests {
           let a, b: Bool, c: String
         }
 
-        extension TestStruct: SchemaCodable {
+        extension TestStruct: SchemaCoding.SchemaCodable {
           static var schema: some Schema<Self> {
             SchemaProvider.structSchema(
               representing: Self.self,
