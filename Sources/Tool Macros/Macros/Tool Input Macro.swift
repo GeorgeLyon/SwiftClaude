@@ -19,7 +19,7 @@ struct ToolInputMacro: ExtensionMacro {
         try .schemaCodableConformance(
           for: declaration,
           of: type,
-          schemaCodableNamespace: "ToolInput",
+          schemaCodingNamespace: "ToolInput",
           in: context
         )
       ]

@@ -19,7 +19,7 @@ struct SchemaCodableMacro: ExtensionMacro {
         try .schemaCodableConformance(
           for: declaration,
           of: type,
-          schemaCodableNamespace: "SchemaCoding",
+          schemaCodingNamespace: "SchemaCoding",
           in: context
         )
       ]

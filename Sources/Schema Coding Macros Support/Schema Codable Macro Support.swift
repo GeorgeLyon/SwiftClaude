@@ -9,7 +9,7 @@ extension ExtensionDeclSyntax {
   public static func schemaCodableConformance(
     for declaration: some DeclGroupSyntax,
     of type: some TypeSyntaxProtocol,
-    schemaCodableNamespace: TokenSyntax,
+    schemaCodingNamespace: TokenSyntax,
     in context: MacroExpansionContext
   ) throws -> ExtensionDeclSyntax {
     return try ExtensionDeclSyntax(
@@ -17,13 +17,16 @@ extension ExtensionDeclSyntax {
       inheritanceClause: InheritanceClauseSyntax {
         InheritedTypeSyntax(
           type: MemberTypeSyntax(
-            baseType: IdentifierTypeSyntax(name: schemaCodableNamespace),
+            baseType: IdentifierTypeSyntax(name: schemaCodingNamespace),
             name: "SchemaCodable"
           )
         )
       }
     ) {
-      try declaration.schemaCodableMembers(in: context)
+      try declaration.schemaCodableMembers(
+        schemaCodingNamespace: schemaCodingNamespace,
+        in: context
+      )
     }
   }
 
@@ -31,13 +34,20 @@ extension ExtensionDeclSyntax {
 
 extension DeclGroupSyntax {
 
-  fileprivate func schemaCodableMembers(in context: MacroExpansionContext) throws
-    -> MemberBlockItemListSyntax
-  {
+  fileprivate func schemaCodableMembers(
+    schemaCodingNamespace: TokenSyntax,
+    in context: MacroExpansionContext
+  ) throws -> MemberBlockItemListSyntax {
     if let structDecl = self.as(StructDeclSyntax.self) {
-      try structDecl.schemaCodableMembers(in: context)
+      try structDecl.schemaCodableMembers(
+        schemaCodingNamespace: schemaCodingNamespace,
+        in: context
+      )
     } else if let enumDecl = self.as(EnumDeclSyntax.self) {
-      enumDecl.schemaCodableMembers(in: context)
+      enumDecl.schemaCodableMembers(
+        schemaCodingNamespace: schemaCodingNamespace,
+        in: context
+      )
     } else {
       throw DiagnosticError(
         node: self,
@@ -53,13 +63,17 @@ extension DeclGroupSyntax {
 
 extension StructDeclSyntax {
 
-  fileprivate func schemaCodableMembers(in context: MacroExpansionContext) throws
+  fileprivate func schemaCodableMembers(
+    schemaCodingNamespace: TokenSyntax,
+    in context: MacroExpansionContext
+  ) throws
     -> MemberBlockItemListSyntax
   {
     Self.schemaCodableMembers(
       for: try storedProperties,
       description: comment,
       isPublic: modifiers.contains(where: \.isPublic),
+      schemaCodingNamespace: schemaCodingNamespace,
       in: context
     )
   }
@@ -67,7 +81,7 @@ extension StructDeclSyntax {
   public static func schemaCodable(
     description: String?,
     name: TokenSyntax,
-    schemaCodableNamespace: TokenSyntax,
+    schemaCodingNamespace: TokenSyntax,
     isPublic: Bool,
     storedProperties: [StoredProperty],
     additionalMembers: MemberBlockItemListSyntax,
@@ -83,7 +97,7 @@ extension StructDeclSyntax {
       inheritanceClause: InheritanceClauseSyntax {
         InheritedTypeSyntax(
           type: MemberTypeSyntax(
-            baseType: IdentifierTypeSyntax(name: schemaCodableNamespace),
+            baseType: IdentifierTypeSyntax(name: schemaCodingNamespace),
             name: "SchemaCodable"
           )
         )
@@ -112,6 +126,7 @@ extension StructDeclSyntax {
           for: storedProperties,
           description: description,
           isPublic: isPublic,
+          schemaCodingNamespace: schemaCodingNamespace,
           in: context
         )
 
@@ -128,17 +143,22 @@ extension StructDeclSyntax {
     for storedProperties: some Collection<StoredProperty>,
     description: String?,
     isPublic: Bool,
+    schemaCodingNamespace: TokenSyntax,
     in context: MacroExpansionContext
   )
     -> MemberBlockItemListSyntax
   {
     /// var schema: some SchemaCoding.Schema<Self> { … }
     let schemaProperty: VariableDeclSyntax = .schemaProperty(
+      schemaCodingNamespace: schemaCodingNamespace,
       isPublic: isPublic
     ) {
       FunctionCallExprSyntax(
         calledExpression: MemberAccessExprSyntax(
-          base: DeclReferenceExprSyntax(baseName: "SchemaSupport"),
+          base: MemberAccessExprSyntax(
+            base: DeclReferenceExprSyntax(baseName: schemaCodingNamespace),
+            name: "SchemaSupport"
+          ),
           name: "structSchema"
         ),
         leftParen: .leftParenToken(trailingTrivia: .newline),
@@ -165,7 +185,9 @@ extension StructDeclSyntax {
               elements: LabeledExprListSyntax {
                 for property in storedProperties {
                   LabeledExprSyntax(
-                    expression: property.structSchemaPropertyArgument()
+                    expression: property.structSchemaPropertyArgument(
+                      schemaCodingNamespace: schemaCodingNamespace
+                    )
                   )
                 }
               },
@@ -206,7 +228,10 @@ extension StructDeclSyntax {
             FunctionParameterSyntax(
               firstName: "structSchemaDecoder",
               type: MemberTypeSyntax(
-                baseType: IdentifierTypeSyntax(name: "SchemaSupport"),
+                baseType: MemberTypeSyntax(
+                  baseType: IdentifierTypeSyntax(name: schemaCodingNamespace),
+                  name: "SchemaSupport"
+                ),
                 name: "StructSchemaDecoder",
                 genericArgumentClause: GenericArgumentClauseSyntax {
                   for property in storedProperties {
@@ -338,9 +363,9 @@ extension StructDeclSyntax {
 
 extension StructDeclSyntax.StoredProperty {
 
-  fileprivate func structSchemaPropertyArgument()
-    -> some ExprSyntaxProtocol
-  {
+  fileprivate func structSchemaPropertyArgument(
+    schemaCodingNamespace: TokenSyntax,
+  ) -> some ExprSyntaxProtocol {
     TupleExprSyntax(
       leftParen: .leftParenToken(leadingTrivia: .newline, trailingTrivia: .newline),
       elements: LabeledExprListSyntax {
@@ -396,7 +421,13 @@ extension StructDeclSyntax.StoredProperty {
               content: name.identifierOrText
             ),
             asKeyword: .keyword(.as, trailingTrivia: .space),
-            type: TypeSyntax(stringLiteral: "SchemaSupport.SchemaCodingKey")
+            type: MemberTypeSyntax(
+              baseType: MemberTypeSyntax(
+                baseType: IdentifierTypeSyntax(name: schemaCodingNamespace),
+                name: "SchemaSupport"
+              ),
+              name: "SchemaCodingKey"
+            )
           ),
           trailingComma: .commaToken(trailingTrivia: .newline)
         )
@@ -405,7 +436,9 @@ extension StructDeclSyntax.StoredProperty {
         LabeledExprSyntax(
           label: "schema",
           colon: .colonToken(),
-          expression: type.schema
+          expression: type.schema(
+            schemaCodingNamespace: schemaCodingNamespace
+          ),
         )
       }
     )
@@ -417,12 +450,16 @@ extension StructDeclSyntax.StoredProperty {
 
 extension EnumDeclSyntax {
 
-  func schemaCodableMembers(in context: MacroExpansionContext) -> MemberBlockItemListSyntax {
+  func schemaCodableMembers(
+    schemaCodingNamespace: TokenSyntax,
+    in context: MacroExpansionContext
+  ) -> MemberBlockItemListSyntax {
     let caseDecls = memberBlock
       .members
       .compactMap { $0.decl.as(EnumCaseDeclSyntax.self) }
 
     let schemaProperty: VariableDeclSyntax = .schemaProperty(
+      schemaCodingNamespace: schemaCodingNamespace,
       isPublic: modifiers.contains(where: \.isPublic)
     ) {
       for (caseDeclOffset, caseDecl) in caseDecls.enumerated() {
@@ -435,7 +472,9 @@ extension EnumDeclSyntax {
               )
             ),
             initializer: InitializerClauseSyntax(
-              value: element.associatedValuesSchema()
+              value: element.associatedValuesSchema(
+                schemaCodingNamespace: schemaCodingNamespace
+              )
             )
           )
         }
@@ -445,7 +484,10 @@ extension EnumDeclSyntax {
       ReturnStmtSyntax(
         expression: FunctionCallExprSyntax(
           calledExpression: MemberAccessExprSyntax(
-            base: DeclReferenceExprSyntax(baseName: "SchemaSupport"),
+            base: MemberAccessExprSyntax(
+              base: DeclReferenceExprSyntax(baseName: schemaCodingNamespace),
+              name: "SchemaSupport"
+            ),
             name: "enumSchema"
           ),
           leftParen: .leftParenToken(trailingTrivia: .newline),
@@ -476,6 +518,7 @@ extension EnumDeclSyntax {
                     for (elementOffset, element) in caseDecl.elements.enumerated() {
                       LabeledExprSyntax(
                         expression: element.enumSchemaCaseArgument(
+                          schemaCodingNamespace: schemaCodingNamespace,
                           descriptionArgument: descriptionArgument,
                           associatedValuesSchema: DeclReferenceExprSyntax(
                             baseName:
@@ -544,10 +587,15 @@ extension EnumDeclSyntax {
 
 extension EnumCaseElementListSyntax.Element {
 
-  fileprivate func associatedValuesSchema() -> FunctionCallExprSyntax {
+  fileprivate func associatedValuesSchema(
+    schemaCodingNamespace: TokenSyntax,
+  ) -> FunctionCallExprSyntax {
     return FunctionCallExprSyntax(
       calledExpression: MemberAccessExprSyntax(
-        base: DeclReferenceExprSyntax(baseName: "SchemaSupport"),
+        base: MemberAccessExprSyntax(
+          base: DeclReferenceExprSyntax(baseName: schemaCodingNamespace),
+          name: "SchemaSupport"
+        ),
         name: "enumCaseAssociatedValuesSchema"
       ),
       leftParen: .leftParenToken(trailingTrivia: .newline),
@@ -563,7 +611,9 @@ extension EnumCaseElementListSyntax.Element {
               if let parameters = parameterClause?.parameters {
                 for parameter in parameters {
                   LabeledExprSyntax(
-                    expression: parameter.associatedValuesSchemaArgument()
+                    expression: parameter.associatedValuesSchemaArgument(
+                      schemaCodingNamespace: schemaCodingNamespace
+                    )
                   )
                 }
               }
@@ -577,6 +627,7 @@ extension EnumCaseElementListSyntax.Element {
   }
 
   fileprivate func enumSchemaCaseArgument(
+    schemaCodingNamespace: TokenSyntax,
     descriptionArgument: LabeledExprSyntax,
     associatedValuesSchema: some ExprSyntaxProtocol
   ) -> TupleExprSyntax {
@@ -592,7 +643,13 @@ extension EnumCaseElementListSyntax.Element {
               content: name.identifierOrText
             ),
             asKeyword: .keyword(.as, trailingTrivia: .space),
-            type: TypeSyntax(stringLiteral: "SchemaSupport.SchemaCodingKey")
+            type: MemberTypeSyntax(
+              baseType: MemberTypeSyntax(
+                baseType: IdentifierTypeSyntax(name: schemaCodingNamespace),
+                name: "SchemaSupport"
+              ),
+              name: "SchemaCodingKey"
+            )
           ),
           trailingComma: .commaToken(trailingTrivia: .newline)
         )
@@ -755,7 +812,9 @@ extension Sequence where Element == EnumCaseParameterSyntax {
 
 extension EnumCaseParameterListSyntax.Element {
 
-  fileprivate func associatedValuesSchemaArgument() -> TupleExprSyntax {
+  fileprivate func associatedValuesSchemaArgument(
+    schemaCodingNamespace: TokenSyntax
+  ) -> TupleExprSyntax {
     TupleExprSyntax(
       leftParen: .leftParenToken(trailingTrivia: .newline),
       elements: LabeledExprListSyntax {
@@ -769,7 +828,13 @@ extension EnumCaseParameterListSyntax.Element {
                 content: name.identifierOrText
               ),
               asKeyword: .keyword(.as, trailingTrivia: .space),
-              type: TypeSyntax(stringLiteral: "SchemaSupport.SchemaCodingKey")
+              type: MemberTypeSyntax(
+                baseType: MemberTypeSyntax(
+                  baseType: IdentifierTypeSyntax(name: schemaCodingNamespace),
+                  name: "SchemaSupport"
+                ),
+                name: "SchemaCodingKey"
+              )
             ),
             trailingComma: .commaToken(trailingTrivia: .newline)
           )
@@ -787,7 +852,9 @@ extension EnumCaseParameterListSyntax.Element {
         LabeledExprSyntax(
           label: "schema",
           colon: .colonToken(),
-          expression: type.schema
+          expression: type.schema(
+            schemaCodingNamespace: schemaCodingNamespace
+          )
         )
 
       },
@@ -816,6 +883,7 @@ extension EnumCaseParameterListSyntax.Element {
 extension VariableDeclSyntax {
 
   fileprivate static func schemaProperty(
+    schemaCodingNamespace: TokenSyntax,
     isPublic: Bool,
     @CodeBlockItemListBuilder _ builder: () -> CodeBlockItemListSyntax
   )
@@ -835,8 +903,9 @@ extension VariableDeclSyntax {
           typeAnnotation: TypeAnnotationSyntax(
             type: SomeOrAnyTypeSyntax(
               someOrAnySpecifier: .keyword(.some),
-              constraint: IdentifierTypeSyntax(
-                name: "Schema",
+              constraint: MemberTypeSyntax(
+                baseType: IdentifierTypeSyntax(name: schemaCodingNamespace),
+                name: "SchemaSupport",
                 genericArgumentClause: GenericArgumentClauseSyntax {
                   GenericArgumentSyntax(
                     argument: IdentifierTypeSyntax(name: "Self")
@@ -859,10 +928,15 @@ extension VariableDeclSyntax {
 
 extension TypeSyntax {
 
-  var schema: some ExprSyntaxProtocol {
+  func schema(
+    schemaCodingNamespace: TokenSyntax
+  ) -> some ExprSyntaxProtocol {
     FunctionCallExprSyntax(
       calledExpression: MemberAccessExprSyntax(
-        base: DeclReferenceExprSyntax(baseName: "SchemaSupport"),
+        base: MemberAccessExprSyntax(
+          base: DeclReferenceExprSyntax(baseName: schemaCodingNamespace),
+          name: "SchemaSupport"
+        ),
         name: "schema"
       ),
       leftParen: .leftParenToken(),

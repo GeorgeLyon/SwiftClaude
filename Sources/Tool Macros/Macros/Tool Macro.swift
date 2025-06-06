@@ -178,7 +178,7 @@ extension DeclGroupSyntax {
       StructDeclSyntax.schemaCodable(
         description: comment,
         name: "Input",
-        schemaCodableNamespace: "ToolInput",
+        schemaCodingNamespace: "ToolInput",
         isPublic: isPublic,
         storedProperties: storedProperties,
         additionalMembers: MemberBlockItemListSyntax {
