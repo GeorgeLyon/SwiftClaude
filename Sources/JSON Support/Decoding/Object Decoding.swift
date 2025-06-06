@@ -77,9 +77,9 @@ extension JSON.DecodingStream {
           switch result {
           case .needsMoreData:
             return .needsMoreData
-          case .decoded(T)
+          case .decoded(let result):
+            return .decoded(result)
           }
-          return .decoded(result)
         }
         state.ignorePropertyValue()
       case .matched(.end):
