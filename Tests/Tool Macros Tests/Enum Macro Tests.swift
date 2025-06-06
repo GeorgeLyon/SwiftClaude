@@ -41,65 +41,65 @@ private struct EnumMacroTests {
         }
 
         extension ToolInputEnum: ToolInput.SchemaCodable {
-          static var schema: some Schema<Self> {
-            let associatedValuesSchema_0_0 = SchemaSupport.enumCaseAssociatedValuesSchema(
+          static var schema: some ToolInput.Schema<Self> {
+            let associatedValuesSchema_0_0 = ToolInput.SchemaSupport.enumCaseAssociatedValuesSchema(
               values: (
 
               )
             )
-            let associatedValuesSchema_1_0 = SchemaSupport.enumCaseAssociatedValuesSchema(
+            let associatedValuesSchema_1_0 = ToolInput.SchemaSupport.enumCaseAssociatedValuesSchema(
               values: (
                 (
                   key: nil,
-                  schema: SchemaSupport.schema(representing: Int.self)
+                  schema: ToolInput.SchemaSupport.schema(representing: Int.self)
                 )
               )
             )
-            let associatedValuesSchema_2_0 = SchemaSupport.enumCaseAssociatedValuesSchema(
+            let associatedValuesSchema_2_0 = ToolInput.SchemaSupport.enumCaseAssociatedValuesSchema(
               values: (
                 (
                   key: nil,
-                  schema: SchemaSupport.schema(representing: Int.self)
+                  schema: ToolInput.SchemaSupport.schema(representing: Int.self)
                 ), (
                   key: nil,
-                  schema: SchemaSupport.schema(representing: String.self)
+                  schema: ToolInput.SchemaSupport.schema(representing: String.self)
                 )
               )
             )
-            let associatedValuesSchema_3_0 = SchemaSupport.enumCaseAssociatedValuesSchema(
+            let associatedValuesSchema_3_0 = ToolInput.SchemaSupport.enumCaseAssociatedValuesSchema(
               values: (
                 (
-                  key: "a" as SchemaSupport.SchemaCodingKey,
-                  schema: SchemaSupport.schema(representing: Int.self)
+                  key: "a" as ToolInput.SchemaSupport.SchemaCodingKey,
+                  schema: ToolInput.SchemaSupport.schema(representing: Int.self)
                 ), (
-                  key: "b" as SchemaSupport.SchemaCodingKey,
-                  schema: SchemaSupport.schema(representing: String.self)
+                  key: "b" as ToolInput.SchemaSupport.SchemaCodingKey,
+                  schema: ToolInput.SchemaSupport.schema(representing: String.self)
                 ), (
-                  key: "c" as SchemaSupport.SchemaCodingKey,
-                  schema: SchemaSupport.schema(representing: Bool.self)
+                  key: "c" as ToolInput.SchemaSupport.SchemaCodingKey,
+                  schema: ToolInput.SchemaSupport.schema(representing: Bool.self)
                 )
               )
             )
-            let associatedValuesSchema_4_0 = SchemaSupport.enumCaseAssociatedValuesSchema(
+            let associatedValuesSchema_4_0 = ToolInput.SchemaSupport.enumCaseAssociatedValuesSchema(
               values: (
                 (
                   key: nil,
-                  schema: SchemaSupport.schema(representing: Int.self)
+                  schema: ToolInput.SchemaSupport.schema(representing: Int.self)
                 ), (
-                  key: "b" as SchemaSupport.SchemaCodingKey,
-                  schema: SchemaSupport.schema(representing: String.self)
+                  key: "b" as ToolInput.SchemaSupport.SchemaCodingKey,
+                  schema: ToolInput.SchemaSupport.schema(representing: String.self)
                 ), (
-                  key: "c" as SchemaSupport.SchemaCodingKey,
-                  schema: SchemaSupport.schema(representing: Bool.self)
+                  key: "c" as ToolInput.SchemaSupport.SchemaCodingKey,
+                  schema: ToolInput.SchemaSupport.schema(representing: Bool.self)
                 )
               )
             )
-            return SchemaSupport.enumSchema(
+            return ToolInput.SchemaSupport.enumSchema(
               representing: Self.self,
               description: nil,
               cases: (
                 (
-                  key: "simple" as SchemaSupport.SchemaCodingKey,
+                  key: "simple" as ToolInput.SchemaSupport.SchemaCodingKey,
                   description: nil,
                   associatedValuesSchema: associatedValuesSchema_0_0,
                   initializer: { @Sendable values in
@@ -107,7 +107,7 @@ private struct EnumMacroTests {
                   }
                 ),
                 (
-                  key: "singleAssociatedValue" as SchemaSupport.SchemaCodingKey,
+                  key: "singleAssociatedValue" as ToolInput.SchemaSupport.SchemaCodingKey,
                   description: #"""
                   A case with a single associated value
                   """#,
@@ -117,7 +117,7 @@ private struct EnumMacroTests {
                   }
                 ),
                 (
-                  key: "mutlipleUnnamedAssociatedValues" as SchemaSupport.SchemaCodingKey,
+                  key: "mutlipleUnnamedAssociatedValues" as ToolInput.SchemaSupport.SchemaCodingKey,
                   description: #"""
                   Multiple associated values without a name
                   """#,
@@ -127,7 +127,7 @@ private struct EnumMacroTests {
                   }
                 ),
                 (
-                  key: "multipleNamedAssociatedValues" as SchemaSupport.SchemaCodingKey,
+                  key: "multipleNamedAssociatedValues" as ToolInput.SchemaSupport.SchemaCodingKey,
                   description: #"""
                   Multiple associated values with a name
                   """#,
@@ -137,7 +137,7 @@ private struct EnumMacroTests {
                   }
                 ),
                 (
-                  key: "mixedAssociatedValues" as SchemaSupport.SchemaCodingKey,
+                  key: "mixedAssociatedValues" as ToolInput.SchemaSupport.SchemaCodingKey,
                   description: #"""
                   Multiple associated values with some named and some unnamed
                   """#,

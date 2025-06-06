@@ -46,8 +46,8 @@ private struct ToolMacroTests {
             private let a: Int
             private let b: String
             private let c: Bool
-            static var schema: some Schema<Self> {
-              SchemaSupport.structSchema(
+            static var schema: some ToolInput.Schema<Self> {
+              ToolInput.SchemaSupport.structSchema(
                 representing: Self.self,
                 description: #"""
                 A tool with a single action
@@ -56,26 +56,26 @@ private struct ToolMacroTests {
                   (
                     description: nil,
                     keyPath: \Self.a,
-                    key: "a" as SchemaSupport.SchemaCodingKey,
-                    schema: SchemaSupport.schema(representing: Int.self)
+                    key: "a" as ToolInput.SchemaSupport.SchemaCodingKey,
+                    schema: ToolInput.SchemaSupport.schema(representing: Int.self)
                   ),
                   (
                     description: nil,
                     keyPath: \Self.b,
-                    key: "b" as SchemaSupport.SchemaCodingKey,
-                    schema: SchemaSupport.schema(representing: String.self)
+                    key: "b" as ToolInput.SchemaSupport.SchemaCodingKey,
+                    schema: ToolInput.SchemaSupport.schema(representing: String.self)
                   ),
                   (
                     description: nil,
                     keyPath: \Self.c,
-                    key: "c" as SchemaSupport.SchemaCodingKey,
-                    schema: SchemaSupport.schema(representing: Bool.self)
+                    key: "c" as ToolInput.SchemaSupport.SchemaCodingKey,
+                    schema: ToolInput.SchemaSupport.schema(representing: Bool.self)
                   )
                 ),
                 initializer: Self.init(structSchemaDecoder:)
               )
             }
-            private init(structSchemaDecoder: SchemaSupport.StructSchemaDecoder<Int, String, Bool>) {
+            private init(structSchemaDecoder: ToolInput.SchemaSupport.StructSchemaDecoder<Int, String, Bool>) {
               self.a = structSchemaDecoder.propertyValues.0
               self.b = structSchemaDecoder.propertyValues.1
               self.c = structSchemaDecoder.propertyValues.2
