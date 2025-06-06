@@ -167,6 +167,44 @@ private struct InternallyTaggedEnumSchemaCase<
   let initializer: @Sendable (Schema.Value) -> Value
 }
 
+// MARK: - Schema Definition
+
+extension InternallyTaggedEnumSchema {
+
+  func encodeSchemaDefinition(
+    to encoder: inout ToolInput.NewSchemaEncoder
+  ) {
+    let description = encoder.contextualDescription(description)
+    encoder.stream.encodeObject { encoder in
+      if let description {
+        encoder.encodeProperty(name: "description") { $0.encode(description) }
+      }
+
+      encoder.encodeProperty(name: "oneOf") { stream in
+        stream.encodeArray { encoder in
+          for enumCase in repeat each cases {
+            encoder.encodeElement { stream in
+              var encoder = ToolInput.NewSchemaEncoder(
+                stream: stream,
+                descriptionPrefix: enumCase.description
+              )
+              enumCase.schema.objectPropertiesSchema.encodeSchemaDefinition(
+                to: &encoder,
+                discriminator: (
+                  name: discriminatorPropertyName,
+                  value: enumCase.key.stringValue
+                )
+              )
+              stream = encoder.stream
+            }
+          }
+        }
+      }
+    }
+  }
+
+}
+
 // MARK: - Value Encoding
 
 extension ToolInput {
@@ -208,12 +246,6 @@ extension ToolInput {
 }
 
 extension InternallyTaggedEnumSchema {
-
-  func encodeSchemaDefinition(
-    to encoder: inout ToolInput.NewSchemaEncoder<Self>
-  ) {
-
-  }
 
   func encode(_ value: Value, to stream: inout JSONSupport.JSON.EncodingStream) {
     let encoder = caseEncoder(

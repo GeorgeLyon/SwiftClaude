@@ -241,7 +241,7 @@ private struct StandardEnumSchema<
     }
   }
 
-  func encodeSchemaDefinition(to encoder: inout ToolInput.NewSchemaEncoder<Self>) {
+  func encodeSchemaDefinition(to encoder: inout ToolInput.NewSchemaEncoder) {
     switch style {
     case .singleCase:
       encodeSingleCaseSchemaDefinition(to: &encoder)
@@ -333,7 +333,7 @@ private struct StandardEnumSchema<
   }
 
   private func encodeSingleCaseSchemaDefinition(
-    to encoder: inout ToolInput.NewSchemaEncoder<Self>
+    to encoder: inout ToolInput.NewSchemaEncoder
   ) {
     /// There should only be a single case
     let contextualDescription = encoder.contextualDescription(description)
@@ -349,7 +349,7 @@ private struct StandardEnumSchema<
   }
 
   private func encodeNoAssociatedValuesSchemaDefinition(
-    to encoder: inout ToolInput.NewSchemaEncoder<Self>
+    to encoder: inout ToolInput.NewSchemaEncoder
   ) {
     let description = encoder.contextualDescription(description)
     encoder.stream.encodeObject { stream in
@@ -392,7 +392,7 @@ private struct StandardEnumSchema<
   }
 
   private func encodeObjectPropertiesSchemaDefinition(
-    to encoder: inout ToolInput.NewSchemaEncoder<Self>
+    to encoder: inout ToolInput.NewSchemaEncoder
   ) {
     let description = encoder.contextualDescription(description)
     encoder.stream.encodeObject { stream in

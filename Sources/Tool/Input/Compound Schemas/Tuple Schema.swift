@@ -67,7 +67,7 @@ struct TupleSchema<each ElementSchema: ToolInput.Schema>: InternalSchema {
     try container.encode(itemsCount, forKey: .minItems)
   }
 
-  func encodeSchemaDefinition(to encoder: inout ToolInput.NewSchemaEncoder<Self>) {
+  func encodeSchemaDefinition(to encoder: inout ToolInput.NewSchemaEncoder) {
     let description = encoder.contextualDescription(nil)
     encoder.stream.encodeObject { encoder in
       if let description {

@@ -3,7 +3,7 @@ import JSONSupport
 protocol ObjectPropertiesSchemaProtocol<Value, ValueDecodingState>: InternalSchema {
 
   func encodeSchemaDefinition(
-    to stream: inout ToolInput.NewSchemaEncoder<Self>,
+    to stream: inout ToolInput.NewSchemaEncoder,
     discriminator: Discriminator?
   )
 
@@ -62,14 +62,14 @@ struct ObjectPropertiesSchema<
     fatalError()
   }
 
-  func encodeSchemaDefinition(to encoder: inout ToolInput.NewSchemaEncoder<Self>) {
+  func encodeSchemaDefinition(to encoder: inout ToolInput.NewSchemaEncoder) {
     encodeSchemaDefinition(to: &encoder, discriminator: nil)
   }
 
   /// - Parameters:
   ///   - discriminator: If provided, this schema will encode an additional property with this specified value. This is used for internally-tagged enums
   func encodeSchemaDefinition(
-    to encoder: inout ToolInput.NewSchemaEncoder<Self>,
+    to encoder: inout ToolInput.NewSchemaEncoder,
     discriminator: Discriminator?
   ) {
     let description = encoder.contextualDescription(description)
@@ -85,12 +85,13 @@ struct ObjectPropertiesSchema<
       /// We can add this if Claude begins to hallucinate additional properties.
       // encoder.encodeProperty(name: "additionalProperties") { $0.encode(false) }
 
-      var requiredProperties: [PropertyKey] = []
+      var requiredProperties: [String] = []
 
       encoder.encodeProperty(name: "properties") { encoder in
         encoder.encodeObject { encoder in
           /// Encode discriminator if one was specified
           if let discriminator {
+            requiredProperties.append(discriminator.name)
             encoder.encodeProperty(name: discriminator.name) { stream in
               stream.encodeObject { encoder in
                 encoder.encodeProperty(name: "const") { stream in
@@ -112,7 +113,7 @@ struct ObjectPropertiesSchema<
                 )
               }
             } else {
-              requiredProperties.append(property.key)
+              requiredProperties.append(property.key.stringValue)
               encoder.encodeProperty(name: property.key.stringValue) { stream in
                 stream.encodeSchemaDefinition(
                   property.schema,
@@ -131,7 +132,7 @@ struct ObjectPropertiesSchema<
         encoder.encodeProperty(name: "required") { encoder in
           encoder.encodeArray { encoder in
             for key in requiredProperties {
-              encoder.encodeElement { $0.encode(key.stringValue) }
+              encoder.encodeElement { $0.encode(key) }
             }
           }
         }

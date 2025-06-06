@@ -93,7 +93,7 @@ extension CaseIterableEnumSchema {
     fatalError()
   }
 
-  func encodeSchemaDefinition(to encoder: inout ToolInput.NewSchemaEncoder<Self>) {
+  func encodeSchemaDefinition(to encoder: inout ToolInput.NewSchemaEncoder) {
     let description = encoder.contextualDescription(description)
     encoder.stream.encodeObject { stream in
       if let description {

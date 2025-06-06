@@ -41,7 +41,7 @@ private struct ArraySchema<ElementSchema: ToolInput.Schema>: InternalSchema {
     )
   }
 
-  func encodeSchemaDefinition(to encoder: inout ToolInput.NewSchemaEncoder<Self>) {
+  func encodeSchemaDefinition(to encoder: inout ToolInput.NewSchemaEncoder) {
     let description = encoder.contextualDescription(nil)
     encoder.stream.encodeObject { encoder in
       if let description {

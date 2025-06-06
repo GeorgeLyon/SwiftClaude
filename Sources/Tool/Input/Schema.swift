@@ -27,7 +27,7 @@ public enum ToolInput {
 
     func decodeValue(from decoder: Decoder<Self>) throws -> Value
 
-    func encodeSchemaDefinition(to encoder: inout NewSchemaEncoder<Self>)
+    func encodeSchemaDefinition(to encoder: inout NewSchemaEncoder)
 
     associatedtype ValueDecodingState = ()
 
@@ -52,7 +52,7 @@ extension ToolInput.Schema where ValueDecodingState == Void {
 
 extension ToolInput {
 
-  public struct NewSchemaEncoder<Schema>: ~Copyable {
+  public struct NewSchemaEncoder: ~Copyable {
 
     init(
       stream: consuming JSON.EncodingStream,
@@ -66,22 +66,6 @@ extension ToolInput {
 
     func contextualDescription(_ description: String?) -> String? {
       combineDescriptions(descriptionPrefix, description, descriptionSuffix)
-    }
-
-    mutating func withMapped<T>(
-      _ body: (inout NewSchemaEncoder<T>) -> Void
-    ) {
-      var encoder = NewSchemaEncoder<T>(
-        stream: stream,
-        descriptionPrefix: descriptionPrefix,
-        descriptionSuffix: descriptionSuffix
-      )
-      body(&encoder)
-      self = NewSchemaEncoder(
-        stream: encoder.stream,
-        descriptionPrefix: descriptionPrefix,
-        descriptionSuffix: descriptionSuffix
-      )
     }
 
     var stream: JSON.EncodingStream
@@ -183,7 +167,7 @@ extension LeafSchema {
     }
   }
 
-  public func encodeSchemaDefinition(to encoder: inout ToolInput.NewSchemaEncoder<Self>) {
+  public func encodeSchemaDefinition(to encoder: inout ToolInput.NewSchemaEncoder) {
     let description = encoder.contextualDescription(nil)
     encoder.stream.encodeObject { encoder in
       if let description {
@@ -218,7 +202,7 @@ extension JSON.EncodingStream {
     descriptionPrefix: String? = nil,
     descriptionSuffix: String? = nil
   ) {
-    var encoder = ToolInput.NewSchemaEncoder<Schema>(
+    var encoder = ToolInput.NewSchemaEncoder(
       stream: self,
       descriptionPrefix: descriptionPrefix,
       descriptionSuffix: descriptionSuffix

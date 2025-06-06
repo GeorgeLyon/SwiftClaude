@@ -152,18 +152,14 @@ struct EnumSchemaInternallyTaggedTests {
 
   @Test
   private func testShapeSchemaEncoding() throws {
-    // TODO: Enable this test once internally tagged enum schema is fully implemented
-    /*
     let schema = ToolInput.schema(representing: Shape.self)
     #expect(
       schema.schemaJSON == """
         {
           "description": "A geometric shape",
-          "discriminator": {
-            "propertyName": "type"
-          },
           "oneOf": [
             {
+              "description": "A circular shape",
               "properties": {
                 "type": {
                   "const": "circle"
@@ -172,10 +168,13 @@ struct EnumSchemaInternallyTaggedTests {
                   "type": "number"
                 }
               },
-              "required": ["type", "radius"],
-              "additionalProperties": false
+              "required": [
+                "type",
+                "radius"
+              ]
             },
             {
+              "description": "A rectangular shape",
               "properties": {
                 "type": {
                   "const": "rectangle"
@@ -187,14 +186,16 @@ struct EnumSchemaInternallyTaggedTests {
                   "type": "number"
                 }
               },
-              "required": ["type", "width", "height"],
-              "additionalProperties": false
+              "required": [
+                "type",
+                "width",
+                "height"
+              ]
             }
           ]
         }
         """
     )
-    */
   }
 
   @Test
@@ -203,57 +204,64 @@ struct EnumSchemaInternallyTaggedTests {
     #expect(
       schema.schemaJSON == """
         {
-          "type": "object",
           "description": "Different types of animals",
-          "properties": {
-            "animal": {
-              "type": "string",
-              "enum": ["dog", "cat", "bird"]
-            }
-          },
-          "required": ["animal"],
           "oneOf": [
             {
+              "description": "A domestic dog",
               "properties": {
-                "animal": {"const": "dog"},
+                "animal": {
+                  "const": "dog"
+                },
                 "name": {
-                  "type": "string",
-                  "description": "The dog's name"
+                  "type": "string"
                 },
                 "breed": {
-                  "type": "string",
-                  "description": "The dog's breed"
+                  "type": "string"
                 }
               },
-              "required": ["name", "breed"]
+              "required": [
+                "animal",
+                "name",
+                "breed"
+              ]
             },
             {
+              "description": "A domestic cat",
               "properties": {
-                "animal": {"const": "cat"},
+                "animal": {
+                  "const": "cat"
+                },
                 "name": {
-                  "type": "string",
-                  "description": "The cat's name"
+                  "type": "string"
                 },
                 "livesRemaining": {
-                  "type": "integer",
-                  "description": "Number of lives remaining"
+                  "type": "integer"
                 }
               },
-              "required": ["name", "livesRemaining"]
+              "required": [
+                "animal",
+                "name",
+                "livesRemaining"
+              ]
             },
             {
+              "description": "A bird",
               "properties": {
-                "animal": {"const": "bird"},
+                "animal": {
+                  "const": "bird"
+                },
                 "species": {
-                  "type": "string",
-                  "description": "The bird species"
+                  "type": "string"
                 },
                 "canFly": {
-                  "type": "boolean",
-                  "description": "Whether the bird can fly"
+                  "type": "boolean"
                 }
               },
-              "required": ["species", "canFly"]
+              "required": [
+                "animal",
+                "species",
+                "canFly"
+              ]
             }
           ]
         }
@@ -266,7 +274,10 @@ struct EnumSchemaInternallyTaggedTests {
     let schema = ToolInput.schema(representing: Shape.self)
     #expect(
       schema.encodedJSON(for: .circle(radius: 5.0)) == """
-        {"type":"circle","radius":5}
+        {
+          "type": "circle",
+          "radius": 5.0
+        }
         """
     )
   }
@@ -276,7 +287,11 @@ struct EnumSchemaInternallyTaggedTests {
     let schema = ToolInput.schema(representing: Shape.self)
     #expect(
       schema.encodedJSON(for: .rectangle(width: 10.0, height: 20.0)) == """
-        {"type":"rectangle","width":10,"height":20}
+        {
+          "type": "rectangle",
+          "width": 10.0,
+          "height": 20.0
+        }
         """
     )
   }
@@ -308,7 +323,11 @@ struct EnumSchemaInternallyTaggedTests {
     let schema = ToolInput.schema(representing: Animal.self)
     #expect(
       schema.encodedJSON(for: .dog(name: "Rover", breed: "Golden Retriever")) == """
-        {"animal":"dog","name":"Rover","breed":"Golden Retriever"}
+        {
+          "animal": "dog",
+          "name": "Rover",
+          "breed": "Golden Retriever"
+        }
         """
     )
   }
@@ -318,7 +337,11 @@ struct EnumSchemaInternallyTaggedTests {
     let schema = ToolInput.schema(representing: Animal.self)
     #expect(
       schema.encodedJSON(for: .cat(name: "Whiskers", livesRemaining: 8)) == """
-        {"animal":"cat","name":"Whiskers","livesRemaining":8}
+        {
+          "animal": "cat",
+          "name": "Whiskers",
+          "livesRemaining": 8
+        }
         """
     )
   }
