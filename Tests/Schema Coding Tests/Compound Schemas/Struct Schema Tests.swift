@@ -1,31 +1,62 @@
 import Testing
 
-@testable import Tool
+@testable import SchemaCoding
 
-/// A person object
-@ToolInput
-private struct Person {
-  let `name`: String
+private struct Person: SchemaCodable {
 
-  /// The person's age
+  let name: String
   let age: Int
-
-  // Whether the person is active
   let isActive: Bool?
+
 }
 
-/// Single-property Struct
-@ToolInput
-private struct SinglePropertyStruct {
-  let property: String
+extension Person {
+
+  static let schema: some SchemaCoding.Schema<Self> =
+    SchemaProvider.structSchema(
+      representing: Self.self,
+      description: "A person object",
+      keyedBy: PropertyKey.self,
+      properties: (
+        (
+          description: nil,
+          keyPath: \.name,
+          key: .name,
+          schema: SchemaProvider.schema()
+        ),
+        (
+          description: "The person's age",
+          keyPath: \.age,
+          key: .age,
+          schema: SchemaProvider.schema()
+        ),
+        (
+          description: "Whether the person is active",
+          keyPath: \.isActive,
+          key: .isActive,
+          schema: SchemaProvider.schema()
+        )
+      ),
+      initializer: Self.init(structSchemaDecoder:)
+    )
+
+  private enum PropertyKey: CodingKey {
+    case name, age, isActive
+  }
+
+  private init(structSchemaDecoder: SchemaProvider.StructSchemaDecoder<String, Int, Bool?>) {
+    name = structSchemaDecoder.propertyValues.0
+    age = structSchemaDecoder.propertyValues.1
+    isActive = structSchemaDecoder.propertyValues.2
+  }
 }
 
-@Suite("Struct Tool Input")
-struct StructToolInputTests {
+@Suite("Struct")
+struct StructSchemaTests {
 
   @Test
   private func testSchemaEncoding() throws {
-    let schema = Schema(representing: Person.self)
+    let schema = SchemaProvider.schema(representing: Person.self)
     #expect(
       schema.schemaJSON == """
         {
@@ -54,7 +85,7 @@ struct StructToolInputTests {
 
   @Test
   private func testValueEncoding() throws {
-    let schema = Schema(representing: Person.self)
+    let schema = SchemaProvider.schema(representing: Person.self)
     #expect(
       schema.encodedJSON(for: Person(name: "John Doe", age: 30, isActive: nil))
         == """
@@ -68,7 +99,7 @@ struct StructToolInputTests {
 
   @Test
   private func testValueEncodingWithOptional() throws {
-    let schema = Schema(representing: Person.self)
+    let schema = SchemaProvider.schema(representing: Person.self)
     #expect(
       schema.encodedJSON(for: Person(name: "Jane Smith", age: 25, isActive: true))
         == """
@@ -83,7 +114,7 @@ struct StructToolInputTests {
 
   @Test
   private func testValueDecoding() throws {
-    let schema = Schema(representing: Person.self)
+    let schema = SchemaProvider.schema(representing: Person.self)
     let decodedPerson = schema.value(
       fromJSON: """
         {
@@ -101,7 +132,7 @@ struct StructToolInputTests {
 
   @Test
   private func testValueDecodingWithoutOptional() throws {
-    let schema = Schema(representing: Person.self)
+    let schema = SchemaProvider.schema(representing: Person.self)
     let decodedPerson = schema.value(
       fromJSON: """
         {

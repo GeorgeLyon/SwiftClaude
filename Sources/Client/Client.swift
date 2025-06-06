@@ -86,7 +86,7 @@ public actor ClaudeClient {
     try responseBodyDecoder.decode(type, from: data)
   }
 
-  package func decodeValue<Schema: ToolInput.Schema>(
+  package func decodeValue<Schema: Schema>(
     using schema: Schema,
     fromResponseData data: Data
   ) throws -> sending Schema.Value {

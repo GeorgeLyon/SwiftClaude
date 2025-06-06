@@ -172,7 +172,7 @@ extension DeclGroupSyntax {
         }
       )
 
-      /// struct Input: ToolInput.SchemaCodable { … }
+      /// struct Input: SchemaCodable { … }
       StructDeclSyntax.toolInput(
         description: comment,
         name: "Input",

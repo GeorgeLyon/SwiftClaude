@@ -11,7 +11,7 @@ public macro Tool() =
 
 @attached(
   extension,
-  conformances: ToolInput.SchemaCodable,
+  conformances: SchemaCodable,
   names: named(toolInputSchema), named(init)
 )
 public macro ToolInput() =

@@ -151,7 +151,7 @@ extension StructDeclSyntax {
   {
     let propertyKeyName = context.makeUniqueName("PropertyKey")
 
-    /// var toolInputSchema: some ToolInput.Schema<Self> { … }
+    /// var toolInputSchema: some Schema<Self> { … }
     let toolInputSchemaProperty: VariableDeclSyntax = .toolInputSchemaProperty(
       isPublic: isPublic
     ) {
@@ -453,7 +453,7 @@ extension StructDeclSyntax.StoredProperty {
           trailingComma: .commaToken(trailingTrivia: .newline)
         )
 
-        /// schema: ToolInput.schema(representing: <type>.self)
+        /// schema: Schema(representing: <type>.self)
         LabeledExprSyntax(
           label: "schema",
           colon: .colonToken(),
@@ -920,7 +920,7 @@ extension EnumCaseParameterListSyntax.Element {
           )
         }
 
-        /// schema: ToolInput.schema(representing: <Type>.self),
+        /// schema: Schema(representing: <Type>.self),
         LabeledExprSyntax(
           label: "schema",
           colon: .colonToken(),

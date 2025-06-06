@@ -20,8 +20,8 @@ let package = Package(
 
     /// Temporary
     .library(
-      name: "JSONSupport",
-      targets: ["JSONSupport"]
+      name: "SchemaCoding",
+      targets: ["SchemaCoding"]
     )
   ],
   dependencies: [
@@ -71,19 +71,19 @@ let package = Package(
     //   path: "Tests/Claude Tests"
     // ),
 
-    .target(
-      name: "Tool",
-      dependencies: [
-        "ToolMacros",
-        "JSONSupport",
-      ],
-      swiftSettings: .claude
-    ),
-    .testTarget(
-      name: "ToolTests",
-      dependencies: ["Tool"],
-      path: "Tests/Tool Tests"
-    ),
+    // .target(
+    //   name: "Tool",
+    //   dependencies: [
+    //     "ToolMacros",
+    //     "JSONSupport",
+    //   ],
+    //   swiftSettings: .claude
+    // ),
+    // .testTarget(
+    //   name: "ToolTests",
+    //   dependencies: ["Tool"],
+    //   path: "Tests/Tool Tests"
+    // ),
 
     .macro(
       name: "ToolMacros",
@@ -94,7 +94,7 @@ let package = Package(
         .product(name: "SwiftDiagnostics", package: "swift-syntax"),
       ],
       path: "Sources/Tool Macros",
-      swiftSettings: .claude
+      swiftSettings: .projectDefaults
     ),
     .testTarget(
       name: "ToolMacrosTests",
@@ -106,13 +106,31 @@ let package = Package(
       path: "Tests/Tool Macros Tests"
     ),
 
+    // MARK: - Schema Coding
+
+    .target(
+      name: "SchemaCoding",
+      dependencies: [
+        "JSONSupport"
+      ],
+      path: "Sources/Schema Coding",
+      swiftSettings: .projectDefaults
+    ),
+    .testTarget(
+      name: "SchemaCodingTests",
+      dependencies: ["SchemaCoding"],
+      path: "Tests/Schema Coding Tests"
+    ),
+
+    // MARK: - JSON Support
+
     .target(
       name: "JSONSupport",
       dependencies: [
         .product(name: "Collections", package: "swift-collections")
       ],
       path: "Sources/JSON Support",
-      swiftSettings: .claude
+      swiftSettings: .projectDefaults
     ),
     .testTarget(
       name: "JSONSupportTests",
@@ -125,7 +143,7 @@ let package = Package(
 )
 
 extension Array where Element == SwiftSetting {
-  fileprivate static let claude: [SwiftSetting] = [
+  fileprivate static let projectDefaults: [SwiftSetting] = [
     .enableUpcomingFeature("InternalImportsByDefault")
   ]
 }

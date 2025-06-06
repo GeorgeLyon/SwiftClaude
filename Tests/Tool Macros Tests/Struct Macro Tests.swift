@@ -34,8 +34,8 @@ private struct StructMacroTests {
           let a, b: Bool, c: String
         }
 
-        extension ToolInputStruct: ToolInput.SchemaCodable {
-          static var toolInputSchema: some ToolInput.Schema<Self> {
+        extension ToolInputStruct: SchemaCodable {
+          static var toolInputSchema: some Schema<Self> {
             ToolInput.structSchema(
               representing: Self.self,
               description: #"""
@@ -47,7 +47,7 @@ private struct StructMacroTests {
                   description: nil,
                   keyPath: \Self.anInteger,
                   key: __macro_local_11PropertyKeyfMu_.anInteger,
-                  schema: ToolInput.schema(representing: Int.self)
+                  schema: Schema(representing: Int.self)
                 ),
                 (
                   description: #"""
@@ -55,7 +55,7 @@ private struct StructMacroTests {
                   """#,
                   keyPath: \Self.aCoordinate,
                   key: __macro_local_11PropertyKeyfMu_.aCoordinate,
-                  schema: ToolInput.schema(representing: (Int, Int).self)
+                  schema: Schema(representing: (Int, Int).self)
                 ),
                 (
                   description: #"""
@@ -63,7 +63,7 @@ private struct StructMacroTests {
                   """#,
                   keyPath: \Self.c,
                   key: __macro_local_11PropertyKeyfMu_.c,
-                  schema: ToolInput.schema(representing: String.self)
+                  schema: Schema(representing: String.self)
                 ),
                 (
                   description: #"""
@@ -71,7 +71,7 @@ private struct StructMacroTests {
                   """#,
                   keyPath: \Self.b,
                   key: __macro_local_11PropertyKeyfMu_.b,
-                  schema: ToolInput.schema(representing: Bool.self)
+                  schema: Schema(representing: Bool.self)
                 ),
                 (
                   description: #"""
@@ -79,7 +79,7 @@ private struct StructMacroTests {
                   """#,
                   keyPath: \Self.a,
                   key: __macro_local_11PropertyKeyfMu_.a,
-                  schema: ToolInput.schema(representing: Bool.self)
+                  schema: Schema(representing: Bool.self)
                 )
               ),
               initializer: Self.init(structSchemaDecoder:)
