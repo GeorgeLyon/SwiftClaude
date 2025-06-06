@@ -1,9 +1,9 @@
 import MacrosSupport
 import SchemaCodingMacrosSupport
 import SwiftDiagnostics
-public import SwiftSyntax
+import SwiftSyntax
 import SwiftSyntaxBuilder
-public import SwiftSyntaxMacros
+import SwiftSyntaxMacros
 
 struct SchemaCodableMacro: ExtensionMacro {
 
