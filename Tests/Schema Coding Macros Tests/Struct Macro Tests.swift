@@ -14,9 +14,9 @@ private struct StructMacroTests {
 
     assertMacroExpansion(
       """
-      /// A tool input struct
+      /// A test struct
       @SchemaCodable
-      struct ToolInputStruct {
+      struct TestStruct {
         let anInteger: Int
         /// An (x, y) coordinate
         let aCoordinate: (Int, Int)
@@ -25,8 +25,8 @@ private struct StructMacroTests {
       }
       """,
       expandedSource: ##"""
-        /// A tool input struct
-        struct ToolInputStruct {
+        /// A test struct
+        struct TestStruct {
           let anInteger: Int
           /// An (x, y) coordinate
           let aCoordinate: (Int, Int)
@@ -34,12 +34,12 @@ private struct StructMacroTests {
           let a, b: Bool, c: String
         }
 
-        extension ToolInputStruct: SchemaCodable {
-          static var toolInputSchema: some Schema<Self> {
-            ToolInput.structSchema(
+        extension TestStruct: SchemaCodable {
+          static var schema: some Schema<Self> {
+            SchemaProvider.structSchema(
               representing: Self.self,
               description: #"""
-              A tool input struct
+              A test struct
               """#,
               keyedBy: __macro_local_11PropertyKeyfMu_.self,
               properties: (
@@ -47,7 +47,7 @@ private struct StructMacroTests {
                   description: nil,
                   keyPath: \Self.anInteger,
                   key: __macro_local_11PropertyKeyfMu_.anInteger,
-                  schema: Schema(representing: Int.self)
+                  schema: SchemaProvider.schema(representing: Int.self)
                 ),
                 (
                   description: #"""
@@ -55,7 +55,7 @@ private struct StructMacroTests {
                   """#,
                   keyPath: \Self.aCoordinate,
                   key: __macro_local_11PropertyKeyfMu_.aCoordinate,
-                  schema: Schema(representing: (Int, Int).self)
+                  schema: SchemaProvider.schema(representing: (Int, Int).self)
                 ),
                 (
                   description: #"""
@@ -63,7 +63,7 @@ private struct StructMacroTests {
                   """#,
                   keyPath: \Self.c,
                   key: __macro_local_11PropertyKeyfMu_.c,
-                  schema: Schema(representing: String.self)
+                  schema: SchemaProvider.schema(representing: String.self)
                 ),
                 (
                   description: #"""
@@ -71,7 +71,7 @@ private struct StructMacroTests {
                   """#,
                   keyPath: \Self.b,
                   key: __macro_local_11PropertyKeyfMu_.b,
-                  schema: Schema(representing: Bool.self)
+                  schema: SchemaProvider.schema(representing: Bool.self)
                 ),
                 (
                   description: #"""
@@ -79,7 +79,7 @@ private struct StructMacroTests {
                   """#,
                   keyPath: \Self.a,
                   key: __macro_local_11PropertyKeyfMu_.a,
-                  schema: Schema(representing: Bool.self)
+                  schema: SchemaProvider.schema(representing: Bool.self)
                 )
               ),
               initializer: Self.init(structSchemaDecoder:)
@@ -92,7 +92,7 @@ private struct StructMacroTests {
             case b
             case a
           }
-          private init(structSchemaDecoder: ToolInput.StructSchemaDecoder<Int, (Int, Int), String, Bool, Bool>) {
+          private init(structSchemaDecoder: SchemaProvider.StructSchemaDecoder<Int, (Int, Int), String, Bool, Bool>) {
             self.anInteger = structSchemaDecoder.propertyValues.0
             self.aCoordinate = structSchemaDecoder.propertyValues.1
             self.c = structSchemaDecoder.propertyValues.2

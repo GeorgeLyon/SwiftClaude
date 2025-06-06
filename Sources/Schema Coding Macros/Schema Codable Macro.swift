@@ -35,10 +35,7 @@ extension ExtensionDeclSyntax {
       extendedType: type,
       inheritanceClause: InheritanceClauseSyntax {
         InheritedTypeSyntax(
-          type: MemberTypeSyntax(
-            baseType: IdentifierTypeSyntax(name: "SchemaCoding"),
-            name: "SchemaCodable"
-          )
+          type: IdentifierTypeSyntax(name: "SchemaCodable")
         )
       }
     ) {
@@ -100,10 +97,7 @@ extension StructDeclSyntax {
       name: name,
       inheritanceClause: InheritanceClauseSyntax {
         InheritedTypeSyntax(
-          type: MemberTypeSyntax(
-            baseType: IdentifierTypeSyntax(name: "ToolInput"),
-            name: "SchemaCodable"
-          )
+          type: IdentifierTypeSyntax(name: "SchemaCodable")
         )
       },
       memberBlock: MemberBlockSyntax {
@@ -158,7 +152,7 @@ extension StructDeclSyntax {
     ) {
       FunctionCallExprSyntax(
         calledExpression: MemberAccessExprSyntax(
-          base: DeclReferenceExprSyntax(baseName: "ToolInput"),
+          base: DeclReferenceExprSyntax(baseName: "SchemaProvider"),
           name: "structSchema"
         ),
         leftParen: .leftParenToken(trailingTrivia: .newline),
@@ -268,7 +262,7 @@ extension StructDeclSyntax {
             FunctionParameterSyntax(
               firstName: "structSchemaDecoder",
               type: MemberTypeSyntax(
-                baseType: IdentifierTypeSyntax(name: "ToolInput"),
+                baseType: IdentifierTypeSyntax(name: "SchemaProvider"),
                 name: "StructSchemaDecoder",
                 genericArgumentClause: GenericArgumentClauseSyntax {
                   for property in storedProperties {
@@ -500,7 +494,7 @@ extension EnumDeclSyntax {
       ReturnStmtSyntax(
         expression: FunctionCallExprSyntax(
           calledExpression: MemberAccessExprSyntax(
-            base: DeclReferenceExprSyntax(baseName: "ToolInput"),
+            base: DeclReferenceExprSyntax(baseName: "SchemaProvider"),
             name: "enumSchema"
           ),
           leftParen: .leftParenToken(trailingTrivia: .newline),
@@ -662,7 +656,7 @@ extension EnumCaseElementListSyntax.Element {
     let associatedValuesKey = associatedValuesKey(caseKeyName: caseKeyName)
     return FunctionCallExprSyntax(
       calledExpression: MemberAccessExprSyntax(
-        base: DeclReferenceExprSyntax(baseName: "ToolInput"),
+        base: DeclReferenceExprSyntax(baseName: "SchemaProvider"),
         name: "enumCaseAssociatedValuesSchema"
       ),
       leftParen: .leftParenToken(trailingTrivia: .newline),
@@ -973,8 +967,7 @@ extension VariableDeclSyntax {
           typeAnnotation: TypeAnnotationSyntax(
             type: SomeOrAnyTypeSyntax(
               someOrAnySpecifier: .keyword(.some),
-              constraint: MemberTypeSyntax(
-                baseType: IdentifierTypeSyntax(name: "ToolInput"),
+              constraint: IdentifierTypeSyntax(
                 name: "Schema",
                 genericArgumentClause: GenericArgumentClauseSyntax {
                   GenericArgumentSyntax(
