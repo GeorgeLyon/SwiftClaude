@@ -3,7 +3,7 @@ import JSONSupport
 protocol ObjectPropertiesSchemaProtocol<Value, ValueDecodingState>: InternalSchema {
 
   func encodeSchemaDefinition(
-    to stream: inout ToolInput.NewSchemaEncoder,
+    to stream: inout ToolInput.SchemaEncoder,
     discriminator: Discriminator?
   )
 
@@ -48,28 +48,14 @@ struct ObjectPropertiesSchema<
   private let properties: Properties
   private let propertyDecoderProvider: PropertyDecoderProvider
 
-  func encodeSchemaDefinition(to encoder: ToolInput.SchemaEncoder<Self>) throws {
-    var container = encoder.wrapped.container(keyedBy: SchemaCodingKey.self)
-    try container.encode("object", forKey: .type)
-
-    if let description = encoder.contextualDescription(description) {
-      try container.encodeIfPresent(description, forKey: .description)
-    }
-
-    /// Since properties can only be decoded if they are created ahead of time, additional properties are disallowed.
-    try container.encode(false, forKey: .additionalProperties)
-
-    fatalError()
-  }
-
-  func encodeSchemaDefinition(to encoder: inout ToolInput.NewSchemaEncoder) {
+  func encodeSchemaDefinition(to encoder: inout ToolInput.SchemaEncoder) {
     encodeSchemaDefinition(to: &encoder, discriminator: nil)
   }
 
   /// - Parameters:
   ///   - discriminator: If provided, this schema will encode an additional property with this specified value. This is used for internally-tagged enums
   func encodeSchemaDefinition(
-    to encoder: inout ToolInput.NewSchemaEncoder,
+    to encoder: inout ToolInput.SchemaEncoder,
     discriminator: Discriminator?
   ) {
     let description = encoder.contextualDescription(description)
@@ -139,15 +125,6 @@ struct ObjectPropertiesSchema<
       }
 
     }
-  }
-
-  func encode(_ value: Value, to encoder: ToolInput.Encoder<Self>) throws {
-    fatalError()
-  }
-
-  func decodeValue(from decoder: ToolInput.Decoder<Self>) throws -> Value {
-    let container = try decoder.wrapped.container(keyedBy: PropertyKey.self)
-    return (try container.decodeProperties(repeat each properties))
   }
 
   struct ValueDecodingState {
@@ -354,14 +331,6 @@ extension ObjectPropertiesSchema {
 }
 
 // MARK: - Implementation Details
-
-private enum SchemaCodingKey: Swift.CodingKey {
-  case type
-  case description
-  case properties
-  case additionalProperties
-  case required
-}
 
 private enum Error: Swift.Error {
   case unknownProperty(String)

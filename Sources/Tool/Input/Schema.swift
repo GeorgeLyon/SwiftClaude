@@ -21,13 +21,7 @@ public enum ToolInput {
 
     associatedtype Value
 
-    func encodeSchemaDefinition(to encoder: SchemaEncoder<Self>) throws
-
-    func encode(_ value: Value, to encoder: Encoder<Self>) throws
-
-    func decodeValue(from decoder: Decoder<Self>) throws -> Value
-
-    func encodeSchemaDefinition(to encoder: inout NewSchemaEncoder)
+    func encodeSchemaDefinition(to encoder: inout SchemaEncoder)
 
     associatedtype ValueDecodingState = ()
 
@@ -52,7 +46,7 @@ extension ToolInput.Schema where ValueDecodingState == Void {
 
 extension ToolInput {
 
-  public struct NewSchemaEncoder: ~Copyable {
+  public struct SchemaEncoder: ~Copyable {
 
     init(
       stream: consuming JSON.EncodingStream,
@@ -73,53 +67,6 @@ extension ToolInput {
     private let descriptionPrefix: String?
     private let descriptionSuffix: String?
 
-  }
-
-  public struct SchemaEncoder<Value> {
-
-    init(
-      wrapped: Swift.Encoder,
-      descriptionPrefix: String? = nil,
-      descriptionSuffix: String? = nil
-    ) {
-      self.wrapped = wrapped
-      self.descriptionPrefix = descriptionPrefix
-      self.descriptionSuffix = descriptionSuffix
-    }
-
-    func contextualDescription(_ description: String?) -> String? {
-      combineDescriptions(descriptionPrefix, description, descriptionSuffix)
-    }
-
-    func map<T>(_ type: T.Type = T.self) -> SchemaEncoder<T> {
-      SchemaEncoder<T>(
-        wrapped: wrapped,
-        descriptionPrefix: descriptionPrefix,
-        descriptionSuffix: descriptionSuffix
-      )
-    }
-
-    let wrapped: Swift.Encoder
-
-    private let descriptionPrefix: String?
-    private let descriptionSuffix: String?
-
-  }
-
-  public struct Encoder<Schema> {
-    let wrapped: Swift.Encoder
-
-    func map<T>(_ type: T.Type = T.self) -> Encoder<T> {
-      Encoder<T>(wrapped: wrapped)
-    }
-  }
-
-  public struct Decoder<Schema> {
-    let wrapped: Swift.Decoder
-
-    func map<T>(_ type: T.Type = T.self) -> Decoder<T> {
-      Decoder<T>(wrapped: wrapped)
-    }
   }
 
 }
@@ -158,16 +105,7 @@ protocol LeafSchema: InternalSchema {
 /// We don't expect internal leaf schemas to have any additional properties, but they should still encode a contextual description if necessary.
 extension LeafSchema {
 
-  public func encodeSchemaDefinition(to encoder: ToolInput.SchemaEncoder<Self>) throws {
-    var container = encoder.wrapped.container(keyedBy: SchemaCodingKey.self)
-    try container.encode(type, forKey: .type)
-
-    if let description = encoder.contextualDescription(nil) {
-      try container.encode(description, forKey: .description)
-    }
-  }
-
-  public func encodeSchemaDefinition(to encoder: inout ToolInput.NewSchemaEncoder) {
+  public func encodeSchemaDefinition(to encoder: inout ToolInput.SchemaEncoder) {
     let description = encoder.contextualDescription(nil)
     encoder.stream.encodeObject { encoder in
       if let description {
@@ -175,19 +113,6 @@ extension LeafSchema {
       }
       encoder.encodeProperty(name: "type") { $0.encode(type) }
     }
-  }
-
-}
-
-extension LeafSchema where Value: Codable {
-
-  func encode(_ value: Value, to encoder: ToolInput.Encoder<Self>) throws {
-    var container = encoder.wrapped.singleValueContainer()
-    try container.encode(value)
-  }
-
-  func decodeValue(from decoder: ToolInput.Decoder<Self>) throws -> Value {
-    try decoder.wrapped.singleValueContainer().decode(Value.self)
   }
 
 }
@@ -202,7 +127,7 @@ extension JSON.EncodingStream {
     descriptionPrefix: String? = nil,
     descriptionSuffix: String? = nil
   ) {
-    var encoder = ToolInput.NewSchemaEncoder(
+    var encoder = ToolInput.SchemaEncoder(
       stream: self,
       descriptionPrefix: descriptionPrefix,
       descriptionSuffix: descriptionSuffix
@@ -219,10 +144,4 @@ extension JSON.EncodingStream {
     schema.encode(value, to: &self)
   }
 
-}
-
-// MARK: - Implementation Details
-
-private enum SchemaCodingKey: CodingKey {
-  case type, description
 }

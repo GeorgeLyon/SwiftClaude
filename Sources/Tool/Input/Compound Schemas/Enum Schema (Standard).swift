@@ -146,18 +146,6 @@ extension ToolInput {
 
     let type: String = "null"
 
-    func encode(_ value: Value, to encoder: ToolInput.Encoder<Self>) throws {
-      var container = encoder.wrapped.singleValueContainer()
-      try container.encodeNil()
-    }
-
-    func decodeValue(from decoder: ToolInput.Decoder<Self>) throws -> Value {
-      guard try decoder.wrapped.singleValueContainer().decodeNil() else {
-        throw Error.expectedNull
-      }
-      return ()
-    }
-
     func decodeValue(
       from stream: inout JSON.DecodingStream,
       state: inout ()
@@ -228,20 +216,7 @@ private struct StandardEnumSchema<
   private let caseEncoder: CaseEncoder
   private let style: EnumStyle
 
-  func encodeSchemaDefinition(
-    to encoder: ToolInput.SchemaEncoder<Self>
-  ) throws {
-    switch style {
-    case .singleCase:
-      try encodeSingleCaseSchemaDefinition(to: encoder)
-    case .noAssociatedValues:
-      try encodeNoAssociatedValuesSchemaDefinition(to: encoder)
-    case .objectProperties:
-      try encodeObjectPropertiesSchemaDefinition(to: encoder)
-    }
-  }
-
-  func encodeSchemaDefinition(to encoder: inout ToolInput.NewSchemaEncoder) {
+  func encodeSchemaDefinition(to encoder: inout ToolInput.SchemaEncoder) {
     switch style {
     case .singleCase:
       encodeSingleCaseSchemaDefinition(to: &encoder)
@@ -253,87 +228,7 @@ private struct StandardEnumSchema<
   }
 
   private func encodeSingleCaseSchemaDefinition(
-    to encoder: ToolInput.SchemaEncoder<Self>
-  ) throws {
-    /// There should only be a single case
-    repeat try (each cases).schema.encodeSchemaDefinition(
-      to: ToolInput.SchemaEncoder(
-        wrapped: encoder.wrapped,
-        descriptionPrefix: combineDescriptions(
-          encoder.contextualDescription(description),
-          (each cases).description
-        )
-      )
-    )
-  }
-
-  private func encodeNoAssociatedValuesSchemaDefinition(
-    to encoder: ToolInput.SchemaEncoder<Self>
-  ) throws {
-    var container = encoder.wrapped.container(keyedBy: SchemaCodingKey.self)
-
-    var possibleValues: [String] = []
-    var valueDescriptions: [String] = []
-    for `case` in repeat each cases {
-      possibleValues.append(`case`.key.stringValue)
-
-      if let description = `case`.description {
-        valueDescriptions.append(" - \(`case`.key): \(description)")
-      }
-    }
-
-    do {
-      let combinedDescription: String?
-      switch (description, valueDescriptions.isEmpty) {
-      case (nil, false):
-        combinedDescription = nil
-      case (nil, true):
-        combinedDescription = valueDescriptions.joined(separator: "\n")
-      case (let description?, false):
-        combinedDescription = description
-      case (let description?, true):
-        combinedDescription = [[description], valueDescriptions]
-          .flatMap(\.self)
-          .joined(separator: "\n")
-      }
-
-      if let description = encoder.contextualDescription(combinedDescription) {
-        try container.encode(description, forKey: .description)
-      }
-    }
-
-    try container.encode(possibleValues, forKey: .enum)
-  }
-
-  private func encodeObjectPropertiesSchemaDefinition(
-    to encoder: ToolInput.SchemaEncoder<Self>
-  ) throws {
-    var container = encoder.wrapped.container(keyedBy: SchemaCodingKey.self)
-
-    try container.encodeIfPresent(
-      encoder.contextualDescription(description),
-      forKey: .description
-    )
-
-    try container.encode("object", forKey: .type)
-    try container.encode(1, forKey: .minProperties)
-    try container.encode(1, forKey: .maxProperties)
-    try container.encode(false, forKey: .additionalProperties)
-
-    var properties = container.nestedContainer(keyedBy: CaseKey.self, forKey: .properties)
-    for `case` in repeat each cases {
-      let encoder = properties.superEncoder(forKey: `case`.key)
-      try `case`.schema.encodeSchemaDefinition(
-        to: ToolInput.SchemaEncoder(
-          wrapped: encoder,
-          descriptionPrefix: `case`.description
-        )
-      )
-    }
-  }
-
-  private func encodeSingleCaseSchemaDefinition(
-    to encoder: inout ToolInput.NewSchemaEncoder
+    to encoder: inout ToolInput.SchemaEncoder
   ) {
     /// There should only be a single case
     let contextualDescription = encoder.contextualDescription(description)
@@ -349,7 +244,7 @@ private struct StandardEnumSchema<
   }
 
   private func encodeNoAssociatedValuesSchemaDefinition(
-    to encoder: inout ToolInput.NewSchemaEncoder
+    to encoder: inout ToolInput.SchemaEncoder
   ) {
     let description = encoder.contextualDescription(description)
     encoder.stream.encodeObject { stream in
@@ -392,7 +287,7 @@ private struct StandardEnumSchema<
   }
 
   private func encodeObjectPropertiesSchemaDefinition(
-    to encoder: inout ToolInput.NewSchemaEncoder
+    to encoder: inout ToolInput.SchemaEncoder
   ) {
     let description = encoder.contextualDescription(description)
     encoder.stream.encodeObject { stream in
@@ -424,10 +319,6 @@ private struct StandardEnumSchema<
     }
   }
 
-  func encode(_ value: Value, to encoder: ToolInput.Encoder<Self>) throws {
-    fatalError()
-  }
-
   func encode(_ value: Value, to stream: inout JSON.EncodingStream) {
     let encoder = caseEncoder(
       value,
@@ -452,42 +343,6 @@ private struct StandardEnumSchema<
           encoder.implementation.encode(to: &stream)
         }
       }
-    }
-  }
-
-  func decodeValue(from decoder: ToolInput.Decoder<Self>) throws -> Value {
-    switch style {
-    case .singleCase:
-      for `case` in repeat each cases {
-        return `case`.initializer(try `case`.schema.decodeValue(from: decoder.map()))
-      }
-
-      assertionFailure()
-      throw Error.unknownEnumCase(allKeys: [])
-    case .noAssociatedValues:
-      let stringValue = try decoder.wrapped.singleValueContainer().decode(String.self)
-      for `case` in repeat each cases {
-        if stringValue == `case`.key.stringValue {
-          return try `case`.initializeVoidSchemaValue()
-        }
-      }
-      throw Error.unknownEnumCase(allKeys: [stringValue])
-    case .objectProperties:
-      let container = try decoder.wrapped.container(keyedBy: CaseKey.self)
-
-      for `case` in repeat each cases {
-        let key = `case`.key
-        if container.contains(key) {
-          let associatedValue = try `case`.schema.decodeValue(
-            from: ToolInput.Decoder(
-              wrapped: container.superDecoder(forKey: key)
-            )
-          )
-          return `case`.initializer(associatedValue)
-        }
-      }
-
-      throw Error.unknownEnumCase(allKeys: container.allKeys.map(\.stringValue))
     }
   }
 
@@ -661,10 +516,6 @@ private struct StandardEnumSchemaCase<
     }
     return initializer(value)
   }
-}
-
-private enum SchemaCodingKey: CodingKey {
-  case type, description, properties, additionalProperties, minProperties, maxProperties, `enum`
 }
 
 private enum Error: Swift.Error {

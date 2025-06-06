@@ -105,23 +105,6 @@ private struct InternallyTaggedEnumSchema<
   CaseKey: CodingKey,
   each AssociatedValuesSchema: ToolInput.Schema
 >: InternalSchema {
-  func encodeSchemaDefinition(to encoder: ToolInput.SchemaEncoder<Self>) throws {
-    fatalError()
-  }
-
-  func encode(
-    _ value: Value,
-    to encoder: ToolInput.Encoder<Self>
-  ) throws {
-    fatalError()
-  }
-
-  func decodeValue(
-    from decoder: ToolInput.Decoder<Self>
-  ) throws -> Value {
-    fatalError()
-  }
-
   typealias Cases = (
     repeat InternallyTaggedEnumSchemaCase<Value, CaseKey, each AssociatedValuesSchema>
   )
@@ -172,7 +155,7 @@ private struct InternallyTaggedEnumSchemaCase<
 extension InternallyTaggedEnumSchema {
 
   func encodeSchemaDefinition(
-    to encoder: inout ToolInput.NewSchemaEncoder
+    to encoder: inout ToolInput.SchemaEncoder
   ) {
     let description = encoder.contextualDescription(description)
     encoder.stream.encodeObject { encoder in
@@ -184,7 +167,7 @@ extension InternallyTaggedEnumSchema {
         stream.encodeArray { encoder in
           for enumCase in repeat each cases {
             encoder.encodeElement { stream in
-              var encoder = ToolInput.NewSchemaEncoder(
+              var encoder = ToolInput.SchemaEncoder(
                 stream: stream,
                 descriptionPrefix: enumCase.description
               )

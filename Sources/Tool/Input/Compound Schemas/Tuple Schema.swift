@@ -39,35 +39,7 @@ struct TupleSchema<each ElementSchema: ToolInput.Schema>: InternalSchema {
     )
   }
 
-  func encodeSchemaDefinition(to encoder: ToolInput.SchemaEncoder<Self>) throws {
-    var container = encoder.wrapped.container(keyedBy: SchemaCodingKey.self)
-    try container.encode("array", forKey: .type)
-
-    if let description = encoder.contextualDescription(nil) {
-      try container.encode(description, forKey: .description)
-    }
-
-    /// No additional items
-    try container.encode(false, forKey: .items)
-
-    var itemsCount = 0
-
-    var prefixItems = container.nestedUnkeyedContainer(forKey: .prefixItems)
-    for element in repeat each elements {
-      itemsCount += 1
-
-      try element.schema.encodeSchemaDefinition(
-        to: ToolInput.SchemaEncoder(
-          wrapped: prefixItems.superEncoder(),
-          descriptionPrefix: element.name
-        )
-      )
-    }
-
-    try container.encode(itemsCount, forKey: .minItems)
-  }
-
-  func encodeSchemaDefinition(to encoder: inout ToolInput.NewSchemaEncoder) {
+  func encodeSchemaDefinition(to encoder: inout ToolInput.SchemaEncoder) {
     let description = encoder.contextualDescription(nil)
     encoder.stream.encodeObject { encoder in
       if let description {
@@ -90,22 +62,6 @@ struct TupleSchema<each ElementSchema: ToolInput.Schema>: InternalSchema {
         }
       }
     }
-  }
-
-  func encode(_ value: Value, to encoder: ToolInput.Encoder<Self>) throws {
-    var container = encoder.wrapped.unkeyedContainer()
-    repeat try (each elements).schema.encode(
-      each value,
-      to: ToolInput.Encoder(wrapped: container.superEncoder())
-    )
-  }
-
-  func decodeValue(from decoder: ToolInput.Decoder<Self>) throws -> Value {
-    var container = try decoder.wrapped.unkeyedContainer()
-    return try
-      (repeat (each elements).schema.decodeValue(
-        from: ToolInput.Decoder(wrapped: container.superDecoder())
-      ))
   }
 
   struct ValueDecodingState {
@@ -236,14 +192,6 @@ private struct TupleElement<Schema: ToolInput.Schema> {
 
   let name: String?
   let schema: Schema
-}
-
-private enum SchemaCodingKey: Swift.CodingKey {
-  case type
-  case description
-  case prefixItems
-  case minItems
-  case items
 }
 
 private enum Error: Swift.Error {

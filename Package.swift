@@ -13,16 +13,16 @@ let package = Package(
     .visionOS("2.0"),
   ],
   products: [
-    .library(
-      name: "SwiftClaude",
-      targets: ["Claude"]
-    ),
+    // .library(
+    //   name: "SwiftClaude",
+    //   targets: ["Claude"]
+    // ),
 
     /// Temporary
     .library(
       name: "JSONSupport",
       targets: ["JSONSupport"]
-    ),
+    )
   ],
   dependencies: [
     .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
@@ -31,45 +31,45 @@ let package = Package(
     .package(url: "https://github.com/apple/swift-collections.git", from: "1.1.0"),
   ],
   targets: [
-    .target(
-      name: "ClaudeClient",
-      dependencies: [
-        "Tool",
-        .product(name: "HTTPTypes", package: "swift-http-types"),
-        .product(name: "HTTPTypesFoundation", package: "swift-http-types"),
-      ],
-      path: "Sources/Client",
-      swiftSettings: .claude
-    ),
-    .testTarget(
-      name: "ClaudeClientTests",
-      dependencies: ["ClaudeClient"],
-      path: "Tests/Client Tests"
-    ),
+    // .target(
+    //   name: "ClaudeClient",
+    //   dependencies: [
+    //     "Tool",
+    //     .product(name: "HTTPTypes", package: "swift-http-types"),
+    //     .product(name: "HTTPTypesFoundation", package: "swift-http-types"),
+    //   ],
+    //   path: "Sources/Client",
+    //   swiftSettings: .claude
+    // ),
+    // .testTarget(
+    //   name: "ClaudeClientTests",
+    //   dependencies: ["ClaudeClient"],
+    //   path: "Tests/Client Tests"
+    // ),
 
-    .target(
-      name: "ClaudeMessagesEndpoint",
-      dependencies: [
-        "ClaudeClient"
-      ],
-      path: "Sources/Messages Endpoint",
-      swiftSettings: .claude
-    ),
+    // .target(
+    //   name: "ClaudeMessagesEndpoint",
+    //   dependencies: [
+    //     "ClaudeClient"
+    //   ],
+    //   path: "Sources/Messages Endpoint",
+    //   swiftSettings: .claude
+    // ),
 
-    .target(
-      name: "Claude",
-      dependencies: [
-        "ClaudeMessagesEndpoint",
-        .target(name: "Tool", condition: .when(platforms: .supportToolInput)),
-        .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
-      ],
-      swiftSettings: .claude
-    ),
-    .testTarget(
-      name: "ClaudeTests",
-      dependencies: ["Claude"],
-      path: "Tests/Claude Tests"
-    ),
+    // .target(
+    //   name: "Claude",
+    //   dependencies: [
+    //     "ClaudeMessagesEndpoint",
+    //     .target(name: "Tool", condition: .when(platforms: .supportToolInput)),
+    //     .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
+    //   ],
+    //   swiftSettings: .claude
+    // ),
+    // .testTarget(
+    //   name: "ClaudeTests",
+    //   dependencies: ["Claude"],
+    //   path: "Tests/Claude Tests"
+    // ),
 
     .target(
       name: "Tool",
@@ -123,12 +123,6 @@ let package = Package(
     ),
   ]
 )
-
-extension Array where Element == Platform {
-  fileprivate static var supportToolInput: [Platform] {
-    [.iOS, .macOS, .macCatalyst, .visionOS, .tvOS, .watchOS, .linux]
-  }
-}
 
 extension Array where Element == SwiftSetting {
   fileprivate static let claude: [SwiftSetting] = [

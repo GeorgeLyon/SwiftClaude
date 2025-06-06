@@ -29,7 +29,7 @@ extension Tool {
 
 // MARK: - Tool Definition
 
-public protocol ToolDefinition<Input>: Encodable & Sendable {
+public protocol ToolDefinition<Input>: Sendable {
 
   var name: String { get }
 
@@ -60,19 +60,3 @@ public struct ClientDefinedToolDefinition<InputSchema: ToolInput.Schema>: ToolDe
 
 }
 
-extension ClientDefinedToolDefinition: Encodable {
-
-  public func encode(to encoder: Encoder) throws {
-    var container = encoder.container(keyedBy: CodingKey.self)
-    try container.encode(name, forKey: .name)
-    try container.encodeIfPresent(description, forKey: .description)
-    try inputSchema.encodeSchemaDefinition(
-      to: ToolInput.SchemaEncoder(wrapped: container.superEncoder(forKey: .inputSchema))
-    )
-  }
-
-  private enum CodingKey: Swift.CodingKey {
-    case name, description, inputSchema
-  }
-
-}

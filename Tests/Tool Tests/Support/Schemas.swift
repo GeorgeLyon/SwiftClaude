@@ -7,7 +7,7 @@ extension ToolInput.Schema {
   var schemaJSON: String {
     var stream = JSON.EncodingStream()
     stream.options = [.prettyPrint]
-    var encoder = ToolInput.NewSchemaEncoder(
+    var encoder = ToolInput.SchemaEncoder(
       stream: stream,
       descriptionPrefix: nil,
       descriptionSuffix: nil

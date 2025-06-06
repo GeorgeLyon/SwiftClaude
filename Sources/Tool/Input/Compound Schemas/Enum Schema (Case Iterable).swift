@@ -89,11 +89,7 @@ where
 
 extension CaseIterableEnumSchema {
 
-  func encodeSchemaDefinition(to encoder: ToolInput.SchemaEncoder<Self>) throws {
-    fatalError()
-  }
-
-  func encodeSchemaDefinition(to encoder: inout ToolInput.NewSchemaEncoder) {
+  func encodeSchemaDefinition(to encoder: inout ToolInput.SchemaEncoder) {
     let description = encoder.contextualDescription(description)
     encoder.stream.encodeObject { stream in
       if let description {
@@ -107,20 +103,6 @@ extension CaseIterableEnumSchema {
         }
       }
     }
-  }
-
-  func encode(_ value: Value, to encoder: ToolInput.Encoder<Self>) throws {
-    var container = encoder.wrapped.singleValueContainer()
-    try container.encode(value.rawValue)
-  }
-
-  func decodeValue(from decoder: ToolInput.Decoder<Self>) throws -> Value {
-    let rawValue = try decoder.wrapped.singleValueContainer()
-      .decode(Value.RawValue.self)
-    guard let value = Value(rawValue: rawValue) else {
-      throw Error.unknownEnumCase(allKeys: ["\(rawValue)"])
-    }
-    return value
   }
 
   func decodeValue(

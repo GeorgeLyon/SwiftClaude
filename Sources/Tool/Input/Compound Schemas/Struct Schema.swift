@@ -67,30 +67,8 @@ private struct StructSchema<
       ToolInput.StructSchemaDecoder<repeat (each PropertySchema).Value>
     ) -> Value
 
-  func encodeSchemaDefinition(to encoder: ToolInput.SchemaEncoder<Self>) throws {
-    try propertiesSchema.encodeSchemaDefinition(to: encoder.map())
-  }
-
-  func encodeSchemaDefinition(to encoder: inout ToolInput.NewSchemaEncoder) {
+  func encodeSchemaDefinition(to encoder: inout ToolInput.SchemaEncoder) {
     propertiesSchema.encodeSchemaDefinition(to: &encoder)
-  }
-
-  func encode(_ value: Value, to encoder: ToolInput.Encoder<Self>) throws {
-    try propertiesSchema.encode(
-      (repeat value[keyPath: each keyPaths]),
-      to: ToolInput.Encoder(wrapped: encoder.wrapped)
-    )
-  }
-
-  func decodeValue(from decoder: ToolInput.Decoder<Self>) throws -> Value {
-    let properties =
-      try propertiesSchema
-      .decodeValue(from: ToolInput.Decoder(wrapped: decoder.wrapped))
-    return initializer(
-      ToolInput.StructSchemaDecoder(
-        propertyValues: (repeat each properties)
-      )
-    )
   }
 
   typealias ValueDecodingState = PropertiesSchema.ValueDecodingState

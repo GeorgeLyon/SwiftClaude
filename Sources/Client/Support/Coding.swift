@@ -1,4 +1,5 @@
 import Tool
+import JSONSupport
 
 import struct Foundation.Data
 import class Foundation.JSONDecoder
@@ -40,7 +41,13 @@ struct ResponseBodyDecoder {
     using schema: Schema,
     fromResponseData data: Data
   ) throws -> sending Schema.Value {
-    try decoder.decodeValue(using: schema, from: data)
+    var stream = JSON.DecodingStream()
+    stream.push(String(decoding: data, as: UTF8.self))
+    stream.finish()
+    
+    var state = schema.initialValueDecodingState
+    let result = try schema.decodeValue(from: &stream, state: &state)
+    return try result.getValue()
   }
 
   private init(decoder: JSONDecoder) {
