@@ -1,3 +1,4 @@
+import SchemaCodingMacros
 import SwiftDiagnostics
 public import SwiftSyntax
 import SwiftSyntaxBuilder
@@ -173,9 +174,10 @@ extension DeclGroupSyntax {
       )
 
       /// struct Input: SchemaCodable { … }
-      StructDeclSyntax.toolInput(
+      StructDeclSyntax.schemaCodable(
         description: comment,
         name: "Input",
+        schemaCodableNamespace: "ToolInput",
         isPublic: isPublic,
         storedProperties: storedProperties,
         additionalMembers: MemberBlockItemListSyntax {

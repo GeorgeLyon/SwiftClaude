@@ -88,6 +88,7 @@ let package = Package(
     .macro(
       name: "ToolMacros",
       dependencies: [
+        "SchemaCodingMacrosSupport",
         .product(name: "SwiftSyntax", package: "swift-syntax"),
         .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
         .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
@@ -126,13 +127,21 @@ let package = Package(
     .macro(
       name: "SchemaCodingMacros",
       dependencies: [
+        "SchemaCodingMacrosSupport"
+      ],
+      path: "Sources/Schema Coding Macros",
+      swiftSettings: .projectDefaults
+    ),
+    .target(
+      name: "SchemaCodingMacrosSupport",
+      dependencies: [
         "MacrosSupport",
         .product(name: "SwiftSyntax", package: "swift-syntax"),
         .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
         .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
         .product(name: "SwiftDiagnostics", package: "swift-syntax"),
       ],
-      path: "Sources/Schema Coding Macros",
+      path: "Sources/Schema Coding Macros Support",
       swiftSettings: .projectDefaults
     ),
     .testTarget(
