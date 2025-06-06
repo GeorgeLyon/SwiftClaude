@@ -92,7 +92,11 @@ struct ObjectPropertiesSchema<
           /// Encode discriminator if one was specified
           if let discriminator {
             encoder.encodeProperty(name: discriminator.name) { stream in
-              stream.encode(discriminator.value)
+              stream.encodeObject { encoder in
+                encoder.encodeProperty(name: "const") { stream in
+                  stream.encode(discriminator.value)
+                }
+              }
             }
           }
 

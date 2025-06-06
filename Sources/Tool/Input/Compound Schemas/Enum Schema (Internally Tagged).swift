@@ -37,6 +37,29 @@ extension ToolInput {
     )
   }
 
+  /// Special overload to work around single-element-tuple weirdness
+  public static func internallyTaggedEnumCaseSchema<
+    Key: CodingKey,
+    ValueSchema: Schema
+  >(
+    values: (
+      key: Key,
+      schema: ValueSchema
+    ),
+    keyedBy: Key.Type
+  ) -> InternallyTaggedEnumCaseSchema<some Schema<ValueSchema.Value>> {
+    InternallyTaggedEnumCaseSchema(
+      schema: ObjectPropertiesSchema(
+        description: nil,
+        properties: ObjectPropertySchema(
+          key: values.key,
+          description: nil,
+          schema: values.schema
+        )
+      )
+    )
+  }
+
   public static func internallyTaggedEnumCaseSchema<
     Key: CodingKey,
     each ValueSchema: Schema
