@@ -1,7 +1,7 @@
 import JSONSupport
 
 /// It is also possible to conform a `CaseIterable` enum to `SchemaCodable` directly and use the `CaseIterable`-based schema.
-extension SchemaProvider {
+extension SchemaSupport {
 
   public static func enumSchema<Value: CaseIterable & RawRepresentable>(
     representing _: Value.Type = Value.self,
@@ -26,7 +26,7 @@ extension SchemaProvider {
     description: String?,
     cases: (
       repeat (
-        key: SchemaCodingKey,
+        key: SchemaSupport.SchemaCodingKey,
         description: String?,
         associatedValuesSchema: each AssociatedValuesSchema,
         initializer: @Sendable ((each AssociatedValuesSchema).Value) -> Value
@@ -52,7 +52,7 @@ extension SchemaProvider {
     description: String?,
     cases: (
       repeat (
-        key: SchemaCodingKey,
+        key: SchemaSupport.SchemaCodingKey,
         description: String?,
         associatedValuesSchema: each AssociatedValuesSchema,
         initializer: @Sendable ((each AssociatedValuesSchema).Value) -> Value
@@ -85,7 +85,7 @@ where
 
 extension CaseIterableEnumSchema {
 
-  func encodeSchemaDefinition(to encoder: inout SchemaEncoder) {
+  func encodeSchemaDefinition(to encoder: inout SchemaSupport.SchemaEncoder) {
     let description = encoder.contextualDescription(description)
     encoder.stream.encodeObject { stream in
       if let description {

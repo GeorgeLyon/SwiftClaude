@@ -1,6 +1,6 @@
 import JSONSupport
 
-extension SchemaProvider {
+extension SchemaSupport {
 
   public static func schema(
     representing _: Bool.Type = Bool.self
@@ -13,7 +13,7 @@ extension SchemaProvider {
 extension Bool: SchemaCodable {
 
   public static var schema: some SchemaCoding.Schema<Self> {
-    SchemaProvider.schema()
+    SchemaSupport.schema()
   }
 
 }

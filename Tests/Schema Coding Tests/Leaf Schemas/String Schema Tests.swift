@@ -8,7 +8,7 @@ struct StringSchemaTests {
   @Test
   private func testSchemaEncoding() throws {
     #expect(
-      SchemaProvider.schema(representing: String.self).schemaJSON == """
+      SchemaSupport.schema(representing: String.self).schemaJSON == """
         {
           "type": "string"
         }
@@ -19,12 +19,12 @@ struct StringSchemaTests {
   @Test
   private func testValueEncoding() throws {
     #expect(
-      SchemaProvider.schema(representing: String.self).encodedJSON(for: "foo") == """
+      SchemaSupport.schema(representing: String.self).encodedJSON(for: "foo") == """
         "foo"
         """
     )
     #expect(
-      SchemaProvider.schema(representing: String.self).encodedJSON(for: "bar") == """
+      SchemaSupport.schema(representing: String.self).encodedJSON(for: "bar") == """
         "bar"
         """
     )
@@ -33,10 +33,10 @@ struct StringSchemaTests {
   @Test
   private func testValueDecoding() throws {
     #expect(
-      SchemaProvider.schema(representing: String.self).value(fromJSON: "\"foo\"") == "foo"
+      SchemaSupport.schema(representing: String.self).value(fromJSON: "\"foo\"") == "foo"
     )
     #expect(
-      SchemaProvider.schema(representing: String.self).value(fromJSON: "\"bar\"") == "bar"
+      SchemaSupport.schema(representing: String.self).value(fromJSON: "\"bar\"") == "bar"
     )
   }
 

@@ -36,7 +36,7 @@ private struct StructMacroTests {
 
         extension TestStruct: SchemaCoding.SchemaCodable {
           static var schema: some Schema<Self> {
-            SchemaProvider.structSchema(
+            SchemaSupport.structSchema(
               representing: Self.self,
               description: #"""
               A test struct
@@ -45,46 +45,46 @@ private struct StructMacroTests {
                 (
                   description: nil,
                   keyPath: \Self.anInteger,
-                  key: "anInteger" as SchemaCodingKey,
-                  schema: SchemaProvider.schema(representing: Int.self)
+                  key: "anInteger" as SchemaSupport.SchemaCodingKey,
+                  schema: SchemaSupport.schema(representing: Int.self)
                 ),
                 (
                   description: #"""
                   An (x, y) coordinate
                   """#,
                   keyPath: \Self.aCoordinate,
-                  key: "aCoordinate" as SchemaCodingKey,
-                  schema: SchemaProvider.schema(representing: (Int, Int).self)
+                  key: "aCoordinate" as SchemaSupport.SchemaCodingKey,
+                  schema: SchemaSupport.schema(representing: (Int, Int).self)
                 ),
                 (
                   description: #"""
                   Crazy Declaration
                   """#,
                   keyPath: \Self.c,
-                  key: "c" as SchemaCodingKey,
-                  schema: SchemaProvider.schema(representing: String.self)
+                  key: "c" as SchemaSupport.SchemaCodingKey,
+                  schema: SchemaSupport.schema(representing: String.self)
                 ),
                 (
                   description: #"""
                   Crazy Declaration
                   """#,
                   keyPath: \Self.b,
-                  key: "b" as SchemaCodingKey,
-                  schema: SchemaProvider.schema(representing: Bool.self)
+                  key: "b" as SchemaSupport.SchemaCodingKey,
+                  schema: SchemaSupport.schema(representing: Bool.self)
                 ),
                 (
                   description: #"""
                   Crazy Declaration
                   """#,
                   keyPath: \Self.a,
-                  key: "a" as SchemaCodingKey,
-                  schema: SchemaProvider.schema(representing: Bool.self)
+                  key: "a" as SchemaSupport.SchemaCodingKey,
+                  schema: SchemaSupport.schema(representing: Bool.self)
                 )
               ),
               initializer: Self.init(structSchemaDecoder:)
             )
           }
-          private init(structSchemaDecoder: SchemaProvider.StructSchemaDecoder<Int, (Int, Int), String, Bool, Bool>) {
+          private init(structSchemaDecoder: SchemaSupport.StructSchemaDecoder<Int, (Int, Int), String, Bool, Bool>) {
             self.anInteger = structSchemaDecoder.propertyValues.0
             self.aCoordinate = structSchemaDecoder.propertyValues.1
             self.c = structSchemaDecoder.propertyValues.2

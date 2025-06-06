@@ -13,7 +13,7 @@ public protocol Schema<Value>: Sendable {
 
   associatedtype Value
 
-  func encodeSchemaDefinition(to encoder: inout SchemaEncoder)
+  func encodeSchemaDefinition(to encoder: inout SchemaSupport.SchemaEncoder)
 
   associatedtype ValueDecodingState = ()
 
@@ -28,8 +28,14 @@ public protocol Schema<Value>: Sendable {
 
 }
 
+extension Schema where ValueDecodingState == Void {
+
+  var initialValueDecodingState: Void { () }
+
+}
+
 /// Namespace for types related to getting concrete values conforming to the `Schema` protocol
-public enum SchemaProvider {
+public enum SchemaSupport {
 
   public static func schema<Value: SchemaCodable>(
     representing: Value.Type
@@ -37,48 +43,42 @@ public enum SchemaProvider {
     Value.schema
   }
 
-}
+  public struct SchemaCodingKey: Sendable, Hashable, ExpressibleByStringLiteral {
 
-extension Schema where ValueDecodingState == Void {
+    public init(_ value: StaticString) {
+      self.stringValue = String(describing: value)
+    }
 
-  var initialValueDecodingState: Void { () }
+    public init(stringLiteral value: StaticString) {
+      self.init(value)
+    }
 
-}
+    internal let stringValue: String
 
-public struct SchemaCodingKey: Sendable, Hashable {
-  internal let stringValue: String
-
-  public init(_ value: StaticString) {
-    self.stringValue = String(describing: value)
-  }
-}
-
-extension SchemaCodingKey: ExpressibleByStringLiteral {
-  public init(stringLiteral value: StaticString) {
-    self.init(value)
-  }
-}
-
-public struct SchemaEncoder: ~Copyable {
-
-  init(
-    stream: consuming JSON.EncodingStream,
-    descriptionPrefix: String? = nil,
-    descriptionSuffix: String? = nil
-  ) {
-    self.stream = stream
-    self.descriptionPrefix = descriptionPrefix
-    self.descriptionSuffix = descriptionSuffix
   }
 
-  func contextualDescription(_ description: String?) -> String? {
-    combineDescriptions(descriptionPrefix, description, descriptionSuffix)
+  public struct SchemaEncoder: ~Copyable {
+
+    init(
+      stream: consuming JSON.EncodingStream,
+      descriptionPrefix: String? = nil,
+      descriptionSuffix: String? = nil
+    ) {
+      self.stream = stream
+      self.descriptionPrefix = descriptionPrefix
+      self.descriptionSuffix = descriptionSuffix
+    }
+
+    func contextualDescription(_ description: String?) -> String? {
+      combineDescriptions(descriptionPrefix, description, descriptionSuffix)
+    }
+
+    var stream: JSON.EncodingStream
+
+    private let descriptionPrefix: String?
+    private let descriptionSuffix: String?
+
   }
-
-  var stream: JSON.EncodingStream
-
-  private let descriptionPrefix: String?
-  private let descriptionSuffix: String?
 
 }
 
@@ -116,7 +116,7 @@ protocol LeafSchema: InternalSchema {
 /// We don't expect internal leaf schemas to have any additional properties, but they should still encode a contextual description if necessary.
 extension LeafSchema {
 
-  public func encodeSchemaDefinition(to encoder: inout SchemaEncoder) {
+  public func encodeSchemaDefinition(to encoder: inout SchemaSupport.SchemaEncoder) {
     let description = encoder.contextualDescription(nil)
     encoder.stream.encodeObject { encoder in
       if let description {
@@ -145,7 +145,7 @@ extension JSON.EncodingStream {
     descriptionPrefix: String? = nil,
     descriptionSuffix: String? = nil
   ) {
-    var encoder = SchemaEncoder(
+    var encoder = SchemaSupport.SchemaEncoder(
       stream: self,
       descriptionPrefix: descriptionPrefix,
       descriptionSuffix: descriptionSuffix

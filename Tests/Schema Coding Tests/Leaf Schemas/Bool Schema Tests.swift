@@ -8,7 +8,7 @@ struct BoolSchemaTests {
   @Test
   private func testSchemaEncoding() throws {
     #expect(
-      SchemaProvider.schema(representing: Bool.self).schemaJSON == """
+      SchemaSupport.schema(representing: Bool.self).schemaJSON == """
         {
           "type": "boolean"
         }
@@ -19,12 +19,12 @@ struct BoolSchemaTests {
   @Test
   private func testValueEncoding() throws {
     #expect(
-      SchemaProvider.schema(representing: Bool.self).encodedJSON(for: true) == """
+      SchemaSupport.schema(representing: Bool.self).encodedJSON(for: true) == """
         true
         """
     )
     #expect(
-      SchemaProvider.schema(representing: Bool.self).encodedJSON(for: false) == """
+      SchemaSupport.schema(representing: Bool.self).encodedJSON(for: false) == """
         false
         """
     )
@@ -33,10 +33,10 @@ struct BoolSchemaTests {
   @Test
   private func testValueDecoding() throws {
     #expect(
-      SchemaProvider.schema(representing: Bool.self).value(fromJSON: "true") == true
+      SchemaSupport.schema(representing: Bool.self).value(fromJSON: "true") == true
     )
     #expect(
-      SchemaProvider.schema(representing: Bool.self).value(fromJSON: "false") == false
+      SchemaSupport.schema(representing: Bool.self).value(fromJSON: "false") == false
     )
   }
 

@@ -3,7 +3,7 @@ import JSONSupport
 protocol ObjectPropertiesSchemaProtocol<Value, ValueDecodingState>: InternalSchema {
 
   func encodeSchemaDefinition(
-    to stream: inout SchemaEncoder,
+    to stream: inout SchemaSupport.SchemaEncoder,
     discriminator: Discriminator?
   )
 
@@ -47,14 +47,14 @@ struct ObjectPropertiesSchema<
   private let properties: Properties
   private let propertyDecoderProvider: PropertyDecoderProvider
 
-  func encodeSchemaDefinition(to encoder: inout SchemaEncoder) {
+  func encodeSchemaDefinition(to encoder: inout SchemaSupport.SchemaEncoder) {
     encodeSchemaDefinition(to: &encoder, discriminator: nil)
   }
 
   /// - Parameters:
   ///   - discriminator: If provided, this schema will encode an additional property with this specified value. This is used for internally-tagged enums
   func encodeSchemaDefinition(
-    to encoder: inout SchemaEncoder,
+    to encoder: inout SchemaSupport.SchemaEncoder,
     discriminator: Discriminator?
   ) {
     let description = encoder.contextualDescription(description)
@@ -250,7 +250,7 @@ struct ObjectPropertiesSchema<
 }
 
 struct ObjectPropertySchema<Schema: SchemaCoding.Schema> {
-  let key: SchemaCodingKey
+  let key: SchemaSupport.SchemaCodingKey
   let description: String?
   let schema: Schema
 

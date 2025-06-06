@@ -1,6 +1,6 @@
 import JSONSupport
 
-extension SchemaProvider {
+extension SchemaSupport {
 
   // Needs to be disfavored because otherwise it catches single-element tuples
   @_disfavoredOverload
@@ -39,7 +39,7 @@ struct TupleSchema<each ElementSchema: Schema>: InternalSchema {
     )
   }
 
-  func encodeSchemaDefinition(to encoder: inout SchemaEncoder) {
+  func encodeSchemaDefinition(to encoder: inout SchemaSupport.SchemaEncoder) {
     let description = encoder.contextualDescription(nil)
     encoder.stream.encodeObject { encoder in
       if let description {

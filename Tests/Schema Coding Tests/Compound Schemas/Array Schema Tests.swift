@@ -8,7 +8,7 @@ struct ArraySchemaTests {
   @Test
   private func testSchemaEncoding() throws {
     #expect(
-      SchemaProvider.schema(representing: [String].self).schemaJSON == """
+      SchemaSupport.schema(representing: [String].self).schemaJSON == """
         {
           "items": {
             "type": "string"
@@ -21,7 +21,7 @@ struct ArraySchemaTests {
   @Test
   private func testValueEncoding() throws {
     #expect(
-      SchemaProvider.schema(representing: [String].self).encodedJSON(for: ["foo", "bar", "baz"])
+      SchemaSupport.schema(representing: [String].self).encodedJSON(for: ["foo", "bar", "baz"])
         == """
         [
           "foo",
@@ -32,7 +32,7 @@ struct ArraySchemaTests {
     )
 
     #expect(
-      SchemaProvider.schema(representing: [Int].self).encodedJSON(for: [1, 2, 3]) == """
+      SchemaSupport.schema(representing: [Int].self).encodedJSON(for: [1, 2, 3]) == """
         [
           1,
           2,
@@ -42,7 +42,7 @@ struct ArraySchemaTests {
     )
 
     #expect(
-      SchemaProvider.schema(representing: [Double].self).encodedJSON(for: []) == """
+      SchemaSupport.schema(representing: [Double].self).encodedJSON(for: []) == """
         [
 
         ]
@@ -52,7 +52,7 @@ struct ArraySchemaTests {
 
   @Test
   private func testValueDecoding() throws {
-    let stringSchema = SchemaProvider.schema(representing: [String].self)
+    let stringSchema = SchemaSupport.schema(representing: [String].self)
     #expect(
       stringSchema.value(
         fromJSON: """
@@ -64,7 +64,7 @@ struct ArraySchemaTests {
           """) == ["foo", "bar", "baz"]
     )
 
-    let intSchema = SchemaProvider.schema(representing: [Int].self)
+    let intSchema = SchemaSupport.schema(representing: [Int].self)
     #expect(
       intSchema.value(
         fromJSON: """
@@ -76,7 +76,7 @@ struct ArraySchemaTests {
           """) == [1, 2, 3]
     )
 
-    let doubleSchema = SchemaProvider.schema(representing: [Double].self)
+    let doubleSchema = SchemaSupport.schema(representing: [Double].self)
     #expect(
       doubleSchema.value(
         fromJSON: """

@@ -1,6 +1,6 @@
 import JSONSupport
 
-extension SchemaProvider {
+extension SchemaSupport {
 
   public static func structSchema<
     Value,
@@ -12,7 +12,7 @@ extension SchemaProvider {
       repeat (
         description: String?,
         keyPath: KeyPath<Value, (each PropertySchema).Value> & Sendable,
-        key: SchemaCodingKey,
+        key: SchemaSupport.SchemaCodingKey,
         schema: (each PropertySchema)
       )
     ),
@@ -60,10 +60,10 @@ private struct StructSchema<
 
   let initializer:
     @Sendable (
-      SchemaProvider.StructSchemaDecoder<repeat (each PropertySchema).Value>
+      SchemaSupport.StructSchemaDecoder<repeat (each PropertySchema).Value>
     ) -> Value
 
-  func encodeSchemaDefinition(to encoder: inout SchemaEncoder) {
+  func encodeSchemaDefinition(to encoder: inout SchemaSupport.SchemaEncoder) {
     propertiesSchema.encodeSchemaDefinition(to: &encoder)
   }
 
@@ -81,7 +81,7 @@ private struct StructSchema<
       .decodeValue(from: &stream, state: &state)
       .map { values in
         initializer(
-          SchemaProvider.StructSchemaDecoder(
+          SchemaSupport.StructSchemaDecoder(
             propertyValues: (repeat each values)
           )
         )

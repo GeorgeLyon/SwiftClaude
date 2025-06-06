@@ -4,7 +4,7 @@ import JSONSupport
 
 /// This extension defines a family of `enumSchema` methods.
 /// These are intended to be added to enums via a macro and so are structured to be very regular.
-extension SchemaProvider {
+extension SchemaSupport {
 
   @_disfavoredOverload
   public static func enumSchema<
@@ -15,7 +15,7 @@ extension SchemaProvider {
     description: String?,
     cases: (
       repeat (
-        key: SchemaCodingKey,
+        key: SchemaSupport.SchemaCodingKey,
         description: String?,
         associatedValuesSchema: each AssociatedValuesSchema,
         initializer: @Sendable ((each AssociatedValuesSchema).Value) -> Value
@@ -42,7 +42,7 @@ extension SchemaProvider {
 
 // MARK: - Encoding Enums
 
-extension SchemaProvider {
+extension SchemaSupport {
 
   public struct EnumCaseEncoder {
     fileprivate let key: String
@@ -67,7 +67,7 @@ extension SchemaProvider {
 
 // MARK: - Defining Associated Values
 
-extension SchemaProvider {
+extension SchemaSupport {
 
   public static func enumCaseAssociatedValuesSchema(
     values: ()
@@ -79,7 +79,7 @@ extension SchemaProvider {
     ValueSchema: Schema
   >(
     values: (
-      key: SchemaCodingKey?,
+      key: SchemaSupport.SchemaCodingKey?,
       schema: ValueSchema
     )
   ) -> some Schema<ValueSchema.Value> {
@@ -91,7 +91,7 @@ extension SchemaProvider {
   >(
     values: (
       repeat (
-        key: SchemaCodingKey,
+        key: SchemaSupport.SchemaCodingKey,
         schema: each ValueSchema
       )
     )
@@ -112,7 +112,7 @@ extension SchemaProvider {
   >(
     values: (
       repeat (
-        key: SchemaCodingKey?,
+        key: SchemaSupport.SchemaCodingKey?,
         schema: each ValueSchema
       )
     )
@@ -127,7 +127,7 @@ extension SchemaProvider {
 
 }
 
-extension SchemaProvider {
+extension SchemaSupport {
 
   /// In the full enum schema, cases without associated values are represented using a `null` value.
   /// For example `{"myEnumCase":null}`
@@ -167,8 +167,8 @@ private struct StandardEnumSchema<
 
   typealias CaseEncoder = @Sendable (
     Value,
-    repeat @escaping ((each AssociatedValuesSchema).Value) -> SchemaProvider.EnumCaseEncoder
-  ) -> SchemaProvider.EnumCaseEncoder
+    repeat @escaping ((each AssociatedValuesSchema).Value) -> SchemaSupport.EnumCaseEncoder
+  ) -> SchemaSupport.EnumCaseEncoder
 
   init(
     description: String?,
@@ -206,7 +206,7 @@ private struct StandardEnumSchema<
   private let caseEncoder: CaseEncoder
   private let style: EnumStyle
 
-  func encodeSchemaDefinition(to encoder: inout SchemaEncoder) {
+  func encodeSchemaDefinition(to encoder: inout SchemaSupport.SchemaEncoder) {
     switch style {
     case .singleCase:
       encodeSingleCaseSchemaDefinition(to: &encoder)
@@ -218,7 +218,7 @@ private struct StandardEnumSchema<
   }
 
   private func encodeSingleCaseSchemaDefinition(
-    to encoder: inout SchemaEncoder
+    to encoder: inout SchemaSupport.SchemaEncoder
   ) {
     /// There should only be a single case
     let contextualDescription = encoder.contextualDescription(description)
@@ -234,7 +234,7 @@ private struct StandardEnumSchema<
   }
 
   private func encodeNoAssociatedValuesSchemaDefinition(
-    to encoder: inout SchemaEncoder
+    to encoder: inout SchemaSupport.SchemaEncoder
   ) {
     let description = encoder.contextualDescription(description)
     encoder.stream.encodeObject { stream in
@@ -277,7 +277,7 @@ private struct StandardEnumSchema<
   }
 
   private func encodeObjectPropertiesSchemaDefinition(
-    to encoder: inout SchemaEncoder
+    to encoder: inout SchemaSupport.SchemaEncoder
   ) {
     let description = encoder.contextualDescription(description)
     encoder.stream.encodeObject { stream in
@@ -313,9 +313,9 @@ private struct StandardEnumSchema<
     let encoder = caseEncoder(
       value,
       repeat { value in
-        SchemaProvider.EnumCaseEncoder(
+        SchemaSupport.EnumCaseEncoder(
           key: (each cases).key.stringValue,
-          implementation: SchemaProvider.EnumCaseEncoderImplementation(
+          implementation: SchemaSupport.EnumCaseEncoderImplementation(
             schema: (each cases).schema,
             value: value
           )
@@ -494,7 +494,7 @@ private struct StandardEnumSchemaCase<
   Value,
   AssociatedValuesSchema: Schema
 > {
-  let key: SchemaCodingKey
+  let key: SchemaSupport.SchemaCodingKey
   let description: String?
   let schema: AssociatedValuesSchema
   let initializer: @Sendable (AssociatedValuesSchema.Value) -> Value

@@ -7,7 +7,7 @@ extension Schema {
   var schemaJSON: String {
     var stream = JSON.EncodingStream()
     stream.options = [.prettyPrint]
-    var encoder = SchemaEncoder(
+    var encoder = SchemaSupport.SchemaEncoder(
       stream: stream,
       descriptionPrefix: nil,
       descriptionSuffix: nil

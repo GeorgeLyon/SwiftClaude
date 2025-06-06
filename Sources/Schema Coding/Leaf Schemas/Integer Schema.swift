@@ -1,6 +1,6 @@
 import JSONSupport
 
-extension SchemaProvider {
+extension SchemaSupport {
 
   public static func schema<T: SchemaCodable & FixedWidthInteger & Codable & Sendable>(
     representing _: T.Type = T.self
@@ -27,7 +27,7 @@ extension UInt64: SchemaCodable {}
 extension SchemaCodable where Self: FixedWidthInteger & Codable & Sendable {
 
   public static var schema: some SchemaCoding.Schema<Self> {
-    SchemaProvider.schema()
+    SchemaSupport.schema()
   }
 
 }

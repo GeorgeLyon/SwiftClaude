@@ -138,7 +138,7 @@ extension StructDeclSyntax {
     ) {
       FunctionCallExprSyntax(
         calledExpression: MemberAccessExprSyntax(
-          base: DeclReferenceExprSyntax(baseName: "SchemaProvider"),
+          base: DeclReferenceExprSyntax(baseName: "SchemaSupport"),
           name: "structSchema"
         ),
         leftParen: .leftParenToken(trailingTrivia: .newline),
@@ -206,7 +206,7 @@ extension StructDeclSyntax {
             FunctionParameterSyntax(
               firstName: "structSchemaDecoder",
               type: MemberTypeSyntax(
-                baseType: IdentifierTypeSyntax(name: "SchemaProvider"),
+                baseType: IdentifierTypeSyntax(name: "SchemaSupport"),
                 name: "StructSchemaDecoder",
                 genericArgumentClause: GenericArgumentClauseSyntax {
                   for property in storedProperties {
@@ -396,7 +396,7 @@ extension StructDeclSyntax.StoredProperty {
               content: name.identifierOrText
             ),
             asKeyword: .keyword(.as, trailingTrivia: .space),
-            type: TypeSyntax(stringLiteral: "SchemaCodingKey")
+            type: TypeSyntax(stringLiteral: "SchemaSupport.SchemaCodingKey")
           ),
           trailingComma: .commaToken(trailingTrivia: .newline)
         )
@@ -445,7 +445,7 @@ extension EnumDeclSyntax {
       ReturnStmtSyntax(
         expression: FunctionCallExprSyntax(
           calledExpression: MemberAccessExprSyntax(
-            base: DeclReferenceExprSyntax(baseName: "SchemaProvider"),
+            base: DeclReferenceExprSyntax(baseName: "SchemaSupport"),
             name: "enumSchema"
           ),
           leftParen: .leftParenToken(trailingTrivia: .newline),
@@ -547,7 +547,7 @@ extension EnumCaseElementListSyntax.Element {
   fileprivate func associatedValuesSchema() -> FunctionCallExprSyntax {
     return FunctionCallExprSyntax(
       calledExpression: MemberAccessExprSyntax(
-        base: DeclReferenceExprSyntax(baseName: "SchemaProvider"),
+        base: DeclReferenceExprSyntax(baseName: "SchemaSupport"),
         name: "enumCaseAssociatedValuesSchema"
       ),
       leftParen: .leftParenToken(trailingTrivia: .newline),
@@ -592,7 +592,7 @@ extension EnumCaseElementListSyntax.Element {
               content: name.identifierOrText
             ),
             asKeyword: .keyword(.as, trailingTrivia: .space),
-            type: TypeSyntax(stringLiteral: "SchemaCodingKey")
+            type: TypeSyntax(stringLiteral: "SchemaSupport.SchemaCodingKey")
           ),
           trailingComma: .commaToken(trailingTrivia: .newline)
         )
@@ -769,7 +769,7 @@ extension EnumCaseParameterListSyntax.Element {
                 content: name.identifierOrText
               ),
               asKeyword: .keyword(.as, trailingTrivia: .space),
-              type: TypeSyntax(stringLiteral: "SchemaCodingKey")
+              type: TypeSyntax(stringLiteral: "SchemaSupport.SchemaCodingKey")
             ),
             trailingComma: .commaToken(trailingTrivia: .newline)
           )
@@ -862,7 +862,7 @@ extension TypeSyntax {
   var schema: some ExprSyntaxProtocol {
     FunctionCallExprSyntax(
       calledExpression: MemberAccessExprSyntax(
-        base: DeclReferenceExprSyntax(baseName: "SchemaProvider"),
+        base: DeclReferenceExprSyntax(baseName: "SchemaSupport"),
         name: "schema"
       ),
       leftParen: .leftParenToken(),

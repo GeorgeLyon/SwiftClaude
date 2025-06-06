@@ -1,6 +1,6 @@
 import JSONSupport
 
-extension SchemaProvider {
+extension SchemaSupport {
 
   public static func schema<
     T: SchemaCodable & BinaryFloatingPoint & LosslessStringConvertible & Codable
@@ -23,7 +23,7 @@ extension SchemaCodable
 where Self: BinaryFloatingPoint & LosslessStringConvertible & Codable & Sendable {
 
   public static var schema: some SchemaCoding.Schema<Self> {
-    SchemaProvider.schema()
+    SchemaSupport.schema()
   }
 
 }

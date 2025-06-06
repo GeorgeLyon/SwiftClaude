@@ -2,52 +2,26 @@ import Testing
 
 @testable import SchemaCoding
 
-private struct Person: SchemaCodable {
+/// A person object
+@SchemaCodable
+private struct Person {
+  let `name`: String
 
-  let name: String
+  /// The person's age
   let age: Int
+
+  // Whether the person is active
   let isActive: Bool?
-
 }
 
-extension Person {
-
-  static let schema: some SchemaCoding.Schema<Self> =
-    SchemaSupport.structSchema(
-      representing: Self.self,
-      description: "A person object",
-      properties: (
-        (
-          description: nil,
-          keyPath: \.name,
-          key: "name" as SchemaSupport.SchemaCodingKey,
-          schema: SchemaSupport.schema()
-        ),
-        (
-          description: "The person's age",
-          keyPath: \.age,
-          key: "age" as SchemaSupport.SchemaCodingKey,
-          schema: SchemaSupport.schema()
-        ),
-        (
-          description: "Whether the person is active",
-          keyPath: \.isActive,
-          key: "isActive" as SchemaSupport.SchemaCodingKey,
-          schema: SchemaSupport.schema()
-        )
-      ),
-      initializer: Self.init(structSchemaDecoder:)
-    )
-
-  private init(structSchemaDecoder: SchemaSupport.StructSchemaDecoder<String, Int, Bool?>) {
-    name = structSchemaDecoder.propertyValues.0
-    age = structSchemaDecoder.propertyValues.1
-    isActive = structSchemaDecoder.propertyValues.2
-  }
+/// Single-property Struct
+@SchemaCodable
+private struct SinglePropertyStruct {
+  let property: String
 }
 
-@Suite("Struct")
-struct StructSchemaTests {
+@Suite("Schema Codable Struct Tests")
+struct StructSchemaCodableTests {
 
   @Test
   private func testSchemaEncoding() throws {

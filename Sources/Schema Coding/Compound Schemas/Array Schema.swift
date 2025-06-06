@@ -1,6 +1,6 @@
 import JSONSupport
 
-extension SchemaProvider {
+extension SchemaSupport {
 
   public static func schema<Element: SchemaCodable>(
     representing: [Element].Type = [Element].self
@@ -13,7 +13,7 @@ extension SchemaProvider {
 extension Array: SchemaCodable where Element: SchemaCodable {
 
   public static var schema: some SchemaCoding.Schema<Self> {
-    SchemaProvider.schema()
+    SchemaSupport.schema()
   }
 
 }
@@ -26,7 +26,7 @@ private struct ArraySchema<ElementSchema: Schema>: InternalSchema {
 
   let elementSchema: ElementSchema
 
-  func encodeSchemaDefinition(to encoder: inout SchemaEncoder) {
+  func encodeSchemaDefinition(to encoder: inout SchemaSupport.SchemaEncoder) {
     let description = encoder.contextualDescription(nil)
     encoder.stream.encodeObject { encoder in
       if let description {
