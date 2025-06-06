@@ -27,7 +27,6 @@ extension ObjectPropertiesSchemaProtocol {
 /// This schema is not instantiated directly by a user.
 /// Instead it is used in the implementation of `StructSchema` and `EnumSchema`
 struct ObjectPropertiesSchema<
-  PropertyKey: CodingKey,
   each PropertySchema: Schema
 >: ObjectPropertiesSchemaProtocol {
 
@@ -35,7 +34,7 @@ struct ObjectPropertiesSchema<
 
   init(
     description: String?,
-    properties: repeat ObjectPropertySchema<PropertyKey, each PropertySchema>
+    properties: repeat ObjectPropertySchema<each PropertySchema>
   ) {
     self.description = description
     self.properties = (repeat each properties)
@@ -221,7 +220,7 @@ struct ObjectPropertiesSchema<
       }
 
       func encodeProperty<S: Schema>(
-        _ property: ObjectPropertySchema<PropertyKey, S>, _ value: S.Value
+        _ property: ObjectPropertySchema<S>, _ value: S.Value
       ) {
         assert(discriminator?.name != property.key.stringValue)
 
@@ -239,9 +238,9 @@ struct ObjectPropertiesSchema<
     }
   }
 
-  fileprivate typealias Properties = (repeat ObjectPropertySchema<PropertyKey, each PropertySchema>)
+  fileprivate typealias Properties = (repeat ObjectPropertySchema<each PropertySchema>)
   fileprivate typealias PropertyStates = (
-    repeat ObjectPropertySchema<PropertyKey, (each PropertySchema)>.DecodingState
+    repeat ObjectPropertySchema<(each PropertySchema)>.DecodingState
   )
   private typealias PropertyDecoder = @Sendable (
     inout JSON.DecodingStream,
@@ -250,8 +249,8 @@ struct ObjectPropertiesSchema<
 
 }
 
-struct ObjectPropertySchema<PropertyKey: CodingKey, Schema: SchemaCoding.Schema> {
-  let key: PropertyKey
+struct ObjectPropertySchema<Schema: SchemaCoding.Schema> {
+  let key: SchemaCodingKey
   let description: String?
   let schema: Schema
 

@@ -20,15 +20,13 @@ extension SchemaProvider {
   }
   public static func enumSchema<
     Value: CaseIterable & RawRepresentable,
-    CaseKey: CodingKey,
     each AssociatedValuesSchema: Schema
   >(
     representing _: Value.Type,
     description: String?,
-    keyedBy _: CaseKey.Type,
     cases: (
       repeat (
-        key: CaseKey,
+        key: SchemaCodingKey,
         description: String?,
         associatedValuesSchema: each AssociatedValuesSchema,
         initializer: @Sendable ((each AssociatedValuesSchema).Value) -> Value
@@ -48,15 +46,13 @@ extension SchemaProvider {
   @_disfavoredOverload
   public static func enumSchema<
     Value: CaseIterable & RawRepresentable,
-    CaseKey: CodingKey,
     each AssociatedValuesSchema: Schema
   >(
     representing _: Value.Type,
     description: String?,
-    keyedBy _: CaseKey.Type,
     cases: (
       repeat (
-        key: CaseKey,
+        key: SchemaCodingKey,
         description: String?,
         associatedValuesSchema: each AssociatedValuesSchema,
         initializer: @Sendable ((each AssociatedValuesSchema).Value) -> Value

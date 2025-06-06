@@ -12,33 +12,30 @@ struct EnumSchemaInternallyTaggedTests {
     static let schema: some SchemaCoding.Schema<Self> = {
       let circleCase = SchemaProvider.internallyTaggedEnumCaseSchema(
         values: ((
-          key: PropertyKey.radius, schema: SchemaProvider.schema(representing: Double.self)
-        ),),
-        keyedBy: PropertyKey.self
+          key: "radius" as SchemaCodingKey, schema: SchemaProvider.schema(representing: Double.self)
+        ),)
       )
 
       let rectangleCase = SchemaProvider.internallyTaggedEnumCaseSchema(
         values: (
-          (key: PropertyKey.width, schema: SchemaProvider.schema(representing: Double.self)),
-          (key: PropertyKey.height, schema: SchemaProvider.schema(representing: Double.self))
-        ),
-        keyedBy: PropertyKey.self
+          (key: "width" as SchemaCodingKey, schema: SchemaProvider.schema(representing: Double.self)),
+          (key: "height" as SchemaCodingKey, schema: SchemaProvider.schema(representing: Double.self))
+        )
       )
 
       return SchemaProvider.internallyTaggedEnumSchema(
         representing: Shape.self,
         description: "A geometric shape",
         discriminatorPropertyName: "type",
-        keyedBy: CaseKey.self,
         cases: (
           (
-            key: .circle,
+            key: "circle" as SchemaCodingKey,
             description: "A circular shape",
             schema: circleCase,
             initializer: { @Sendable circle in Shape.circle(radius: circle) }
           ),
           (
-            key: .rectangle,
+            key: "rectangle" as SchemaCodingKey,
             description: "A rectangular shape",
             schema: rectangleCase,
             initializer: { @Sendable rectangle in
@@ -61,12 +58,6 @@ struct EnumSchemaInternallyTaggedTests {
       case circle
       case rectangle
     }
-
-    enum PropertyKey: String, CodingKey {
-      case radius
-      case width
-      case height
-    }
   }
 
   private enum Animal: SchemaCodable, Equatable {
@@ -77,48 +68,44 @@ struct EnumSchemaInternallyTaggedTests {
     static let schema: some SchemaCoding.Schema<Self> = {
       let dogCase = SchemaProvider.internallyTaggedEnumCaseSchema(
         values: (
-          (key: PropertyKey.name, schema: SchemaProvider.schema(representing: String.self)),
-          (key: PropertyKey.breed, schema: SchemaProvider.schema(representing: String.self))
-        ),
-        keyedBy: PropertyKey.self
+          (key: "name" as SchemaCodingKey, schema: SchemaProvider.schema(representing: String.self)),
+          (key: "breed" as SchemaCodingKey, schema: SchemaProvider.schema(representing: String.self))
+        )
       )
 
       let catCase = SchemaProvider.internallyTaggedEnumCaseSchema(
         values: (
-          (key: PropertyKey.name, schema: SchemaProvider.schema(representing: String.self)),
-          (key: PropertyKey.livesRemaining, schema: SchemaProvider.schema(representing: Int.self))
-        ),
-        keyedBy: PropertyKey.self
+          (key: "name" as SchemaCodingKey, schema: SchemaProvider.schema(representing: String.self)),
+          (key: "livesRemaining" as SchemaCodingKey, schema: SchemaProvider.schema(representing: Int.self))
+        )
       )
 
       let birdCase = SchemaProvider.internallyTaggedEnumCaseSchema(
         values: (
-          (key: PropertyKey.species, schema: SchemaProvider.schema(representing: String.self)),
-          (key: PropertyKey.canFly, schema: SchemaProvider.schema(representing: Bool.self))
-        ),
-        keyedBy: PropertyKey.self
+          (key: "species" as SchemaCodingKey, schema: SchemaProvider.schema(representing: String.self)),
+          (key: "canFly" as SchemaCodingKey, schema: SchemaProvider.schema(representing: Bool.self))
+        )
       )
 
       return SchemaProvider.internallyTaggedEnumSchema(
         representing: Animal.self,
         description: "Different types of animals",
         discriminatorPropertyName: "animal",
-        keyedBy: CaseKey.self,
         cases: (
           (
-            key: .dog,
+            key: "dog" as SchemaCodingKey,
             description: "A domestic dog",
             schema: dogCase,
             initializer: { @Sendable dog in Animal.dog(name: dog.0, breed: dog.1) }
           ),
           (
-            key: .cat,
+            key: "cat" as SchemaCodingKey,
             description: "A domestic cat",
             schema: catCase,
             initializer: { @Sendable cat in Animal.cat(name: cat.0, livesRemaining: cat.1) }
           ),
           (
-            key: .bird,
+            key: "bird" as SchemaCodingKey,
             description: "A bird",
             schema: birdCase,
             initializer: { @Sendable bird in Animal.bird(species: bird.0, canFly: bird.1) }
@@ -136,20 +123,6 @@ struct EnumSchemaInternallyTaggedTests {
         }
       )
     }()
-
-    enum CaseKey: String, CodingKey {
-      case dog
-      case cat
-      case bird
-    }
-
-    enum PropertyKey: String, CodingKey {
-      case name
-      case breed
-      case livesRemaining
-      case species
-      case canFly
-    }
   }
 
   @Test

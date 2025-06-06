@@ -23,3 +23,11 @@ extension DeclModifierSyntax {
   }
 
 }
+
+extension TokenSyntax {
+
+  public var identifierOrText: String {
+    identifier?.name ?? text
+  }
+
+}

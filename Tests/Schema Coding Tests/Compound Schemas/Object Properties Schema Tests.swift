@@ -6,27 +6,22 @@ import Testing
 @Suite("Object Properties")
 struct ObjectPropertiesSchemaTests {
 
-  private enum PropertyKey: String, CodingKey {
-    case name
-    case age
-    case isActive
-  }
 
   private let testSchema: some Schema<(String, Int, Bool?)> =
     ObjectPropertiesSchema(
       description: "A user object",
       properties: ObjectPropertySchema(
-        key: PropertyKey.name,
+        key: "name",
         description: "User's name",
         schema: SchemaProvider.schema(representing: String.self)
       ),
       ObjectPropertySchema(
-        key: PropertyKey.age,
+        key: "age",
         description: "User's age",
         schema: SchemaProvider.schema(representing: Int.self)
       ),
       ObjectPropertySchema(
-        key: PropertyKey.isActive,
+        key: "isActive",
         description: "Whether the user is active",
         schema: SchemaProvider.schema(representing: Bool?.self)
       )

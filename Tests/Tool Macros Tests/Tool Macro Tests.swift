@@ -52,34 +52,28 @@ private struct ToolMacroTests {
                 description: #"""
                 A tool with a single action
                 """#,
-                keyedBy: __macro_local_11PropertyKeyfMu_.self,
                 properties: (
                   (
                     description: nil,
                     keyPath: \Self.a,
-                    key: __macro_local_11PropertyKeyfMu_.a,
+                    key: "a" as SchemaCodingKey,
                     schema: SchemaProvider.schema(representing: Int.self)
                   ),
                   (
                     description: nil,
                     keyPath: \Self.b,
-                    key: __macro_local_11PropertyKeyfMu_.b,
+                    key: "b" as SchemaCodingKey,
                     schema: SchemaProvider.schema(representing: String.self)
                   ),
                   (
                     description: nil,
                     keyPath: \Self.c,
-                    key: __macro_local_11PropertyKeyfMu_.c,
+                    key: "c" as SchemaCodingKey,
                     schema: SchemaProvider.schema(representing: Bool.self)
                   )
                 ),
                 initializer: Self.init(structSchemaDecoder:)
               )
-            }
-            private enum __macro_local_11PropertyKeyfMu_: Swift.CodingKey {
-              case a
-              case b
-              case c
             }
             private init(structSchemaDecoder: SchemaProvider.StructSchemaDecoder<Int, String, Bool>) {
               self.a = structSchemaDecoder.propertyValues.0

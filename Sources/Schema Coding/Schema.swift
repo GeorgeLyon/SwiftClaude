@@ -45,6 +45,20 @@ extension Schema where ValueDecodingState == Void {
 
 }
 
+public struct SchemaCodingKey: Sendable, Hashable {
+  internal let stringValue: String
+
+  public init(_ value: StaticString) {
+    self.stringValue = String(describing: value)
+  }
+}
+
+extension SchemaCodingKey: ExpressibleByStringLiteral {
+  public init(stringLiteral value: StaticString) {
+    self.init(value)
+  }
+}
+
 public struct SchemaEncoder: ~Copyable {
 
   init(

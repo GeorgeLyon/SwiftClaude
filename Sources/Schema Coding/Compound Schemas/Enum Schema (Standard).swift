@@ -9,15 +9,13 @@ extension SchemaProvider {
   @_disfavoredOverload
   public static func enumSchema<
     Value,
-    CaseKey: CodingKey,
     each AssociatedValuesSchema: Schema
   >(
     representing _: Value.Type,
     description: String?,
-    keyedBy _: CaseKey.Type,
     cases: (
       repeat (
-        key: CaseKey,
+        key: SchemaCodingKey,
         description: String?,
         associatedValuesSchema: each AssociatedValuesSchema,
         initializer: @Sendable ((each AssociatedValuesSchema).Value) -> Value
@@ -71,37 +69,32 @@ extension SchemaProvider {
 
 extension SchemaProvider {
 
-  public static func enumCaseAssociatedValuesSchema<Key: CodingKey>(
-    values: (),
-    keyedBy: Key.Type
+  public static func enumCaseAssociatedValuesSchema(
+    values: ()
   ) -> some Schema<Void> {
     EnumCaseVoidAssociatedValueSchema()
   }
 
   public static func enumCaseAssociatedValuesSchema<
-    Key: CodingKey,
     ValueSchema: Schema
   >(
     values: (
-      key: Key?,
+      key: SchemaCodingKey?,
       schema: ValueSchema
-    ),
-    keyedBy: Key.Type
+    )
   ) -> some Schema<ValueSchema.Value> {
     values.schema
   }
 
   public static func enumCaseAssociatedValuesSchema<
-    Key: CodingKey,
     each ValueSchema: Schema
   >(
     values: (
       repeat (
-        key: Key,
+        key: SchemaCodingKey,
         schema: each ValueSchema
       )
-    ),
-    keyedBy: Key.Type
+    )
   ) -> some Schema<(repeat (each ValueSchema).Value)> {
     /// Associated values which all have names are represented as an object
     ObjectPropertiesSchema(
@@ -115,16 +108,14 @@ extension SchemaProvider {
   }
 
   public static func enumCaseAssociatedValuesSchema<
-    Key: CodingKey,
     each ValueSchema: Schema
   >(
     values: (
       repeat (
-        key: Key?,
+        key: SchemaCodingKey?,
         schema: each ValueSchema
       )
-    ),
-    keyedBy: Key.Type
+    )
   ) -> some Schema<(repeat (each ValueSchema).Value)> {
     TupleSchema(
       elements: (repeat (
@@ -169,11 +160,10 @@ extension SchemaProvider {
 
 private struct StandardEnumSchema<
   Value,
-  CaseKey: CodingKey,
   each AssociatedValuesSchema: Schema
 >: InternalSchema {
 
-  typealias Cases = (repeat StandardEnumSchemaCase<Value, CaseKey, each AssociatedValuesSchema>)
+  typealias Cases = (repeat StandardEnumSchemaCase<Value, each AssociatedValuesSchema>)
 
   typealias CaseEncoder = @Sendable (
     Value,
@@ -362,7 +352,7 @@ extension StandardEnumSchema {
   ) throws -> JSON.DecodingResult<Value>
 
   struct EnumCaseDecoderProvider {
-    init(cases: repeat StandardEnumSchemaCase<Value, CaseKey, each AssociatedValuesSchema>) {
+    init(cases: repeat StandardEnumSchemaCase<Value, each AssociatedValuesSchema>) {
       var decoders: [Substring: EnumCaseDecoder] = [:]
       var tupleArchetype = VariadicTupleArchetype<AssociatedValueDecodingStates>()
       for enumCase in repeat each cases {
@@ -502,10 +492,9 @@ private enum EnumStyle {
 
 private struct StandardEnumSchemaCase<
   Value,
-  CaseKey: CodingKey,
   AssociatedValuesSchema: Schema
 > {
-  let key: CaseKey
+  let key: SchemaCodingKey
   let description: String?
   let schema: AssociatedValuesSchema
   let initializer: @Sendable (AssociatedValuesSchema.Value) -> Value

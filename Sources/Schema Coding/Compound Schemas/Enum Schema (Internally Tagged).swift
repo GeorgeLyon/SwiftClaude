@@ -4,16 +4,14 @@ extension SchemaProvider {
 
   public static func internallyTaggedEnumSchema<
     Value,
-    CaseKey: CodingKey,
     each AssociatedValuesSchema: Schema
   >(
     representing _: Value.Type,
     description: String?,
     discriminatorPropertyName: String,
-    keyedBy _: CaseKey.Type,
     cases: (
       repeat (
-        key: CaseKey,
+        key: SchemaCodingKey,
         description: String?,
         schema: InternallyTaggedEnumCaseSchema<each AssociatedValuesSchema>,
         initializer: @Sendable ((each AssociatedValuesSchema).Value) -> Value
@@ -39,14 +37,12 @@ extension SchemaProvider {
 
   /// Special overload to work around single-element-tuple weirdness
   public static func internallyTaggedEnumCaseSchema<
-    Key: CodingKey,
     ValueSchema: Schema
   >(
     values: (
-      key: Key,
+      key: SchemaCodingKey,
       schema: ValueSchema
-    ),
-    keyedBy: Key.Type
+    )
   ) -> InternallyTaggedEnumCaseSchema<some Schema<ValueSchema.Value>> {
     InternallyTaggedEnumCaseSchema(
       schema: ObjectPropertiesSchema(
@@ -61,16 +57,14 @@ extension SchemaProvider {
   }
 
   public static func internallyTaggedEnumCaseSchema<
-    Key: CodingKey,
     each ValueSchema: Schema
   >(
     values: (
       repeat (
-        key: Key,
+        key: SchemaCodingKey,
         schema: each ValueSchema
       )
-    ),
-    keyedBy: Key.Type
+    )
   ) -> InternallyTaggedEnumCaseSchema<some Schema<(repeat (each ValueSchema).Value)>> {
     InternallyTaggedEnumCaseSchema(
       schema: ObjectPropertiesSchema(
@@ -102,11 +96,10 @@ extension SchemaProvider {
 
 private struct InternallyTaggedEnumSchema<
   Value,
-  CaseKey: CodingKey,
   each AssociatedValuesSchema: Schema
 >: InternalSchema {
   typealias Cases = (
-    repeat InternallyTaggedEnumSchemaCase<Value, CaseKey, each AssociatedValuesSchema>
+    repeat InternallyTaggedEnumSchemaCase<Value, each AssociatedValuesSchema>
   )
 
   typealias CaseEncoder = @Sendable (
@@ -141,10 +134,9 @@ private struct InternallyTaggedEnumSchema<
 
 private struct InternallyTaggedEnumSchemaCase<
   Value,
-  CaseKey: CodingKey,
   Schema: SchemaCoding.Schema
 > {
-  let key: CaseKey
+  let key: SchemaCodingKey
   let description: String?
   let schema: SchemaProvider.InternallyTaggedEnumCaseSchema<Schema>
   let initializer: @Sendable (Schema.Value) -> Value
@@ -268,7 +260,7 @@ extension InternallyTaggedEnumSchema {
   struct EnumCaseDecoderProvider {
     init(
       discriminatorPropertyName: String,
-      cases: repeat InternallyTaggedEnumSchemaCase<Value, CaseKey, each AssociatedValuesSchema>
+      cases: repeat InternallyTaggedEnumSchemaCase<Value, each AssociatedValuesSchema>
     ) {
       var decoders: [Substring: EnumCaseDecoder] = [:]
       var tupleArchetype = VariadicTupleArchetype<AssociatedValueDecodingStates>()

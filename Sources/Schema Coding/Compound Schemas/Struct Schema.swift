@@ -4,17 +4,15 @@ extension SchemaProvider {
 
   public static func structSchema<
     Value,
-    PropertyKey: CodingKey,
     each PropertySchema: Schema
   >(
     representing _: Value.Type,
     description: String?,
-    keyedBy _: PropertyKey.Type,
     properties: (
       repeat (
         description: String?,
         keyPath: KeyPath<Value, (each PropertySchema).Value> & Sendable,
-        key: PropertyKey,
+        key: SchemaCodingKey,
         schema: (each PropertySchema)
       )
     ),
@@ -52,13 +50,12 @@ extension SchemaProvider {
 
 private struct StructSchema<
   Value,
-  PropertyKey: CodingKey,
   each PropertySchema: Schema
 >: Schema {
 
   let keyPaths: (repeat KeyPath<Value, (each PropertySchema).Value> & Sendable)
 
-  typealias PropertiesSchema = ObjectPropertiesSchema<PropertyKey, repeat each PropertySchema>
+  typealias PropertiesSchema = ObjectPropertiesSchema<repeat each PropertySchema>
   let propertiesSchema: PropertiesSchema
 
   let initializer:

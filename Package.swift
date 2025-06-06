@@ -89,10 +89,7 @@ let package = Package(
       name: "ToolMacros",
       dependencies: [
         "SchemaCodingMacrosSupport",
-        .product(name: "SwiftSyntax", package: "swift-syntax"),
-        .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
         .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
-        .product(name: "SwiftDiagnostics", package: "swift-syntax"),
       ],
       path: "Sources/Tool Macros",
       swiftSettings: .projectDefaults
@@ -101,7 +98,6 @@ let package = Package(
       name: "ToolMacrosTests",
       dependencies: [
         "ToolMacros",
-        .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
         .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
       ],
       path: "Tests/Tool Macros Tests"
@@ -127,31 +123,28 @@ let package = Package(
     .macro(
       name: "SchemaCodingMacros",
       dependencies: [
-        "SchemaCodingMacrosSupport"
+        "SchemaCodingMacrosSupport",
+        .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
       ],
       path: "Sources/Schema Coding Macros",
-      swiftSettings: .projectDefaults
-    ),
-    .target(
-      name: "SchemaCodingMacrosSupport",
-      dependencies: [
-        "MacrosSupport",
-        .product(name: "SwiftSyntax", package: "swift-syntax"),
-        .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
-        .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
-        .product(name: "SwiftDiagnostics", package: "swift-syntax"),
-      ],
-      path: "Sources/Schema Coding Macros Support",
       swiftSettings: .projectDefaults
     ),
     .testTarget(
       name: "SchemaCodingMacrosTests",
       dependencies: [
         "SchemaCodingMacros",
-        .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
         .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
       ],
       path: "Tests/Schema Coding Macros Tests"
+    ),
+
+    .target(
+      name: "SchemaCodingMacrosSupport",
+      dependencies: [
+        "MacrosSupport"
+      ],
+      path: "Sources/Schema Coding Macros Support",
+      swiftSettings: .projectDefaults
     ),
 
     // MARK: - Macros Support

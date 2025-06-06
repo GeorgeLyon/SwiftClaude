@@ -41,12 +41,11 @@ private struct StructMacroTests {
               description: #"""
               A tool input struct
               """#,
-              keyedBy: __macro_local_11PropertyKeyfMu_.self,
               properties: (
                 (
                   description: nil,
                   keyPath: \Self.anInteger,
-                  key: __macro_local_11PropertyKeyfMu_.anInteger,
+                  key: "anInteger" as SchemaCodingKey,
                   schema: SchemaProvider.schema(representing: Int.self)
                 ),
                 (
@@ -54,7 +53,7 @@ private struct StructMacroTests {
                   An (x, y) coordinate
                   """#,
                   keyPath: \Self.aCoordinate,
-                  key: __macro_local_11PropertyKeyfMu_.aCoordinate,
+                  key: "aCoordinate" as SchemaCodingKey,
                   schema: SchemaProvider.schema(representing: (Int, Int).self)
                 ),
                 (
@@ -62,7 +61,7 @@ private struct StructMacroTests {
                   Crazy Declaration
                   """#,
                   keyPath: \Self.c,
-                  key: __macro_local_11PropertyKeyfMu_.c,
+                  key: "c" as SchemaCodingKey,
                   schema: SchemaProvider.schema(representing: String.self)
                 ),
                 (
@@ -70,7 +69,7 @@ private struct StructMacroTests {
                   Crazy Declaration
                   """#,
                   keyPath: \Self.b,
-                  key: __macro_local_11PropertyKeyfMu_.b,
+                  key: "b" as SchemaCodingKey,
                   schema: SchemaProvider.schema(representing: Bool.self)
                 ),
                 (
@@ -78,19 +77,12 @@ private struct StructMacroTests {
                   Crazy Declaration
                   """#,
                   keyPath: \Self.a,
-                  key: __macro_local_11PropertyKeyfMu_.a,
+                  key: "a" as SchemaCodingKey,
                   schema: SchemaProvider.schema(representing: Bool.self)
                 )
               ),
               initializer: Self.init(structSchemaDecoder:)
             )
-          }
-          private enum __macro_local_11PropertyKeyfMu_: Swift.CodingKey {
-            case anInteger
-            case aCoordinate
-            case c
-            case b
-            case a
           }
           private init(structSchemaDecoder: SchemaProvider.StructSchemaDecoder<Int, (Int, Int), String, Bool, Bool>) {
             self.anInteger = structSchemaDecoder.propertyValues.0

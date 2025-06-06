@@ -16,33 +16,28 @@ extension Person {
     SchemaProvider.structSchema(
       representing: Self.self,
       description: "A person object",
-      keyedBy: PropertyKey.self,
       properties: (
         (
           description: nil,
           keyPath: \.name,
-          key: .name,
+          key: "name" as SchemaCodingKey,
           schema: SchemaProvider.schema()
         ),
         (
           description: "The person's age",
           keyPath: \.age,
-          key: .age,
+          key: "age" as SchemaCodingKey,
           schema: SchemaProvider.schema()
         ),
         (
           description: "Whether the person is active",
           keyPath: \.isActive,
-          key: .isActive,
+          key: "isActive" as SchemaCodingKey,
           schema: SchemaProvider.schema()
         )
       ),
       initializer: Self.init(structSchemaDecoder:)
     )
-
-  private enum PropertyKey: CodingKey {
-    case name, age, isActive
-  }
 
   private init(structSchemaDecoder: SchemaProvider.StructSchemaDecoder<String, Int, Bool?>) {
     name = structSchemaDecoder.propertyValues.0
