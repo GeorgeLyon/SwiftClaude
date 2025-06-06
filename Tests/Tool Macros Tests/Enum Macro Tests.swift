@@ -40,66 +40,66 @@ private struct EnumMacroTests {
           case mixedAssociatedValues(Int, b: String, c: Bool)
         }
 
-        extension ToolInputEnum: SchemaCodable {
-          static var toolInputSchema: some Schema<Self> {
-            let associatedValuesSchema_0_0 = ToolInput.enumCaseAssociatedValuesSchema(
+        extension ToolInputEnum: ToolInput.SchemaCodable {
+          static var schema: some Schema<Self> {
+            let associatedValuesSchema_0_0 = SchemaProvider.enumCaseAssociatedValuesSchema(
               values: (
 
               ),
               keyedBy: __macro_local_7CaseKeyfMu_.AssociatedValuesKey.`simple`.self
             )
-            let associatedValuesSchema_1_0 = ToolInput.enumCaseAssociatedValuesSchema(
+            let associatedValuesSchema_1_0 = SchemaProvider.enumCaseAssociatedValuesSchema(
               values: (
                 (
                   key: __macro_local_7CaseKeyfMu_.AssociatedValuesKey.singleAssociatedValue?.none,
-                  schema: Schema(representing: Int.self)
+                  schema: SchemaProvider.schema(representing: Int.self)
                 )
               ),
               keyedBy: __macro_local_7CaseKeyfMu_.AssociatedValuesKey.singleAssociatedValue.self
             )
-            let associatedValuesSchema_2_0 = ToolInput.enumCaseAssociatedValuesSchema(
+            let associatedValuesSchema_2_0 = SchemaProvider.enumCaseAssociatedValuesSchema(
               values: (
                 (
                   key: __macro_local_7CaseKeyfMu_.AssociatedValuesKey.mutlipleUnnamedAssociatedValues?.none,
-                  schema: Schema(representing: Int.self)
+                  schema: SchemaProvider.schema(representing: Int.self)
                 ), (
                   key: __macro_local_7CaseKeyfMu_.AssociatedValuesKey.mutlipleUnnamedAssociatedValues?.none,
-                  schema: Schema(representing: String.self)
+                  schema: SchemaProvider.schema(representing: String.self)
                 )
               ),
               keyedBy: __macro_local_7CaseKeyfMu_.AssociatedValuesKey.mutlipleUnnamedAssociatedValues.self
             )
-            let associatedValuesSchema_3_0 = ToolInput.enumCaseAssociatedValuesSchema(
+            let associatedValuesSchema_3_0 = SchemaProvider.enumCaseAssociatedValuesSchema(
               values: (
                 (
                   key: __macro_local_7CaseKeyfMu_.AssociatedValuesKey.multipleNamedAssociatedValues.a,
-                  schema: Schema(representing: Int.self)
+                  schema: SchemaProvider.schema(representing: Int.self)
                 ), (
                   key: __macro_local_7CaseKeyfMu_.AssociatedValuesKey.multipleNamedAssociatedValues.b,
-                  schema: Schema(representing: String.self)
+                  schema: SchemaProvider.schema(representing: String.self)
                 ), (
                   key: __macro_local_7CaseKeyfMu_.AssociatedValuesKey.multipleNamedAssociatedValues.c,
-                  schema: Schema(representing: Bool.self)
+                  schema: SchemaProvider.schema(representing: Bool.self)
                 )
               ),
               keyedBy: __macro_local_7CaseKeyfMu_.AssociatedValuesKey.multipleNamedAssociatedValues.self
             )
-            let associatedValuesSchema_4_0 = ToolInput.enumCaseAssociatedValuesSchema(
+            let associatedValuesSchema_4_0 = SchemaProvider.enumCaseAssociatedValuesSchema(
               values: (
                 (
                   key: __macro_local_7CaseKeyfMu_.AssociatedValuesKey.mixedAssociatedValues?.none,
-                  schema: Schema(representing: Int.self)
+                  schema: SchemaProvider.schema(representing: Int.self)
                 ), (
                   key: __macro_local_7CaseKeyfMu_.AssociatedValuesKey.mixedAssociatedValues.b,
-                  schema: Schema(representing: String.self)
+                  schema: SchemaProvider.schema(representing: String.self)
                 ), (
                   key: __macro_local_7CaseKeyfMu_.AssociatedValuesKey.mixedAssociatedValues.c,
-                  schema: Schema(representing: Bool.self)
+                  schema: SchemaProvider.schema(representing: Bool.self)
                 )
               ),
               keyedBy: __macro_local_7CaseKeyfMu_.AssociatedValuesKey.mixedAssociatedValues.self
             )
-            return ToolInput.enumSchema(
+            return SchemaProvider.enumSchema(
               representing: Self.self,
               description: nil,
               keyedBy: __macro_local_7CaseKeyfMu_.self,

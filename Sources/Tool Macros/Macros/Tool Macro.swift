@@ -277,7 +277,7 @@ extension DeclGroupSyntax {
                       label: "inputSchema",
                       expression: MemberAccessExprSyntax(
                         base: DeclReferenceExprSyntax(baseName: "Input"),
-                        name: "toolInputSchema"
+                        name: "schema"
                       )
                     )
                   },

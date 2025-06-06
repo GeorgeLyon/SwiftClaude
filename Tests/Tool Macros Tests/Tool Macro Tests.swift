@@ -33,7 +33,7 @@ private struct ToolMacroTests {
               description: #"""
               A tool with a single action
               """#,
-              inputSchema: Input.toolInputSchema
+              inputSchema: Input.schema
             )
           }
           func invoke(with input: Input, isolation: isolated Actor) async {
@@ -42,12 +42,12 @@ private struct ToolMacroTests {
               isolation: #isolation
             )
           }
-          struct Input: SchemaCodable {
+          struct Input: ToolInput.SchemaCodable {
             private let a: Int
             private let b: String
             private let c: Bool
-            static var toolInputSchema: some Schema<Self> {
-              ToolInput.structSchema(
+            static var schema: some Schema<Self> {
+              SchemaProvider.structSchema(
                 representing: Self.self,
                 description: #"""
                 A tool with a single action
@@ -58,19 +58,19 @@ private struct ToolMacroTests {
                     description: nil,
                     keyPath: \Self.a,
                     key: __macro_local_11PropertyKeyfMu_.a,
-                    schema: Schema(representing: Int.self)
+                    schema: SchemaProvider.schema(representing: Int.self)
                   ),
                   (
                     description: nil,
                     keyPath: \Self.b,
                     key: __macro_local_11PropertyKeyfMu_.b,
-                    schema: Schema(representing: String.self)
+                    schema: SchemaProvider.schema(representing: String.self)
                   ),
                   (
                     description: nil,
                     keyPath: \Self.c,
                     key: __macro_local_11PropertyKeyfMu_.c,
-                    schema: Schema(representing: Bool.self)
+                    schema: SchemaProvider.schema(representing: Bool.self)
                   )
                 ),
                 initializer: Self.init(structSchemaDecoder:)
@@ -81,7 +81,7 @@ private struct ToolMacroTests {
               case b
               case c
             }
-            private init(structSchemaDecoder: ToolInput.StructSchemaDecoder<Int, String, Bool>) {
+            private init(structSchemaDecoder: SchemaProvider.StructSchemaDecoder<Int, String, Bool>) {
               self.a = structSchemaDecoder.propertyValues.0
               self.b = structSchemaDecoder.propertyValues.1
               self.c = structSchemaDecoder.propertyValues.2

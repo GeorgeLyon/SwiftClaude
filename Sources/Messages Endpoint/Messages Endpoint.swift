@@ -1,6 +1,6 @@
 public import ClaudeClient
-public import Tool
 import JSONSupport
+public import Tool
 
 public typealias MessagesEndpoint = ClaudeClient.MessagesEndpoint
 
