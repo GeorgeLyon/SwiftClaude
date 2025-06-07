@@ -3,7 +3,7 @@ import Testing
 
 @testable import SchemaCoding
 
-@Suite("Schema Codable Enum")
+@Suite("@SchemaCodable Enum")
 struct SchemaCodableEnumTests {
 
   /// A enum with multiple cases

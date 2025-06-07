@@ -3,8 +3,8 @@ import Testing
 
 @testable import JSONSupport
 
-@Suite
-private struct EncodingTests {
+@Suite("Encoding")
+struct EncodingTests {
 
   // MARK: - Primitive Encoding Tests
 

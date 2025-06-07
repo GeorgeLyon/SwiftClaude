@@ -3,8 +3,8 @@ import Testing
 
 @testable import Tool
 
-@Suite("Enum Tool Input")
-struct EnumToolInputTests {
+@Suite("@ToolInput Enum")
+struct ToolInputEnumTests {
 
   /// A enum with multiple cases
   @ToolInput

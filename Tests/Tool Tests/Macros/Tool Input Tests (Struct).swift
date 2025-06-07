@@ -21,8 +21,8 @@ private struct SinglePropertyStruct {
   let property: String
 }
 
-@Suite("Struct Tool Input")
-struct StructToolInputTests {
+@Suite("@ToolInput Struct")
+struct ToolInputStructTests {
 
   @Test
   private func testSchemaEncoding() throws {

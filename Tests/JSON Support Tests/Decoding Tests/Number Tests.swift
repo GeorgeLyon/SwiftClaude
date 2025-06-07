@@ -3,8 +3,8 @@ import Testing
 
 @testable import JSONSupport
 
-@Suite("Number Tests")
-private struct NumberTests {
+@Suite("Number")
+struct NumberTests {
 
   @Test
   func basicIntegerTest() async throws {

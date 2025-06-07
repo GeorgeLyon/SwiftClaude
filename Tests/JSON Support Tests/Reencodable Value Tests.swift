@@ -3,8 +3,8 @@ import Testing
 
 @testable import JSONSupport
 
-@Suite("Reencodable Value Tests")
-private struct ReencodableValueTests {
+@Suite("Reencodable Value")
+struct ReencodableValueTests {
 
   @Test
   func basicReencodableValuesTest() async throws {

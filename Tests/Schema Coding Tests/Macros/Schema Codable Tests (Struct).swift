@@ -21,8 +21,8 @@ private struct SinglePropertyStruct {
   let property: String
 }
 
-@Suite("Schema Codable Struct Tests")
-struct StructSchemaCodableTests {
+@Suite("@SchemaCodable Struct")
+struct SchemaCodableStructTests {
 
   @Test
   private func testSchemaEncoding() throws {

@@ -10,8 +10,8 @@ import Testing
     func invoke(_ a: Int, b: String, `c`: Bool) {}
   }
 
-  @Suite("Tool")
-  struct ToolTest {
+  @Suite("@Tool")
+  struct ToolTests {
 
     @Tool
     struct MyTool {

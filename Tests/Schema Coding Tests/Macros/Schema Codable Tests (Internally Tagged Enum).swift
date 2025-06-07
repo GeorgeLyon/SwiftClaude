@@ -3,8 +3,8 @@ import Testing
 
 @testable import SchemaCoding
 
-@Suite("Schema Codable Internally Tagged Enum Macro Tests")
-private struct SchemaCodableInternallyTaggedEnumMacroTests {
+@Suite("Schema Codable Internally Tagged Enum Macro")
+struct SchemaCodableInternallyTaggedEnumMacroTests {
 
   // MARK: - Shape Tests
 
