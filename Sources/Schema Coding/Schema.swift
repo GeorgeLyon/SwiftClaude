@@ -91,7 +91,7 @@ public enum SchemaSupport {
 )
 public macro SchemaCodable() =
   #externalMacro(
-    module: "SchemaCodingMacros",
+    module: "Macros",
     type: "SchemaCodableMacro"
   )
 
@@ -102,8 +102,8 @@ public macro SchemaCodable() =
 )
 public macro SchemaCodable(discriminatorPropertyName: String) =
   #externalMacro(
-    module: "SchemaCodingMacros",
-    type: "SchemaCodableMacro"
+    module: "Macros",
+    type: "InternallyTaggedEnumSchemaCodableMacro"
   )
 
 // MARK: - Internal API

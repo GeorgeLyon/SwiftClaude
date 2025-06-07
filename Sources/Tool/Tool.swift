@@ -82,7 +82,7 @@ public enum ToolInput {
 )
 public macro Tool() =
   #externalMacro(
-    module: "ToolMacros",
+    module: "Macros",
     type: "ToolMacro"
   )
 
@@ -93,6 +93,6 @@ public macro Tool() =
 )
 public macro ToolInput() =
   #externalMacro(
-    module: "ToolMacros",
+    module: "Macros",
     type: "ToolInputMacro"
   )

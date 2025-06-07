@@ -1,5 +1,3 @@
-import MacrosSupport
-import SchemaCodingMacrosSupport
 import SwiftDiagnostics
 public import SwiftSyntax
 import SwiftSyntaxBuilder

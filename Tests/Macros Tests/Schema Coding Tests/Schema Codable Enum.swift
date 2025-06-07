@@ -4,7 +4,7 @@ import SwiftSyntaxMacros
 import SwiftSyntaxMacrosGenericTestSupport
 import Testing
 
-@testable import SchemaCodingMacros
+@testable import Macros
 
 @Suite("@SchemaCodable Enum")
 private struct EnumMacroTests {

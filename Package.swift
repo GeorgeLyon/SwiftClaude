@@ -74,8 +74,8 @@ let package = Package(
     .target(
       name: "Tool",
       dependencies: [
-        "ToolMacros",
-        "JSONSupport",
+        "Macros",
+        "SchemaCoding",
       ],
       swiftSettings: .projectDefaults,
     ),
@@ -85,31 +85,13 @@ let package = Package(
       path: "Tests/Tool Tests"
     ),
 
-    .macro(
-      name: "ToolMacros",
-      dependencies: [
-        "SchemaCodingMacrosSupport",
-        .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
-      ],
-      path: "Sources/Tool Macros",
-      swiftSettings: .projectDefaults
-    ),
-    .testTarget(
-      name: "ToolMacrosTests",
-      dependencies: [
-        "ToolMacros",
-        .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
-      ],
-      path: "Tests/Tool Macros Tests"
-    ),
-
     // MARK: - Schema Coding
 
     .target(
       name: "SchemaCoding",
       dependencies: [
         "JSONSupport",
-        "SchemaCodingMacros",
+        "Macros",
       ],
       path: "Sources/Schema Coding",
       swiftSettings: .projectDefaults
@@ -120,45 +102,28 @@ let package = Package(
       path: "Tests/Schema Coding Tests"
     ),
 
-    .macro(
-      name: "SchemaCodingMacros",
-      dependencies: [
-        "SchemaCodingMacrosSupport",
-        .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
-      ],
-      path: "Sources/Schema Coding Macros",
-      swiftSettings: .projectDefaults
-    ),
-    .testTarget(
-      name: "SchemaCodingMacrosTests",
-      dependencies: [
-        "SchemaCodingMacros",
-        .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
-      ],
-      path: "Tests/Schema Coding Macros Tests"
-    ),
-
-    .target(
-      name: "SchemaCodingMacrosSupport",
-      dependencies: [
-        "MacrosSupport"
-      ],
-      path: "Sources/Schema Coding Macros Support",
-      swiftSettings: .projectDefaults
-    ),
-
     // MARK: - Macros Support
 
-    .target(
-      name: "MacrosSupport",
+    /// Splitting macros into libraries causes a linker issue on macOS, so we put everything in one target
+    .macro(
+      name: "Macros",
       dependencies: [
         .product(name: "SwiftDiagnostics", package: "swift-syntax"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
         .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
         .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+        .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
       ],
-      path: "Sources/Macros Support",
+      path: "Sources/Macros",
       swiftSettings: .projectDefaults
+    ),
+    .testTarget(
+      name: "MacrosTests",
+      dependencies: [
+        "Macros",
+        .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
+      ],
+      path: "Tests/Macros Tests"
     ),
 
     // MARK: - JSON Support

@@ -4,7 +4,7 @@ import SwiftSyntaxMacros
 import SwiftSyntaxMacrosGenericTestSupport
 import Testing
 
-@testable import ToolMacros
+@testable import Macros
 
 @Suite("@ToolInput Enum")
 private struct EnumMacroTests {
