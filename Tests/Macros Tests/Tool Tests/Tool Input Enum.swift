@@ -7,7 +7,7 @@ import Testing
 @testable import Macros
 
 @Suite("@ToolInput Enum")
-private struct EnumMacroTests {
+private struct ToolInputEnumTests {
 
   @Test
   func testEnumMacro() {

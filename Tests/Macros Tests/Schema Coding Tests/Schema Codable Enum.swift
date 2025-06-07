@@ -7,7 +7,7 @@ import Testing
 @testable import Macros
 
 @Suite("@SchemaCodable Enum")
-private struct EnumMacroTests {
+private struct SchemaCodableEnumMacroTests {
 
   @Test
   func testEnumMacro() {

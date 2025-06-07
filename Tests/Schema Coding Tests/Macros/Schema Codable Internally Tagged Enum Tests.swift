@@ -24,59 +24,56 @@ private struct SchemaCodableInternallyTaggedEnumMacroTests {
     #expect(
       schema.schemaJSON == """
         {
-          "description" : "A shape with associated values",
-          "oneOf" : [
+          "description": "A shape with associated values",
+          "oneOf": [
             {
-              "description" : "A circle with a radius",
-              "properties" : {
-                "radius" : {
-                  "type" : "number"
+              "description": "A circle with a radius",
+              "properties": {
+                "type": {
+                  "const": "circle"
                 },
-                "type" : {
-                  "const" : "circle"
+                "radius": {
+                  "type": "number"
                 }
               },
-              "required" : [
+              "required": [
                 "type",
                 "radius"
-              ],
-              "type" : "object"
+              ]
             },
             {
-              "description" : "A rectangle with width and height",
-              "properties" : {
-                "height" : {
-                  "type" : "number"
+              "description": "A rectangle with width and height",
+              "properties": {
+                "type": {
+                  "const": "rectangle"
                 },
-                "type" : {
-                  "const" : "rectangle"
+                "width": {
+                  "type": "number"
                 },
-                "width" : {
-                  "type" : "number"
+                "height": {
+                  "type": "number"
                 }
               },
-              "required" : [
+              "required": [
                 "type",
                 "width",
                 "height"
-              ],
-              "type" : "object"
+              ]
             },
             {
-              "description" : "A square with a side length",
-              "properties" : {
-                "side" : {
-                  "type" : "number"
+              "description": "A square with a side length",
+              "properties": {
+                "type": {
+                  "const": "square"
                 },
-                "type" : {
-                  "const" : "square"
+                "side": {
+                  "type": "number"
                 }
               },
-              "required" : [
+              "required": [
                 "type",
                 "side"
-              ],
-              "type" : "object"
+              ]
             }
           ]
         }
@@ -90,25 +87,25 @@ private struct SchemaCodableInternallyTaggedEnumMacroTests {
     #expect(
       schema.encodedJSON(for: .circle(radius: 5.0)) == """
         {
-          "radius" : 5,
-          "type" : "circle"
+          "type": "circle",
+          "radius": 5.0
         }
         """)
 
     #expect(
       schema.encodedJSON(for: .rectangle(width: 10.0, height: 20.0)) == """
         {
-          "height" : 20,
-          "type" : "rectangle",
-          "width" : 10
+          "type": "rectangle",
+          "width": 10.0,
+          "height": 20.0
         }
         """)
 
     #expect(
       schema.encodedJSON(for: .square(side: 15.0)) == """
         {
-          "side" : 15,
-          "type" : "square"
+          "type": "square",
+          "side": 15.0
         }
         """)
   }
@@ -165,63 +162,60 @@ private struct SchemaCodableInternallyTaggedEnumMacroTests {
     #expect(
       schema.schemaJSON == """
         {
-          "description" : "An animal with different properties",
-          "oneOf" : [
+          "description": "An animal with different properties",
+          "oneOf": [
             {
-              "description" : "A dog with a name and favorite toy",
-              "properties" : {
-                "favoriteToy" : {
-                  "type" : "string"
+              "description": "A dog with a name and favorite toy",
+              "properties": {
+                "type": {
+                  "const": "dog"
                 },
-                "name" : {
-                  "type" : "string"
+                "name": {
+                  "type": "string"
                 },
-                "type" : {
-                  "const" : "dog"
+                "favoriteToy": {
+                  "type": "string"
                 }
               },
-              "required" : [
+              "required": [
                 "type",
                 "name",
                 "favoriteToy"
-              ],
-              "type" : "object"
+              ]
             },
             {
-              "description" : "A cat with a name and number of lives",
-              "properties" : {
-                "lives" : {
-                  "type" : "integer"
+              "description": "A cat with a name and number of lives",
+              "properties": {
+                "type": {
+                  "const": "cat"
                 },
-                "name" : {
-                  "type" : "string"
+                "name": {
+                  "type": "string"
                 },
-                "type" : {
-                  "const" : "cat"
+                "lives": {
+                  "type": "integer"
                 }
               },
-              "required" : [
+              "required": [
                 "type",
                 "name",
                 "lives"
-              ],
-              "type" : "object"
+              ]
             },
             {
-              "description" : "A bird that can fly",
-              "properties" : {
-                "canFly" : {
-                  "type" : "boolean"
+              "description": "A bird that can fly",
+              "properties": {
+                "type": {
+                  "const": "bird"
                 },
-                "type" : {
-                  "const" : "bird"
+                "canFly": {
+                  "type": "boolean"
                 }
               },
-              "required" : [
+              "required": [
                 "type",
                 "canFly"
-              ],
-              "type" : "object"
+              ]
             }
           ]
         }
@@ -235,26 +229,26 @@ private struct SchemaCodableInternallyTaggedEnumMacroTests {
     #expect(
       schema.encodedJSON(for: .dog(name: "Buddy", favoriteToy: "Tennis Ball")) == """
         {
-          "favoriteToy" : "Tennis Ball",
-          "name" : "Buddy",
-          "type" : "dog"
+          "type": "dog",
+          "name": "Buddy",
+          "favoriteToy": "Tennis Ball"
         }
         """)
 
     #expect(
       schema.encodedJSON(for: .cat(name: "Whiskers", lives: 9)) == """
         {
-          "lives" : 9,
-          "name" : "Whiskers",
-          "type" : "cat"
+          "type": "cat",
+          "name": "Whiskers",
+          "lives": 9
         }
         """)
 
     #expect(
       schema.encodedJSON(for: .bird(canFly: true)) == """
         {
-          "canFly" : true,
-          "type" : "bird"
+          "type": "bird",
+          "canFly": true
         }
         """)
   }
@@ -312,71 +306,68 @@ private struct SchemaCodableInternallyTaggedEnumMacroTests {
     #expect(
       schema.schemaJSON == """
         {
-          "description" : "A payment method for transactions",
-          "oneOf" : [
+          "description": "A payment method for transactions",
+          "oneOf": [
             {
-              "description" : "Credit card payment",
-              "properties" : {
-                "cvv" : {
-                  "type" : "string"
+              "description": "Credit card payment",
+              "properties": {
+                "type": {
+                  "const": "creditCard"
                 },
-                "expiryMonth" : {
-                  "type" : "integer"
+                "number": {
+                  "type": "string"
                 },
-                "expiryYear" : {
-                  "type" : "integer"
+                "cvv": {
+                  "type": "string"
                 },
-                "number" : {
-                  "type" : "string"
+                "expiryMonth": {
+                  "type": "integer"
                 },
-                "type" : {
-                  "const" : "creditCard"
+                "expiryYear": {
+                  "type": "integer"
                 }
               },
-              "required" : [
+              "required": [
                 "type",
                 "number",
                 "cvv",
                 "expiryMonth",
                 "expiryYear"
-              ],
-              "type" : "object"
+              ]
             },
             {
-              "description" : "Bank transfer payment",
-              "properties" : {
-                "accountNumber" : {
-                  "type" : "string"
+              "description": "Bank transfer payment",
+              "properties": {
+                "type": {
+                  "const": "bankTransfer"
                 },
-                "routingNumber" : {
-                  "type" : "string"
+                "accountNumber": {
+                  "type": "string"
                 },
-                "type" : {
-                  "const" : "bankTransfer"
+                "routingNumber": {
+                  "type": "string"
                 }
               },
-              "required" : [
+              "required": [
                 "type",
                 "accountNumber",
                 "routingNumber"
-              ],
-              "type" : "object"
+              ]
             },
             {
-              "description" : "Digital wallet payment",
-              "properties" : {
-                "type" : {
-                  "const" : "digitalWallet"
+              "description": "Digital wallet payment",
+              "properties": {
+                "type": {
+                  "const": "digitalWallet"
                 },
-                "walletId" : {
-                  "type" : "string"
+                "walletId": {
+                  "type": "string"
                 }
               },
-              "required" : [
+              "required": [
                 "type",
                 "walletId"
-              ],
-              "type" : "object"
+              ]
             }
           ]
         }
@@ -392,11 +383,11 @@ private struct SchemaCodableInternallyTaggedEnumMacroTests {
         for: .creditCard(number: "4111111111111111", cvv: "123", expiryMonth: 12, expiryYear: 2025))
           == """
           {
-            "cvv" : "123",
-            "expiryMonth" : 12,
-            "expiryYear" : 2025,
-            "number" : "4111111111111111",
-            "type" : "creditCard"
+            "type": "creditCard",
+            "number": "4111111111111111",
+            "cvv": "123",
+            "expiryMonth": 12,
+            "expiryYear": 2025
           }
           """)
 
@@ -404,17 +395,17 @@ private struct SchemaCodableInternallyTaggedEnumMacroTests {
       schema.encodedJSON(for: .bankTransfer(accountNumber: "123456789", routingNumber: "987654321"))
         == """
         {
-          "accountNumber" : "123456789",
-          "routingNumber" : "987654321",
-          "type" : "bankTransfer"
+          "type": "bankTransfer",
+          "accountNumber": "123456789",
+          "routingNumber": "987654321"
         }
         """)
 
     #expect(
       schema.encodedJSON(for: .digitalWallet(walletId: "wallet_abc123")) == """
         {
-          "type" : "digitalWallet",
-          "walletId" : "wallet_abc123"
+          "type": "digitalWallet",
+          "walletId": "wallet_abc123"
         }
         """)
   }
