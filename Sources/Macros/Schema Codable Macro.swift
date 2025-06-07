@@ -48,7 +48,7 @@ struct InternallyTaggedEnumSchemaCodableMacro: ExtensionMacro {
         case .argumentList(let arguments)? = node.arguments,
         let argument = arguments.first(
           where: {
-            $0.label == "discriminatorPropertyName"
+            $0.label?.identifier?.name == "discriminatorPropertyName"
           }
         ),
         let literal = argument.expression.as(StringLiteralExprSyntax.self)
