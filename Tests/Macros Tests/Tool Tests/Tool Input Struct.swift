@@ -24,7 +24,7 @@ private struct StructMacroTests {
         let a, b: Bool, c: String
       }
       """,
-      expandedSource: ##"""
+      expandedSource: #####"""
         /// A tool input struct
         struct ToolInputStruct {
           let anInteger: Int
@@ -38,9 +38,9 @@ private struct StructMacroTests {
           static var schema: some ToolInput.Schema<Self> {
             ToolInput.SchemaSupport.structSchema(
               representing: Self.self,
-              description: #"""
+              description: ####"""
               A tool input struct
-              """#,
+              """####,
               properties: (
                 (
                   description: nil,
@@ -49,33 +49,33 @@ private struct StructMacroTests {
                   schema: ToolInput.SchemaSupport.schema(representing: Int.self)
                 ),
                 (
-                  description: #"""
+                  description: ####"""
                   An (x, y) coordinate
-                  """#,
+                  """####,
                   keyPath: \Self.aCoordinate,
                   key: "aCoordinate" as ToolInput.SchemaSupport.SchemaCodingKey,
                   schema: ToolInput.SchemaSupport.schema(representing: (Int, Int).self)
                 ),
                 (
-                  description: #"""
+                  description: ####"""
                   Crazy Declaration
-                  """#,
+                  """####,
                   keyPath: \Self.c,
                   key: "c" as ToolInput.SchemaSupport.SchemaCodingKey,
                   schema: ToolInput.SchemaSupport.schema(representing: String.self)
                 ),
                 (
-                  description: #"""
+                  description: ####"""
                   Crazy Declaration
-                  """#,
+                  """####,
                   keyPath: \Self.b,
                   key: "b" as ToolInput.SchemaSupport.SchemaCodingKey,
                   schema: ToolInput.SchemaSupport.schema(representing: Bool.self)
                 ),
                 (
-                  description: #"""
+                  description: ####"""
                   Crazy Declaration
-                  """#,
+                  """####,
                   keyPath: \Self.a,
                   key: "a" as ToolInput.SchemaSupport.SchemaCodingKey,
                   schema: ToolInput.SchemaSupport.schema(representing: Bool.self)
@@ -92,7 +92,7 @@ private struct StructMacroTests {
             self.a = structSchemaDecoder.propertyValues.4
           }
         }
-        """##,
+        """#####,
       macroSpecs: macroSpecs,
       indentationWidth: .spaces(2),
       failureHandler: {

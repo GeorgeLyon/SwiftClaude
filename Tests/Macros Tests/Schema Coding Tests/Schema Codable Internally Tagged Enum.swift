@@ -24,7 +24,7 @@ private struct InternallyTaggedEnumMacroTests {
         case square(side: Double)
       }
       """,
-      expandedSource: ##"""
+      expandedSource: #####"""
         enum Shape {
           /// A circle with a radius
           case circle(radius: Double)
@@ -34,65 +34,65 @@ private struct InternallyTaggedEnumMacroTests {
           case square(side: Double)
         }
 
-        extension Shape: SchemaSupport.SchemaCodable {
-          static var schema: some SchemaSupport.Schema<Self> {
-            let associatedValuesSchema_0_0 = SchemaSupport.internallyTaggedEnumCaseSchema(
+        extension Shape: SchemaCoding.SchemaCodable {
+          static var schema: some SchemaCoding.Schema<Self> {
+            let associatedValuesSchema_0_0 = SchemaCoding.SchemaSupport.internallyTaggedEnumCaseSchema(
               values: (
                 (
-                  key: "radius" as SchemaSupport.SchemaCodingKey,
-                  schema: SchemaSupport.schema(representing: Double.self)
-                ),
-              )
-            )
-            let associatedValuesSchema_1_0 = SchemaSupport.internallyTaggedEnumCaseSchema(
-              values: (
-                (
-                  key: "width" as SchemaSupport.SchemaCodingKey,
-                  schema: SchemaSupport.schema(representing: Double.self)
-                ), (
-                  key: "height" as SchemaSupport.SchemaCodingKey,
-                  schema: SchemaSupport.schema(representing: Double.self)
+                  key: "radius" as SchemaCoding.SchemaSupport.SchemaCodingKey,
+                  schema: SchemaCoding.SchemaSupport.schema(representing: Double.self)
                 )
               )
             )
-            let associatedValuesSchema_2_0 = SchemaSupport.internallyTaggedEnumCaseSchema(
+            let associatedValuesSchema_1_0 = SchemaCoding.SchemaSupport.internallyTaggedEnumCaseSchema(
               values: (
                 (
-                  key: "side" as SchemaSupport.SchemaCodingKey,
-                  schema: SchemaSupport.schema(representing: Double.self)
-                ),
+                  key: "width" as SchemaCoding.SchemaSupport.SchemaCodingKey,
+                  schema: SchemaCoding.SchemaSupport.schema(representing: Double.self)
+                ), (
+                  key: "height" as SchemaCoding.SchemaSupport.SchemaCodingKey,
+                  schema: SchemaCoding.SchemaSupport.schema(representing: Double.self)
+                )
               )
             )
-            return SchemaSupport.internallyTaggedEnumSchema(
+            let associatedValuesSchema_2_0 = SchemaCoding.SchemaSupport.internallyTaggedEnumCaseSchema(
+              values: (
+                (
+                  key: "side" as SchemaCoding.SchemaSupport.SchemaCodingKey,
+                  schema: SchemaCoding.SchemaSupport.schema(representing: Double.self)
+                )
+              )
+            )
+            return SchemaCoding.SchemaSupport.internallyTaggedEnumSchema(
               representing: Self.self,
               description: nil,
               discriminatorPropertyName: "type",
               cases: (
                 (
-                  key: "circle" as SchemaSupport.SchemaCodingKey,
-                  description: #"""
+                  key: "circle" as SchemaCoding.SchemaSupport.SchemaCodingKey,
+                  description: ####"""
                   A circle with a radius
-                  """#,
+                  """####,
                   schema: associatedValuesSchema_0_0,
                   initializer: { @Sendable values in
                     .circle(radius: values.0)
                   }
                 ),
                 (
-                  key: "rectangle" as SchemaSupport.SchemaCodingKey,
-                  description: #"""
+                  key: "rectangle" as SchemaCoding.SchemaSupport.SchemaCodingKey,
+                  description: ####"""
                   A rectangle with width and height
-                  """#,
+                  """####,
                   schema: associatedValuesSchema_1_0,
                   initializer: { @Sendable values in
                     .rectangle(width: values.0, height: values.1)
                   }
                 ),
                 (
-                  key: "square" as SchemaSupport.SchemaCodingKey,
-                  description: #"""
+                  key: "square" as SchemaCoding.SchemaSupport.SchemaCodingKey,
+                  description: ####"""
                   A square with a side length
-                  """#,
+                  """####,
                   schema: associatedValuesSchema_2_0,
                   initializer: { @Sendable values in
                     .square(side: values.0)
@@ -112,7 +112,7 @@ private struct InternallyTaggedEnumMacroTests {
             )
           }
         }
-        """##,
+        """#####,
       macroSpecs: macroSpecs,
       indentationWidth: .spaces(2),
       failureHandler: {
@@ -146,7 +146,7 @@ private struct InternallyTaggedEnumMacroTests {
         case fish
       }
       """,
-      expandedSource: ##"""
+      expandedSource: #####"""
         enum Animal {
           /// A dog with a name and favorite toy
           case dog(name: String, favoriteToy: String)
@@ -202,9 +202,9 @@ private struct InternallyTaggedEnumMacroTests {
               cases: (
                 (
                   key: "dog" as SchemaSupport.SchemaCodingKey,
-                  description: #"""
+                  description: ####"""
                   A dog with a name and favorite toy
-                  """#,
+                  """####,
                   schema: associatedValuesSchema_0_0,
                   initializer: { @Sendable values in
                     .dog(name: values.0, favoriteToy: values.1)
@@ -212,9 +212,9 @@ private struct InternallyTaggedEnumMacroTests {
                 ),
                 (
                   key: "cat" as SchemaSupport.SchemaCodingKey,
-                  description: #"""
+                  description: ####"""
                   A cat with a name and number of lives
-                  """#,
+                  """####,
                   schema: associatedValuesSchema_1_0,
                   initializer: { @Sendable values in
                     .cat(name: values.0, lives: values.1)
@@ -222,9 +222,9 @@ private struct InternallyTaggedEnumMacroTests {
                 ),
                 (
                   key: "bird" as SchemaSupport.SchemaCodingKey,
-                  description: #"""
+                  description: ####"""
                   A bird that can fly
-                  """#,
+                  """####,
                   schema: associatedValuesSchema_2_0,
                   initializer: { @Sendable values in
                     .bird(canFly: values.0)
@@ -232,9 +232,9 @@ private struct InternallyTaggedEnumMacroTests {
                 ),
                 (
                   key: "fish" as SchemaSupport.SchemaCodingKey,
-                  description: #"""
+                  description: ####"""
                   A fish with no properties
-                  """#,
+                  """####,
                   schema: associatedValuesSchema_3_0,
                   initializer: { @Sendable values in
                     .fish
@@ -256,7 +256,7 @@ private struct InternallyTaggedEnumMacroTests {
             )
           }
         }
-        """##,
+        """#####,
       macroSpecs: macroSpecs,
       indentationWidth: .spaces(2),
       failureHandler: {
@@ -285,7 +285,7 @@ private struct InternallyTaggedEnumMacroTests {
         case delete(String, Bool)
       }
       """,
-      expandedSource: ##"""
+      expandedSource: #####"""
         enum Request {
           case get(String)
           case post(String, Data)
@@ -367,7 +367,7 @@ private struct InternallyTaggedEnumMacroTests {
             )
           }
         }
-        """##,
+        """#####,
       macroSpecs: macroSpecs,
       indentationWidth: .spaces(2),
       failureHandler: {

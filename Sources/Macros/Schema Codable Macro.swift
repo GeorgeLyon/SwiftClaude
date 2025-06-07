@@ -64,9 +64,9 @@ struct InternallyTaggedEnumSchemaCodableMacro: ExtensionMacro {
         .schemaCodableConformance(
           for: declaration,
           of: type,
-          schemaCodingNamespace: "SchemaSupport",
+          schemaCodingNamespace: "SchemaCoding",
           members: enumDecl.schemaCodableMembers(
-            schemaCodingNamespace: "SchemaSupport",
+            schemaCodingNamespace: "SchemaCoding",
             enumSchemaFunctionName: "internallyTaggedEnumSchema",
             enumAssociatedValueSchemaFunctionName: "internallyTaggedEnumCaseSchema",
             discriminatorPropertyName: literal,

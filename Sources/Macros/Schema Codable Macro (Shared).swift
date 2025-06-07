@@ -91,7 +91,7 @@ extension StructDeclSyntax {
       for: try storedProperties,
       schemaCodingNamespace: schemaCodingNamespace,
       isPublic: modifiers.contains(where: \.isPublic),
-      description: description,
+      description: comment,
       in: context
     )
   }

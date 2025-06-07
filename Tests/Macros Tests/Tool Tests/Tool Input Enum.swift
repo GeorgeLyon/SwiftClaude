@@ -27,7 +27,7 @@ private struct EnumMacroTests {
         case mixedAssociatedValues(Int, b: String, c: Bool)
       }
       """,
-      expandedSource: ##"""
+      expandedSource: #####"""
         enum ToolInputEnum {
           case `simple`
           /// A case with a single associated value
@@ -108,9 +108,9 @@ private struct EnumMacroTests {
                 ),
                 (
                   key: "singleAssociatedValue" as ToolInput.SchemaSupport.SchemaCodingKey,
-                  description: #"""
+                  description: ####"""
                   A case with a single associated value
-                  """#,
+                  """####,
                   associatedValuesSchema: associatedValuesSchema_1_0,
                   initializer: { @Sendable values in
                     .singleAssociatedValue(values)
@@ -118,9 +118,9 @@ private struct EnumMacroTests {
                 ),
                 (
                   key: "mutlipleUnnamedAssociatedValues" as ToolInput.SchemaSupport.SchemaCodingKey,
-                  description: #"""
+                  description: ####"""
                   Multiple associated values without a name
-                  """#,
+                  """####,
                   associatedValuesSchema: associatedValuesSchema_2_0,
                   initializer: { @Sendable values in
                     .mutlipleUnnamedAssociatedValues(values.0, values.1)
@@ -128,9 +128,9 @@ private struct EnumMacroTests {
                 ),
                 (
                   key: "multipleNamedAssociatedValues" as ToolInput.SchemaSupport.SchemaCodingKey,
-                  description: #"""
+                  description: ####"""
                   Multiple associated values with a name
-                  """#,
+                  """####,
                   associatedValuesSchema: associatedValuesSchema_3_0,
                   initializer: { @Sendable values in
                     .multipleNamedAssociatedValues(a: values.0, b: values.1, c: values.2)
@@ -138,9 +138,9 @@ private struct EnumMacroTests {
                 ),
                 (
                   key: "mixedAssociatedValues" as ToolInput.SchemaSupport.SchemaCodingKey,
-                  description: #"""
+                  description: ####"""
                   Multiple associated values with some named and some unnamed
-                  """#,
+                  """####,
                   associatedValuesSchema: associatedValuesSchema_4_0,
                   initializer: { @Sendable values in
                     .mixedAssociatedValues(values.0, b: values.1, c: values.2)
@@ -164,7 +164,7 @@ private struct EnumMacroTests {
             )
           }
         }
-        """##,
+        """#####,
       macroSpecs: macroSpecs,
       indentationWidth: .spaces(2),
       failureHandler: {

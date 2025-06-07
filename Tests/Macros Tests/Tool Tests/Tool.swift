@@ -20,7 +20,7 @@ private struct ToolMacroTests {
         func invoke(_ a: Int, b: String, `c`: Bool) {}
       }
       """,
-      expandedSource: ##"""
+      expandedSource: #####"""
         /// A tool with a single action
         actor MyTool {
           func invoke(_ a: Int, b: String, `c`: Bool) {}
@@ -30,9 +30,9 @@ private struct ToolMacroTests {
           nonisolated var definition: some ToolDefinition<Input> {
             ClientDefinedToolDefinition(
               name: "\(Self.self)",
-              description: #"""
+              description: ####"""
               A tool with a single action
-              """#,
+              """####,
               inputSchema: Input.schema
             )
           }
@@ -49,9 +49,9 @@ private struct ToolMacroTests {
             static var schema: some ToolInput.Schema<Self> {
               ToolInput.SchemaSupport.structSchema(
                 representing: Self.self,
-                description: #"""
+                description: ####"""
                 A tool with a single action
-                """#,
+                """####,
                 properties: (
                   (
                     description: nil,
@@ -90,7 +90,7 @@ private struct ToolMacroTests {
           }
           typealias __macro_local_4ToolfMu_ = MyTool
         }
-        """##,
+        """#####,
       macroSpecs: macroSpecs,
       indentationWidth: .spaces(2),
       failureHandler: {

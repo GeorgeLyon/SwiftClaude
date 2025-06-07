@@ -24,7 +24,7 @@ private struct StructMacroTests {
         let a, b: Bool, c: String
       }
       """,
-      expandedSource: ##"""
+      expandedSource: #####"""
         /// A test struct
         struct TestStruct {
           let anInteger: Int
@@ -38,9 +38,9 @@ private struct StructMacroTests {
           static var schema: some SchemaCoding.Schema<Self> {
             SchemaCoding.SchemaSupport.structSchema(
               representing: Self.self,
-              description: #"""
+              description: ####"""
               A test struct
-              """#,
+              """####,
               properties: (
                 (
                   description: nil,
@@ -49,33 +49,33 @@ private struct StructMacroTests {
                   schema: SchemaCoding.SchemaSupport.schema(representing: Int.self)
                 ),
                 (
-                  description: #"""
+                  description: ####"""
                   An (x, y) coordinate
-                  """#,
+                  """####,
                   keyPath: \Self.aCoordinate,
                   key: "aCoordinate" as SchemaCoding.SchemaSupport.SchemaCodingKey,
                   schema: SchemaCoding.SchemaSupport.schema(representing: (Int, Int).self)
                 ),
                 (
-                  description: #"""
+                  description: ####"""
                   Crazy Declaration
-                  """#,
+                  """####,
                   keyPath: \Self.c,
                   key: "c" as SchemaCoding.SchemaSupport.SchemaCodingKey,
                   schema: SchemaCoding.SchemaSupport.schema(representing: String.self)
                 ),
                 (
-                  description: #"""
+                  description: ####"""
                   Crazy Declaration
-                  """#,
+                  """####,
                   keyPath: \Self.b,
                   key: "b" as SchemaCoding.SchemaSupport.SchemaCodingKey,
                   schema: SchemaCoding.SchemaSupport.schema(representing: Bool.self)
                 ),
                 (
-                  description: #"""
+                  description: ####"""
                   Crazy Declaration
-                  """#,
+                  """####,
                   keyPath: \Self.a,
                   key: "a" as SchemaCoding.SchemaSupport.SchemaCodingKey,
                   schema: SchemaCoding.SchemaSupport.schema(representing: Bool.self)
@@ -92,7 +92,7 @@ private struct StructMacroTests {
             self.a = structSchemaDecoder.propertyValues.4
           }
         }
-        """##,
+        """#####,
       macroSpecs: macroSpecs,
       indentationWidth: .spaces(2),
       failureHandler: {
