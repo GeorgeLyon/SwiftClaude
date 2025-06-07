@@ -7,7 +7,7 @@ import Testing
 @testable import Macros
 
 @Suite("@ToolInput Struct")
-private struct StructMacroTests {
+private struct ToolInputStructMacroTests {
 
   @Test
   func testToolInputStructMacro() {

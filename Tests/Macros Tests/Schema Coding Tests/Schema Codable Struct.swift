@@ -7,14 +7,17 @@ import Testing
 @testable import Macros
 
 @Suite("@SchemaCodable Struct")
-private struct StructMacroTests {
+private struct SchemaCodableStructTests {
 
   @Test
   func testSchemaCodableStructMacro() {
 
     assertMacroExpansion(
       """
+      // MARK: - Some Unrealated Comment
+
       /// A test struct
+      /// Two lines of comments
       @SchemaCodable
       struct TestStruct {
         let anInteger: Int
@@ -25,7 +28,10 @@ private struct StructMacroTests {
       }
       """,
       expandedSource: #####"""
+        // MARK: - Some Unrealated Comment
+
         /// A test struct
+        /// Two lines of comments
         struct TestStruct {
           let anInteger: Int
           /// An (x, y) coordinate
@@ -39,7 +45,7 @@ private struct StructMacroTests {
             SchemaCoding.SchemaSupport.structSchema(
               representing: Self.self,
               description: ####"""
-              A test struct
+              A test struct\####nTwo lines of comments
               """####,
               properties: (
                 (

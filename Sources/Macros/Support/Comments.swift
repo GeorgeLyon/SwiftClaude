@@ -39,6 +39,14 @@ extension SyntaxProtocol {
   public var comment: String? {
     let comment =
       leadingTrivia
+      .split { trivia in
+        if case .newlines(let count) = trivia {
+          return count > 1
+        } else {
+          return false
+        }
+      }
+      .last?
       .compactMap { trivia in
         switch trivia {
         case let .docLineComment(comment):
@@ -79,7 +87,7 @@ extension SyntaxProtocol {
         return comment.trimmingPrefix { $0.isWhitespace }
       }
       .joined(separator: "\n")
-    return comment.isEmpty ? nil : comment
+    return comment.flatMap { $0.isEmpty ? nil : $0 }
   }
 
 }

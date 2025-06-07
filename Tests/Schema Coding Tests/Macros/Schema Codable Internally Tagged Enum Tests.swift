@@ -1,5 +1,5 @@
 import Testing
-/*
+
 @testable import SchemaCoding
 
 @Suite("Schema Codable Internally Tagged Enum Macro Tests")
@@ -456,4 +456,3 @@ private struct SchemaCodableInternallyTaggedEnumMacroTests {
           """) == .digitalWallet(walletId: "wallet_abc123"))
   }
 }
-*/

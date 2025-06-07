@@ -158,50 +158,50 @@ private struct InternallyTaggedEnumMacroTests {
           case fish
         }
 
-        extension Animal: SchemaSupport.SchemaCodable {
-          static var schema: some SchemaSupport.Schema<Self> {
-            let associatedValuesSchema_0_0 = SchemaSupport.internallyTaggedEnumCaseSchema(
+        extension Animal: SchemaCoding.SchemaCodable {
+          static var schema: some SchemaCoding.Schema<Self> {
+            let associatedValuesSchema_0_0 = SchemaCoding.SchemaSupport.internallyTaggedEnumCaseSchema(
               values: (
                 (
-                  key: "name" as SchemaSupport.SchemaCodingKey,
-                  schema: SchemaSupport.schema(representing: String.self)
+                  key: "name" as SchemaCoding.SchemaSupport.SchemaCodingKey,
+                  schema: SchemaCoding.SchemaSupport.schema(representing: String.self)
                 ), (
-                  key: "favoriteToy" as SchemaSupport.SchemaCodingKey,
-                  schema: SchemaSupport.schema(representing: String.self)
+                  key: "favoriteToy" as SchemaCoding.SchemaSupport.SchemaCodingKey,
+                  schema: SchemaCoding.SchemaSupport.schema(representing: String.self)
                 )
               )
             )
-            let associatedValuesSchema_1_0 = SchemaSupport.internallyTaggedEnumCaseSchema(
+            let associatedValuesSchema_1_0 = SchemaCoding.SchemaSupport.internallyTaggedEnumCaseSchema(
               values: (
                 (
-                  key: "name" as SchemaSupport.SchemaCodingKey,
-                  schema: SchemaSupport.schema(representing: String.self)
+                  key: "name" as SchemaCoding.SchemaSupport.SchemaCodingKey,
+                  schema: SchemaCoding.SchemaSupport.schema(representing: String.self)
                 ), (
-                  key: "lives" as SchemaSupport.SchemaCodingKey,
-                  schema: SchemaSupport.schema(representing: Int.self)
+                  key: "lives" as SchemaCoding.SchemaSupport.SchemaCodingKey,
+                  schema: SchemaCoding.SchemaSupport.schema(representing: Int.self)
                 )
               )
             )
-            let associatedValuesSchema_2_0 = SchemaSupport.internallyTaggedEnumCaseSchema(
+            let associatedValuesSchema_2_0 = SchemaCoding.SchemaSupport.internallyTaggedEnumCaseSchema(
               values: (
                 (
-                  key: "canFly" as SchemaSupport.SchemaCodingKey,
-                  schema: SchemaSupport.schema(representing: Bool.self)
-                ),
+                  key: "canFly" as SchemaCoding.SchemaSupport.SchemaCodingKey,
+                  schema: SchemaCoding.SchemaSupport.schema(representing: Bool.self)
+                )
               )
             )
-            let associatedValuesSchema_3_0 = SchemaSupport.internallyTaggedEnumCaseSchema(
+            let associatedValuesSchema_3_0 = SchemaCoding.SchemaSupport.internallyTaggedEnumCaseSchema(
               values: (
 
               )
             )
-            return SchemaSupport.internallyTaggedEnumSchema(
+            return SchemaCoding.SchemaSupport.internallyTaggedEnumSchema(
               representing: Self.self,
               description: nil,
               discriminatorPropertyName: "animal",
               cases: (
                 (
-                  key: "dog" as SchemaSupport.SchemaCodingKey,
+                  key: "dog" as SchemaCoding.SchemaSupport.SchemaCodingKey,
                   description: ####"""
                   A dog with a name and favorite toy
                   """####,
@@ -211,7 +211,7 @@ private struct InternallyTaggedEnumMacroTests {
                   }
                 ),
                 (
-                  key: "cat" as SchemaSupport.SchemaCodingKey,
+                  key: "cat" as SchemaCoding.SchemaSupport.SchemaCodingKey,
                   description: ####"""
                   A cat with a name and number of lives
                   """####,
@@ -221,17 +221,17 @@ private struct InternallyTaggedEnumMacroTests {
                   }
                 ),
                 (
-                  key: "bird" as SchemaSupport.SchemaCodingKey,
+                  key: "bird" as SchemaCoding.SchemaSupport.SchemaCodingKey,
                   description: ####"""
                   A bird that can fly
                   """####,
                   schema: associatedValuesSchema_2_0,
                   initializer: { @Sendable values in
-                    .bird(canFly: values.0)
+                    .bird(canFly: values)
                   }
                 ),
                 (
-                  key: "fish" as SchemaSupport.SchemaCodingKey,
+                  key: "fish" as SchemaCoding.SchemaSupport.SchemaCodingKey,
                   description: ####"""
                   A fish with no properties
                   """####,
@@ -248,7 +248,7 @@ private struct InternallyTaggedEnumMacroTests {
                 case .cat(let name, let lives):
                   encoder_1((name, lives))
                 case .bird(let canFly):
-                  encoder_2((canFly,))
+                  encoder_2((canFly))
                 case .fish:
                   encoder_3(())
                 }
@@ -292,45 +292,45 @@ private struct InternallyTaggedEnumMacroTests {
           case delete(String, Bool)
         }
 
-        extension Request: SchemaSupport.SchemaCodable {
-          static var schema: some SchemaSupport.Schema<Self> {
-            let associatedValuesSchema_0_0 = SchemaSupport.internallyTaggedEnumCaseSchema(
+        extension Request: SchemaCoding.SchemaCodable {
+          static var schema: some SchemaCoding.Schema<Self> {
+            let associatedValuesSchema_0_0 = SchemaCoding.SchemaSupport.internallyTaggedEnumCaseSchema(
               values: (
                 (
                   key: nil,
-                  schema: SchemaSupport.schema(representing: String.self)
-                ),
-              )
-            )
-            let associatedValuesSchema_1_0 = SchemaSupport.internallyTaggedEnumCaseSchema(
-              values: (
-                (
-                  key: nil,
-                  schema: SchemaSupport.schema(representing: String.self)
-                ), (
-                  key: nil,
-                  schema: SchemaSupport.schema(representing: Data.self)
+                  schema: SchemaCoding.SchemaSupport.schema(representing: String.self)
                 )
               )
             )
-            let associatedValuesSchema_2_0 = SchemaSupport.internallyTaggedEnumCaseSchema(
+            let associatedValuesSchema_1_0 = SchemaCoding.SchemaSupport.internallyTaggedEnumCaseSchema(
               values: (
                 (
                   key: nil,
-                  schema: SchemaSupport.schema(representing: String.self)
+                  schema: SchemaCoding.SchemaSupport.schema(representing: String.self)
                 ), (
                   key: nil,
-                  schema: SchemaSupport.schema(representing: Bool.self)
+                  schema: SchemaCoding.SchemaSupport.schema(representing: Data.self)
                 )
               )
             )
-            return SchemaSupport.internallyTaggedEnumSchema(
+            let associatedValuesSchema_2_0 = SchemaCoding.SchemaSupport.internallyTaggedEnumCaseSchema(
+              values: (
+                (
+                  key: nil,
+                  schema: SchemaCoding.SchemaSupport.schema(representing: String.self)
+                ), (
+                  key: nil,
+                  schema: SchemaCoding.SchemaSupport.schema(representing: Bool.self)
+                )
+              )
+            )
+            return SchemaCoding.SchemaSupport.internallyTaggedEnumSchema(
               representing: Self.self,
               description: nil,
               discriminatorPropertyName: "type",
               cases: (
                 (
-                  key: "get" as SchemaSupport.SchemaCodingKey,
+                  key: "get" as SchemaCoding.SchemaSupport.SchemaCodingKey,
                   description: nil,
                   schema: associatedValuesSchema_0_0,
                   initializer: { @Sendable values in
@@ -338,7 +338,7 @@ private struct InternallyTaggedEnumMacroTests {
                   }
                 ),
                 (
-                  key: "post" as SchemaSupport.SchemaCodingKey,
+                  key: "post" as SchemaCoding.SchemaSupport.SchemaCodingKey,
                   description: nil,
                   schema: associatedValuesSchema_1_0,
                   initializer: { @Sendable values in
@@ -346,7 +346,7 @@ private struct InternallyTaggedEnumMacroTests {
                   }
                 ),
                 (
-                  key: "delete" as SchemaSupport.SchemaCodingKey,
+                  key: "delete" as SchemaCoding.SchemaSupport.SchemaCodingKey,
                   description: nil,
                   schema: associatedValuesSchema_2_0,
                   initializer: { @Sendable values in
