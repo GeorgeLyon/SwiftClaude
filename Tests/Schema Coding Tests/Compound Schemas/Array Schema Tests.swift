@@ -1,3 +1,4 @@
+import JSONTestSupport
 import Testing
 
 @testable import SchemaCoding
@@ -21,7 +22,9 @@ struct ArraySchemaTests {
   @Test
   private func testValueEncoding() throws {
     #expect(
-      SchemaCoding.SchemaResolver.schema(representing: [String].self).encodedJSON(for: ["foo", "bar", "baz"])
+      SchemaCoding.SchemaResolver.schema(representing: [String].self).encodedJSON(for: [
+        "foo", "bar", "baz",
+      ])
         == """
         [
           "foo",
@@ -32,7 +35,8 @@ struct ArraySchemaTests {
     )
 
     #expect(
-      SchemaCoding.SchemaResolver.schema(representing: [Int].self).encodedJSON(for: [1, 2, 3]) == """
+      SchemaCoding.SchemaResolver.schema(representing: [Int].self).encodedJSON(for: [1, 2, 3])
+        == """
         [
           1,
           2,

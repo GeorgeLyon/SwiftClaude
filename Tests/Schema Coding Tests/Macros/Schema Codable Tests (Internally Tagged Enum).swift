@@ -1,3 +1,4 @@
+import JSONTestSupport
 import Testing
 
 @testable import SchemaCoding

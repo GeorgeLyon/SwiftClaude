@@ -1,10 +1,10 @@
 import JSONSupport
 
-@testable import SchemaCoding
+@testable public import SchemaCoding
 
 extension SchemaCoding.Schema {
 
-  var schemaJSON: String {
+  public var schemaJSON: String {
     var stream = JSON.EncodingStream()
     stream.options = [.prettyPrint]
     var encoder = SchemaCoding.SchemaEncoder(
@@ -16,7 +16,7 @@ extension SchemaCoding.Schema {
     return encoder.stream.stringRepresentation
   }
 
-  func value(fromJSON json: String) -> Value {
+  public func value(fromJSON json: String) -> Value {
     var stream = JSON.DecodingStream()
     stream.push(json)
     stream.finish()
@@ -24,7 +24,7 @@ extension SchemaCoding.Schema {
     return try! decodeValue(from: &stream, state: &state).getValue()
   }
 
-  func encodedJSON(for value: Value) -> String {
+  public func encodedJSON(for value: Value) -> String {
     var stream = JSON.EncodingStream()
     stream.options = [.prettyPrint]
     encode(value, to: &stream)

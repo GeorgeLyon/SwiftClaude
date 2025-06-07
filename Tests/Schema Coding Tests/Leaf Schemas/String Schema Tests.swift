@@ -1,3 +1,4 @@
+import JSONTestSupport
 import Testing
 
 @testable import SchemaCoding
@@ -33,10 +34,12 @@ struct StringSchemaTests {
   @Test
   private func testValueDecoding() throws {
     #expect(
-      SchemaCoding.SchemaResolver.schema(representing: String.self).value(fromJSON: "\"foo\"") == "foo"
+      SchemaCoding.SchemaResolver.schema(representing: String.self).value(fromJSON: "\"foo\"")
+        == "foo"
     )
     #expect(
-      SchemaCoding.SchemaResolver.schema(representing: String.self).value(fromJSON: "\"bar\"") == "bar"
+      SchemaCoding.SchemaResolver.schema(representing: String.self).value(fromJSON: "\"bar\"")
+        == "bar"
     )
   }
 

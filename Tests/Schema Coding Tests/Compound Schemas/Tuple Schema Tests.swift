@@ -1,3 +1,4 @@
+import JSONTestSupport
 import Testing
 
 @testable import SchemaCoding
@@ -70,7 +71,8 @@ struct TupleSchemaTests {
     #expect(tuple.0 == "hello")
     #expect(tuple.1 == 42)
 
-    let stringIntDoubleSchema = SchemaCoding.SchemaResolver.schema(representing: (String, Int, Double).self)
+    let stringIntDoubleSchema = SchemaCoding.SchemaResolver.schema(
+      representing: (String, Int, Double).self)
     let tuple3: (String, Int, Double) = stringIntDoubleSchema.value(
       fromJSON: """
         ["world", 123, 3.14]
