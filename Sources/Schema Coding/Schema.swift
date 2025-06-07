@@ -95,6 +95,17 @@ public macro SchemaCodable() =
     type: "SchemaCodableMacro"
   )
 
+@attached(
+  extension,
+  conformances: SchemaCodable,
+  names: named(schema), named(init)
+)
+public macro SchemaCodable(discriminatorPropertyName: String) =
+  #externalMacro(
+    module: "SchemaCodingMacros",
+    type: "SchemaCodableMacro"
+  )
+
 // MARK: - Internal API
 
 extension Schema {

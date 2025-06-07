@@ -10,11 +10,11 @@ extension SyntaxProtocol where Self == LabeledExprSyntax {
         label: "description",
         colon: .colonToken(),
         expression: StringLiteralExprSyntax(
-          openDelimiter: .rawStringPoundDelimiter("#"),
+          openDelimiter: .rawStringPoundDelimiter("####"),
           openingQuote: .multilineStringQuoteToken(),
           content: description,
           closingQuote: .multilineStringQuoteToken(),
-          closeDelimiter: .rawStringPoundDelimiter("#")
+          closeDelimiter: .rawStringPoundDelimiter("####")
         ),
         trailingComma: .commaToken(trailingTrivia: .newline)
       )

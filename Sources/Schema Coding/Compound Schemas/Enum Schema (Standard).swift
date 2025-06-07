@@ -65,7 +65,7 @@ extension SchemaSupport {
 
 }
 
-// MARK: - Defining Associated Values
+// MARK: - Associated Values
 
 extension SchemaSupport {
 
