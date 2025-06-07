@@ -1,37 +1,6 @@
 import JSONSupport
 
-extension SchemaSupport {
-
-  public static func structSchema<
-    Value,
-    each PropertySchema: Schema
-  >(
-    representing _: Value.Type,
-    description: String?,
-    properties: (
-      repeat (
-        description: String?,
-        keyPath: KeyPath<Value, (each PropertySchema).Value> & Sendable,
-        key: SchemaSupport.SchemaCodingKey,
-        schema: (each PropertySchema)
-      )
-    ),
-    initializer: @escaping @Sendable (
-      StructSchemaDecoder<repeat (each PropertySchema).Value>
-    ) -> Value
-  ) -> some Schema<Value> {
-    StructSchema(
-      keyPaths: (repeat (each properties).keyPath),
-      propertiesSchema: ObjectPropertiesSchema(
-        description: description,
-        properties: repeat ObjectPropertySchema(
-          key: (each properties).key,
-          description: (each properties).description,
-          schema: (each properties).schema
-        )),
-      initializer: initializer
-    )
-  }
+extension SchemaCoding {
 
   public struct StructSchemaDecoder<each PropertyValue> {
 
@@ -46,12 +15,47 @@ extension SchemaSupport {
 
 }
 
+extension SchemaCoding.SchemaResolver {
+
+  public static func structSchema<
+    Value,
+    each PropertySchema: SchemaCoding.Schema
+  >(
+    representing _: Value.Type,
+    description: String?,
+    properties: (
+      repeat (
+        description: String?,
+        keyPath: KeyPath<Value, (each PropertySchema).Value> & Sendable,
+        key: SchemaCoding.SchemaCodingKey,
+        schema: (each PropertySchema)
+      )
+    ),
+    initializer: @escaping @Sendable (
+      SchemaCoding.StructSchemaDecoder<repeat (each PropertySchema).Value>
+    ) -> Value
+  ) -> some SchemaCoding.Schema<Value> {
+    StructSchema(
+      keyPaths: (repeat (each properties).keyPath),
+      propertiesSchema: ObjectPropertiesSchema(
+        description: description,
+        properties: repeat ObjectPropertySchema(
+          key: (each properties).key,
+          description: (each properties).description,
+          schema: (each properties).schema
+        )),
+      initializer: initializer
+    )
+  }
+
+}
+
 // MARK: - Implementation Details
 
 private struct StructSchema<
   Value,
-  each PropertySchema: Schema
->: Schema {
+  each PropertySchema: SchemaCoding.Schema
+>: SchemaCoding.Schema {
 
   let keyPaths: (repeat KeyPath<Value, (each PropertySchema).Value> & Sendable)
 
@@ -60,10 +64,10 @@ private struct StructSchema<
 
   let initializer:
     @Sendable (
-      SchemaSupport.StructSchemaDecoder<repeat (each PropertySchema).Value>
+      SchemaCoding.StructSchemaDecoder<repeat (each PropertySchema).Value>
     ) -> Value
 
-  func encodeSchemaDefinition(to encoder: inout SchemaSupport.SchemaEncoder) {
+  func encodeSchemaDefinition(to encoder: inout SchemaCoding.SchemaEncoder) {
     propertiesSchema.encodeSchemaDefinition(to: &encoder)
   }
 
@@ -81,7 +85,7 @@ private struct StructSchema<
       .decodeValue(from: &stream, state: &state)
       .map { values in
         initializer(
-          SchemaSupport.StructSchemaDecoder(
+          SchemaCoding.StructSchemaDecoder(
             propertyValues: (repeat each values)
           )
         )

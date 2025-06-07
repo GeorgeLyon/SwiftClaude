@@ -1,10 +1,10 @@
 import JSONSupport
 
-extension SchemaSupport {
+extension SchemaCoding.SchemaResolver {
 
   public static func schema(
     representing _: Bool.Type = Bool.self
-  ) -> some Schema<Bool> {
+  ) -> some SchemaCoding.Schema<Bool> {
     BoolSchema()
   }
 
@@ -13,7 +13,7 @@ extension SchemaSupport {
 extension Bool: SchemaCodable {
 
   public static var schema: some SchemaCoding.Schema<Self> {
-    SchemaSupport.schema()
+    SchemaCoding.SchemaResolver.schema(representing: Bool.self)
   }
 
 }

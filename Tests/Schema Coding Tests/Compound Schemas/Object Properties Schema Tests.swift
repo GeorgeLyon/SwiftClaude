@@ -6,23 +6,23 @@ import Testing
 @Suite("Object Properties")
 struct ObjectPropertiesSchemaTests {
 
-  private let testSchema: some Schema<(String, Int, Bool?)> =
+  private let testSchema: some SchemaCoding.Schema<(String, Int, Bool?)> =
     ObjectPropertiesSchema(
       description: "A user object",
       properties: ObjectPropertySchema(
         key: "name",
         description: "User's name",
-        schema: SchemaSupport.schema(representing: String.self)
+        schema: SchemaCoding.SchemaResolver.schema(representing: String.self)
       ),
       ObjectPropertySchema(
         key: "age",
         description: "User's age",
-        schema: SchemaSupport.schema(representing: Int.self)
+        schema: SchemaCoding.SchemaResolver.schema(representing: Int.self)
       ),
       ObjectPropertySchema(
         key: "isActive",
         description: "Whether the user is active",
-        schema: SchemaSupport.schema(representing: Bool?.self)
+        schema: SchemaCoding.SchemaResolver.schema(representing: Bool?.self)
       )
     )
 

@@ -42,64 +42,64 @@ private struct ToolInputEnumTests {
 
         extension ToolInputEnum: ToolInput.SchemaCodable {
           static var schema: some ToolInput.Schema<Self> {
-            let associatedValuesSchema_0_0 = ToolInput.SchemaSupport.enumCaseAssociatedValuesSchema(
+            let associatedValuesSchema_0_0 = ToolInput.SchemaResolver.enumCaseAssociatedValuesSchema(
               values: (
 
               )
             )
-            let associatedValuesSchema_1_0 = ToolInput.SchemaSupport.enumCaseAssociatedValuesSchema(
+            let associatedValuesSchema_1_0 = ToolInput.SchemaResolver.enumCaseAssociatedValuesSchema(
               values: (
                 (
                   key: nil,
-                  schema: ToolInput.SchemaSupport.schema(representing: Int.self)
+                  schema: ToolInput.SchemaResolver.schema(representing: Int.self)
                 )
               )
             )
-            let associatedValuesSchema_2_0 = ToolInput.SchemaSupport.enumCaseAssociatedValuesSchema(
+            let associatedValuesSchema_2_0 = ToolInput.SchemaResolver.enumCaseAssociatedValuesSchema(
               values: (
                 (
                   key: nil,
-                  schema: ToolInput.SchemaSupport.schema(representing: Int.self)
+                  schema: ToolInput.SchemaResolver.schema(representing: Int.self)
                 ), (
                   key: nil,
-                  schema: ToolInput.SchemaSupport.schema(representing: String.self)
+                  schema: ToolInput.SchemaResolver.schema(representing: String.self)
                 )
               )
             )
-            let associatedValuesSchema_3_0 = ToolInput.SchemaSupport.enumCaseAssociatedValuesSchema(
+            let associatedValuesSchema_3_0 = ToolInput.SchemaResolver.enumCaseAssociatedValuesSchema(
               values: (
                 (
-                  key: "a" as ToolInput.SchemaSupport.SchemaCodingKey,
-                  schema: ToolInput.SchemaSupport.schema(representing: Int.self)
+                  key: "a" as ToolInput.SchemaCodingKey,
+                  schema: ToolInput.SchemaResolver.schema(representing: Int.self)
                 ), (
-                  key: "b" as ToolInput.SchemaSupport.SchemaCodingKey,
-                  schema: ToolInput.SchemaSupport.schema(representing: String.self)
+                  key: "b" as ToolInput.SchemaCodingKey,
+                  schema: ToolInput.SchemaResolver.schema(representing: String.self)
                 ), (
-                  key: "c" as ToolInput.SchemaSupport.SchemaCodingKey,
-                  schema: ToolInput.SchemaSupport.schema(representing: Bool.self)
+                  key: "c" as ToolInput.SchemaCodingKey,
+                  schema: ToolInput.SchemaResolver.schema(representing: Bool.self)
                 )
               )
             )
-            let associatedValuesSchema_4_0 = ToolInput.SchemaSupport.enumCaseAssociatedValuesSchema(
+            let associatedValuesSchema_4_0 = ToolInput.SchemaResolver.enumCaseAssociatedValuesSchema(
               values: (
                 (
                   key: nil,
-                  schema: ToolInput.SchemaSupport.schema(representing: Int.self)
+                  schema: ToolInput.SchemaResolver.schema(representing: Int.self)
                 ), (
-                  key: "b" as ToolInput.SchemaSupport.SchemaCodingKey,
-                  schema: ToolInput.SchemaSupport.schema(representing: String.self)
+                  key: "b" as ToolInput.SchemaCodingKey,
+                  schema: ToolInput.SchemaResolver.schema(representing: String.self)
                 ), (
-                  key: "c" as ToolInput.SchemaSupport.SchemaCodingKey,
-                  schema: ToolInput.SchemaSupport.schema(representing: Bool.self)
+                  key: "c" as ToolInput.SchemaCodingKey,
+                  schema: ToolInput.SchemaResolver.schema(representing: Bool.self)
                 )
               )
             )
-            return ToolInput.SchemaSupport.enumSchema(
+            return ToolInput.SchemaResolver.enumSchema(
               representing: Self.self,
               description: nil,
               cases: (
                 (
-                  key: "simple" as ToolInput.SchemaSupport.SchemaCodingKey,
+                  key: "simple" as ToolInput.SchemaCodingKey,
                   description: nil,
                   schema: associatedValuesSchema_0_0,
                   initializer: { @Sendable values in
@@ -107,7 +107,7 @@ private struct ToolInputEnumTests {
                   }
                 ),
                 (
-                  key: "singleAssociatedValue" as ToolInput.SchemaSupport.SchemaCodingKey,
+                  key: "singleAssociatedValue" as ToolInput.SchemaCodingKey,
                   description: ####"""
                   A case with a single associated value
                   """####,
@@ -117,7 +117,7 @@ private struct ToolInputEnumTests {
                   }
                 ),
                 (
-                  key: "mutlipleUnnamedAssociatedValues" as ToolInput.SchemaSupport.SchemaCodingKey,
+                  key: "mutlipleUnnamedAssociatedValues" as ToolInput.SchemaCodingKey,
                   description: ####"""
                   Multiple associated values without a name
                   """####,
@@ -127,7 +127,7 @@ private struct ToolInputEnumTests {
                   }
                 ),
                 (
-                  key: "multipleNamedAssociatedValues" as ToolInput.SchemaSupport.SchemaCodingKey,
+                  key: "multipleNamedAssociatedValues" as ToolInput.SchemaCodingKey,
                   description: ####"""
                   Multiple associated values with a name
                   """####,
@@ -137,7 +137,7 @@ private struct ToolInputEnumTests {
                   }
                 ),
                 (
-                  key: "mixedAssociatedValues" as ToolInput.SchemaSupport.SchemaCodingKey,
+                  key: "mixedAssociatedValues" as ToolInput.SchemaCodingKey,
                   description: ####"""
                   Multiple associated values with some named and some unnamed
                   """####,

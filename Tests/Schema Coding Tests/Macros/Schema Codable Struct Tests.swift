@@ -25,7 +25,7 @@ struct StructSchemaCodableTests {
 
   @Test
   private func testSchemaEncoding() throws {
-    let schema = SchemaSupport.schema(representing: Person.self)
+    let schema = SchemaCoding.SchemaResolver.schema(representing: Person.self)
     #expect(
       schema.schemaJSON == """
         {
@@ -54,7 +54,7 @@ struct StructSchemaCodableTests {
 
   @Test
   private func testValueEncoding() throws {
-    let schema = SchemaSupport.schema(representing: Person.self)
+    let schema = SchemaCoding.SchemaResolver.schema(representing: Person.self)
     #expect(
       schema.encodedJSON(for: Person(name: "John Doe", age: 30, isActive: nil))
         == """
@@ -68,7 +68,7 @@ struct StructSchemaCodableTests {
 
   @Test
   private func testValueEncodingWithOptional() throws {
-    let schema = SchemaSupport.schema(representing: Person.self)
+    let schema = SchemaCoding.SchemaResolver.schema(representing: Person.self)
     #expect(
       schema.encodedJSON(for: Person(name: "Jane Smith", age: 25, isActive: true))
         == """
@@ -83,7 +83,7 @@ struct StructSchemaCodableTests {
 
   @Test
   private func testValueDecoding() throws {
-    let schema = SchemaSupport.schema(representing: Person.self)
+    let schema = SchemaCoding.SchemaResolver.schema(representing: Person.self)
     let decodedPerson = schema.value(
       fromJSON: """
         {
@@ -101,7 +101,7 @@ struct StructSchemaCodableTests {
 
   @Test
   private func testValueDecodingWithoutOptional() throws {
-    let schema = SchemaSupport.schema(representing: Person.self)
+    let schema = SchemaCoding.SchemaResolver.schema(representing: Person.self)
     let decodedPerson = schema.value(
       fromJSON: """
         {

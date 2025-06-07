@@ -1,12 +1,12 @@
 import JSONSupport
 
-extension SchemaSupport {
+extension SchemaCoding.SchemaResolver {
 
   // Needs to be disfavored because otherwise it catches single-element tuples
   @_disfavoredOverload
   public static func schema<each Element: SchemaCodable>(
     representing _: (repeat each Element).Type = (repeat each Element).self
-  ) -> some Schema<(repeat each Element)> {
+  ) -> some SchemaCoding.Schema<(repeat each Element)> {
     TupleSchema(
       elements: (repeat (
         name: String?.none,
@@ -21,7 +21,7 @@ extension SchemaSupport {
 
 /// A schema for ordered collection of typed values
 /// Also used for enum associated values
-struct TupleSchema<each ElementSchema: Schema>: InternalSchema {
+struct TupleSchema<each ElementSchema: SchemaCoding.Schema>: InternalSchema {
 
   typealias Value = (repeat (each ElementSchema).Value)
 
@@ -39,7 +39,7 @@ struct TupleSchema<each ElementSchema: Schema>: InternalSchema {
     )
   }
 
-  func encodeSchemaDefinition(to encoder: inout SchemaSupport.SchemaEncoder) {
+  func encodeSchemaDefinition(to encoder: inout SchemaCoding.SchemaEncoder) {
     let description = encoder.contextualDescription(nil)
     encoder.stream.encodeObject { encoder in
       if let description {
@@ -89,7 +89,7 @@ struct TupleSchema<each ElementSchema: Schema>: InternalSchema {
       case .decoded(.elementStart):
         break
       case .decoded(.end):
-        func getElement<Schema>(from state: TupleElement<Schema>.DecodingState) throws
+        func getElement<Schema: SchemaCoding.Schema>(from state: TupleElement<Schema>.DecodingState) throws
           -> Schema.Value
         {
           guard case .decoded(let element) = state else {
@@ -118,7 +118,7 @@ struct TupleSchema<each ElementSchema: Schema>: InternalSchema {
 
   func encode(_ value: Value, to stream: inout JSON.EncodingStream) {
     stream.encodeArray { encoder in
-      func encodeElement<S: Schema>(_ schema: S, _ elementValue: S.Value) {
+      func encodeElement<S: SchemaCoding.Schema>(_ schema: S, _ elementValue: S.Value) {
         encoder.encodeElement { stream in
           schema.encode(elementValue, to: &stream)
         }

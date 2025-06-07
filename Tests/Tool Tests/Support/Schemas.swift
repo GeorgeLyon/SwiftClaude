@@ -2,12 +2,12 @@ import JSONSupport
 
 @testable import SchemaCoding
 
-extension Schema {
+extension SchemaCoding.Schema {
 
   var schemaJSON: String {
     var stream = JSON.EncodingStream()
     stream.options = [.prettyPrint]
-    var encoder = SchemaSupport.SchemaEncoder(
+    var encoder = SchemaCoding.SchemaEncoder(
       stream: stream,
       descriptionPrefix: nil,
       descriptionSuffix: nil

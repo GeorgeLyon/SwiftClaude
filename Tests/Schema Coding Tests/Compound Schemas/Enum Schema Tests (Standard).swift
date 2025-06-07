@@ -14,80 +14,80 @@ struct EnumSchemaStandardTests {
     case fifth
 
     static let schema: some SchemaCoding.Schema<Self> = {
-      let associatedValues_first = SchemaSupport.enumCaseAssociatedValuesSchema(
+      let associatedValues_first = SchemaCoding.SchemaResolver.enumCaseAssociatedValuesSchema(
         values: (
           key: nil,
-          schema: SchemaSupport.schema(representing: String.self)
+          schema: SchemaCoding.SchemaResolver.schema(representing: String.self)
         )
       )
 
-      let associatedValues_second = SchemaSupport.enumCaseAssociatedValuesSchema(
+      let associatedValues_second = SchemaCoding.SchemaResolver.enumCaseAssociatedValuesSchema(
         values: (
-          key: "x" as SchemaSupport.SchemaCodingKey,
-          schema: SchemaSupport.schema(representing: Int.self)
+          key: "x" as SchemaCoding.SchemaCodingKey,
+          schema: SchemaCoding.SchemaResolver.schema(representing: Int.self)
         )
       )
 
-      let associatedValues_third = SchemaSupport.enumCaseAssociatedValuesSchema(
+      let associatedValues_third = SchemaCoding.SchemaResolver.enumCaseAssociatedValuesSchema(
         values: (
           (
             key: nil,
-            schema: SchemaSupport.schema(representing: String.self)
+            schema: SchemaCoding.SchemaResolver.schema(representing: String.self)
           ),
           (
-            key: "x" as SchemaSupport.SchemaCodingKey,
-            schema: SchemaSupport.schema(representing: Int.self)
+            key: "x" as SchemaCoding.SchemaCodingKey,
+            schema: SchemaCoding.SchemaResolver.schema(representing: Int.self)
           )
         )
       )
 
-      let associatedValues_fourth = SchemaSupport.enumCaseAssociatedValuesSchema(
+      let associatedValues_fourth = SchemaCoding.SchemaResolver.enumCaseAssociatedValuesSchema(
         values: (
           (
-            key: "x" as SchemaSupport.SchemaCodingKey,
-            schema: SchemaSupport.schema(representing: String.self)
+            key: "x" as SchemaCoding.SchemaCodingKey,
+            schema: SchemaCoding.SchemaResolver.schema(representing: String.self)
           ),
           (
-            key: "y" as SchemaSupport.SchemaCodingKey,
-            schema: SchemaSupport.schema(representing: Int.self)
+            key: "y" as SchemaCoding.SchemaCodingKey,
+            schema: SchemaCoding.SchemaResolver.schema(representing: Int.self)
           )
         )
       )
 
-      let associatedValues_fifth = SchemaSupport.enumCaseAssociatedValuesSchema(
+      let associatedValues_fifth = SchemaCoding.SchemaResolver.enumCaseAssociatedValuesSchema(
         values: ()
       )
 
-      return SchemaSupport.enumSchema(
+      return SchemaCoding.SchemaResolver.enumSchema(
         representing: Self.self,
         description: "A simple enum with multiple cases",
         cases: (
           (
-            key: "first" as SchemaSupport.SchemaCodingKey,
+            key: "first" as SchemaCoding.SchemaCodingKey,
             description: "A string",
             schema: associatedValues_first,
             initializer: { @Sendable first in .first(first) }
           ),
           (
-            key: "second" as SchemaSupport.SchemaCodingKey,
+            key: "second" as SchemaCoding.SchemaCodingKey,
             description: String?.none,
             schema: associatedValues_second,
             initializer: { @Sendable second in .second(x: second) }
           ),
           (
-            key: "third" as SchemaSupport.SchemaCodingKey,
+            key: "third" as SchemaCoding.SchemaCodingKey,
             description: nil,
             schema: associatedValues_third,
             initializer: { @Sendable third in Self.third(third.0, x: third.1) }
           ),
           (
-            key: "fourth" as SchemaSupport.SchemaCodingKey,
+            key: "fourth" as SchemaCoding.SchemaCodingKey,
             description: nil,
             schema: associatedValues_fourth,
             initializer: { @Sendable fourth in Self.fourth(x: fourth.0, y: fourth.1) }
           ),
           (
-            key: "fifth" as SchemaSupport.SchemaCodingKey,
+            key: "fifth" as SchemaCoding.SchemaCodingKey,
             description: nil,
             schema: associatedValues_fifth,
             initializer: { @Sendable fifth in Self.fifth }
@@ -113,34 +113,34 @@ struct EnumSchemaStandardTests {
     case three
 
     static let schema: some SchemaCoding.Schema<Self> = {
-      let associatedValues_one = SchemaSupport.enumCaseAssociatedValuesSchema(
+      let associatedValues_one = SchemaCoding.SchemaResolver.enumCaseAssociatedValuesSchema(
         values: ()
       )
-      let associatedValues_two = SchemaSupport.enumCaseAssociatedValuesSchema(
+      let associatedValues_two = SchemaCoding.SchemaResolver.enumCaseAssociatedValuesSchema(
         values: ()
       )
-      let associatedValues_three = SchemaSupport.enumCaseAssociatedValuesSchema(
+      let associatedValues_three = SchemaCoding.SchemaResolver.enumCaseAssociatedValuesSchema(
         values: ()
       )
 
-      return SchemaSupport.enumSchema(
+      return SchemaCoding.SchemaResolver.enumSchema(
         representing: Self.self,
         description: "A simple string-based enum",
         cases: (
           (
-            key: "one" as SchemaSupport.SchemaCodingKey,
+            key: "one" as SchemaCoding.SchemaCodingKey,
             description: nil,
             schema: associatedValues_one,
             initializer: { @Sendable _ in .one }
           ),
           (
-            key: "two" as SchemaSupport.SchemaCodingKey,
+            key: "two" as SchemaCoding.SchemaCodingKey,
             description: nil,
             schema: associatedValues_two,
             initializer: { @Sendable _ in .two }
           ),
           (
-            key: "three" as SchemaSupport.SchemaCodingKey,
+            key: "three" as SchemaCoding.SchemaCodingKey,
             description: nil,
             schema: associatedValues_three,
             initializer: { @Sendable _ in .three }
@@ -162,13 +162,13 @@ struct EnumSchemaStandardTests {
   private enum SingleCaseEnum: SchemaCodable, Equatable {
     case only(String)
 
-    static let schema: some SchemaCoding.Schema<Self> = SchemaSupport.enumSchema(
+    static let schema: some SchemaCoding.Schema<Self> = SchemaCoding.SchemaResolver.enumSchema(
       representing: Self.self,
       description: "An enum with only one case",
       cases: ((
-        key: "only" as SchemaSupport.SchemaCodingKey,
+        key: "only" as SchemaCoding.SchemaCodingKey,
         description: "The only case",
-        schema: SchemaSupport.schema(representing: String.self),
+        schema: SchemaCoding.SchemaResolver.schema(representing: String.self),
         initializer: { @Sendable value in Self.only(value) }
       )),
       caseEncoder: { value, encode in
@@ -182,7 +182,7 @@ struct EnumSchemaStandardTests {
 
   @Test
   private func testEnumSchemaEncoding() throws {
-    let schema = SchemaSupport.schema(representing: TestEnum.self)
+    let schema = SchemaCoding.SchemaResolver.schema(representing: TestEnum.self)
     #expect(
       schema.schemaJSON == """
         {
@@ -233,7 +233,7 @@ struct EnumSchemaStandardTests {
 
   @Test
   private func testEnumValueEncoding() throws {
-    let schema = SchemaSupport.schema(representing: TestEnum.self)
+    let schema = SchemaCoding.SchemaResolver.schema(representing: TestEnum.self)
     #expect(
       schema.encodedJSON(for: .first("a")) == """
         {
@@ -253,7 +253,7 @@ struct EnumSchemaStandardTests {
 
   @Test
   private func testEnumValueDecoding() throws {
-    let schema = SchemaSupport.schema(representing: TestEnum.self)
+    let schema = SchemaCoding.SchemaResolver.schema(representing: TestEnum.self)
     #expect(
       schema.value(
         fromJSON: """
@@ -266,7 +266,7 @@ struct EnumSchemaStandardTests {
 
   @Test
   private func testSingleCaseEnumSchemaEncoding() throws {
-    let schema = SchemaSupport.schema(representing: SingleCaseEnum.self)
+    let schema = SchemaCoding.SchemaResolver.schema(representing: SingleCaseEnum.self)
     #expect(
       schema.schemaJSON == """
         {
@@ -279,7 +279,7 @@ struct EnumSchemaStandardTests {
 
   @Test
   private func testSingleCaseEnumValueEncoding() throws {
-    let schema = SchemaSupport.schema(representing: SingleCaseEnum.self)
+    let schema = SchemaCoding.SchemaResolver.schema(representing: SingleCaseEnum.self)
     #expect(
       schema.encodedJSON(for: .only("test")) == """
         "test"
@@ -289,7 +289,7 @@ struct EnumSchemaStandardTests {
 
   @Test
   private func testSingleCaseEnumValueDecoding() throws {
-    let schema = SchemaSupport.schema(representing: SingleCaseEnum.self)
+    let schema = SchemaCoding.SchemaResolver.schema(representing: SingleCaseEnum.self)
     #expect(
       schema.value(
         fromJSON: """
@@ -300,7 +300,7 @@ struct EnumSchemaStandardTests {
 
   @Test
   private func testSimpleEnumSchemaEncoding() throws {
-    let schema = SchemaSupport.schema(representing: SimpleEnum.self)
+    let schema = SchemaCoding.SchemaResolver.schema(representing: SimpleEnum.self)
     #expect(
       schema.schemaJSON == """
         {
@@ -317,7 +317,7 @@ struct EnumSchemaStandardTests {
 
   @Test
   private func testSimpleEnumValueEncoding() throws {
-    let schema = SchemaSupport.schema(representing: SimpleEnum.self)
+    let schema = SchemaCoding.SchemaResolver.schema(representing: SimpleEnum.self)
     #expect(
       schema.encodedJSON(for: .two) == """
         "two"
@@ -327,7 +327,7 @@ struct EnumSchemaStandardTests {
 
   @Test
   private func testSimpleEnumValueDecoding() throws {
-    let schema = SchemaSupport.schema(representing: SimpleEnum.self)
+    let schema = SchemaCoding.SchemaResolver.schema(representing: SimpleEnum.self)
     #expect(
       schema.value(
         fromJSON: """
@@ -338,7 +338,7 @@ struct EnumSchemaStandardTests {
 
   @Test
   private func testStandardEnumValueEncoding() throws {
-    let schema = SchemaSupport.schema(representing: TestEnum.self)
+    let schema = SchemaCoding.SchemaResolver.schema(representing: TestEnum.self)
     #expect(
       schema.encodedJSON(for: .first("hello")) == """
         {

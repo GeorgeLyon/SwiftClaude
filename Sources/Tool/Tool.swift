@@ -37,12 +37,12 @@ public protocol ToolDefinition<Input>: Sendable {
 
   associatedtype Input
 
-  associatedtype InputSchema: Schema where InputSchema.Value == Input
+  associatedtype InputSchema: SchemaCoding.Schema where InputSchema.Value == Input
   var inputSchema: InputSchema { get }
 
 }
 
-public struct ClientDefinedToolDefinition<InputSchema: Schema>: ToolDefinition {
+public struct ClientDefinedToolDefinition<InputSchema: SchemaCoding.Schema>: ToolDefinition {
 
   public init(
     name: String,
@@ -69,7 +69,13 @@ public enum ToolInput {
   /// Alias SchemaCoding Types
   public typealias SchemaCodable = SchemaCoding.SchemaCodable
   public typealias Schema = SchemaCoding.Schema
-  public typealias SchemaSupport = SchemaCoding.SchemaSupport
+  public typealias SchemaResolver = SchemaCoding.SchemaResolver
+  public typealias SchemaCodingKey = SchemaCoding.SchemaCodingKey
+  public typealias SchemaEncoder = SchemaCoding.SchemaEncoder
+  public typealias StructSchemaDecoder = SchemaCoding.StructSchemaDecoder
+  public typealias EnumCaseEncoder = SchemaCoding.EnumCaseEncoder
+  public typealias InternallyTaggedEnumCaseEncoder = SchemaCoding.InternallyTaggedEnumCaseEncoder
+  public typealias InternallyTaggedEnumCaseSchema = SchemaCoding.InternallyTaggedEnumCaseSchema
 
 }
 

@@ -36,7 +36,7 @@ private struct ToolInputStructMacroTests {
 
         extension ToolInputStruct: ToolInput.SchemaCodable {
           static var schema: some ToolInput.Schema<Self> {
-            ToolInput.SchemaSupport.structSchema(
+            ToolInput.SchemaResolver.structSchema(
               representing: Self.self,
               description: ####"""
               A tool input struct
@@ -45,46 +45,46 @@ private struct ToolInputStructMacroTests {
                 (
                   description: nil,
                   keyPath: \Self.anInteger,
-                  key: "anInteger" as ToolInput.SchemaSupport.SchemaCodingKey,
-                  schema: ToolInput.SchemaSupport.schema(representing: Int.self)
+                  key: "anInteger" as ToolInput.SchemaCodingKey,
+                  schema: ToolInput.SchemaResolver.schema(representing: Int.self)
                 ),
                 (
                   description: ####"""
                   An (x, y) coordinate
                   """####,
                   keyPath: \Self.aCoordinate,
-                  key: "aCoordinate" as ToolInput.SchemaSupport.SchemaCodingKey,
-                  schema: ToolInput.SchemaSupport.schema(representing: (Int, Int).self)
+                  key: "aCoordinate" as ToolInput.SchemaCodingKey,
+                  schema: ToolInput.SchemaResolver.schema(representing: (Int, Int).self)
                 ),
                 (
                   description: ####"""
                   Crazy Declaration
                   """####,
                   keyPath: \Self.c,
-                  key: "c" as ToolInput.SchemaSupport.SchemaCodingKey,
-                  schema: ToolInput.SchemaSupport.schema(representing: String.self)
+                  key: "c" as ToolInput.SchemaCodingKey,
+                  schema: ToolInput.SchemaResolver.schema(representing: String.self)
                 ),
                 (
                   description: ####"""
                   Crazy Declaration
                   """####,
                   keyPath: \Self.b,
-                  key: "b" as ToolInput.SchemaSupport.SchemaCodingKey,
-                  schema: ToolInput.SchemaSupport.schema(representing: Bool.self)
+                  key: "b" as ToolInput.SchemaCodingKey,
+                  schema: ToolInput.SchemaResolver.schema(representing: Bool.self)
                 ),
                 (
                   description: ####"""
                   Crazy Declaration
                   """####,
                   keyPath: \Self.a,
-                  key: "a" as ToolInput.SchemaSupport.SchemaCodingKey,
-                  schema: ToolInput.SchemaSupport.schema(representing: Bool.self)
+                  key: "a" as ToolInput.SchemaCodingKey,
+                  schema: ToolInput.SchemaResolver.schema(representing: Bool.self)
                 )
               ),
               initializer: Self.init(structSchemaDecoder:)
             )
           }
-          private init(structSchemaDecoder: ToolInput.SchemaSupport.StructSchemaDecoder<Int, (Int, Int), String, Bool, Bool>) {
+          private init(structSchemaDecoder: ToolInput.StructSchemaDecoder<Int, (Int, Int), String, Bool, Bool>) {
             self.anInteger = structSchemaDecoder.propertyValues.0
             self.aCoordinate = structSchemaDecoder.propertyValues.1
             self.c = structSchemaDecoder.propertyValues.2

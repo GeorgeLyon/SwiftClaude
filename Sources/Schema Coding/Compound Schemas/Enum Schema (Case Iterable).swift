@@ -1,12 +1,12 @@
 import JSONSupport
 
 /// It is also possible to conform a `CaseIterable` enum to `SchemaCodable` directly and use the `CaseIterable`-based schema.
-extension SchemaSupport {
+extension SchemaCoding.SchemaResolver {
 
   public static func enumSchema<Value: CaseIterable & RawRepresentable>(
     representing _: Value.Type = Value.self,
     description: String? = nil
-  ) -> some Schema<Value>
+  ) -> some SchemaCoding.Schema<Value>
   where Value.RawValue == String {
     CaseIterableStringEnumSchema(description: description)
   }
@@ -14,19 +14,19 @@ extension SchemaSupport {
   public static func enumSchema<Value: CaseIterable & RawRepresentable>(
     representing _: Value.Type = Value.self,
     description: String? = nil
-  ) -> some Schema<Value>
+  ) -> some SchemaCoding.Schema<Value>
   where Value.RawValue: FixedWidthInteger & Codable & Sendable {
     CaseIterableIntegerEnumSchema(description: description)
   }
   public static func enumSchema<
     Value: CaseIterable & RawRepresentable,
-    each AssociatedValuesSchema: Schema
+    each AssociatedValuesSchema: SchemaCoding.Schema
   >(
     representing _: Value.Type,
     description: String?,
     cases: (
       repeat (
-        key: SchemaSupport.SchemaCodingKey,
+        key: SchemaCoding.SchemaCodingKey,
         description: String?,
         schema: each AssociatedValuesSchema,
         initializer: @Sendable ((each AssociatedValuesSchema).Value) -> Value
@@ -34,9 +34,9 @@ extension SchemaSupport {
     ),
     caseEncoder: @escaping @Sendable (
       Value,
-      repeat ((each AssociatedValuesSchema).Value) -> EnumCaseEncoder
-    ) -> EnumCaseEncoder
-  ) -> some Schema<Value>
+      repeat ((each AssociatedValuesSchema).Value) -> SchemaCoding.EnumCaseEncoder
+    ) -> SchemaCoding.EnumCaseEncoder
+  ) -> some SchemaCoding.Schema<Value>
   where Value.RawValue == String {
     /// Fall back to case iterable conformance if an enum is case iterable
     return CaseIterableStringEnumSchema(description: description)
@@ -46,13 +46,13 @@ extension SchemaSupport {
   @_disfavoredOverload
   public static func enumSchema<
     Value: CaseIterable & RawRepresentable,
-    each AssociatedValuesSchema: Schema
+    each AssociatedValuesSchema: SchemaCoding.Schema
   >(
     representing _: Value.Type,
     description: String?,
     cases: (
       repeat (
-        key: SchemaSupport.SchemaCodingKey,
+        key: SchemaCoding.SchemaCodingKey,
         description: String?,
         schema: each AssociatedValuesSchema,
         initializer: @Sendable ((each AssociatedValuesSchema).Value) -> Value
@@ -60,9 +60,9 @@ extension SchemaSupport {
     ),
     caseEncoder: @escaping @Sendable (
       Value,
-      repeat ((each AssociatedValuesSchema).Value) -> EnumCaseEncoder
-    ) -> EnumCaseEncoder
-  ) -> some Schema<Value>
+      repeat ((each AssociatedValuesSchema).Value) -> SchemaCoding.EnumCaseEncoder
+    ) -> SchemaCoding.EnumCaseEncoder
+  ) -> some SchemaCoding.Schema<Value>
   where Value.RawValue: FixedWidthInteger & Codable & Sendable {
     /// Fall back to case iterable conformance if an enum is case iterable
     return CaseIterableIntegerEnumSchema(description: description)
@@ -85,7 +85,7 @@ where
 
 extension CaseIterableEnumSchema {
 
-  func encodeSchemaDefinition(to encoder: inout SchemaSupport.SchemaEncoder) {
+  func encodeSchemaDefinition(to encoder: inout SchemaCoding.SchemaEncoder) {
     let description = encoder.contextualDescription(description)
     encoder.stream.encodeObject { stream in
       if let description {

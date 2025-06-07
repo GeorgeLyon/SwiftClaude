@@ -1,10 +1,10 @@
 import JSONSupport
 
-extension SchemaSupport {
+extension SchemaCoding.SchemaResolver {
 
   public static func schema<Wrapped: SchemaCodable>(
     representing: Wrapped?.Type = Wrapped?.self
-  ) -> some Schema<Wrapped?> {
+  ) -> some SchemaCoding.Schema<Wrapped?> {
     OptionalSchema(
       wrappedSchema: Wrapped.schema
     )
@@ -14,8 +14,8 @@ extension SchemaSupport {
 
 extension Optional: SchemaCodable where Wrapped: SchemaCodable {
 
-  public static var schema: some Schema<Self> {
-    SchemaSupport.schema()
+  public static var schema: some SchemaCoding.Schema<Self> {
+    SchemaCoding.SchemaResolver.schema(representing: Self.self)
   }
 
 }
@@ -45,13 +45,13 @@ protocol OptionalSchemaProtocol<Value>: InternalSchema {
 
 }
 
-private struct OptionalSchema<WrappedSchema: Schema>: OptionalSchemaProtocol {
+private struct OptionalSchema<WrappedSchema: SchemaCoding.Schema>: OptionalSchemaProtocol {
 
   let wrappedSchema: WrappedSchema
 
   typealias Value = WrappedSchema.Value?
 
-  func encodeSchemaDefinition(to encoder: inout SchemaSupport.SchemaEncoder) {
+  func encodeSchemaDefinition(to encoder: inout SchemaCoding.SchemaEncoder) {
     let description = encoder.contextualDescription(nil)
     encoder.stream.encodeObject { encoder in
       if let description {

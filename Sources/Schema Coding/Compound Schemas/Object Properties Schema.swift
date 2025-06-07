@@ -3,7 +3,7 @@ import JSONSupport
 protocol ObjectPropertiesSchemaProtocol<Value, ValueDecodingState>: InternalSchema {
 
   func encodeSchemaDefinition(
-    to stream: inout SchemaSupport.SchemaEncoder,
+    to stream: inout SchemaCoding.SchemaEncoder,
     discriminator: Discriminator?
   )
 
@@ -27,7 +27,7 @@ extension ObjectPropertiesSchemaProtocol {
 /// This schema is not instantiated directly by a user.
 /// Instead it is used in the implementation of `StructSchema` and `EnumSchema`
 struct ObjectPropertiesSchema<
-  each PropertySchema: Schema
+  each PropertySchema: SchemaCoding.Schema
 >: ObjectPropertiesSchemaProtocol {
 
   typealias Value = (repeat (each PropertySchema).Value)
@@ -47,14 +47,14 @@ struct ObjectPropertiesSchema<
   private let properties: Properties
   private let propertyDecoderProvider: PropertyDecoderProvider
 
-  func encodeSchemaDefinition(to encoder: inout SchemaSupport.SchemaEncoder) {
+  func encodeSchemaDefinition(to encoder: inout SchemaCoding.SchemaEncoder) {
     encodeSchemaDefinition(to: &encoder, discriminator: nil)
   }
 
   /// - Parameters:
   ///   - discriminator: If provided, this schema will encode an additional property with this specified value. This is used for internally-tagged enums
   func encodeSchemaDefinition(
-    to encoder: inout SchemaSupport.SchemaEncoder,
+    to encoder: inout SchemaCoding.SchemaEncoder,
     discriminator: Discriminator?
   ) {
     let description = encoder.contextualDescription(description)
@@ -219,7 +219,7 @@ struct ObjectPropertiesSchema<
         }
       }
 
-      func encodeProperty<S: Schema>(
+      func encodeProperty<S: SchemaCoding.Schema>(
         _ property: ObjectPropertySchema<S>, _ value: S.Value
       ) {
         assert(discriminator?.name != property.key.stringValue)
@@ -250,7 +250,7 @@ struct ObjectPropertiesSchema<
 }
 
 struct ObjectPropertySchema<Schema: SchemaCoding.Schema> {
-  let key: SchemaSupport.SchemaCodingKey
+  let key: SchemaCoding.SchemaCodingKey
   let description: String?
   let schema: Schema
 

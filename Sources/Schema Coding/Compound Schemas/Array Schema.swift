@@ -1,10 +1,10 @@
 import JSONSupport
 
-extension SchemaSupport {
+extension SchemaCoding.SchemaResolver {
 
   public static func schema<Element: SchemaCodable>(
     representing: [Element].Type = [Element].self
-  ) -> some Schema<[Element]> {
+  ) -> some SchemaCoding.Schema<[Element]> {
     ArraySchema(elementSchema: Element.schema)
   }
 
@@ -13,20 +13,20 @@ extension SchemaSupport {
 extension Array: SchemaCodable where Element: SchemaCodable {
 
   public static var schema: some SchemaCoding.Schema<Self> {
-    SchemaSupport.schema()
+    SchemaCoding.SchemaResolver.schema(representing: Self.self)
   }
 
 }
 
 // MARK: - Schema
 
-private struct ArraySchema<ElementSchema: Schema>: InternalSchema {
+private struct ArraySchema<ElementSchema: SchemaCoding.Schema>: InternalSchema {
 
   typealias Value = [ElementSchema.Value]
 
   let elementSchema: ElementSchema
 
-  func encodeSchemaDefinition(to encoder: inout SchemaSupport.SchemaEncoder) {
+  func encodeSchemaDefinition(to encoder: inout SchemaCoding.SchemaEncoder) {
     let description = encoder.contextualDescription(nil)
     encoder.stream.encodeObject { encoder in
       if let description {

@@ -46,90 +46,90 @@ private struct SchemaCodableEnumMacroTests {
 
         extension TestEnum: SchemaCoding.SchemaCodable {
           static var schema: some SchemaCoding.Schema<Self> {
-            let associatedValuesSchema_0_0 = SchemaCoding.SchemaSupport.enumCaseAssociatedValuesSchema(
+            let associatedValuesSchema_0_0 = SchemaCoding.SchemaResolver.enumCaseAssociatedValuesSchema(
               values: (
 
               )
             )
-            let associatedValuesSchema_1_0 = SchemaCoding.SchemaSupport.enumCaseAssociatedValuesSchema(
+            let associatedValuesSchema_1_0 = SchemaCoding.SchemaResolver.enumCaseAssociatedValuesSchema(
               values: (
                 (
                   key: nil,
-                  schema: SchemaCoding.SchemaSupport.schema(representing: Int.self)
+                  schema: SchemaCoding.SchemaResolver.schema(representing: Int.self)
                 )
               )
             )
-            let associatedValuesSchema_2_0 = SchemaCoding.SchemaSupport.enumCaseAssociatedValuesSchema(
+            let associatedValuesSchema_2_0 = SchemaCoding.SchemaResolver.enumCaseAssociatedValuesSchema(
               values: (
 
               )
             )
-            let associatedValuesSchema_2_1 = SchemaCoding.SchemaSupport.enumCaseAssociatedValuesSchema(
+            let associatedValuesSchema_2_1 = SchemaCoding.SchemaResolver.enumCaseAssociatedValuesSchema(
               values: (
 
               )
             )
-            let associatedValuesSchema_2_2 = SchemaCoding.SchemaSupport.enumCaseAssociatedValuesSchema(
+            let associatedValuesSchema_2_2 = SchemaCoding.SchemaResolver.enumCaseAssociatedValuesSchema(
               values: (
                 (
                   key: nil,
-                  schema: SchemaCoding.SchemaSupport.schema(representing: String.self)
+                  schema: SchemaCoding.SchemaResolver.schema(representing: String.self)
                 )
               )
             )
-            let associatedValuesSchema_2_3 = SchemaCoding.SchemaSupport.enumCaseAssociatedValuesSchema(
+            let associatedValuesSchema_2_3 = SchemaCoding.SchemaResolver.enumCaseAssociatedValuesSchema(
               values: (
                 (
                   key: nil,
-                  schema: SchemaCoding.SchemaSupport.schema(representing: Int.self)
+                  schema: SchemaCoding.SchemaResolver.schema(representing: Int.self)
                 )
               )
             )
-            let associatedValuesSchema_3_0 = SchemaCoding.SchemaSupport.enumCaseAssociatedValuesSchema(
+            let associatedValuesSchema_3_0 = SchemaCoding.SchemaResolver.enumCaseAssociatedValuesSchema(
               values: (
                 (
                   key: nil,
-                  schema: SchemaCoding.SchemaSupport.schema(representing: Int.self)
+                  schema: SchemaCoding.SchemaResolver.schema(representing: Int.self)
                 ), (
                   key: nil,
-                  schema: SchemaCoding.SchemaSupport.schema(representing: String.self)
+                  schema: SchemaCoding.SchemaResolver.schema(representing: String.self)
                 )
               )
             )
-            let associatedValuesSchema_4_0 = SchemaCoding.SchemaSupport.enumCaseAssociatedValuesSchema(
+            let associatedValuesSchema_4_0 = SchemaCoding.SchemaResolver.enumCaseAssociatedValuesSchema(
               values: (
                 (
-                  key: "a" as SchemaCoding.SchemaSupport.SchemaCodingKey,
-                  schema: SchemaCoding.SchemaSupport.schema(representing: Int.self)
+                  key: "a" as SchemaCoding.SchemaCodingKey,
+                  schema: SchemaCoding.SchemaResolver.schema(representing: Int.self)
                 ), (
-                  key: "b" as SchemaCoding.SchemaSupport.SchemaCodingKey,
-                  schema: SchemaCoding.SchemaSupport.schema(representing: String.self)
+                  key: "b" as SchemaCoding.SchemaCodingKey,
+                  schema: SchemaCoding.SchemaResolver.schema(representing: String.self)
                 ), (
-                  key: "c" as SchemaCoding.SchemaSupport.SchemaCodingKey,
-                  schema: SchemaCoding.SchemaSupport.schema(representing: Bool.self)
+                  key: "c" as SchemaCoding.SchemaCodingKey,
+                  schema: SchemaCoding.SchemaResolver.schema(representing: Bool.self)
                 )
               )
             )
-            let associatedValuesSchema_5_0 = SchemaCoding.SchemaSupport.enumCaseAssociatedValuesSchema(
+            let associatedValuesSchema_5_0 = SchemaCoding.SchemaResolver.enumCaseAssociatedValuesSchema(
               values: (
                 (
                   key: nil,
-                  schema: SchemaCoding.SchemaSupport.schema(representing: Int.self)
+                  schema: SchemaCoding.SchemaResolver.schema(representing: Int.self)
                 ), (
-                  key: "b" as SchemaCoding.SchemaSupport.SchemaCodingKey,
-                  schema: SchemaCoding.SchemaSupport.schema(representing: String.self)
+                  key: "b" as SchemaCoding.SchemaCodingKey,
+                  schema: SchemaCoding.SchemaResolver.schema(representing: String.self)
                 ), (
-                  key: "c" as SchemaCoding.SchemaSupport.SchemaCodingKey,
-                  schema: SchemaCoding.SchemaSupport.schema(representing: Bool.self)
+                  key: "c" as SchemaCoding.SchemaCodingKey,
+                  schema: SchemaCoding.SchemaResolver.schema(representing: Bool.self)
                 )
               )
             )
-            return SchemaCoding.SchemaSupport.enumSchema(
+            return SchemaCoding.SchemaResolver.enumSchema(
               representing: Self.self,
               description: nil,
               cases: (
                 (
-                  key: "simple" as SchemaCoding.SchemaSupport.SchemaCodingKey,
+                  key: "simple" as SchemaCoding.SchemaCodingKey,
                   description: nil,
                   schema: associatedValuesSchema_0_0,
                   initializer: { @Sendable values in
@@ -137,7 +137,7 @@ private struct SchemaCodableEnumMacroTests {
                   }
                 ),
                 (
-                  key: "singleAssociatedValue" as SchemaCoding.SchemaSupport.SchemaCodingKey,
+                  key: "singleAssociatedValue" as SchemaCoding.SchemaCodingKey,
                   description: ####"""
                   A case with a single associated value
                   """####,
@@ -147,7 +147,7 @@ private struct SchemaCodableEnumMacroTests {
                   }
                 ),
                 (
-                  key: "oneCase" as SchemaCoding.SchemaSupport.SchemaCodingKey,
+                  key: "oneCase" as SchemaCoding.SchemaCodingKey,
                   description: ####"""
                   Multiple cases in a single declaration
                   """####,
@@ -157,7 +157,7 @@ private struct SchemaCodableEnumMacroTests {
                   }
                 ),
                 (
-                  key: "twoCase" as SchemaCoding.SchemaSupport.SchemaCodingKey,
+                  key: "twoCase" as SchemaCoding.SchemaCodingKey,
                   description: ####"""
                   Multiple cases in a single declaration
                   """####,
@@ -167,7 +167,7 @@ private struct SchemaCodableEnumMacroTests {
                   }
                 ),
                 (
-                  key: "redCase" as SchemaCoding.SchemaSupport.SchemaCodingKey,
+                  key: "redCase" as SchemaCoding.SchemaCodingKey,
                   description: ####"""
                   Multiple cases in a single declaration
                   """####,
@@ -177,7 +177,7 @@ private struct SchemaCodableEnumMacroTests {
                   }
                 ),
                 (
-                  key: "blueCase" as SchemaCoding.SchemaSupport.SchemaCodingKey,
+                  key: "blueCase" as SchemaCoding.SchemaCodingKey,
                   description: ####"""
                   Multiple cases in a single declaration
                   """####,
@@ -187,7 +187,7 @@ private struct SchemaCodableEnumMacroTests {
                   }
                 ),
                 (
-                  key: "mutlipleUnnamedAssociatedValues" as SchemaCoding.SchemaSupport.SchemaCodingKey,
+                  key: "mutlipleUnnamedAssociatedValues" as SchemaCoding.SchemaCodingKey,
                   description: ####"""
                   Multiple associated values without a name
                   """####,
@@ -197,7 +197,7 @@ private struct SchemaCodableEnumMacroTests {
                   }
                 ),
                 (
-                  key: "multipleNamedAssociatedValues" as SchemaCoding.SchemaSupport.SchemaCodingKey,
+                  key: "multipleNamedAssociatedValues" as SchemaCoding.SchemaCodingKey,
                   description: ####"""
                   Multiple associated values with a name
                   """####,
@@ -207,7 +207,7 @@ private struct SchemaCodableEnumMacroTests {
                   }
                 ),
                 (
-                  key: "mixedAssociatedValues" as SchemaCoding.SchemaSupport.SchemaCodingKey,
+                  key: "mixedAssociatedValues" as SchemaCoding.SchemaCodingKey,
                   description: ####"""
                   Multiple associated values with some named and some unnamed
                   """####,

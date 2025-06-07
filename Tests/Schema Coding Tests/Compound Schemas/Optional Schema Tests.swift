@@ -9,7 +9,7 @@ struct OptionalSchemaTests {
   private func testSchemaEncodingWithPrimitiveTypes() throws {
     // Test with String
     #expect(
-      SchemaSupport.schema(representing: String?.self).schemaJSON == """
+      SchemaCoding.SchemaResolver.schema(representing: String?.self).schemaJSON == """
         {
           "type": [
             "null",
@@ -21,7 +21,7 @@ struct OptionalSchemaTests {
 
     // Test with Int
     #expect(
-      SchemaSupport.schema(representing: Int?.self).schemaJSON == """
+      SchemaCoding.SchemaResolver.schema(representing: Int?.self).schemaJSON == """
         {
           "type": [
             "null",
@@ -33,7 +33,7 @@ struct OptionalSchemaTests {
 
     // Test with Bool
     #expect(
-      SchemaSupport.schema(representing: Bool?.self).schemaJSON == """
+      SchemaCoding.SchemaResolver.schema(representing: Bool?.self).schemaJSON == """
         {
           "type": [
             "null",
@@ -47,7 +47,7 @@ struct OptionalSchemaTests {
   @Test
   private func testSchemaEncodingWithComplexTypes() throws {
     // Test with Array type
-    let arraySchema = SchemaSupport.schema(representing: [String]?.self)
+    let arraySchema = SchemaCoding.SchemaResolver.schema(representing: [String]?.self)
     #expect(
       arraySchema.schemaJSON == """
         {
@@ -65,7 +65,7 @@ struct OptionalSchemaTests {
         """)
 
     // Test with wrapped schema that can accept null (Optional of Optional)
-    let nestedOptionalSchema = SchemaSupport.schema(representing: String??.self)
+    let nestedOptionalSchema = SchemaCoding.SchemaResolver.schema(representing: String??.self)
     #expect(
       nestedOptionalSchema.schemaJSON == """
         {
@@ -90,7 +90,7 @@ struct OptionalSchemaTests {
 
   @Test
   private func testValueEncoding() throws {
-    let stringSchema = SchemaSupport.schema(representing: String?.self)
+    let stringSchema = SchemaCoding.SchemaResolver.schema(representing: String?.self)
 
     // Test with non-nil value
     #expect(
@@ -107,7 +107,7 @@ struct OptionalSchemaTests {
 
   @Test
   private func testValueDecoding() throws {
-    let stringSchema = SchemaSupport.schema(representing: String?.self)
+    let stringSchema = SchemaCoding.SchemaResolver.schema(representing: String?.self)
 
     // Test decoding non-nil value
     #expect(stringSchema.value(fromJSON: "\"test\"") == "test")

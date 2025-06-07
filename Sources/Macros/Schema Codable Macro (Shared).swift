@@ -175,7 +175,7 @@ extension StructDeclSyntax {
         calledExpression: MemberAccessExprSyntax(
           base: MemberAccessExprSyntax(
             base: DeclReferenceExprSyntax(baseName: schemaCodingNamespace),
-            name: "SchemaSupport"
+            name: "SchemaResolver"
           ),
           name: "structSchema"
         ),
@@ -246,10 +246,7 @@ extension StructDeclSyntax {
             FunctionParameterSyntax(
               firstName: "structSchemaDecoder",
               type: MemberTypeSyntax(
-                baseType: MemberTypeSyntax(
-                  baseType: IdentifierTypeSyntax(name: schemaCodingNamespace),
-                  name: "SchemaSupport"
-                ),
+                baseType: IdentifierTypeSyntax(name: schemaCodingNamespace),
                 name: "StructSchemaDecoder",
                 genericArgumentClause: GenericArgumentClauseSyntax {
                   for property in storedProperties {
@@ -440,10 +437,7 @@ extension StructDeclSyntax.StoredProperty {
             ),
             asKeyword: .keyword(.as, trailingTrivia: .space),
             type: MemberTypeSyntax(
-              baseType: MemberTypeSyntax(
-                baseType: IdentifierTypeSyntax(name: schemaCodingNamespace),
-                name: "SchemaSupport"
-              ),
+              baseType: IdentifierTypeSyntax(name: schemaCodingNamespace),
               name: "SchemaCodingKey"
             )
           ),
@@ -508,7 +502,7 @@ extension EnumDeclSyntax {
           calledExpression: MemberAccessExprSyntax(
             base: MemberAccessExprSyntax(
               base: DeclReferenceExprSyntax(baseName: schemaCodingNamespace),
-              name: "SchemaSupport"
+              name: "SchemaResolver"
             ),
             name: enumSchemaFunctionName
           ),
@@ -627,7 +621,7 @@ extension EnumCaseElementListSyntax.Element {
       calledExpression: MemberAccessExprSyntax(
         base: MemberAccessExprSyntax(
           base: DeclReferenceExprSyntax(baseName: schemaCodingNamespace),
-          name: "SchemaSupport"
+          name: "SchemaResolver"
         ),
         name: enumAssociatedValueSchemaFunctionName
       ),
@@ -677,10 +671,7 @@ extension EnumCaseElementListSyntax.Element {
             ),
             asKeyword: .keyword(.as, trailingTrivia: .space),
             type: MemberTypeSyntax(
-              baseType: MemberTypeSyntax(
-                baseType: IdentifierTypeSyntax(name: schemaCodingNamespace),
-                name: "SchemaSupport"
-              ),
+              baseType: IdentifierTypeSyntax(name: schemaCodingNamespace),
               name: "SchemaCodingKey"
             )
           ),
@@ -862,10 +853,7 @@ extension EnumCaseParameterListSyntax.Element {
               ),
               asKeyword: .keyword(.as, trailingTrivia: .space),
               type: MemberTypeSyntax(
-                baseType: MemberTypeSyntax(
-                  baseType: IdentifierTypeSyntax(name: schemaCodingNamespace),
-                  name: "SchemaSupport"
-                ),
+                baseType: IdentifierTypeSyntax(name: schemaCodingNamespace),
                 name: "SchemaCodingKey"
               )
             ),
@@ -968,7 +956,7 @@ extension TypeSyntax {
       calledExpression: MemberAccessExprSyntax(
         base: MemberAccessExprSyntax(
           base: DeclReferenceExprSyntax(baseName: schemaCodingNamespace),
-          name: "SchemaSupport"
+          name: "SchemaResolver"
         ),
         name: "schema"
       ),

@@ -8,7 +8,7 @@ struct NumberSchemaTests {
   @Test
   private func testSchemaEncoding() throws {
     #expect(
-      SchemaSupport.schema(representing: Double.self).schemaJSON == """
+      SchemaCoding.SchemaResolver.schema(representing: Double.self).schemaJSON == """
         {
           "type": "number"
         }
@@ -19,12 +19,12 @@ struct NumberSchemaTests {
   @Test
   private func testValueEncoding() throws {
     #expect(
-      SchemaSupport.schema(representing: Double.self).encodedJSON(for: 3.14) == """
+      SchemaCoding.SchemaResolver.schema(representing: Double.self).encodedJSON(for: 3.14) == """
         3.14
         """
     )
     #expect(
-      SchemaSupport.schema(representing: Double.self).encodedJSON(for: -2.5) == """
+      SchemaCoding.SchemaResolver.schema(representing: Double.self).encodedJSON(for: -2.5) == """
         -2.5
         """
     )
@@ -33,10 +33,10 @@ struct NumberSchemaTests {
   @Test
   private func testValueDecoding() throws {
     #expect(
-      SchemaSupport.schema(representing: Double.self).value(fromJSON: "3.14") == 3.14
+      SchemaCoding.SchemaResolver.schema(representing: Double.self).value(fromJSON: "3.14") == 3.14
     )
     #expect(
-      SchemaSupport.schema(representing: Double.self).value(fromJSON: "-2.5") == -2.5
+      SchemaCoding.SchemaResolver.schema(representing: Double.self).value(fromJSON: "-2.5") == -2.5
     )
   }
 

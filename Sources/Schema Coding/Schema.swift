@@ -1,46 +1,46 @@
 public import JSONSupport
 
-public protocol SchemaCodable {
+public typealias SchemaCodable = SchemaCoding.SchemaCodable
 
-  associatedtype Schema: _ImplementationDetails._Schema<Self>
+/// Most public types are nested in `SchemaCoding` since most don't need to be referenced directly.
+public enum SchemaCoding {
 
-  static var schema: Schema { get }
+  public protocol SchemaCodable {
 
-}
+    associatedtype Schema: SchemaCoding.Schema<Self>
 
-/// A Schema describing the shape of a tool input
-public protocol Schema<Value>: Sendable {
+    static var schema: Schema { get }
 
-  associatedtype Value
+  }
 
-  func encodeSchemaDefinition(to encoder: inout SchemaSupport.SchemaEncoder)
+  /// A Schema describing the shape of a tool input
+  public protocol Schema<Value>: Sendable {
 
-  associatedtype ValueDecodingState = ()
+    associatedtype Value
 
-  var initialValueDecodingState: ValueDecodingState { get }
+    func encodeSchemaDefinition(to encoder: inout SchemaEncoder)
 
-  func decodeValue(
-    from stream: inout JSON.DecodingStream,
-    state: inout ValueDecodingState
-  ) throws -> JSON.DecodingResult<Value>
+    associatedtype ValueDecodingState = ()
 
-  func encode(_ value: Value, to stream: inout JSON.EncodingStream)
+    var initialValueDecodingState: ValueDecodingState { get }
 
-}
+    func decodeValue(
+      from stream: inout JSON.DecodingStream,
+      state: inout ValueDecodingState
+    ) throws -> JSON.DecodingResult<Value>
 
-extension Schema where ValueDecodingState == Void {
+    func encode(_ value: Value, to stream: inout JSON.EncodingStream)
 
-  var initialValueDecodingState: Void { () }
+  }
 
-}
+  public enum SchemaResolver {
 
-/// Namespace for types related to getting concrete values conforming to the `Schema` protocol
-public enum SchemaSupport {
+    public static func schema<Value: SchemaCodable>(
+      representing: Value.Type
+    ) -> some Schema<Value> {
+      Value.schema
+    }
 
-  public static func schema<Value: SchemaCodable>(
-    representing: Value.Type
-  ) -> some Schema<Value> {
-    Value.schema
   }
 
   public struct SchemaCodingKey: Sendable, Hashable, ExpressibleByStringLiteral {
@@ -82,6 +82,12 @@ public enum SchemaSupport {
 
 }
 
+extension SchemaCoding.Schema where ValueDecodingState == Void {
+
+  var initialValueDecodingState: Void { () }
+
+}
+
 // MARK: - Macros
 
 @attached(
@@ -108,7 +114,7 @@ public macro SchemaCodable(discriminatorPropertyName: String) =
 
 // MARK: - Internal API
 
-extension Schema {
+extension SchemaCoding.Schema {
 
   var mayAcceptNullValue: Bool {
     /// Schemas must explicitly opt out of accepting null values by conforming to `InternalSchema`
@@ -117,7 +123,7 @@ extension Schema {
 
 }
 
-protocol InternalSchema: Schema {
+protocol InternalSchema: SchemaCoding.Schema {
 
   var mayAcceptNullValue: Bool { get }
 
@@ -140,7 +146,7 @@ protocol LeafSchema: InternalSchema {
 /// We don't expect internal leaf schemas to have any additional properties, but they should still encode a contextual description if necessary.
 extension LeafSchema {
 
-  public func encodeSchemaDefinition(to encoder: inout SchemaSupport.SchemaEncoder) {
+  public func encodeSchemaDefinition(to encoder: inout SchemaCoding.SchemaEncoder) {
     let description = encoder.contextualDescription(nil)
     encoder.stream.encodeObject { encoder in
       if let description {
@@ -152,24 +158,17 @@ extension LeafSchema {
 
 }
 
-// MARK: - Implementation Details
-
-/// Because there is a `SchemaCodable` protocol in the `SchemaCodable` target, we can't reference top-level type that have been shadowed by local parameters. To work around this we use `_ImplementationDetails`.
-public enum _ImplementationDetails {
-  public typealias _Schema = Schema
-}
-
 // MARK: - Convenience
 
 extension JSON.EncodingStream {
 
   /// Convenience method to encode a schema definition
-  mutating func encodeSchemaDefinition<T: Schema>(
+  mutating func encodeSchemaDefinition<T: SchemaCoding.Schema>(
     _ schema: T,
     descriptionPrefix: String? = nil,
     descriptionSuffix: String? = nil
   ) {
-    var encoder = SchemaSupport.SchemaEncoder(
+    var encoder = SchemaCoding.SchemaEncoder(
       stream: self,
       descriptionPrefix: descriptionPrefix,
       descriptionSuffix: descriptionSuffix
