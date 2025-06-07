@@ -65,31 +65,31 @@ struct EnumSchemaStandardTests {
           (
             key: "first" as SchemaSupport.SchemaCodingKey,
             description: "A string",
-            associatedValuesSchema: associatedValues_first,
+            schema: associatedValues_first,
             initializer: { @Sendable first in .first(first) }
           ),
           (
             key: "second" as SchemaSupport.SchemaCodingKey,
             description: String?.none,
-            associatedValuesSchema: associatedValues_second,
+            schema: associatedValues_second,
             initializer: { @Sendable second in .second(x: second) }
           ),
           (
             key: "third" as SchemaSupport.SchemaCodingKey,
             description: nil,
-            associatedValuesSchema: associatedValues_third,
+            schema: associatedValues_third,
             initializer: { @Sendable third in Self.third(third.0, x: third.1) }
           ),
           (
             key: "fourth" as SchemaSupport.SchemaCodingKey,
             description: nil,
-            associatedValuesSchema: associatedValues_fourth,
+            schema: associatedValues_fourth,
             initializer: { @Sendable fourth in Self.fourth(x: fourth.0, y: fourth.1) }
           ),
           (
             key: "fifth" as SchemaSupport.SchemaCodingKey,
             description: nil,
-            associatedValuesSchema: associatedValues_fifth,
+            schema: associatedValues_fifth,
             initializer: { @Sendable fifth in Self.fifth }
           )
         ),
@@ -130,19 +130,19 @@ struct EnumSchemaStandardTests {
           (
             key: "one" as SchemaSupport.SchemaCodingKey,
             description: nil,
-            associatedValuesSchema: associatedValues_one,
+            schema: associatedValues_one,
             initializer: { @Sendable _ in .one }
           ),
           (
             key: "two" as SchemaSupport.SchemaCodingKey,
             description: nil,
-            associatedValuesSchema: associatedValues_two,
+            schema: associatedValues_two,
             initializer: { @Sendable _ in .two }
           ),
           (
             key: "three" as SchemaSupport.SchemaCodingKey,
             description: nil,
-            associatedValuesSchema: associatedValues_three,
+            schema: associatedValues_three,
             initializer: { @Sendable _ in .three }
           )
         ),
@@ -168,7 +168,7 @@ struct EnumSchemaStandardTests {
       cases: ((
         key: "only" as SchemaSupport.SchemaCodingKey,
         description: "The only case",
-        associatedValuesSchema: SchemaSupport.schema(representing: String.self),
+        schema: SchemaSupport.schema(representing: String.self),
         initializer: { @Sendable value in Self.only(value) }
       )),
       caseEncoder: { value, encode in

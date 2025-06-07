@@ -552,7 +552,7 @@ extension EnumDeclSyntax {
                         expression: element.enumSchemaCaseArgument(
                           schemaCodingNamespace: schemaCodingNamespace,
                           descriptionArgument: descriptionArgument,
-                          associatedValuesSchema: DeclReferenceExprSyntax(
+                          schema: DeclReferenceExprSyntax(
                             baseName:
                               "associatedValuesSchema_\(raw: caseDeclOffset)_\(raw: elementOffset)"
                           )
@@ -662,7 +662,7 @@ extension EnumCaseElementListSyntax.Element {
   fileprivate func enumSchemaCaseArgument(
     schemaCodingNamespace: TokenSyntax,
     descriptionArgument: LabeledExprSyntax,
-    associatedValuesSchema: some ExprSyntaxProtocol
+    schema: some ExprSyntaxProtocol
   ) -> TupleExprSyntax {
     return TupleExprSyntax(
       leftParen: .leftParenToken(leadingTrivia: .newline, trailingTrivia: .newline),
@@ -690,11 +690,11 @@ extension EnumCaseElementListSyntax.Element {
         /// description: "A string",
         descriptionArgument
 
-        /// associatedValuesSchema:,
+        /// schema:,
         LabeledExprSyntax(
-          label: "associatedValuesSchema",
+          label: "schema",
           colon: .colonToken(),
-          expression: associatedValuesSchema,
+          expression: schema,
           trailingComma: .commaToken(trailingTrivia: .newline)
         )
 

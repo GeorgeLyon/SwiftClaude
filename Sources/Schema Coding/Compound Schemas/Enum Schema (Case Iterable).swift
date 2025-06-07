@@ -28,7 +28,7 @@ extension SchemaSupport {
       repeat (
         key: SchemaSupport.SchemaCodingKey,
         description: String?,
-        associatedValuesSchema: each AssociatedValuesSchema,
+        schema: each AssociatedValuesSchema,
         initializer: @Sendable ((each AssociatedValuesSchema).Value) -> Value
       )
     ),
@@ -54,7 +54,7 @@ extension SchemaSupport {
       repeat (
         key: SchemaSupport.SchemaCodingKey,
         description: String?,
-        associatedValuesSchema: each AssociatedValuesSchema,
+        schema: each AssociatedValuesSchema,
         initializer: @Sendable ((each AssociatedValuesSchema).Value) -> Value
       )
     ),

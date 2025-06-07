@@ -10,7 +10,7 @@ import Testing
 private struct StructMacroTests {
 
   @Test
-  func testStructMacro() {
+  func testSchemaCodableStructMacro() {
 
     assertMacroExpansion(
       """

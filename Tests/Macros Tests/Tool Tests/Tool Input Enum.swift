@@ -101,7 +101,7 @@ private struct EnumMacroTests {
                 (
                   key: "simple" as ToolInput.SchemaSupport.SchemaCodingKey,
                   description: nil,
-                  associatedValuesSchema: associatedValuesSchema_0_0,
+                  schema: associatedValuesSchema_0_0,
                   initializer: { @Sendable values in
                     .`simple`
                   }
@@ -111,7 +111,7 @@ private struct EnumMacroTests {
                   description: ####"""
                   A case with a single associated value
                   """####,
-                  associatedValuesSchema: associatedValuesSchema_1_0,
+                  schema: associatedValuesSchema_1_0,
                   initializer: { @Sendable values in
                     .singleAssociatedValue(values)
                   }
@@ -121,7 +121,7 @@ private struct EnumMacroTests {
                   description: ####"""
                   Multiple associated values without a name
                   """####,
-                  associatedValuesSchema: associatedValuesSchema_2_0,
+                  schema: associatedValuesSchema_2_0,
                   initializer: { @Sendable values in
                     .mutlipleUnnamedAssociatedValues(values.0, values.1)
                   }
@@ -131,7 +131,7 @@ private struct EnumMacroTests {
                   description: ####"""
                   Multiple associated values with a name
                   """####,
-                  associatedValuesSchema: associatedValuesSchema_3_0,
+                  schema: associatedValuesSchema_3_0,
                   initializer: { @Sendable values in
                     .multipleNamedAssociatedValues(a: values.0, b: values.1, c: values.2)
                   }
@@ -141,7 +141,7 @@ private struct EnumMacroTests {
                   description: ####"""
                   Multiple associated values with some named and some unnamed
                   """####,
-                  associatedValuesSchema: associatedValuesSchema_4_0,
+                  schema: associatedValuesSchema_4_0,
                   initializer: { @Sendable values in
                     .mixedAssociatedValues(values.0, b: values.1, c: values.2)
                   }

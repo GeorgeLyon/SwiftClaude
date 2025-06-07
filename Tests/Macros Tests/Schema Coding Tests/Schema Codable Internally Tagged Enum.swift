@@ -75,7 +75,7 @@ private struct InternallyTaggedEnumMacroTests {
                   """####,
                   schema: associatedValuesSchema_0_0,
                   initializer: { @Sendable values in
-                    .circle(radius: values.0)
+                    .circle(radius: values)
                   }
                 ),
                 (
@@ -95,18 +95,18 @@ private struct InternallyTaggedEnumMacroTests {
                   """####,
                   schema: associatedValuesSchema_2_0,
                   initializer: { @Sendable values in
-                    .square(side: values.0)
+                    .square(side: values)
                   }
                 )
               ),
               caseEncoder: { @Sendable value, encoder_0, encoder_1, encoder_2 in
                 switch value {
                 case .circle(let radius):
-                  encoder_0((radius,))
+                  encoder_0((radius))
                 case .rectangle(let width, let height):
                   encoder_1((width, height))
                 case .square(let side):
-                  encoder_2((side,))
+                  encoder_2((side))
                 }
               }
             )

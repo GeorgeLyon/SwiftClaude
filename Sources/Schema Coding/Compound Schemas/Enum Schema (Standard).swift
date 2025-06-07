@@ -17,7 +17,7 @@ extension SchemaSupport {
       repeat (
         key: SchemaSupport.SchemaCodingKey,
         description: String?,
-        associatedValuesSchema: each AssociatedValuesSchema,
+        schema: each AssociatedValuesSchema,
         initializer: @Sendable ((each AssociatedValuesSchema).Value) -> Value
       )
     ),
@@ -31,7 +31,7 @@ extension SchemaSupport {
       cases: (repeat StandardEnumSchemaCase(
         key: (each cases).key,
         description: (each cases).description,
-        schema: (each cases).associatedValuesSchema,
+        schema: (each cases).schema,
         initializer: (each cases).initializer
       )),
       caseEncoder: caseEncoder
