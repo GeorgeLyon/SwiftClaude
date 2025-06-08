@@ -53,12 +53,12 @@ private struct ArraySchema<ElementSchema: SchemaCoding.Schema>: InternalSchema {
   }
 
   func decodeValue(
-    from stream: inout JSON.DecodingStream,
+    from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ValueDecodingState
   ) throws -> JSON.DecodingResult<Value> {
     while true {
       if var elementState = state.elementState {
-        switch try elementSchema.decodeValue(from: &stream, state: &elementState) {
+        switch try elementSchema.decodeValue(from: &decoder, state: &elementState) {
         case .needsMoreData:
           state.elementState = elementState
           return .needsMoreData
@@ -68,7 +68,7 @@ private struct ArraySchema<ElementSchema: SchemaCoding.Schema>: InternalSchema {
         }
       }
 
-      switch try stream.decodeArrayComponent(&state.arrayState) {
+      switch try decoder.stream.decodeArrayComponent(&state.arrayState) {
       case .needsMoreData:
         return .needsMoreData
       case .decoded(.elementStart):
@@ -79,11 +79,13 @@ private struct ArraySchema<ElementSchema: SchemaCoding.Schema>: InternalSchema {
     }
   }
 
-  func encode(_ value: Value, to stream: inout JSON.EncodingStream) {
-    stream.encodeArray { encoder in
+  func encode(_ value: Value, to encoder: inout SchemaCoding.SchemaValueEncoder) {
+    encoder.stream.encodeArray { encoder in
       for element in value {
         encoder.encodeElement { stream in
-          elementSchema.encode(element, to: &stream)
+          stream.withEncoder { encoder in
+            elementSchema.encode(element, to: &encoder)
+          }
         }
       }
     }

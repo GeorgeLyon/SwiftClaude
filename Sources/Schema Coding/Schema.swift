@@ -25,11 +25,11 @@ public enum SchemaCoding {
     var initialValueDecodingState: ValueDecodingState { get }
 
     func decodeValue(
-      from stream: inout JSON.DecodingStream,
+      from stream: inout SchemaValueDecoder,
       state: inout ValueDecodingState
     ) throws -> JSON.DecodingResult<Value>
 
-    func encode(_ value: Value, to stream: inout JSON.EncodingStream)
+    func encode(_ value: Value, to encoder: inout SchemaValueEncoder)
 
   }
 
@@ -78,6 +78,14 @@ public enum SchemaCoding {
     private let descriptionPrefix: String?
     private let descriptionSuffix: String?
 
+  }
+
+  public struct SchemaValueEncoder: ~Copyable {
+    var stream: JSON.EncodingStream
+  }
+
+  public struct SchemaValueDecoder: ~Copyable {
+    var stream: JSON.DecodingStream
   }
 
 }
@@ -177,12 +185,12 @@ extension JSON.EncodingStream {
     self = encoder.stream
   }
 
-  /// Convenience method to encode a value using a schema
-  // mutating func encodeValue<T: Schema>(
-  //   _ value: T.Value,
-  //   using schema: T
-  // ) {
-  //   schema.encode(value, to: &self)
-  // }
+  mutating func withEncoder(
+    _ body: (inout SchemaCoding.SchemaValueEncoder) -> Void
+  ) {
+    var encoder = SchemaCoding.SchemaValueEncoder(stream: self)
+    body(&encoder)
+    self = encoder.stream
+  }
 
 }
