@@ -59,6 +59,14 @@ public enum SchemaCoding {
 
   public struct SchemaEncoder: ~Copyable {
 
+    public init() {
+      self.init(
+        stream: JSON.EncodingStream(),
+        descriptionPrefix: nil,
+        descriptionSuffix: nil
+      )
+    }
+
     init(
       stream: consuming JSON.EncodingStream,
       descriptionPrefix: String? = nil,
@@ -81,11 +89,25 @@ public enum SchemaCoding {
   }
 
   public struct SchemaValueEncoder: ~Copyable {
+    public init() {
+      stream = JSON.EncodingStream()
+    }
     var stream: JSON.EncodingStream
+
+    fileprivate init(stream: consuming JSON.EncodingStream) {
+      self.stream = stream
+    }
   }
 
   public struct SchemaValueDecoder: ~Copyable {
+    public init() {
+      stream = JSON.DecodingStream()
+    }
     var stream: JSON.DecodingStream
+
+    fileprivate init(stream: consuming JSON.DecodingStream) {
+      self.stream = stream
+    }
   }
 
 }
@@ -171,8 +193,8 @@ extension LeafSchema {
 extension JSON.EncodingStream {
 
   /// Convenience method to encode a schema definition
-  mutating func encodeSchemaDefinition<T: SchemaCoding.Schema>(
-    _ schema: T,
+  mutating func encodeSchemaDefinition<Schema: SchemaCoding.Schema>(
+    _ schema: Schema,
     descriptionPrefix: String? = nil,
     descriptionSuffix: String? = nil
   ) {
@@ -185,12 +207,30 @@ extension JSON.EncodingStream {
     self = encoder.stream
   }
 
-  mutating func withEncoder(
-    _ body: (inout SchemaCoding.SchemaValueEncoder) -> Void
-  ) {
+  mutating func encode<Schema: SchemaCoding.Schema>(_ value: Schema.Value, using schema: Schema) {
     var encoder = SchemaCoding.SchemaValueEncoder(stream: self)
-    body(&encoder)
+    schema.encode(value, to: &encoder)
     self = encoder.stream
+  }
+
+}
+
+extension JSON.DecodingStream {
+
+  /// Convenience method to decode a schema definition
+  mutating func decodeValue<Schema: SchemaCoding.Schema>(
+    using schema: Schema,
+    state: inout Schema.ValueDecodingState
+  ) throws -> JSON.DecodingResult<Schema.Value> {
+    var decoder = SchemaCoding.SchemaValueDecoder(stream: self)
+    do {
+      let result = try schema.decodeValue(from: &decoder, state: &state)
+      self = decoder.stream
+      return result
+    } catch {
+      self = decoder.stream
+      throw error
+    }
   }
 
 }

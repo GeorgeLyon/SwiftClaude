@@ -50,14 +50,14 @@ extension SchemaCoding {
   }
 
   fileprivate protocol EnumCaseEncoderImplementationProtocol {
-    func encode(to encoder: inout SchemaCoding.SchemaValueEncoder)
+    func encode(to encoder: inout JSON.EncodingStream)
   }
 
   fileprivate struct EnumCaseEncoderImplementation<
     Schema: SchemaCoding.Schema
   >: EnumCaseEncoderImplementationProtocol {
-    func encode(to encoder: inout SchemaCoding.SchemaValueEncoder) {
-      schema.encode(value, to: &encoder)
+    func encode(to stream: inout JSON.EncodingStream) {
+      stream.encode(value, using: schema)
     }
     let schema: Schema
     let value: Schema.Value
@@ -320,15 +320,13 @@ private struct StandardEnumSchema<
     )
     switch style {
     case .singleCase:
-      enumCaseEncoder.implementation.encode(to: &encoder)
+      enumCaseEncoder.implementation.encode(to: &encoder.stream)
     case .noAssociatedValues:
       encoder.stream.encode(enumCaseEncoder.key)
     case .objectProperties:
       encoder.stream.encodeObject { objectEncoder in
         objectEncoder.encodeProperty(name: enumCaseEncoder.key) { stream in
-          stream.withEncoder { encoder in
-            enumCaseEncoder.implementation.encode(to: &encoder)
-          }
+          enumCaseEncoder.implementation.encode(to: &stream)
         }
       }
     }

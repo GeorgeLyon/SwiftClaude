@@ -89,7 +89,8 @@ struct TupleSchema<each ElementSchema: SchemaCoding.Schema>: InternalSchema {
       case .decoded(.elementStart):
         break
       case .decoded(.end):
-        func getElement<Schema: SchemaCoding.Schema>(from state: TupleElement<Schema>.DecodingState) throws
+        func getElement<Schema: SchemaCoding.Schema>(from state: TupleElement<Schema>.DecodingState)
+          throws
           -> Schema.Value
         {
           guard case .decoded(let element) = state else {
@@ -120,9 +121,7 @@ struct TupleSchema<each ElementSchema: SchemaCoding.Schema>: InternalSchema {
     encoder.stream.encodeArray { arrayEncoder in
       func encodeElement<S: SchemaCoding.Schema>(_ schema: S, _ elementValue: S.Value) {
         arrayEncoder.encodeElement { stream in
-          stream.withEncoder { encoder in
-            schema.encode(elementValue, to: &encoder)
-          }
+          stream.encode(elementValue, using: schema)
         }
       }
       repeat encodeElement((each elements).schema, each value)

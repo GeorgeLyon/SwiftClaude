@@ -83,9 +83,7 @@ private struct ArraySchema<ElementSchema: SchemaCoding.Schema>: InternalSchema {
     encoder.stream.encodeArray { encoder in
       for element in value {
         encoder.encodeElement { stream in
-          stream.withEncoder { encoder in
-            elementSchema.encode(element, to: &encoder)
-          }
+          stream.encode(element, using: elementSchema)
         }
       }
     }

@@ -83,7 +83,7 @@ let package = Package(
       name: "ToolTests",
       dependencies: [
         "Tool",
-        "JSONTestSupport",
+        "SchemaCodingTestSupport",
       ],
       path: "Tests/Tool Tests"
     ),
@@ -94,7 +94,6 @@ let package = Package(
       name: "SchemaCoding",
       dependencies: [
         "JSONSupport",
-        "JSONTestSupport",
         "Macros",
       ],
       path: "Sources/Schema Coding",
@@ -102,7 +101,9 @@ let package = Package(
     ),
     .testTarget(
       name: "SchemaCodingTests",
-      dependencies: ["SchemaCoding"],
+      dependencies: [
+        "SchemaCodingTestSupport",
+      ],
       path: "Tests/Schema Coding Tests"
     ),
 
@@ -139,9 +140,11 @@ let package = Package(
       swiftSettings: .projectDefaults
     ),
     .target(
-      name: "JSONTestSupport",
-      dependencies: [],
-      path: "Sources/JSON Test Support",
+      name: "SchemaCodingTestSupport",
+      dependencies: [
+        "SchemaCoding"
+      ],
+      path: "Sources/Schema Coding Test Support",
       swiftSettings: .projectDefaults
     ),
     .testTarget(

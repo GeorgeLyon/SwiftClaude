@@ -65,7 +65,11 @@ extension SchemaCoding.SchemaResolver {
         schema: each ValueSchema
       )
     )
-  ) -> SchemaCoding.InternallyTaggedEnumCaseSchema<some SchemaCoding.Schema<(repeat (each ValueSchema).Value)>> {
+  )
+    -> SchemaCoding.InternallyTaggedEnumCaseSchema<
+      some SchemaCoding.Schema<(repeat (each ValueSchema).Value)>
+    >
+  {
     SchemaCoding.InternallyTaggedEnumCaseSchema(
       schema: ObjectPropertiesSchema(
         description: nil,
@@ -81,7 +85,9 @@ extension SchemaCoding.SchemaResolver {
 }
 
 extension SchemaCoding {
-  public struct InternallyTaggedEnumCaseSchema<AssociatedValuesSchema: SchemaCoding.Schema>: Sendable {
+  public struct InternallyTaggedEnumCaseSchema<AssociatedValuesSchema: SchemaCoding.Schema>:
+    Sendable
+  {
     init(schema: AssociatedValuesSchema)
     where AssociatedValuesSchema: ObjectPropertiesSchemaProtocol {
       self.schema = schema
@@ -225,7 +231,7 @@ extension SchemaCoding {
 extension InternallyTaggedEnumSchema {
 
   func encode(_ value: Value, to encoder: inout SchemaCoding.SchemaValueEncoder) {
-    let encoder = caseEncoder(
+    let enumCaseEncoder = caseEncoder(
       value,
       repeat { value in
         SchemaCoding.InternallyTaggedEnumCaseEncoder(
@@ -238,7 +244,7 @@ extension InternallyTaggedEnumSchema {
         )
       }
     )
-    encoder.implementation.encode(
+    enumCaseEncoder.implementation.encode(
       to: &encoder.stream,
       discriminatorPropertyName: discriminatorPropertyName
     )
@@ -276,7 +282,7 @@ extension InternallyTaggedEnumSchema {
             let result = try enumCase.schema
               .objectPropertiesSchema
               .decodeValue(
-                from: &decoder,
+                from: &decoder.stream,
                 state: &state,
                 discriminator: (
                   name: discriminatorPropertyName,

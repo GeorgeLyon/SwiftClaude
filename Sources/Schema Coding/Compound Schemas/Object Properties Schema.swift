@@ -8,7 +8,7 @@ protocol ObjectPropertiesSchemaProtocol<Value, ValueDecodingState>: InternalSche
   )
 
   func decodeValue(
-    from decoder: inout SchemaCoding.SchemaValueDecoder,
+    from decoder: inout JSON.DecodingStream,
     state: inout ValueDecodingState,
     discriminator: Discriminator?
   ) throws -> JSON.DecodingResult<Value>
@@ -16,7 +16,7 @@ protocol ObjectPropertiesSchemaProtocol<Value, ValueDecodingState>: InternalSche
   func encode(
     _ value: Value,
     discriminator: Discriminator?,
-    to encoder: inout SchemaCoding.SchemaValueEncoder
+    to encoder: inout JSON.EncodingStream
   )
 
 }
@@ -141,23 +141,23 @@ struct ObjectPropertiesSchema<
     from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ValueDecodingState
   ) throws -> JSON.DecodingResult<(repeat (each PropertySchema).Value)> {
-    try decodeValue(from: &decoder, state: &state, discriminator: nil)
+    try decodeValue(from: &decoder.stream, state: &state, discriminator: nil)
   }
 
   func decodeValue(
-    from decoder: inout SchemaCoding.SchemaValueDecoder,
+    from stream: inout JSON.DecodingStream,
     state: inout ValueDecodingState,
     discriminator: Discriminator?
   ) throws -> JSON.DecodingResult<(repeat (each PropertySchema).Value)> {
     decodeProperties: while true {
-      switch try decoder.stream.decodeObjectComponent(&state.objectState) {
+      switch try stream.decodeObjectComponent(&state.objectState) {
       case .needsMoreData:
         return .needsMoreData
       case .decoded(.end):
         break decodeProperties
       case .decoded(.propertyValueStart(let name)):
         if let discriminator, name == discriminator.name {
-          switch try decoder.stream.decodeString() {
+          switch try stream.decodeString() {
           case .needsMoreData:
             return .needsMoreData
           case .decoded(let value):
@@ -166,7 +166,7 @@ struct ObjectPropertiesSchema<
             }
           }
         } else {
-          switch try propertyDecoderProvider.decoder(for: name)(&decoder, &state.propertyStates) {
+          switch try propertyDecoderProvider.decoder(for: name)(&stream, &state.propertyStates) {
           case .needsMoreData:
             return .needsMoreData
           case .decoded:
@@ -203,15 +203,15 @@ struct ObjectPropertiesSchema<
     _ value: Value,
     to encoder: inout SchemaCoding.SchemaValueEncoder
   ) {
-    encode((repeat each value), discriminator: nil, to: &encoder)
+    encode((repeat each value), discriminator: nil, to: &encoder.stream)
   }
 
   func encode(
     _ value: Value,
     discriminator: Discriminator?,
-    to encoder: inout SchemaCoding.SchemaValueEncoder
+    to stream: inout JSON.EncodingStream
   ) {
-    encoder.stream.encodeObject { objectEncoder in
+    stream.encodeObject { objectEncoder in
 
       if let discriminator {
         objectEncoder.encodeProperty(name: discriminator.name) { stream in
@@ -231,9 +231,7 @@ struct ObjectPropertiesSchema<
         }
 
         objectEncoder.encodeProperty(name: property.key.stringValue) { stream in
-          stream.withEncoder { encoder in
-            property.schema.encode(value, to: &encoder)
-          }
+          stream.encode(value, using: property.schema)
         }
       }
       repeat encodeProperty(each properties, each value)
@@ -245,7 +243,7 @@ struct ObjectPropertiesSchema<
     repeat ObjectPropertySchema<(each PropertySchema)>.DecodingState
   )
   private typealias PropertyDecoder = @Sendable (
-    inout SchemaCoding.SchemaValueDecoder,
+    inout JSON.DecodingStream,
     inout PropertyStates
   ) throws -> JSON.DecodingResult<Void>
 
@@ -286,14 +284,14 @@ extension ObjectPropertiesSchema {
       for property in repeat each properties {
         let accessor = tupleArchetype.nextElementAccessor(of: property.decodingStateType)
         let key = Substring(property.key.stringValue)
-        let decoder: PropertyDecoder = { decoder, states in
+        let decoder: PropertyDecoder = { stream, states in
           try accessor.mutate(&states) { decodingState in
             while true {
               switch decodingState {
               case .missing:
                 decodingState = .decoding(property.schema.initialValueDecodingState)
               case .decoding(var state):
-                switch try property.schema.decodeValue(from: &decoder, state: &state) {
+                switch try stream.decodeValue(using: property.schema, state: &state) {
                 case .needsMoreData:
                   decodingState = .decoding(state)
                   return .needsMoreData

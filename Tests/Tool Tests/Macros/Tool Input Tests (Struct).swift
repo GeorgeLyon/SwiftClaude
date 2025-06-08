@@ -1,4 +1,4 @@
-import JSONTestSupport
+import SchemaCodingTestSupport
 import Testing
 
 @testable import Tool
