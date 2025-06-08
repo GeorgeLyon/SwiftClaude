@@ -78,12 +78,12 @@ struct TupleSchema<each ElementSchema: SchemaCoding.Schema>: InternalSchema {
   }
 
   func decodeValue(
-    from stream: inout JSON.DecodingStream,
+    from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ValueDecodingState
   ) throws -> JSON.DecodingResult<(repeat (each ElementSchema).Value)> {
     while true {
 
-      switch try stream.decodeArrayComponent(&state.arrayState) {
+      switch try decoder.stream.decodeArrayComponent(&state.arrayState) {
       case .needsMoreData:
         return .needsMoreData
       case .decoded(.elementStart):
@@ -101,12 +101,12 @@ struct TupleSchema<each ElementSchema: SchemaCoding.Schema>: InternalSchema {
         return .decoded(try (repeat getElement(from: each state.elementStates)))
       }
 
-      guard let decoder = state.elementDecoders.first else {
+      guard let elementDecoder = state.elementDecoders.first else {
         assertionFailure()
         throw Error.invalidState
       }
 
-      switch try decoder(&stream, &state.elementStates) {
+      switch try elementDecoder(&decoder, &state.elementStates) {
       case .needsMoreData:
         return .needsMoreData
       case .decoded:
@@ -116,11 +116,13 @@ struct TupleSchema<each ElementSchema: SchemaCoding.Schema>: InternalSchema {
     }
   }
 
-  func encode(_ value: Value, to stream: inout JSON.EncodingStream) {
-    stream.encodeArray { encoder in
+  func encode(_ value: Value, to encoder: inout SchemaCoding.SchemaValueEncoder) {
+    encoder.stream.encodeArray { arrayEncoder in
       func encodeElement<S: SchemaCoding.Schema>(_ schema: S, _ elementValue: S.Value) {
-        encoder.encodeElement { stream in
-          schema.encode(elementValue, to: &stream)
+        arrayEncoder.encodeElement { stream in
+          stream.withEncoder { encoder in
+            schema.encode(elementValue, to: &encoder)
+          }
         }
       }
       repeat encodeElement((each elements).schema, each value)
@@ -134,7 +136,7 @@ struct TupleSchema<each ElementSchema: SchemaCoding.Schema>: InternalSchema {
   fileprivate typealias ElementStates = (repeat TupleElement<each ElementSchema>.DecodingState)
 
   fileprivate typealias ElementDecoder = @Sendable (
-    inout JSON.DecodingStream,
+    inout SchemaCoding.SchemaValueDecoder,
     inout ElementStates
   ) throws -> JSON.DecodingResult<Void>
 
@@ -147,12 +149,12 @@ struct TupleSchema<each ElementSchema: SchemaCoding.Schema>: InternalSchema {
         VariadicTupleArchetype<(repeat TupleElement<each ElementSchema>.DecodingState)>()
       for element in repeat each elements {
         let accessor = tupleArchetype.nextElementAccessor(of: element.decodingStateType)
-        decoders.append { stream, states in
+        decoders.append { decoder, states in
           try accessor.mutate(&states) { decodingState in
             while true {
               switch decodingState {
               case .decoding(var state):
-                switch try element.schema.decodeValue(from: &stream, state: &state) {
+                switch try element.schema.decodeValue(from: &decoder, state: &state) {
                 case .needsMoreData:
                   decodingState = .decoding(state)
                   return .needsMoreData

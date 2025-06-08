@@ -50,14 +50,14 @@ extension SchemaCoding {
   }
 
   fileprivate protocol EnumCaseEncoderImplementationProtocol {
-    func encode(to stream: inout JSON.EncodingStream)
+    func encode(to encoder: inout SchemaCoding.SchemaValueEncoder)
   }
 
   fileprivate struct EnumCaseEncoderImplementation<
     Schema: SchemaCoding.Schema
   >: EnumCaseEncoderImplementationProtocol {
-    func encode(to stream: inout JSON.EncodingStream) {
-      schema.encode(value, to: &stream)
+    func encode(to encoder: inout SchemaCoding.SchemaValueEncoder) {
+      schema.encode(value, to: &encoder)
     }
     let schema: Schema
     let value: Schema.Value
@@ -136,14 +136,14 @@ private struct EnumCaseVoidAssociatedValueSchema: LeafSchema {
   let type: String = "null"
 
   func decodeValue(
-    from stream: inout JSON.DecodingStream,
+    from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ()
   ) throws -> JSON.DecodingResult<Void> {
-    try stream.decodeNull()
+    try decoder.stream.decodeNull()
   }
 
-  func encode(_ value: Void, to stream: inout JSON.EncodingStream) {
-    stream.encodeNull()
+  func encode(_ value: Void, to encoder: inout SchemaCoding.SchemaValueEncoder) {
+    encoder.stream.encodeNull()
   }
 
 }
@@ -305,8 +305,8 @@ private struct StandardEnumSchema<
     }
   }
 
-  func encode(_ value: Value, to stream: inout JSON.EncodingStream) {
-    let encoder = caseEncoder(
+  func encode(_ value: Value, to encoder: inout SchemaCoding.SchemaValueEncoder) {
+    let enumCaseEncoder = caseEncoder(
       value,
       repeat { value in
         SchemaCoding.EnumCaseEncoder(
@@ -320,13 +320,15 @@ private struct StandardEnumSchema<
     )
     switch style {
     case .singleCase:
-      encoder.implementation.encode(to: &stream)
+      enumCaseEncoder.implementation.encode(to: &encoder)
     case .noAssociatedValues:
-      stream.encode(encoder.key)
+      encoder.stream.encode(enumCaseEncoder.key)
     case .objectProperties:
-      stream.encodeObject { objectEncoder in
-        objectEncoder.encodeProperty(name: encoder.key) { stream in
-          encoder.implementation.encode(to: &stream)
+      encoder.stream.encodeObject { objectEncoder in
+        objectEncoder.encodeProperty(name: enumCaseEncoder.key) { stream in
+          stream.withEncoder { encoder in
+            enumCaseEncoder.implementation.encode(to: &encoder)
+          }
         }
       }
     }
@@ -343,7 +345,7 @@ extension StandardEnumSchema {
   )
 
   typealias EnumCaseDecoder = @Sendable (
-    inout JSON.DecodingStream,
+    inout SchemaCoding.SchemaValueDecoder,
     inout AssociatedValueDecodingStates
   ) throws -> JSON.DecodingResult<Value>
 
@@ -356,9 +358,9 @@ extension StandardEnumSchema {
           of: type(of: enumCase.schema.initialValueDecodingState)
         )
         let key = Substring(enumCase.key.stringValue)
-        let decoder: EnumCaseDecoder = { stream, states in
+        let decoder: EnumCaseDecoder = { decoder, states in
           try accessor.mutate(&states) { state in
-            switch try enumCase.schema.decodeValue(from: &stream, state: &state) {
+            switch try enumCase.schema.decodeValue(from: &decoder, state: &state) {
             case .needsMoreData:
               return .needsMoreData
             case .decoded(let value):
@@ -417,14 +419,14 @@ extension StandardEnumSchema {
   }
 
   func decodeValue(
-    from stream: inout JSON.DecodingStream,
+    from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ValueDecodingState
   ) throws -> JSON.DecodingResult<Value> {
     switch style {
     case .singleCase:
-      return try decoderProvider.singleCaseDecoder(&stream, &state.associatedValueStates)
+      return try decoderProvider.singleCaseDecoder(&decoder, &state.associatedValueStates)
     case .noAssociatedValues:
-      switch try stream.decodeString() {
+      switch try decoder.stream.decodeString() {
       case .needsMoreData:
         return .needsMoreData
       case .decoded(let name):
@@ -437,9 +439,9 @@ extension StandardEnumSchema {
       }
     case .objectProperties:
       while true {
-        if let decoder = state.decoder {
+        if let caseDecoder = state.decoder {
           /// We are decoding the value
-          switch try decoder(&stream, &state.associatedValueStates) {
+          switch try caseDecoder(&decoder, &state.associatedValueStates) {
           case .needsMoreData:
             return .needsMoreData
           case .decoded(let value):
@@ -448,7 +450,7 @@ extension StandardEnumSchema {
           }
         } else if let value = state.value {
           /// We are decoding the epilogue
-          switch try stream.decodeObjectComponent(&state.objectState) {
+          switch try decoder.stream.decodeObjectComponent(&state.objectState) {
           case .needsMoreData:
             return .needsMoreData
           case .decoded(.propertyValueStart(let name)):
@@ -458,7 +460,7 @@ extension StandardEnumSchema {
           }
         } else {
           /// We are decoding the prologue
-          switch try stream.decodeObjectComponent(&state.objectState) {
+          switch try decoder.stream.decodeObjectComponent(&state.objectState) {
           case .needsMoreData:
             return .needsMoreData
           case .decoded(.propertyValueStart(let name)):

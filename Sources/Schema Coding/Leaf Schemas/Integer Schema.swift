@@ -37,14 +37,14 @@ private struct IntegerSchema<Value: FixedWidthInteger & Codable & Sendable>: Lea
   let type = "integer"
 
   func decodeValue(
-    from stream: inout JSON.DecodingStream,
+    from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ()
   ) throws -> JSON.DecodingResult<Value> {
-    try stream.decodeNumber().map { try $0.decode() }
+    try decoder.stream.decodeNumber().map { try $0.decode() }
   }
 
-  func encode(_ value: Value, to stream: inout JSON.EncodingStream) {
-    stream.encode(value)
+  func encode(_ value: Value, to encoder: inout SchemaCoding.SchemaValueEncoder) {
+    encoder.stream.encode(value)
   }
 
 }

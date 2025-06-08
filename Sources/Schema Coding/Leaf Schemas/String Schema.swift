@@ -36,10 +36,10 @@ private struct StringSchema: LeafSchema {
   }
 
   func decodeValue(
-    from stream: inout JSON.DecodingStream,
+    from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ValueDecodingState
   ) throws -> JSON.DecodingResult<String> {
-    let result = try stream.decodeStringFragments(
+    let result = try decoder.stream.decodeStringFragments(
       state: &state.decodingState,
       onFragment: { state.fragments.append($0) }
     )
@@ -51,8 +51,8 @@ private struct StringSchema: LeafSchema {
     }
   }
 
-  func encode(_ value: String, to stream: inout JSON.EncodingStream) {
-    stream.encode(value)
+  func encode(_ value: String, to encoder: inout SchemaCoding.SchemaValueEncoder) {
+    encoder.stream.encode(value)
   }
 
 }

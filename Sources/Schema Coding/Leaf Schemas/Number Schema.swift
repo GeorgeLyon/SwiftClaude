@@ -35,22 +35,22 @@ private struct NumberSchema<
   let type = "number"
 
   func decodeValue(
-    from stream: inout JSON.DecodingStream,
+    from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ()
   ) throws -> JSON.DecodingResult<Value> {
-    try stream.decodeNumber().map { try $0.decode() }
+    try decoder.stream.decodeNumber().map { try $0.decode() }
   }
 
-  func encode(_ value: Value, to stream: inout JSON.EncodingStream) {
+  func encode(_ value: Value, to encoder: inout SchemaCoding.SchemaValueEncoder) {
     if let float16 = value as? Float16 {
-      stream.encode(float16)
+      encoder.stream.encode(float16)
     } else if let float32 = value as? Float32 {
-      stream.encode(float32)
+      encoder.stream.encode(float32)
     } else if let double = value as? Double {
-      stream.encode(double)
+      encoder.stream.encode(double)
     } else {
       // Fallback for other floating point types
-      stream.encode(String(value))
+      encoder.stream.encode(String(value))
     }
   }
 

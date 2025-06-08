@@ -78,8 +78,8 @@ where
   Value.RawValue: Codable & Sendable
 {
   var description: String? { get }
-  static func encode(_ value: Value, to stream: inout JSON.EncodingStream)
-  static func decodeRawValue(from stream: inout JSON.DecodingStream) throws
+  static func encode(_ value: Value, to encoder: inout SchemaCoding.SchemaValueEncoder)
+  static func decodeRawValue(from decoder: inout SchemaCoding.SchemaValueDecoder) throws
     -> JSON.DecodingResult<Value.RawValue>
 }
 
@@ -94,7 +94,11 @@ extension CaseIterableEnumSchema {
       stream.encodeProperty(name: "enum") { stream in
         stream.encodeArray { array in
           for value in Value.allCases {
-            array.encodeElement { Self.encode(value, to: &$0) }
+            array.encodeElement { stream in
+              stream.withEncoder { encoder in
+                Self.encode(value, to: &encoder)
+              }
+            }
           }
         }
       }
@@ -102,10 +106,10 @@ extension CaseIterableEnumSchema {
   }
 
   func decodeValue(
-    from stream: inout JSON.DecodingStream,
+    from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ()
   ) throws -> JSON.DecodingResult<Value> {
-    try Self.decodeRawValue(from: &stream)
+    try Self.decodeRawValue(from: &decoder)
       .map { rawValue in
         guard let value = Value(rawValue: rawValue) else {
           throw Error.unknownEnumCase(allKeys: ["\(rawValue)"])
@@ -114,8 +118,8 @@ extension CaseIterableEnumSchema {
       }
   }
 
-  func encode(_ value: Value, to stream: inout JSON.EncodingStream) {
-    Self.encode(value, to: &stream)
+  func encode(_ value: Value, to encoder: inout SchemaCoding.SchemaValueEncoder) {
+    Self.encode(value, to: &encoder)
   }
 
 }
@@ -124,13 +128,13 @@ private struct CaseIterableStringEnumSchema<Value: CaseIterable & RawRepresentab
   CaseIterableEnumSchema
 where Value.RawValue == String {
   let description: String?
-  static func encode(_ value: Value, to stream: inout JSON.EncodingStream) {
-    stream.encode(value.rawValue)
+  static func encode(_ value: Value, to encoder: inout SchemaCoding.SchemaValueEncoder) {
+    encoder.stream.encode(value.rawValue)
   }
-  static func decodeRawValue(from stream: inout JSON.DecodingStream) throws
+  static func decodeRawValue(from decoder: inout SchemaCoding.SchemaValueDecoder) throws
     -> JSON.DecodingResult<Value.RawValue>
   {
-    try stream.decodeString().map(String.init)
+    try decoder.stream.decodeString().map(String.init)
   }
 }
 
@@ -138,13 +142,13 @@ private struct CaseIterableIntegerEnumSchema<Value: CaseIterable & RawRepresenta
   CaseIterableEnumSchema
 where Value.RawValue: FixedWidthInteger & Codable & Sendable {
   let description: String?
-  static func encode(_ value: Value, to stream: inout JSON.EncodingStream) {
-    stream.encode(value.rawValue)
+  static func encode(_ value: Value, to encoder: inout SchemaCoding.SchemaValueEncoder) {
+    encoder.stream.encode(value.rawValue)
   }
-  static func decodeRawValue(from stream: inout JSON.DecodingStream) throws
+  static func decodeRawValue(from decoder: inout SchemaCoding.SchemaValueDecoder) throws
     -> JSON.DecodingResult<Value.RawValue>
   {
-    try stream.decodeNumber().map { try $0.decode() }
+    try decoder.stream.decodeNumber().map { try $0.decode() }
   }
 }
 

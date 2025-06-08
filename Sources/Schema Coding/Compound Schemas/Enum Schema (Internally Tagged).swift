@@ -224,7 +224,7 @@ extension SchemaCoding {
 
 extension InternallyTaggedEnumSchema {
 
-  func encode(_ value: Value, to stream: inout JSONSupport.JSON.EncodingStream) {
+  func encode(_ value: Value, to encoder: inout SchemaCoding.SchemaValueEncoder) {
     let encoder = caseEncoder(
       value,
       repeat { value in
@@ -239,7 +239,7 @@ extension InternallyTaggedEnumSchema {
       }
     )
     encoder.implementation.encode(
-      to: &stream,
+      to: &encoder.stream,
       discriminatorPropertyName: discriminatorPropertyName
     )
   }
@@ -255,7 +255,7 @@ extension InternallyTaggedEnumSchema {
   )
 
   typealias EnumCaseDecoder = @Sendable (
-    inout JSON.DecodingStream,
+    inout SchemaCoding.SchemaValueDecoder,
     inout AssociatedValueDecodingStates
   ) throws -> JSON.DecodingResult<Value>
 
@@ -271,12 +271,12 @@ extension InternallyTaggedEnumSchema {
           of: type(of: enumCase.schema.schema.initialValueDecodingState)
         )
         let key = Substring(enumCase.key.stringValue)
-        let decoder: EnumCaseDecoder = { stream, states in
+        let decoder: EnumCaseDecoder = { decoder, states in
           try accessor.mutate(&states) { state in
             let result = try enumCase.schema
               .objectPropertiesSchema
               .decodeValue(
-                from: &stream,
+                from: &decoder,
                 state: &state,
                 discriminator: (
                   name: discriminatorPropertyName,
@@ -326,14 +326,14 @@ extension InternallyTaggedEnumSchema {
   }
 
   func decodeValue(
-    from stream: inout JSON.DecodingStream,
+    from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ValueDecodingState
   ) throws -> JSON.DecodingResult<Value> {
     while true {
-      if let decoder = state.decoder {
-        return try decoder(&stream, &state.associatedValueStates)
+      if let caseDecoder = state.decoder {
+        return try caseDecoder(&decoder, &state.associatedValueStates)
       } else {
-        let result = try stream.peekObjectProperty(discriminatorPropertyName) { stream in
+        let result = try decoder.stream.peekObjectProperty(discriminatorPropertyName) { stream in
           try stream.decodeString()
         }
         switch result {

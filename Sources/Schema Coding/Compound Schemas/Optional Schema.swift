@@ -118,13 +118,13 @@ private struct OptionalSchema<WrappedSchema: SchemaCoding.Schema>: OptionalSchem
   }
 
   func decodeValue(
-    from stream: inout JSON.DecodingStream,
+    from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ValueDecodingState
   ) throws -> JSON.DecodingResult<WrappedSchema.Value?> {
     while true {
       switch state {
       case .decodingNonNullableWrapperPrologue(var objectState):
-        let header = try stream.decodeObjectComponent(&objectState)
+        let header = try decoder.stream.decodeObjectComponent(&objectState)
         switch header {
         case .needsMoreData:
           state = .decodingNonNullableWrapperPrologue(objectState)
@@ -141,7 +141,7 @@ private struct OptionalSchema<WrappedSchema: SchemaCoding.Schema>: OptionalSchem
           return .decoded(nil)
         }
       case .decodingValueOrNull:
-        switch try stream.decodeNullIfPresent() {
+        switch try decoder.stream.decodeNullIfPresent() {
         case .needsMoreData:
           return .needsMoreData
         case .decoded(let isNull):
@@ -152,7 +152,7 @@ private struct OptionalSchema<WrappedSchema: SchemaCoding.Schema>: OptionalSchem
           }
         }
       case .decodingValue(var valueState, let objectState):
-        switch try wrappedSchema.decodeValue(from: &stream, state: &valueState) {
+        switch try wrappedSchema.decodeValue(from: &decoder, state: &valueState) {
         case .needsMoreData:
           state = .decodingValue(valueState, objectState)
           return .needsMoreData
@@ -164,7 +164,7 @@ private struct OptionalSchema<WrappedSchema: SchemaCoding.Schema>: OptionalSchem
           }
         }
       case .decodingNonNullableWrapperEpilogue(let value, var objectState):
-        switch try stream.decodeObjectUntilComplete(&objectState) {
+        switch try decoder.stream.decodeObjectUntilComplete(&objectState) {
         case .needsMoreData:
           return .needsMoreData
         case .decoded(()):
@@ -196,11 +196,11 @@ private struct OptionalSchema<WrappedSchema: SchemaCoding.Schema>: OptionalSchem
     true
   }
 
-  func encode(_ value: Value, to stream: inout JSON.EncodingStream) {
+  func encode(_ value: Value, to encoder: inout SchemaCoding.SchemaValueEncoder) {
     if let value = value {
-      wrappedSchema.encode(value, to: &stream)
+      wrappedSchema.encode(value, to: &encoder)
     } else {
-      stream.encodeNull()
+      encoder.stream.encodeNull()
     }
   }
 
