@@ -55,7 +55,7 @@ private struct ArraySchema<ElementSchema: SchemaCoding.Schema>: InternalSchema {
   func decodeValue(
     from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ValueDecodingState
-  ) throws -> JSON.DecodingResult<Value> {
+  ) throws -> SchemaCoding.SchemaDecodingResult<Value> {
     while true {
       if var elementState = state.elementState {
         switch try elementSchema.decodeValue(from: &decoder, state: &elementState) {

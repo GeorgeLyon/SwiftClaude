@@ -106,7 +106,7 @@ extension CaseIterableEnumSchema {
   func decodeValue(
     from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ()
-  ) throws -> JSON.DecodingResult<Value> {
+  ) throws -> SchemaCoding.SchemaDecodingResult<Value> {
     try Self.decodeRawValue(from: &decoder.stream)
       .map { rawValue in
         guard let value = Value(rawValue: rawValue) else {
@@ -114,6 +114,7 @@ extension CaseIterableEnumSchema {
         }
         return value
       }
+      .schemaDecodingResult
   }
 
   func encode(_ value: Value, to encoder: inout SchemaCoding.SchemaValueEncoder) {

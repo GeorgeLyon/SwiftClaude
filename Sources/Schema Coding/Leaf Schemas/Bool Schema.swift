@@ -28,8 +28,8 @@ private struct BoolSchema: LeafSchema {
   func decodeValue(
     from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ValueDecodingState
-  ) throws -> JSON.DecodingResult<Value> {
-    try decoder.stream.decodeBoolean()
+  ) throws -> SchemaCoding.SchemaDecodingResult<Value> {
+    try decoder.stream.decodeBoolean().schemaDecodingResult
   }
 
   func encode(

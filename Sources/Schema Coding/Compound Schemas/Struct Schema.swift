@@ -80,9 +80,9 @@ private struct StructSchema<
   func decodeValue(
     from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ValueDecodingState
-  ) throws -> JSON.DecodingResult<Value> {
+  ) throws -> SchemaCoding.SchemaDecodingResult<Value> {
     try propertiesSchema
-      .decodeValue(from: &decoder, state: &state)
+      .decodeValue(from: &decoder.stream, state: &state, discriminator: nil)
       .map { values in
         initializer(
           SchemaCoding.StructSchemaDecoder(
@@ -90,6 +90,7 @@ private struct StructSchema<
           )
         )
       }
+      .schemaDecodingResult
   }
 
   func encode(_ value: Value, to encoder: inout SchemaCoding.SchemaValueEncoder) {

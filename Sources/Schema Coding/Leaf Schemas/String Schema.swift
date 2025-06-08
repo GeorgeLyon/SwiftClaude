@@ -38,7 +38,7 @@ private struct StringSchema: LeafSchema {
   func decodeValue(
     from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ValueDecodingState
-  ) throws -> JSON.DecodingResult<String> {
+  ) throws -> SchemaCoding.SchemaDecodingResult<String> {
     let result = try decoder.stream.decodeStringFragments(
       state: &state.decodingState,
       onFragment: { state.fragments.append($0) }

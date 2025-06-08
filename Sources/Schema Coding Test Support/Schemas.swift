@@ -21,7 +21,12 @@ extension SchemaCoding.Schema {
     decoder.stream.push(json)
     decoder.stream.finish()
     var state = initialValueDecodingState
-    return try! decodeValue(from: &decoder, state: &state).getValue()
+    switch try! decodeValue(from: &decoder, state: &state) {
+    case .needsMoreData:
+      fatalError()
+    case .decoded(let value):
+      return value
+    }
   }
 
   public func encodedJSON(for value: Value) -> String {

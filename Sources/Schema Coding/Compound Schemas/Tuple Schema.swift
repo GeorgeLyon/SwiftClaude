@@ -80,7 +80,7 @@ struct TupleSchema<each ElementSchema: SchemaCoding.Schema>: InternalSchema {
   func decodeValue(
     from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ValueDecodingState
-  ) throws -> JSON.DecodingResult<(repeat (each ElementSchema).Value)> {
+  ) throws -> SchemaCoding.SchemaDecodingResult<(repeat (each ElementSchema).Value)> {
     while true {
 
       switch try decoder.stream.decodeArrayComponent(&state.arrayState) {
@@ -137,7 +137,7 @@ struct TupleSchema<each ElementSchema: SchemaCoding.Schema>: InternalSchema {
   fileprivate typealias ElementDecoder = @Sendable (
     inout SchemaCoding.SchemaValueDecoder,
     inout ElementStates
-  ) throws -> JSON.DecodingResult<Void>
+  ) throws -> SchemaCoding.SchemaDecodingResult<Void>
 
   private struct ValueDecodingStateProvider: Sendable {
     init(elements: (repeat TupleElement<each ElementSchema>)) {

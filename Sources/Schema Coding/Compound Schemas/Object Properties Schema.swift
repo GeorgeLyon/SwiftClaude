@@ -140,8 +140,8 @@ struct ObjectPropertiesSchema<
   func decodeValue(
     from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ValueDecodingState
-  ) throws -> JSON.DecodingResult<(repeat (each PropertySchema).Value)> {
-    try decodeValue(from: &decoder.stream, state: &state, discriminator: nil)
+  ) throws -> SchemaCoding.SchemaDecodingResult<(repeat (each PropertySchema).Value)> {
+    try decodeValue(from: &decoder.stream, state: &state, discriminator: nil).schemaDecodingResult
   }
 
   func decodeValue(
@@ -245,7 +245,7 @@ struct ObjectPropertiesSchema<
   private typealias PropertyDecoder = @Sendable (
     inout JSON.DecodingStream,
     inout PropertyStates
-  ) throws -> JSON.DecodingResult<Void>
+  ) throws -> SchemaCoding.SchemaDecodingResult<Void>
 
 }
 

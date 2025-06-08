@@ -138,8 +138,8 @@ private struct EnumCaseVoidAssociatedValueSchema: LeafSchema {
   func decodeValue(
     from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ()
-  ) throws -> JSON.DecodingResult<Void> {
-    try decoder.stream.decodeNull()
+  ) throws -> SchemaCoding.SchemaDecodingResult<Void> {
+    try decoder.stream.decodeNull().schemaDecodingResult
   }
 
   func encode(_ value: Void, to encoder: inout SchemaCoding.SchemaValueEncoder) {
@@ -345,7 +345,7 @@ extension StandardEnumSchema {
   typealias EnumCaseDecoder = @Sendable (
     inout SchemaCoding.SchemaValueDecoder,
     inout AssociatedValueDecodingStates
-  ) throws -> JSON.DecodingResult<Value>
+  ) throws -> SchemaCoding.SchemaDecodingResult<Value>
 
   struct EnumCaseDecoderProvider {
     init(cases: repeat StandardEnumSchemaCase<Value, each AssociatedValuesSchema>) {
@@ -419,7 +419,7 @@ extension StandardEnumSchema {
   func decodeValue(
     from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ValueDecodingState
-  ) throws -> JSON.DecodingResult<Value> {
+  ) throws -> SchemaCoding.SchemaDecodingResult<Value> {
     switch style {
     case .singleCase:
       return try decoderProvider.singleCaseDecoder(&decoder, &state.associatedValueStates)

@@ -263,7 +263,7 @@ extension InternallyTaggedEnumSchema {
   typealias EnumCaseDecoder = @Sendable (
     inout SchemaCoding.SchemaValueDecoder,
     inout AssociatedValueDecodingStates
-  ) throws -> JSON.DecodingResult<Value>
+  ) throws -> SchemaCoding.SchemaDecodingResult<Value>
 
   struct EnumCaseDecoderProvider {
     init(
@@ -334,7 +334,7 @@ extension InternallyTaggedEnumSchema {
   func decodeValue(
     from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ValueDecodingState
-  ) throws -> JSON.DecodingResult<Value> {
+  ) throws -> SchemaCoding.SchemaDecodingResult<Value> {
     while true {
       if let caseDecoder = state.decoder {
         return try caseDecoder(&decoder, &state.associatedValueStates)

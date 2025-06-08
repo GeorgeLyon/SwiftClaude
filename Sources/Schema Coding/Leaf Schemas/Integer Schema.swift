@@ -39,8 +39,8 @@ private struct IntegerSchema<Value: FixedWidthInteger & Codable & Sendable>: Lea
   func decodeValue(
     from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ()
-  ) throws -> JSON.DecodingResult<Value> {
-    try decoder.stream.decodeNumber().map { try $0.decode() }
+  ) throws -> SchemaCoding.SchemaDecodingResult<Value> {
+    try decoder.stream.decodeNumber().map { try $0.decode() }.schemaDecodingResult
   }
 
   func encode(_ value: Value, to encoder: inout SchemaCoding.SchemaValueEncoder) {

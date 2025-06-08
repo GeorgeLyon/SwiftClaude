@@ -120,7 +120,7 @@ private struct OptionalSchema<WrappedSchema: SchemaCoding.Schema>: OptionalSchem
   func decodeValue(
     from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ValueDecodingState
-  ) throws -> JSON.DecodingResult<WrappedSchema.Value?> {
+  ) throws -> SchemaCoding.SchemaDecodingResult<WrappedSchema.Value?> {
     while true {
       switch state {
       case .decodingNonNullableWrapperPrologue(var objectState):
