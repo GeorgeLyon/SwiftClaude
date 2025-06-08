@@ -1,4 +1,4 @@
-public import JSONSupport
+import JSONSupport
 
 public typealias SchemaCodable = SchemaCoding.SchemaCodable
 
@@ -27,7 +27,7 @@ public enum SchemaCoding {
     func decodeValue(
       from stream: inout SchemaValueDecoder,
       state: inout ValueDecodingState
-    ) throws -> JSON.DecodingResult<Value>
+    ) throws -> SchemaDecodingResult<Value>
 
     func encode(_ value: Value, to encoder: inout SchemaValueEncoder)
 
@@ -108,6 +108,11 @@ public enum SchemaCoding {
     fileprivate init(stream: consuming JSON.DecodingStream) {
       self.stream = stream
     }
+  }
+
+  public enum SchemaDecodingResult<Value> {
+    case needsMoreData
+    case decoded(Value)
   }
 
 }
@@ -221,7 +226,7 @@ extension JSON.DecodingStream {
   mutating func decodeValue<Schema: SchemaCoding.Schema>(
     using schema: Schema,
     state: inout Schema.ValueDecodingState
-  ) throws -> JSON.DecodingResult<Schema.Value> {
+  ) throws -> SchemaCoding.SchemaDecodingResult<Schema.Value> {
     var decoder = SchemaCoding.SchemaValueDecoder(stream: self)
     do {
       let result = try schema.decodeValue(from: &decoder, state: &state)
@@ -233,4 +238,15 @@ extension JSON.DecodingStream {
     }
   }
 
+}
+
+extension JSON.DecodingResult {
+  var schemaDecodingResult: SchemaCoding.SchemaDecodingResult<Value> {
+    switch self {
+    case .needsMoreData:
+      return .needsMoreData
+    case .decoded(let value):
+      return .decoded(value)
+    }
+  }
 }
