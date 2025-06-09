@@ -1,4 +1,4 @@
-import SchemaCoding
+public import SchemaCoding
 
 @SchemaCodable
 public struct Message {

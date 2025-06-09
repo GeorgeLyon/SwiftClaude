@@ -19,7 +19,7 @@ private struct SchemaCodableStructTests {
       /// A test struct
       /// Two lines of comments
       @SchemaCodable
-      struct TestStruct {
+      public struct TestStruct {
         let anInteger: Int
         /// An (x, y) coordinate
         let aCoordinate: (Int, Int)
@@ -32,7 +32,7 @@ private struct SchemaCodableStructTests {
 
         /// A test struct
         /// Two lines of comments
-        struct TestStruct {
+        public struct TestStruct {
           let anInteger: Int
           /// An (x, y) coordinate
           let aCoordinate: (Int, Int)
@@ -41,7 +41,7 @@ private struct SchemaCodableStructTests {
         }
 
         extension TestStruct: SchemaCoding.SchemaCodable {
-          static var schema: some SchemaCoding.Schema<Self> {
+          public static var schema: some SchemaCoding.Schema<Self> {
             SchemaCoding.SchemaResolver.structSchema(
               representing: Self.self,
               description: ####"""

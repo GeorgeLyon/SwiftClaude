@@ -19,7 +19,7 @@ extension DeclModifierListSyntax {
 extension DeclModifierSyntax {
 
   public var isPublic: Bool {
-    name == .keyword(.public)
+    name.tokenKind == .keyword(.public)
   }
 
 }

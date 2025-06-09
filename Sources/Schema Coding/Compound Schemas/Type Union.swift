@@ -32,7 +32,7 @@ private struct TypeUnionSchema<
   StringSchema: SchemaCoding.Schema,
   ArraySchema: SchemaCoding.Schema,
   ObjectSchema: SchemaCoding.Schema
->: SchemaCoding.Schema {
+> {
 
   let nullCase: TypeUnionSchemaCase<Value, NullSchema>
   let boolCase: TypeUnionSchemaCase<Value, BoolSchema>
