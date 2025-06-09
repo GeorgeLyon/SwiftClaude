@@ -1,6 +1,6 @@
 public import SchemaCoding
 
-@SchemaCodable(discriminatorPropertyName: "type")
+@SchemaCodable
 public enum ContentBlock {
 
   @SchemaCodable
@@ -12,7 +12,7 @@ public enum ContentBlock {
   @SchemaCodable
   public struct Image {
 
-    @SchemaCodable(discriminatorPropertyName: "type")
+    @SchemaCodable
     public enum Source {
 
       @SchemaCodable

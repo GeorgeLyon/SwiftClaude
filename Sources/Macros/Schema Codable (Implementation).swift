@@ -9,6 +9,7 @@ extension ExtensionDeclSyntax {
     for declaration: some DeclGroupSyntax,
     of type: some TypeSyntaxProtocol,
     schemaCodingNamespace: TokenSyntax,
+    codingKeyConversionFunction: (String) -> String,
     in context: MacroExpansionContext
   ) throws -> ExtensionDeclSyntax {
     return schemaCodableConformance(
@@ -17,6 +18,7 @@ extension ExtensionDeclSyntax {
       schemaCodingNamespace: schemaCodingNamespace,
       members: try declaration.schemaCodableMembers(
         schemaCodingNamespace: schemaCodingNamespace,
+        codingKeyConversionFunction: codingKeyConversionFunction,
         in: context
       ),
       in: context
@@ -51,11 +53,13 @@ extension DeclGroupSyntax {
 
   fileprivate func schemaCodableMembers(
     schemaCodingNamespace: TokenSyntax,
+    codingKeyConversionFunction: (String) -> String,
     in context: MacroExpansionContext
   ) throws -> MemberBlockItemListSyntax {
     if let structDecl = self.as(StructDeclSyntax.self) {
       return try structDecl.schemaCodableMembers(
         schemaCodingNamespace: schemaCodingNamespace,
+        codingKeyConversionFunction: codingKeyConversionFunction,
         in: context
       )
     } else if let enumDecl = self.as(EnumDeclSyntax.self) {
@@ -64,6 +68,7 @@ extension DeclGroupSyntax {
         enumSchemaFunctionName: "enumSchema",
         enumAssociatedValueSchemaFunctionName: "enumCaseAssociatedValuesSchema",
         discriminatorPropertyName: nil,
+        codingKeyConversionFunction: codingKeyConversionFunction,
         in: context
       )
     } else {
@@ -474,6 +479,7 @@ extension EnumDeclSyntax {
     enumSchemaFunctionName: TokenSyntax,
     enumAssociatedValueSchemaFunctionName: TokenSyntax,
     discriminatorPropertyName: StringLiteralExprSyntax?,
+    codingKeyConversionFunction: (String) -> String,
     in context: MacroExpansionContext
   ) -> MemberBlockItemListSyntax {
     let caseDecls = memberBlock
@@ -496,7 +502,8 @@ extension EnumDeclSyntax {
             initializer: InitializerClauseSyntax(
               value: element.associatedValuesSchema(
                 schemaCodingNamespace: schemaCodingNamespace,
-                enumAssociatedValueSchemaFunctionName: enumAssociatedValueSchemaFunctionName
+                enumAssociatedValueSchemaFunctionName: enumAssociatedValueSchemaFunctionName,
+                codingKeyConversionFunction: codingKeyConversionFunction
               )
             )
           )
@@ -556,7 +563,8 @@ extension EnumDeclSyntax {
                           schema: DeclReferenceExprSyntax(
                             baseName:
                               "associatedValuesSchema_\(raw: caseDeclOffset)_\(raw: elementOffset)"
-                          )
+                          ),
+                          codingKeyConversionFunction: codingKeyConversionFunction
                         )
                       )
                     }
@@ -623,6 +631,7 @@ extension EnumCaseElementListSyntax.Element {
   fileprivate func associatedValuesSchema(
     schemaCodingNamespace: TokenSyntax,
     enumAssociatedValueSchemaFunctionName: TokenSyntax,
+    codingKeyConversionFunction: (String) -> String
   ) -> FunctionCallExprSyntax {
     return FunctionCallExprSyntax(
       calledExpression: MemberAccessExprSyntax(
@@ -646,7 +655,8 @@ extension EnumCaseElementListSyntax.Element {
                 for parameter in parameters {
                   LabeledExprSyntax(
                     expression: parameter.associatedValuesSchemaArgument(
-                      schemaCodingNamespace: schemaCodingNamespace
+                      schemaCodingNamespace: schemaCodingNamespace,
+                      codingKeyConversionFunction: codingKeyConversionFunction
                     )
                   )
                 }
@@ -663,7 +673,8 @@ extension EnumCaseElementListSyntax.Element {
   fileprivate func enumSchemaCaseArgument(
     schemaCodingNamespace: TokenSyntax,
     descriptionArgument: LabeledExprSyntax,
-    schema: some ExprSyntaxProtocol
+    schema: some ExprSyntaxProtocol,
+    codingKeyConversionFunction: (String) -> String
   ) -> TupleExprSyntax {
     return TupleExprSyntax(
       leftParen: .leftParenToken(leadingTrivia: .newline, trailingTrivia: .newline),
@@ -844,7 +855,8 @@ extension Sequence where Element == EnumCaseParameterSyntax {
 extension EnumCaseParameterListSyntax.Element {
 
   fileprivate func associatedValuesSchemaArgument(
-    schemaCodingNamespace: TokenSyntax
+    schemaCodingNamespace: TokenSyntax,
+    codingKeyConversionFunction: (String) -> String
   ) -> TupleExprSyntax {
     TupleExprSyntax(
       leftParen: .leftParenToken(trailingTrivia: .newline),

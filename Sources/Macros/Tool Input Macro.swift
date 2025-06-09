@@ -18,6 +18,7 @@ struct ToolInputMacro: ExtensionMacro {
           for: declaration,
           of: type,
           schemaCodingNamespace: "ToolInput",
+          codingKeyConversionFunction: { $0 },
           in: context
         )
       ]

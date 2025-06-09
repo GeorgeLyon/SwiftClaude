@@ -18,6 +18,7 @@ struct SchemaCodableMacro: ExtensionMacro {
           for: declaration,
           of: type,
           schemaCodingNamespace: "SchemaCoding",
+          codingKeyConversionFunction: node.codingKeyConversionFunction,
           in: context
         )
       ]
@@ -60,6 +61,7 @@ struct InternallyTaggedEnumSchemaCodableMacro: ExtensionMacro {
             "`discriminatorPropertyName` must be a string literal",
         )
       }
+
       return [
         .schemaCodableConformance(
           for: declaration,
@@ -70,6 +72,7 @@ struct InternallyTaggedEnumSchemaCodableMacro: ExtensionMacro {
             enumSchemaFunctionName: "internallyTaggedEnumSchema",
             enumAssociatedValueSchemaFunctionName: "internallyTaggedEnumCaseSchema",
             discriminatorPropertyName: literal,
+            codingKeyConversionFunction: try node.codingKeyConversionFunction,
             in: context
           ),
           in: context
@@ -85,20 +88,36 @@ struct InternallyTaggedEnumSchemaCodableMacro: ExtensionMacro {
 extension AttributeSyntax {
 
   var codingKeyConversionFunction: (String) -> String {
-    if case .argumentList(let arguments)? = arguments,
-      let argument = arguments.first(
-        where: {
-          $0.label?.identifier?.name == "codingKeyConversionStrategy"
+    get throws {
+      /// We make `convertToSnakeCase` the default while we are only using this in `SwiftClaude` because that is what Claude's API expects
+      let defaultConversionFunction = { (string: String) in String.convertToSnakeCase(string) }
+      
+      if case .argumentList(let arguments)? = arguments,
+        let argument = arguments.first(
+          where: {
+            $0.label?.identifier?.name == "codingKeyConversionStrategy"
+          }
+        ),
+        let memberAccess = argument.expression.as(MemberAccessExprSyntax.self)
+      {
+        let identifier = memberAccess.declName.baseName.identifier?.name
+        switch identifier {
+        case "convertToSnakeCase":
+          return { String.convertToSnakeCase($0) }
+        case "none":
+          return { $0 }
+        case nil:
+          return defaultConversionFunction
+        default:
+          throw DiagnosticError(
+            node: self,
+            severity: .error,
+            message: "Unknown coding key conversion strategy: \(identifier ?? "<none>")")
         }
-      ),
-      let memberAccess = argument.expression.as(MemberAccessExprSyntax.self),
-      memberAccess.declName.baseName.tokenKind == .identifier("convertToSnakeCase")
-    {
-      return { String.convertToSnakeCase($0) }
-    } else {
-      return { $0 }
+      } else {
+        return defaultConversionFunction
+      }
     }
-
   }
 
 }

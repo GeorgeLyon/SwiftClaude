@@ -114,6 +114,12 @@ public enum SchemaCoding {
     case needsMoreData
     case decoded(Value)
   }
+  
+  /// We've made `convertToSnakeCase` the default while this is only used in SwiftClaude
+  public enum CodingKeyConversionStrategy {
+    case convertToSnakeCase
+    case none
+  }
 
 }
 
@@ -130,7 +136,9 @@ extension SchemaCoding.Schema where ValueDecodingState == Void {
   conformances: SchemaCodable,
   names: named(schema), named(init)
 )
-public macro SchemaCodable() =
+public macro SchemaCodable(
+  codingKeyConversionStrategy: SchemaCoding.CodingKeyConversionStrategy = .convertToSnakeCase
+) =
   #externalMacro(
     module: "Macros",
     type: "SchemaCodableMacro"
@@ -141,7 +149,10 @@ public macro SchemaCodable() =
   conformances: SchemaCodable,
   names: named(schema), named(init)
 )
-public macro SchemaCodable(discriminatorPropertyName: String) =
+public macro SchemaCodable(
+  discriminatorPropertyName: String,
+  codingKeyConversionStrategy: SchemaCoding.CodingKeyConversionStrategy = .convertToSnakeCase
+) =
   #externalMacro(
     module: "Macros",
     type: "InternallyTaggedEnumSchemaCodableMacro"
