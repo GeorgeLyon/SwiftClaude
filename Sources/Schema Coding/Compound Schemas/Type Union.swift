@@ -73,6 +73,13 @@ extension SchemaCoding.SchemaResolver {
 extension SchemaCoding {
 
   public struct TypeUnionSchemaCase<Value, Schema: SchemaCoding.Schema>: Sendable {
+    public init(
+      schema: Schema,
+      initializer: @escaping @Sendable (Schema.Value) -> Value
+    ) {
+      self.schema = schema
+      self.initializer = initializer
+    }
     fileprivate let schema: Schema
     fileprivate let initializer: @Sendable (Schema.Value) -> Value
   }
