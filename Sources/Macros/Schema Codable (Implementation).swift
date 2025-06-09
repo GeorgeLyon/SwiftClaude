@@ -1,11 +1,11 @@
 import SwiftDiagnostics
-public import SwiftSyntax
+import SwiftSyntax
 import SwiftSyntaxBuilder
-public import SwiftSyntaxMacros
+import SwiftSyntaxMacros
 
 extension ExtensionDeclSyntax {
 
-  public static func schemaCodableConformance(
+  static func schemaCodableConformance(
     for declaration: some DeclGroupSyntax,
     of type: some TypeSyntaxProtocol,
     schemaCodingNamespace: TokenSyntax,
@@ -23,7 +23,7 @@ extension ExtensionDeclSyntax {
     )
   }
 
-  public static func schemaCodableConformance(
+  static func schemaCodableConformance(
     for declaration: some DeclGroupSyntax,
     of type: some TypeSyntaxProtocol,
     schemaCodingNamespace: TokenSyntax,
@@ -83,6 +83,7 @@ extension StructDeclSyntax {
 
   fileprivate func schemaCodableMembers(
     schemaCodingNamespace: TokenSyntax,
+    codingKeyConversionFunction: (String) -> String,
     in context: MacroExpansionContext
   ) throws
     -> MemberBlockItemListSyntax
@@ -92,15 +93,17 @@ extension StructDeclSyntax {
       schemaCodingNamespace: schemaCodingNamespace,
       isPublic: modifiers.contains(where: \.isPublic),
       description: comment,
+      codingKeyConversionFunction: codingKeyConversionFunction,
       in: context
     )
   }
 
-  public static func schemaCodable(
+  static func schemaCodable(
     description: String?,
     name: TokenSyntax,
     schemaCodingNamespace: TokenSyntax,
     isPublic: Bool,
+    codingKeyConversionFunction: (String) -> String,
     storedProperties: [StoredProperty],
     additionalMembers: MemberBlockItemListSyntax,
     in context: MacroExpansionContext
@@ -145,6 +148,7 @@ extension StructDeclSyntax {
           schemaCodingNamespace: schemaCodingNamespace,
           isPublic: isPublic,
           description: description,
+          codingKeyConversionFunction: codingKeyConversionFunction,
           in: context
         )
 
@@ -162,6 +166,7 @@ extension StructDeclSyntax {
     schemaCodingNamespace: TokenSyntax,
     isPublic: Bool,
     description: String?,
+    codingKeyConversionFunction: (String) -> String,
     in context: MacroExpansionContext
   )
     -> MemberBlockItemListSyntax
@@ -205,6 +210,7 @@ extension StructDeclSyntax {
                   LabeledExprSyntax(
                     expression: property.structSchemaPropertyArgument(
                       schemaCodingNamespace: schemaCodingNamespace,
+                      codingKeyConversionFunction: codingKeyConversionFunction
                     )
                   )
                 }
@@ -312,8 +318,8 @@ extension StructDeclSyntax {
 
 extension StructDeclSyntax {
 
-  public struct StoredProperty {
-    public init(
+  struct StoredProperty {
+    init(
       name: TokenSyntax,
       type: TypeSyntax,
       comment: String?
@@ -322,7 +328,7 @@ extension StructDeclSyntax {
       self.type = type
       self.comment = comment
     }
-    public let name: TokenSyntax
+    let name: TokenSyntax
     let type: TypeSyntax
     let comment: String?
   }
@@ -380,6 +386,7 @@ extension StructDeclSyntax.StoredProperty {
 
   fileprivate func structSchemaPropertyArgument(
     schemaCodingNamespace: TokenSyntax,
+    codingKeyConversionFunction: (String) -> String
   ) -> some ExprSyntaxProtocol {
     TupleExprSyntax(
       leftParen: .leftParenToken(leadingTrivia: .newline, trailingTrivia: .newline),
@@ -433,7 +440,7 @@ extension StructDeclSyntax.StoredProperty {
           colon: .colonToken(),
           expression: AsExprSyntax(
             expression: StringLiteralExprSyntax(
-              content: name.identifierOrText
+              content: codingKeyConversionFunction(name.identifierOrText)
             ),
             asKeyword: .keyword(.as, trailingTrivia: .space),
             type: MemberTypeSyntax(
@@ -462,7 +469,7 @@ extension StructDeclSyntax.StoredProperty {
 
 extension EnumDeclSyntax {
 
-  public func schemaCodableMembers(
+  func schemaCodableMembers(
     schemaCodingNamespace: TokenSyntax,
     enumSchemaFunctionName: TokenSyntax,
     enumAssociatedValueSchemaFunctionName: TokenSyntax,
@@ -667,7 +674,7 @@ extension EnumCaseElementListSyntax.Element {
           colon: .colonToken(),
           expression: AsExprSyntax(
             expression: StringLiteralExprSyntax(
-              content: name.identifierOrText
+              content: codingKeyConversionFunction(name.identifierOrText)
             ),
             asKeyword: .keyword(.as, trailingTrivia: .space),
             type: MemberTypeSyntax(
@@ -849,7 +856,7 @@ extension EnumCaseParameterListSyntax.Element {
             colon: .colonToken(),
             expression: AsExprSyntax(
               expression: StringLiteralExprSyntax(
-                content: name.identifierOrText
+                content: codingKeyConversionFunction(name.identifierOrText)
               ),
               asKeyword: .keyword(.as, trailingTrivia: .space),
               type: MemberTypeSyntax(

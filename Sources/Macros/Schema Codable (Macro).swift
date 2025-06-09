@@ -79,3 +79,26 @@ struct InternallyTaggedEnumSchemaCodableMacro: ExtensionMacro {
   }
 
 }
+
+// MARK: - Implementation Details
+
+extension AttributeSyntax {
+
+  var codingKeyConversionFunction: (String) -> String {
+    if case .argumentList(let arguments)? = arguments,
+      let argument = arguments.first(
+        where: {
+          $0.label?.identifier?.name == "codingKeyConversionStrategy"
+        }
+      ),
+      let memberAccess = argument.expression.as(MemberAccessExprSyntax.self),
+      memberAccess.declName.baseName.tokenKind == .identifier("convertToSnakeCase")
+    {
+      return { String.convertToSnakeCase($0) }
+    } else {
+      return { $0 }
+    }
+
+  }
+
+}

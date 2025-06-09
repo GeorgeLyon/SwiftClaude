@@ -178,6 +178,7 @@ extension DeclGroupSyntax {
         name: "Input",
         schemaCodingNamespace: "ToolInput",
         isPublic: isPublic,
+        codingKeyConversionFunction: { $0 },
         storedProperties: storedProperties,
         additionalMembers: MemberBlockItemListSyntax {
           inputInvocationTrampoline
