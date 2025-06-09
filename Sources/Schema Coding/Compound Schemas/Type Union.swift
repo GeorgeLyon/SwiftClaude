@@ -81,7 +81,7 @@ extension SchemaCoding {
 
 private struct UnhandledCaseSchema: SchemaCoding.Schema {
   func encodeSchemaDefinition(to encoder: inout SchemaCoding.SchemaEncoder) {
-    /// This should be unreachable, because it is not called
+    /// This should be unreachable, because we check for this case explicitly in TypeUnionSchema.
     fatalError()
   }
   func encode(_ value: Never, to encoder: inout SchemaCoding.SchemaValueEncoder) {
