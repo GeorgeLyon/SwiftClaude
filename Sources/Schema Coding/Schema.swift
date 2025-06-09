@@ -119,7 +119,7 @@ public enum SchemaCoding {
 
 extension SchemaCoding.Schema where ValueDecodingState == Void {
 
-  var initialValueDecodingState: Void { () }
+  public var initialValueDecodingState: Void { () }
 
 }
 

@@ -141,15 +141,18 @@ private struct OptionalSchema<WrappedSchema: SchemaCoding.Schema>: OptionalSchem
           return .decoded(nil)
         }
       case .decodingValueOrNull:
-        switch try decoder.stream.decodeNullIfPresent() {
+        switch try decoder.stream.peekValueKind() {
         case .needsMoreData:
           return .needsMoreData
-        case .decoded(let isNull):
-          if isNull {
+        case .decoded(.null):
+          switch try decoder.stream.decodeNull() {
+          case .needsMoreData:
+            return .needsMoreData
+          case .decoded:
             return .decoded(nil)
-          } else {
-            state = .decodingValue(wrappedSchema.initialValueDecodingState, nil)
           }
+        case .decoded:
+          state = .decodingValue(wrappedSchema.initialValueDecodingState, nil)
         }
       case .decodingValue(var valueState, let objectState):
         switch try wrappedSchema.decodeValue(from: &decoder, state: &valueState) {

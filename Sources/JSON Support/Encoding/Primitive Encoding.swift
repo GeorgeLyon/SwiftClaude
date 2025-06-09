@@ -50,12 +50,4 @@ extension JSON.EncodingStream {
     write(string)
   }
 
-  // MARK: - Implementation Details
-
-  private mutating func encodePrimitive(
-    _ value: Any
-  ) {
-
-  }
-
 }
