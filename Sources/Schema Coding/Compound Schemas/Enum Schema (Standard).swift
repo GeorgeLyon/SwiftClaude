@@ -72,7 +72,7 @@ extension SchemaCoding.SchemaResolver {
   public static func enumCaseAssociatedValuesSchema(
     values: ()
   ) -> some SchemaCoding.Schema<Void> {
-    EnumCaseVoidAssociatedValueSchema()
+    NullSchema()
   }
 
   public static func enumCaseAssociatedValuesSchema<
@@ -123,27 +123,6 @@ extension SchemaCoding.SchemaResolver {
         schema: (each values).schema
       ))
     )
-  }
-
-}
-
-/// In the full enum schema, cases without associated values are represented using a `null` value.
-/// For example `{"myEnumCase":null}`
-private struct EnumCaseVoidAssociatedValueSchema: LeafSchema {
-
-  typealias Value = Void
-
-  let type: String = "null"
-
-  func decodeValue(
-    from decoder: inout SchemaCoding.SchemaValueDecoder,
-    state: inout ()
-  ) throws -> SchemaCoding.SchemaDecodingResult<Void> {
-    try decoder.stream.decodeNull().schemaDecodingResult
-  }
-
-  func encode(_ value: Void, to encoder: inout SchemaCoding.SchemaValueEncoder) {
-    encoder.stream.encodeNull()
   }
 
 }
