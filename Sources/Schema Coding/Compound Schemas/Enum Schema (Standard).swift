@@ -148,11 +148,7 @@ private struct EnumCaseVoidAssociatedValueSchema: LeafSchema {
 
 }
 
-// MARK: - Schemas
-
-// MARK: Case Iterable
-
-// MARK: Standard Enum
+// MARK: - Schema
 
 private struct StandardEnumSchema<
   Value,

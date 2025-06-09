@@ -71,6 +71,19 @@ let package = Package(
     //   path: "Tests/Claude Tests"
     // ),
 
+    // MARK: - API
+
+    .target(
+      name: "MessagesAPI",
+      dependencies: [
+        "Tool"
+      ],
+      path: "Sources/Messages API",
+      swiftSettings: .projectDefaults,
+    ),
+
+    // MARK: - Tool
+
     .target(
       name: "Tool",
       dependencies: [
@@ -102,7 +115,7 @@ let package = Package(
     .testTarget(
       name: "SchemaCodingTests",
       dependencies: [
-        "SchemaCodingTestSupport",
+        "SchemaCodingTestSupport"
       ],
       path: "Tests/Schema Coding Tests"
     ),
