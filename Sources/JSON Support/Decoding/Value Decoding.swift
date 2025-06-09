@@ -41,7 +41,7 @@ extension JSON.DecodingStream {
     try readValue(&state).decodingResult()
   }
 
-  public func peekValueKind() throws -> JSON.DecodingResult<JSON.ValueKind> {
+  public mutating func peekValueKind() throws -> JSON.DecodingResult<JSON.ValueKind> {
     try _peekValueKind().decodingResult()
   }
 
@@ -185,8 +185,10 @@ extension JSON.DecodingStream {
     }
   }
 
-  func _peekValueKind() -> ReadResult<JSON.ValueKind> {
-    peekCharacter { character in
+  mutating func _peekValueKind() -> ReadResult<JSON.ValueKind> {
+    readWhitespace()
+    
+    return peekCharacter { character in
       switch character {
       case "{":
         return .object
