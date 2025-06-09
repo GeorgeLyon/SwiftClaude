@@ -4,7 +4,7 @@ import JSONSupport
 
 extension SchemaCoding.SchemaResolver {
 
-  public static func typedUnionSchema<
+  public static func typeUnionSchema<
     Value,
     NullSchema,
     BooleanSchema,
@@ -49,7 +49,7 @@ extension SchemaCoding.SchemaResolver {
 
 extension SchemaCoding.SchemaResolver {
 
-  public static func typedUnionSchemaCase<Value, Schema: SchemaCoding.Schema>(
+  public static func typeUnionSchemaCase<Value, Schema: SchemaCoding.Schema>(
     schema: Schema,
     initializer: @escaping @Sendable (Schema.Value) -> Value
   ) -> SchemaCoding.TypeUnionSchemaCase<Value, some SchemaCoding.Schema> {
@@ -59,7 +59,7 @@ extension SchemaCoding.SchemaResolver {
     )
   }
 
-  public static func typedUnionSchemaUnhandledCase<Value>()
+  public static func typeUnionSchemaUnhandledCase<Value>()
     -> SchemaCoding.TypeUnionSchemaCase<Value, some SchemaCoding.Schema<Never>>
   {
     SchemaCoding.TypeUnionSchemaCase(
