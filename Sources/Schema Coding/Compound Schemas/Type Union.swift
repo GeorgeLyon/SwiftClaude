@@ -1,5 +1,104 @@
 import JSONSupport
 
+// MARK: - API
+
+extension SchemaCoding.SchemaResolver {
+
+  public static func typedUnionSchema<
+    Value,
+    NullSchema: SchemaCoding.Schema,
+    BoolSchema: SchemaCoding.Schema,
+    NumberSchema: SchemaCoding.Schema,
+    StringSchema: SchemaCoding.Schema,
+    ArraySchema: SchemaCoding.Schema,
+    ObjectSchema: SchemaCoding.Schema
+  >(
+    representing value: Value.Type = Value.self,
+    description: String? = nil,
+    null: (
+      schema: NullSchema,
+      initializer: @Sendable (NullSchema.Value) -> Value
+    ) = (
+      SchemaCoding.TypeUnionUnhandledCaseSchema(),
+      { _ in }
+    ),
+    boolean: (
+      schema: BoolSchema,
+      initializer: @Sendable (BoolSchema.Value) -> Value
+    ) = (
+      SchemaCoding.TypeUnionUnhandledCaseSchema(),
+      { _ in }
+    ),
+    number: (
+      schema: NumberSchema,
+      initializer: @Sendable (NumberSchema.Value) -> Value
+    ) = (
+      SchemaCoding.TypeUnionUnhandledCaseSchema(),
+      { _ in }
+    ),
+    string: (
+      schema: StringSchema,
+      initializer: @Sendable (StringSchema.Value) -> Value
+    ) = (
+      SchemaCoding.TypeUnionUnhandledCaseSchema(),
+      { _ in }
+    ),
+    array: (
+      schema: ArraySchema,
+      initializer: @Sendable (ArraySchema.Value) -> Value
+    ) = (
+      SchemaCoding.TypeUnionUnhandledCaseSchema(),
+      { _ in }
+    ),
+    object: (
+      schema: ObjectSchema,
+      initializer: @Sendable (ObjectSchema.Value) -> Value
+    ) = (
+      SchemaCoding.TypeUnionUnhandledCaseSchema(),
+      { _ in }
+    ),
+    caseEncoder: @escaping @Sendable (
+      Value,
+      (NullSchema.Value) -> SchemaCoding.TypeUnionCaseEncoder,
+      (BoolSchema.Value) -> SchemaCoding.TypeUnionCaseEncoder,
+      (NumberSchema.Value) -> SchemaCoding.TypeUnionCaseEncoder,
+      (StringSchema.Value) -> SchemaCoding.TypeUnionCaseEncoder,
+      (ArraySchema.Value) -> SchemaCoding.TypeUnionCaseEncoder,
+      (ObjectSchema.Value) -> SchemaCoding.TypeUnionCaseEncoder
+    ) -> SchemaCoding.TypeUnionCaseEncoder
+  ) -> some SchemaCoding.Schema<Value> {
+    TypeUnionSchema(
+      description: description,
+      nullCase: TypeUnionSchemaCase(
+        schema: null.schema,
+        initializer: null.initializer
+      ),
+      booleanCase: TypeUnionSchemaCase(
+        schema: boolean.schema,
+        initializer: boolean.initializer
+      ),
+      numberCase: TypeUnionSchemaCase(
+        schema: number.schema,
+        initializer: number.initializer
+      ),
+      stringCase: TypeUnionSchemaCase(
+        schema: string.schema,
+        initializer: string.initializer
+      ),
+      arrayCase: TypeUnionSchemaCase(
+        schema: array.schema,
+        initializer: array.initializer
+      ),
+      objectCase: TypeUnionSchemaCase(
+        schema: object.schema,
+        initializer: object.initializer
+      ),
+      caseEncoder: caseEncoder
+    )
+  }
+
+}
+
 // MARK: - Case Encoding
 
 extension SchemaCoding {
@@ -8,19 +107,22 @@ extension SchemaCoding {
     fileprivate let implementation: TypeUnionCaseEncoderImplementationProtocol
   }
 
-  public struct TypeUnionUnhandledCaseSchema<Value>: SchemaCoding.Schema {
+  public struct TypeUnionUnhandledCaseSchema: SchemaCoding.Schema {
+    public init() {
+
+    }
     public func encodeSchemaDefinition(to encoder: inout SchemaCoding.SchemaEncoder) {
       /// This should be unreachable, because it is not called
       fatalError()
     }
-    public func encode(_ value: Value, to encoder: inout SchemaCoding.SchemaValueEncoder) {
-      fatalError()
+    public func encode(_ value: Never, to encoder: inout SchemaCoding.SchemaValueEncoder) {
+
     }
     public func decodeValue(
       from stream: inout SchemaCoding.SchemaValueDecoder,
       state: inout ()
-    ) throws -> SchemaCoding.SchemaDecodingResult<Value> {
-      fatalError()
+    ) throws -> SchemaCoding.SchemaDecodingResult<Never> {
+      throw Error.unexpectedType
     }
   }
 
@@ -40,10 +142,12 @@ extension SchemaCoding {
 
 }
 
+// MARK: - Schema
+
 private struct TypeUnionSchema<
   Value,
   NullSchema: SchemaCoding.Schema,
-  BoolSchema: SchemaCoding.Schema,
+  BooleanSchema: SchemaCoding.Schema,
   NumberSchema: SchemaCoding.Schema,
   StringSchema: SchemaCoding.Schema,
   ArraySchema: SchemaCoding.Schema,
@@ -53,7 +157,7 @@ private struct TypeUnionSchema<
   let description: String?
 
   let nullCase: TypeUnionSchemaCase<Value, NullSchema>
-  let boolCase: TypeUnionSchemaCase<Value, BoolSchema>
+  let booleanCase: TypeUnionSchemaCase<Value, BooleanSchema>
   let numberCase: TypeUnionSchemaCase<Value, NumberSchema>
   let stringCase: TypeUnionSchemaCase<Value, StringSchema>
   let arrayCase: TypeUnionSchemaCase<Value, ArraySchema>
@@ -62,7 +166,7 @@ private struct TypeUnionSchema<
   typealias CaseEncoder = @Sendable (
     Value,
     _ nullCase: (NullSchema.Value) -> SchemaCoding.TypeUnionCaseEncoder,
-    _ boolCase: (BoolSchema.Value) -> SchemaCoding.TypeUnionCaseEncoder,
+    _ booleanCase: (BooleanSchema.Value) -> SchemaCoding.TypeUnionCaseEncoder,
     _ numberCase: (NumberSchema.Value) -> SchemaCoding.TypeUnionCaseEncoder,
     _ stringCase: (StringSchema.Value) -> SchemaCoding.TypeUnionCaseEncoder,
     _ arrayCase: (ArraySchema.Value) -> SchemaCoding.TypeUnionCaseEncoder,
@@ -82,22 +186,22 @@ private struct TypeUnionSchema<
       objectEncoder.encodeProperty(name: "oneOf") { propertyEncoder in
         propertyEncoder.encodeArray { arrayEncoder in
           arrayEncoder.encodeElement { stream in
-            if !(nullCase.schema is SchemaCoding.TypeUnionUnhandledCaseSchema<Value>) {
+            if !(nullCase.schema is SchemaCoding.TypeUnionUnhandledCaseSchema) {
               stream.encodeSchemaDefinition(nullCase.schema)
             }
-            if !(boolCase.schema is SchemaCoding.TypeUnionUnhandledCaseSchema<Value>) {
-              stream.encodeSchemaDefinition(boolCase.schema)
+            if !(booleanCase.schema is SchemaCoding.TypeUnionUnhandledCaseSchema) {
+              stream.encodeSchemaDefinition(booleanCase.schema)
             }
-            if !(numberCase.schema is SchemaCoding.TypeUnionUnhandledCaseSchema<Value>) {
+            if !(numberCase.schema is SchemaCoding.TypeUnionUnhandledCaseSchema) {
               stream.encodeSchemaDefinition(numberCase.schema)
             }
-            if !(stringCase.schema is SchemaCoding.TypeUnionUnhandledCaseSchema<Value>) {
+            if !(stringCase.schema is SchemaCoding.TypeUnionUnhandledCaseSchema) {
               stream.encodeSchemaDefinition(stringCase.schema)
             }
-            if !(arrayCase.schema is SchemaCoding.TypeUnionUnhandledCaseSchema<Value>) {
+            if !(arrayCase.schema is SchemaCoding.TypeUnionUnhandledCaseSchema) {
               stream.encodeSchemaDefinition(arrayCase.schema)
             }
-            if !(objectCase.schema is SchemaCoding.TypeUnionUnhandledCaseSchema<Value>) {
+            if !(objectCase.schema is SchemaCoding.TypeUnionUnhandledCaseSchema) {
               stream.encodeSchemaDefinition(objectCase.schema)
             }
           }
@@ -120,7 +224,7 @@ private struct TypeUnionSchema<
       { value in
         SchemaCoding.TypeUnionCaseEncoder(
           implementation: SchemaCoding.TypeUnionCaseEncoderImplementation(
-            schema: boolCase.schema,
+            schema: booleanCase.schema,
             value: value
           )
         )
@@ -165,7 +269,7 @@ private struct TypeUnionSchema<
     var kind: JSON.ValueKind?
 
     var nullState: NullSchema.ValueDecodingState
-    var boolState: BoolSchema.ValueDecodingState
+    var booleanState: BooleanSchema.ValueDecodingState
     var numberState: NumberSchema.ValueDecodingState
     var stringState: StringSchema.ValueDecodingState
     var arrayState: ArraySchema.ValueDecodingState
@@ -175,7 +279,7 @@ private struct TypeUnionSchema<
   var initialValueDecodingState: ValueDecodingState {
     ValueDecodingState(
       nullState: nullCase.schema.initialValueDecodingState,
-      boolState: boolCase.schema.initialValueDecodingState,
+      booleanState: booleanCase.schema.initialValueDecodingState,
       numberState: numberCase.schema.initialValueDecodingState,
       stringState: stringCase.schema.initialValueDecodingState,
       arrayState: arrayCase.schema.initialValueDecodingState,
@@ -208,8 +312,8 @@ private struct TypeUnionSchema<
         .map { nullCase.initializer($0) }
     case .boolean:
       try decoder.stream
-        .decodeValue(using: boolCase.schema, state: &state.boolState)
-        .map { boolCase.initializer($0) }
+        .decodeValue(using: booleanCase.schema, state: &state.booleanState)
+        .map { booleanCase.initializer($0) }
     case .number:
       try decoder.stream
         .decodeValue(using: numberCase.schema, state: &state.numberState)
@@ -251,4 +355,8 @@ extension SchemaCoding.SchemaDecodingResult {
     }
   }
 
+}
+
+private enum Error: Swift.Error {
+  case unexpectedType
 }
