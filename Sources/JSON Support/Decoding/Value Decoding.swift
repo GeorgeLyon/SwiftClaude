@@ -1,5 +1,14 @@
 extension JSON {
 
+  public enum ValueKind {
+    case object
+    case array
+    case string
+    case number
+    case boolean
+    case null
+  }
+
   public struct ValueDecodingState {
 
     public init() {
@@ -32,6 +41,10 @@ extension JSON.DecodingStream {
     try readValue(&state).decodingResult()
   }
 
+  public func peekValueKind() throws -> JSON.DecodingResult<JSON.ValueKind> {
+    try _peekValueKind().decodingResult()
+  }
+
   mutating func readValue(
     _ state: inout JSON.ValueDecodingState
   ) -> ReadResult<Void> {
@@ -41,7 +54,7 @@ extension JSON.DecodingStream {
         readWhitespace()
 
         let start = createCheckpoint()
-        switch peekValueKind() {
+        switch _peekValueKind() {
         case .needsMoreData:
           return .needsMoreData
         case .notMatched(let error):
@@ -172,26 +185,7 @@ extension JSON.DecodingStream {
     }
   }
 
-}
-
-// MARK: - Implementation Details
-
-extension JSON {
-
-  fileprivate enum ValueKind {
-    case object
-    case array
-    case string
-    case number
-    case boolean
-    case null
-  }
-
-}
-
-extension JSON.DecodingStream {
-
-  fileprivate func peekValueKind() -> ReadResult<JSON.ValueKind> {
+  func _peekValueKind() -> ReadResult<JSON.ValueKind> {
     peekCharacter { character in
       switch character {
       case "{":
