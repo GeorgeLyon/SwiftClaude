@@ -41,7 +41,7 @@ private struct SchemaCodableStructTests {
         }
 
         extension TestStruct: SchemaCoding.SchemaCodable {
-          public static var schema: some SchemaCoding.Schema<Self> {
+          public static var schema: some SchemaCoding.SchemaCodingSupport.ExtendableSchema<Self> {
             SchemaCoding.SchemaCodingSupport.structSchema(
               representing: Self.self,
               description: ####"""
@@ -90,7 +90,7 @@ private struct SchemaCodableStructTests {
               initializer: Self.init(structSchemaDecoder:)
             )
           }
-          private init(structSchemaDecoder: SchemaCoding.StructSchemaDecoder<Int, (Int, Int), String, Bool, Bool>) {
+          private init(structSchemaDecoder: SchemaCoding.SchemaCodingSupport.StructSchemaDecoder<Int, (Int, Int), String, Bool, Bool>) {
             self.anInteger = structSchemaDecoder.propertyValues.0
             self.aCoordinate = structSchemaDecoder.propertyValues.1
             self.c = structSchemaDecoder.propertyValues.2

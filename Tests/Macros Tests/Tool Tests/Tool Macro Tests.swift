@@ -46,7 +46,7 @@ struct ToolMacroTests {
             private let a: Int
             private let b: String
             private let c: Bool
-            static var schema: some ToolInput.Schema<Self> {
+            static var schema: some ToolInput.SchemaCodingSupport.ExtendableSchema<Self> {
               ToolInput.SchemaCodingSupport.structSchema(
                 representing: Self.self,
                 description: ####"""
@@ -56,26 +56,26 @@ struct ToolMacroTests {
                   (
                     description: nil,
                     keyPath: \Self.a,
-                    key: "a" as ToolInput.SchemaCodingKey,
+                    key: "a" as ToolInput.SchemaCodingSupport.CodingKey,
                     schema: ToolInput.SchemaCodingSupport.schema(representing: Int.self)
                   ),
                   (
                     description: nil,
                     keyPath: \Self.b,
-                    key: "b" as ToolInput.SchemaCodingKey,
+                    key: "b" as ToolInput.SchemaCodingSupport.CodingKey,
                     schema: ToolInput.SchemaCodingSupport.schema(representing: String.self)
                   ),
                   (
                     description: nil,
                     keyPath: \Self.c,
-                    key: "c" as ToolInput.SchemaCodingKey,
+                    key: "c" as ToolInput.SchemaCodingSupport.CodingKey,
                     schema: ToolInput.SchemaCodingSupport.schema(representing: Bool.self)
                   )
                 ),
                 initializer: Self.init(structSchemaDecoder:)
               )
             }
-            private init(structSchemaDecoder: ToolInput.StructSchemaDecoder<Int, String, Bool>) {
+            private init(structSchemaDecoder: ToolInput.SchemaCodingSupport.StructSchemaDecoder<Int, String, Bool>) {
               self.a = structSchemaDecoder.propertyValues.0
               self.b = structSchemaDecoder.propertyValues.1
               self.c = structSchemaDecoder.propertyValues.2

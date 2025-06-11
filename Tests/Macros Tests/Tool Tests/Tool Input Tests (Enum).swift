@@ -41,7 +41,7 @@ struct ToolInputEnumTests {
         }
 
         extension ToolInputEnum: ToolInput.SchemaCodable {
-          static var schema: some ToolInput.Schema<Self> {
+          static var schema: some ToolInput.SchemaCodingSupport.Schema<Self> {
             let associatedValuesSchema_0_0 = ToolInput.SchemaCodingSupport.enumCaseAssociatedValuesSchema(
               values: (
 
@@ -50,7 +50,7 @@ struct ToolInputEnumTests {
             let associatedValuesSchema_1_0 = ToolInput.SchemaCodingSupport.enumCaseAssociatedValuesSchema(
               values: (
                 (
-                  key: nil,
+                  key: nil as ToolInput.SchemaCodingSupport.CodingKey?,
                   schema: ToolInput.SchemaCodingSupport.schema(representing: Int.self)
                 )
               )
@@ -58,10 +58,10 @@ struct ToolInputEnumTests {
             let associatedValuesSchema_2_0 = ToolInput.SchemaCodingSupport.enumCaseAssociatedValuesSchema(
               values: (
                 (
-                  key: nil,
+                  key: nil as ToolInput.SchemaCodingSupport.CodingKey?,
                   schema: ToolInput.SchemaCodingSupport.schema(representing: Int.self)
                 ), (
-                  key: nil,
+                  key: nil as ToolInput.SchemaCodingSupport.CodingKey?,
                   schema: ToolInput.SchemaCodingSupport.schema(representing: String.self)
                 )
               )
@@ -69,13 +69,13 @@ struct ToolInputEnumTests {
             let associatedValuesSchema_3_0 = ToolInput.SchemaCodingSupport.enumCaseAssociatedValuesSchema(
               values: (
                 (
-                  key: "a" as ToolInput.SchemaCodingKey,
+                  key: "a" as ToolInput.SchemaCodingSupport.CodingKey,
                   schema: ToolInput.SchemaCodingSupport.schema(representing: Int.self)
                 ), (
-                  key: "b" as ToolInput.SchemaCodingKey,
+                  key: "b" as ToolInput.SchemaCodingSupport.CodingKey,
                   schema: ToolInput.SchemaCodingSupport.schema(representing: String.self)
                 ), (
-                  key: "c" as ToolInput.SchemaCodingKey,
+                  key: "c" as ToolInput.SchemaCodingSupport.CodingKey,
                   schema: ToolInput.SchemaCodingSupport.schema(representing: Bool.self)
                 )
               )
@@ -83,13 +83,13 @@ struct ToolInputEnumTests {
             let associatedValuesSchema_4_0 = ToolInput.SchemaCodingSupport.enumCaseAssociatedValuesSchema(
               values: (
                 (
-                  key: nil,
+                  key: nil as ToolInput.SchemaCodingSupport.CodingKey?,
                   schema: ToolInput.SchemaCodingSupport.schema(representing: Int.self)
                 ), (
-                  key: "b" as ToolInput.SchemaCodingKey,
+                  key: "b" as ToolInput.SchemaCodingSupport.CodingKey,
                   schema: ToolInput.SchemaCodingSupport.schema(representing: String.self)
                 ), (
-                  key: "c" as ToolInput.SchemaCodingKey,
+                  key: "c" as ToolInput.SchemaCodingSupport.CodingKey,
                   schema: ToolInput.SchemaCodingSupport.schema(representing: Bool.self)
                 )
               )
@@ -99,7 +99,7 @@ struct ToolInputEnumTests {
               description: nil,
               cases: (
                 (
-                  key: "simple" as ToolInput.SchemaCodingKey,
+                  key: "simple" as ToolInput.SchemaCodingSupport.CodingKey,
                   description: nil,
                   schema: associatedValuesSchema_0_0,
                   initializer: { @Sendable values in
@@ -107,7 +107,7 @@ struct ToolInputEnumTests {
                   }
                 ),
                 (
-                  key: "singleAssociatedValue" as ToolInput.SchemaCodingKey,
+                  key: "singleAssociatedValue" as ToolInput.SchemaCodingSupport.CodingKey,
                   description: ####"""
                   A case with a single associated value
                   """####,
@@ -117,7 +117,7 @@ struct ToolInputEnumTests {
                   }
                 ),
                 (
-                  key: "mutlipleUnnamedAssociatedValues" as ToolInput.SchemaCodingKey,
+                  key: "mutlipleUnnamedAssociatedValues" as ToolInput.SchemaCodingSupport.CodingKey,
                   description: ####"""
                   Multiple associated values without a name
                   """####,
@@ -127,7 +127,7 @@ struct ToolInputEnumTests {
                   }
                 ),
                 (
-                  key: "multipleNamedAssociatedValues" as ToolInput.SchemaCodingKey,
+                  key: "multipleNamedAssociatedValues" as ToolInput.SchemaCodingSupport.CodingKey,
                   description: ####"""
                   Multiple associated values with a name
                   """####,
@@ -137,7 +137,7 @@ struct ToolInputEnumTests {
                   }
                 ),
                 (
-                  key: "mixedAssociatedValues" as ToolInput.SchemaCodingKey,
+                  key: "mixedAssociatedValues" as ToolInput.SchemaCodingSupport.CodingKey,
                   description: ####"""
                   Multiple associated values with some named and some unnamed
                   """####,

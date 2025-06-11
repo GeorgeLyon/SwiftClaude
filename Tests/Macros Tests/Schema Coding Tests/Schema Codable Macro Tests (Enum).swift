@@ -44,7 +44,7 @@ struct SchemaCodableEnumMacroTests {
           case mixedAssociatedValues(Int, b: String, c: Bool)
         }
 
-        extension TestEnum: SchemaCoding.SchemaCodingSupport.SchemaCodable {
+        extension TestEnum: SchemaCoding.SchemaCodable {
           static var schema: some SchemaCoding.SchemaCodingSupport.Schema<Self> {
             let associatedValuesSchema_0_0 = SchemaCoding.SchemaCodingSupport.enumCaseAssociatedValuesSchema(
               values: (
@@ -54,7 +54,7 @@ struct SchemaCodableEnumMacroTests {
             let associatedValuesSchema_1_0 = SchemaCoding.SchemaCodingSupport.enumCaseAssociatedValuesSchema(
               values: (
                 (
-                  key: nil,
+                  key: nil as SchemaCoding.SchemaCodingSupport.CodingKey?,
                   schema: SchemaCoding.SchemaCodingSupport.schema(representing: Int.self)
                 )
               )
@@ -72,7 +72,7 @@ struct SchemaCodableEnumMacroTests {
             let associatedValuesSchema_2_2 = SchemaCoding.SchemaCodingSupport.enumCaseAssociatedValuesSchema(
               values: (
                 (
-                  key: nil,
+                  key: nil as SchemaCoding.SchemaCodingSupport.CodingKey?,
                   schema: SchemaCoding.SchemaCodingSupport.schema(representing: String.self)
                 )
               )
@@ -80,7 +80,7 @@ struct SchemaCodableEnumMacroTests {
             let associatedValuesSchema_2_3 = SchemaCoding.SchemaCodingSupport.enumCaseAssociatedValuesSchema(
               values: (
                 (
-                  key: nil,
+                  key: nil as SchemaCoding.SchemaCodingSupport.CodingKey?,
                   schema: SchemaCoding.SchemaCodingSupport.schema(representing: Int.self)
                 )
               )
@@ -88,10 +88,10 @@ struct SchemaCodableEnumMacroTests {
             let associatedValuesSchema_3_0 = SchemaCoding.SchemaCodingSupport.enumCaseAssociatedValuesSchema(
               values: (
                 (
-                  key: nil,
+                  key: nil as SchemaCoding.SchemaCodingSupport.CodingKey?,
                   schema: SchemaCoding.SchemaCodingSupport.schema(representing: Int.self)
                 ), (
-                  key: nil,
+                  key: nil as SchemaCoding.SchemaCodingSupport.CodingKey?,
                   schema: SchemaCoding.SchemaCodingSupport.schema(representing: String.self)
                 )
               )
@@ -113,7 +113,7 @@ struct SchemaCodableEnumMacroTests {
             let associatedValuesSchema_5_0 = SchemaCoding.SchemaCodingSupport.enumCaseAssociatedValuesSchema(
               values: (
                 (
-                  key: nil,
+                  key: nil as SchemaCoding.SchemaCodingSupport.CodingKey?,
                   schema: SchemaCoding.SchemaCodingSupport.schema(representing: Int.self)
                 ), (
                   key: "b" as SchemaCoding.SchemaCodingSupport.CodingKey,
