@@ -83,9 +83,23 @@ extension SchemaCoding.SchemaResolver {
       schema: ValueSchema
     )
   ) -> some SchemaCoding.Schema<ValueSchema.Value> {
+    /// We may want to add the key to the description eventually.
     values.schema
   }
 
+  public static func enumCaseAssociatedValuesSchema<
+    ValueSchema: SchemaCoding.ExtendableSchema
+  >(
+    values: (
+      key: SchemaCoding.SchemaCodingKey?,
+      schema: ValueSchema
+    )
+  ) -> some SchemaCoding.ExtendableSchema<ValueSchema.Value> {
+    /// We may want to add the key to the description eventually.
+    values.schema
+  }
+
+  @_disfavoredOverload
   public static func enumCaseAssociatedValuesSchema<
     each ValueSchema: SchemaCoding.Schema
   >(
@@ -95,7 +109,7 @@ extension SchemaCoding.SchemaResolver {
         schema: each ValueSchema
       )
     )
-  ) -> some SchemaCoding.Schema<(repeat (each ValueSchema).Value)> {
+  ) -> some SchemaCoding.ExtendableSchema<(repeat (each ValueSchema).Value)> {
     /// Associated values which all have names are represented as an object
     ObjectPropertiesSchema(
       description: nil,
@@ -107,6 +121,7 @@ extension SchemaCoding.SchemaResolver {
     )
   }
 
+  @_disfavoredOverload
   public static func enumCaseAssociatedValuesSchema<
     each ValueSchema: SchemaCoding.Schema
   >(

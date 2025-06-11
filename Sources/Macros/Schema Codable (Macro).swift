@@ -89,9 +89,6 @@ extension AttributeSyntax {
 
   var codingKeyConversionFunction: (String) -> String {
     get throws {
-      /// We make `convertToSnakeCase` the default while we are only using this in `SwiftClaude` because that is what Claude's API expects
-      let defaultConversionFunction = { (string: String) in String.convertToSnakeCase(string) }
-      
       if case .argumentList(let arguments)? = arguments,
         let argument = arguments.first(
           where: {
@@ -104,10 +101,8 @@ extension AttributeSyntax {
         switch identifier {
         case "convertToSnakeCase":
           return { String.convertToSnakeCase($0) }
-        case "none":
+        case "none", nil:
           return { $0 }
-        case nil:
-          return defaultConversionFunction
         default:
           throw DiagnosticError(
             node: self,
@@ -115,7 +110,7 @@ extension AttributeSyntax {
             message: "Unknown coding key conversion strategy: \(identifier ?? "<none>")")
         }
       } else {
-        return defaultConversionFunction
+        return { $0 }
       }
     }
   }

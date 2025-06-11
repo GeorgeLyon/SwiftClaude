@@ -75,7 +75,7 @@ public enum ToolInput {
   public typealias StructSchemaDecoder = SchemaCoding.StructSchemaDecoder
   public typealias EnumCaseEncoder = SchemaCoding.EnumCaseEncoder
   public typealias InternallyTaggedEnumCaseEncoder = SchemaCoding.InternallyTaggedEnumCaseEncoder
-  public typealias InternallyTaggedEnumCaseSchema = SchemaCoding.InternallyTaggedEnumCaseSchema
+  public typealias ExtendableSchema = SchemaCoding.ExtendableSchema
 
 }
 

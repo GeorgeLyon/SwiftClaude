@@ -7,5 +7,6 @@ import SwiftSyntaxMacros
     InternallyTaggedEnumSchemaCodableMacro.self,
     ToolMacro.self,
     ToolInputMacro.self,
+    APICodableMacro.self
   ]
 }

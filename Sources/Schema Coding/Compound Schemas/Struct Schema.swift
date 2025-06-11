@@ -1,20 +1,5 @@
 import JSONSupport
 
-extension SchemaCoding {
-
-  public struct StructSchemaDecoder<each PropertyValue> {
-
-    public let propertyValues: (repeat each PropertyValue)
-
-    fileprivate init(
-      propertyValues: (repeat each PropertyValue)
-    ) {
-      self.propertyValues = propertyValues
-    }
-  }
-
-}
-
 extension SchemaCoding.SchemaResolver {
 
   public static func structSchema<
@@ -34,7 +19,7 @@ extension SchemaCoding.SchemaResolver {
     initializer: @escaping @Sendable (
       SchemaCoding.StructSchemaDecoder<repeat (each PropertySchema).Value>
     ) -> Value
-  ) -> some SchemaCoding.Schema<Value> {
+  ) -> some SchemaCoding.ExtendableSchema<Value> {
     StructSchema(
       keyPaths: (repeat (each properties).keyPath),
       propertiesSchema: ObjectPropertiesSchema(
@@ -50,12 +35,27 @@ extension SchemaCoding.SchemaResolver {
 
 }
 
+extension SchemaCoding {
+
+  public struct StructSchemaDecoder<each PropertyValue> {
+
+    public let propertyValues: (repeat each PropertyValue)
+
+    fileprivate init(
+      propertyValues: (repeat each PropertyValue)
+    ) {
+      self.propertyValues = propertyValues
+    }
+  }
+
+}
+
 // MARK: - Implementation Details
 
 private struct StructSchema<
   Value,
   each PropertySchema: SchemaCoding.Schema
->: SchemaCoding.Schema {
+>: SchemaCoding.ExtendableSchema {
 
   let keyPaths: (repeat KeyPath<Value, (each PropertySchema).Value> & Sendable)
 
@@ -67,37 +67,77 @@ private struct StructSchema<
       SchemaCoding.StructSchemaDecoder<repeat (each PropertySchema).Value>
     ) -> Value
 
-  func encodeSchemaDefinition(to encoder: inout SchemaCoding.SchemaEncoder) {
-    propertiesSchema.encodeSchemaDefinition(to: &encoder)
+  func encodeSchemaDefinition<each AdditionalPropertySchema>(
+    to encoder: inout SchemaCoding.SchemaEncoder,
+    additionalProperties: SchemaCoding.AdditionalPropertiesSchema<
+      repeat each AdditionalPropertySchema
+    >
+  ) {
+    propertiesSchema.encodeSchemaDefinition(
+      to: &encoder,
+      additionalProperties: additionalProperties
+    )
   }
 
-  typealias ValueDecodingState = PropertiesSchema.ValueDecodingState
+  func encode<each AdditionalPropertySchema>(
+    _ value: Value,
+    additionalProperties: SchemaCoding.AdditionalPropertiesSchema<
+      repeat each AdditionalPropertySchema
+    >,
+    additionalPropertyValues: SchemaCoding.AdditionalPropertiesSchema<
+      repeat each AdditionalPropertySchema
+    >.Values,
+    to encoder: inout SchemaCoding.SchemaValueEncoder
+  ) {
+    propertiesSchema.encode(
+      (repeat value[keyPath: each keyPaths]),
+      additionalProperties: additionalProperties,
+      additionalPropertyValues: additionalPropertyValues,
+      to: &encoder)
+  }
 
-  var initialValueDecodingState: ValueDecodingState {
+  var initialValueDecodingState: PropertiesSchema.ValueDecodingState {
     propertiesSchema.initialValueDecodingState
   }
 
-  func decodeValue(
+  func decodeValue<each AdditionalPropertySchema>(
     from decoder: inout SchemaCoding.SchemaValueDecoder,
-    state: inout ValueDecodingState
-  ) throws -> SchemaCoding.SchemaDecodingResult<Value> {
-    try propertiesSchema
-      .decodeValue(from: &decoder.stream, state: &state, discriminator: nil)
-      .map { values in
-        initializer(
-          SchemaCoding.StructSchemaDecoder(
-            propertyValues: (repeat each values)
-          )
+    state: inout SchemaCoding.AdditionalPropertiesSchema<
+      repeat each AdditionalPropertySchema
+    >.ValueDecodingState<PropertiesSchema.ValueDecodingState>,
+    additionalProperties: SchemaCoding.AdditionalPropertiesSchema<
+      repeat each AdditionalPropertySchema
+    >
+  ) throws
+    -> SchemaCoding.SchemaDecodingResult<
+      (
+        Value,
+        (repeat (each AdditionalPropertySchema).Value)
+      )
+    >
+  {
+    let result =
+      try propertiesSchema
+      .decodeValue(
+        from: &decoder,
+        state: &state,
+        additionalProperties: additionalProperties
+      )
+    switch result {
+    case .needsMoreData:
+      return .needsMoreData
+    case .decoded(let pair):
+      return .decoded(
+        (
+          initializer(
+            SchemaCoding.StructSchemaDecoder(
+              propertyValues: (repeat each pair.0)
+            )
+          ),
+          (repeat each pair.1)
         )
-      }
-      .schemaDecodingResult
-  }
-
-  func encode(_ value: Value, to encoder: inout SchemaCoding.SchemaValueEncoder) {
-    propertiesSchema.encode(
-      (repeat value[keyPath: each keyPaths]),
-      to: &encoder
-    )
+      )
+    }
   }
 
 }

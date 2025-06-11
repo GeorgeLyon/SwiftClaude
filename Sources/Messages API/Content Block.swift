@@ -1,21 +1,19 @@
-public import SchemaCoding
-
-@SchemaCodable
+@APICodable
 public enum ContentBlock {
 
-  @SchemaCodable
+  @APICodable
   public struct Text {
     let text: String
   }
   case text(Text)
 
-  @SchemaCodable
+  @APICodable
   public struct Image {
 
-    @SchemaCodable
+    @APICodable
     public enum Source {
 
-      @SchemaCodable
+      @APICodable
       public struct Base64 {
         let mediaType: String
         let data: String

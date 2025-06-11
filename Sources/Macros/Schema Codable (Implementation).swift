@@ -86,7 +86,7 @@ extension DeclGroupSyntax {
 
 extension StructDeclSyntax {
 
-  fileprivate func schemaCodableMembers(
+  func schemaCodableMembers(
     schemaCodingNamespace: TokenSyntax,
     codingKeyConversionFunction: (String) -> String,
     in context: MacroExpansionContext
@@ -178,6 +178,7 @@ extension StructDeclSyntax {
   {
     /// var schema: some SchemaCoding.Schema<Self> { … }
     let schemaProperty: VariableDeclSyntax = .schemaProperty(
+      schemaProtocolName: "ExtendableSchema",
       schemaCodingNamespace: schemaCodingNamespace,
       isPublic: isPublic
     ) {
@@ -487,6 +488,7 @@ extension EnumDeclSyntax {
       .compactMap { $0.decl.as(EnumCaseDeclSyntax.self) }
 
     let schemaProperty: VariableDeclSyntax = .schemaProperty(
+      schemaProtocolName: "Schema",
       schemaCodingNamespace: schemaCodingNamespace,
       isPublic: modifiers.contains(where: \.isPublic)
     ) {
@@ -923,6 +925,7 @@ extension EnumCaseParameterListSyntax.Element {
 extension VariableDeclSyntax {
 
   fileprivate static func schemaProperty(
+    schemaProtocolName: TokenSyntax,
     schemaCodingNamespace: TokenSyntax,
     isPublic: Bool,
     @CodeBlockItemListBuilder _ builder: () -> CodeBlockItemListSyntax
@@ -945,7 +948,7 @@ extension VariableDeclSyntax {
               someOrAnySpecifier: .keyword(.some),
               constraint: MemberTypeSyntax(
                 baseType: IdentifierTypeSyntax(name: schemaCodingNamespace),
-                name: "Schema",
+                name: schemaProtocolName,
                 genericArgumentClause: GenericArgumentClauseSyntax {
                   GenericArgumentSyntax(
                     argument: IdentifierTypeSyntax(name: "Self")

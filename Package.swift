@@ -20,8 +20,8 @@ let package = Package(
 
     /// Temporary
     .library(
-      name: "SchemaCoding",
-      targets: ["SchemaCoding"]
+      name: "Temporary",
+      targets: ["MessagesAPI"]
     )
   ],
   dependencies: [
@@ -76,7 +76,8 @@ let package = Package(
     .target(
       name: "MessagesAPI",
       dependencies: [
-        "Tool"
+        "Tool",
+        "Macros",
       ],
       path: "Sources/Messages API",
       swiftSettings: .projectDefaults,

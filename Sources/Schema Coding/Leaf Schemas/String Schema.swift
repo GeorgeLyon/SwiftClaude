@@ -20,7 +20,7 @@ extension String: SchemaCodable {
 
 // MARK: - Implementation Details
 
-private struct StringSchema: LeafSchema {
+struct StringSchema: LeafSchema {
 
   typealias Value = String
 

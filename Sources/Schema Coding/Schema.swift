@@ -41,6 +41,12 @@ public enum SchemaCoding {
       Value.schema
     }
 
+    public static func schema<Value: SchemaCodable>(
+      representing: Value.Type
+    ) -> some ExtendableSchema<Value> where Value.Schema: ExtendableSchema {
+      Value.schema
+    }
+
   }
 
   public struct SchemaCodingKey: Sendable, Hashable, ExpressibleByStringLiteral {
@@ -114,7 +120,7 @@ public enum SchemaCoding {
     case needsMoreData
     case decoded(Value)
   }
-  
+
   /// We've made `convertToSnakeCase` the default while this is only used in SwiftClaude
   public enum CodingKeyConversionStrategy {
     case convertToSnakeCase
