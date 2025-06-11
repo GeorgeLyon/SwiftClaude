@@ -70,7 +70,7 @@ struct InternallyTaggedEnumSchemaCodableMacro: ExtensionMacro {
           members: enumDecl.schemaCodableMembers(
             schemaCodingNamespace: "SchemaCoding",
             enumSchemaFunctionName: "internallyTaggedEnumSchema",
-            enumAssociatedValueSchemaFunctionName: "internallyTaggedEnumCaseSchema",
+            enumAssociatedValueSchemaFunctionName: "enumCaseAssociatedValuesSchema",
             discriminatorPropertyName: literal,
             codingKeyConversionFunction: try node.codingKeyConversionFunction,
             in: context
