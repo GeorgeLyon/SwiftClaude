@@ -7,7 +7,7 @@ import Testing
 struct EnumSchemaInternallyTaggedTests {
 
   /*
-  private enum Shape: SchemaCodable, Equatable {
+  private enum Shape: SchemaCodingSupport.SchemaCodable, Equatable {
     case circle(radius: Double)
     case rectangle(width: Double, height: Double)
   
@@ -70,7 +70,7 @@ struct EnumSchemaInternallyTaggedTests {
   }
   */
 
-  private enum Animal: SchemaCodable, Equatable {
+  private enum Animal: SchemaCoding.SchemaCodingSupport.SchemaCodable, Equatable {
     case dog(name: String, breed: String)
     case cat(name: String, livesRemaining: Int)
     case bird(species: String, canFly: Bool)
@@ -115,7 +115,7 @@ struct EnumSchemaInternallyTaggedTests {
         )
       )
 
-      return SchemaCoding.SchemaCodingSupport.internallyTaggedEnumSchema(
+      return SchemaCoding.SchemaCodingSupport.enumSchema(
         representing: Animal.self,
         description: "Different types of animals",
         discriminatorPropertyName: "animal",

@@ -6,7 +6,9 @@ import Testing
 @Suite("Enum (Case Iterable)")
 struct EnumSchemaCaseIterableTests {
 
-  private enum StringEnum: String, CaseIterable, SchemaCodable, Equatable {
+  private enum StringEnum: String, CaseIterable, SchemaCoding.SchemaCodingSupport.SchemaCodable,
+    Equatable
+  {
     case one
     case two
     case three
@@ -17,7 +19,8 @@ struct EnumSchemaCaseIterableTests {
     )
   }
 
-  private enum IntEnum: Int, CaseIterable, SchemaCodable, Equatable {
+  private enum IntEnum: Int, CaseIterable, SchemaCoding.SchemaCodingSupport.SchemaCodable, Equatable
+  {
     case zero = 0
     case one = 1
     case two = 2

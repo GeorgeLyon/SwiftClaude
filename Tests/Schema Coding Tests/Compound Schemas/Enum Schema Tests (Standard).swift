@@ -6,7 +6,7 @@ import Testing
 @Suite("Enum (Standard)")
 struct EnumSchemaStandardTests {
 
-  private enum TestEnum: SchemaCodable, Equatable {
+  private enum TestEnum: SchemaCoding.SchemaCodingSupport.SchemaCodable, Equatable {
 
     case first(String)
     case second(x: Int)
@@ -108,7 +108,7 @@ struct EnumSchemaStandardTests {
 
   }
 
-  private enum SimpleEnum: SchemaCodable, Equatable {
+  private enum SimpleEnum: SchemaCoding.SchemaCodingSupport.SchemaCodable, Equatable {
     case one
     case two
     case three

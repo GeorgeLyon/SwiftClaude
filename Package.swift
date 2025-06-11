@@ -113,13 +113,13 @@ let package = Package(
       path: "Sources/Schema Coding",
       swiftSettings: .projectDefaults
     ),
-    // .testTarget(
-    //   name: "SchemaCodingTests",
-    //   dependencies: [
-    //     "SchemaCodingTestSupport"
-    //   ],
-    //   path: "Tests/Schema Coding Tests"
-    // ),
+    .testTarget(
+      name: "SchemaCodingTests",
+      dependencies: [
+        "SchemaCodingTestSupport"
+      ],
+      path: "Tests/Schema Coding Tests"
+    ),
 
     // MARK: - Macros Support
 
