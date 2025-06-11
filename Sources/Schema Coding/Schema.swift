@@ -18,22 +18,22 @@ public enum SchemaCoding {
 
     associatedtype Value
 
-    func encodeSchemaDefinition(to encoder: inout SchemaEncoder)
+    func encodeSchemaDefinition(to encoder: inout SchemaCodingSupport.SchemaEncoder)
 
     associatedtype ValueDecodingState = ()
 
     var initialValueDecodingState: ValueDecodingState { get }
 
     func decodeValue(
-      from stream: inout SchemaValueDecoder,
+      from stream: inout SchemaCodingSupport.SchemaValueDecoder,
       state: inout ValueDecodingState
-    ) throws -> SchemaDecodingResult<Value>
+    ) throws -> SchemaCodingSupport.DecodingResult<Value>
 
-    func encode(_ value: Value, to encoder: inout SchemaValueEncoder)
+    func encode(_ value: Value, to encoder: inout SchemaCodingSupport.SchemaValueEncoder)
 
   }
 
-  public enum SchemaResolver {
+  public enum SchemaCodingSupport {
 
     public static func schema<Value: SchemaCodable>(
       representing: Value.Type
@@ -47,84 +47,83 @@ public enum SchemaCoding {
       Value.schema
     }
 
-  }
+    public struct CodingKey: Sendable, Hashable, ExpressibleByStringLiteral {
 
-  public struct SchemaCodingKey: Sendable, Hashable, ExpressibleByStringLiteral {
+      public init(_ value: StaticString) {
+        self.stringValue = String(describing: value)
+      }
 
-    public init(_ value: StaticString) {
-      self.stringValue = String(describing: value)
+      public init(stringLiteral value: StaticString) {
+        self.init(value)
+      }
+
+      internal let stringValue: String
+
     }
 
-    public init(stringLiteral value: StaticString) {
-      self.init(value)
+    public struct SchemaEncoder: ~Copyable {
+
+      public init() {
+        self.init(
+          stream: JSON.EncodingStream(),
+          descriptionPrefix: nil,
+          descriptionSuffix: nil
+        )
+      }
+
+      init(
+        stream: consuming JSON.EncodingStream,
+        descriptionPrefix: String? = nil,
+        descriptionSuffix: String? = nil
+      ) {
+        self.stream = stream
+        self.descriptionPrefix = descriptionPrefix
+        self.descriptionSuffix = descriptionSuffix
+      }
+
+      func contextualDescription(_ description: String?) -> String? {
+        combineDescriptions(descriptionPrefix, description, descriptionSuffix)
+      }
+
+      var stream: JSON.EncodingStream
+
+      private let descriptionPrefix: String?
+      private let descriptionSuffix: String?
+
     }
 
-    internal let stringValue: String
+    public struct SchemaValueEncoder: ~Copyable {
+      public init() {
+        stream = JSON.EncodingStream()
+      }
+      var stream: JSON.EncodingStream
 
-  }
-
-  public struct SchemaEncoder: ~Copyable {
-
-    public init() {
-      self.init(
-        stream: JSON.EncodingStream(),
-        descriptionPrefix: nil,
-        descriptionSuffix: nil
-      )
+      fileprivate init(stream: consuming JSON.EncodingStream) {
+        self.stream = stream
+      }
     }
 
-    init(
-      stream: consuming JSON.EncodingStream,
-      descriptionPrefix: String? = nil,
-      descriptionSuffix: String? = nil
-    ) {
-      self.stream = stream
-      self.descriptionPrefix = descriptionPrefix
-      self.descriptionSuffix = descriptionSuffix
+    public struct SchemaValueDecoder: ~Copyable {
+      public init() {
+        stream = JSON.DecodingStream()
+      }
+      var stream: JSON.DecodingStream
+
+      fileprivate init(stream: consuming JSON.DecodingStream) {
+        self.stream = stream
+      }
     }
 
-    func contextualDescription(_ description: String?) -> String? {
-      combineDescriptions(descriptionPrefix, description, descriptionSuffix)
+    public enum DecodingResult<Value> {
+      case needsMoreData
+      case decoded(Value)
     }
 
-    var stream: JSON.EncodingStream
-
-    private let descriptionPrefix: String?
-    private let descriptionSuffix: String?
-
-  }
-
-  public struct SchemaValueEncoder: ~Copyable {
-    public init() {
-      stream = JSON.EncodingStream()
+    /// We've made `convertToSnakeCase` the default while this is only used in SwiftClaude
+    public enum CodingKeyConversionStrategy {
+      case convertToSnakeCase
+      case none
     }
-    var stream: JSON.EncodingStream
-
-    fileprivate init(stream: consuming JSON.EncodingStream) {
-      self.stream = stream
-    }
-  }
-
-  public struct SchemaValueDecoder: ~Copyable {
-    public init() {
-      stream = JSON.DecodingStream()
-    }
-    var stream: JSON.DecodingStream
-
-    fileprivate init(stream: consuming JSON.DecodingStream) {
-      self.stream = stream
-    }
-  }
-
-  public enum SchemaDecodingResult<Value> {
-    case needsMoreData
-    case decoded(Value)
-  }
-
-  /// We've made `convertToSnakeCase` the default while this is only used in SwiftClaude
-  public enum CodingKeyConversionStrategy {
-    case convertToSnakeCase
-    case none
   }
 
 }
@@ -143,7 +142,8 @@ extension SchemaCoding.Schema where ValueDecodingState == Void {
   names: named(schema), named(init)
 )
 public macro SchemaCodable(
-  codingKeyConversionStrategy: SchemaCoding.CodingKeyConversionStrategy = .convertToSnakeCase
+  codingKeyConversionStrategy: SchemaCoding.SchemaCodingSupport.CodingKeyConversionStrategy =
+    .convertToSnakeCase
 ) =
   #externalMacro(
     module: "Macros",
@@ -157,7 +157,8 @@ public macro SchemaCodable(
 )
 public macro SchemaCodable(
   discriminatorPropertyName: String,
-  codingKeyConversionStrategy: SchemaCoding.CodingKeyConversionStrategy = .convertToSnakeCase
+  codingKeyConversionStrategy: SchemaCoding.SchemaCodingSupport.CodingKeyConversionStrategy =
+    .convertToSnakeCase
 ) =
   #externalMacro(
     module: "Macros",
@@ -198,7 +199,9 @@ protocol LeafSchema: InternalSchema {
 /// We don't expect internal leaf schemas to have any additional properties, but they should still encode a contextual description if necessary.
 extension LeafSchema {
 
-  public func encodeSchemaDefinition(to encoder: inout SchemaCoding.SchemaEncoder) {
+  public func encodeSchemaDefinition(
+    to encoder: inout SchemaCoding.SchemaCodingSupport.SchemaEncoder
+  ) {
     let description = encoder.contextualDescription(nil)
     encoder.stream.encodeObject { encoder in
       if let description {
@@ -220,7 +223,7 @@ extension JSON.EncodingStream {
     descriptionPrefix: String? = nil,
     descriptionSuffix: String? = nil
   ) {
-    var encoder = SchemaCoding.SchemaEncoder(
+    var encoder = SchemaCoding.SchemaCodingSupport.SchemaEncoder(
       stream: self,
       descriptionPrefix: descriptionPrefix,
       descriptionSuffix: descriptionSuffix
@@ -230,7 +233,7 @@ extension JSON.EncodingStream {
   }
 
   mutating func encode<Schema: SchemaCoding.Schema>(_ value: Schema.Value, using schema: Schema) {
-    var encoder = SchemaCoding.SchemaValueEncoder(stream: self)
+    var encoder = SchemaCoding.SchemaCodingSupport.SchemaValueEncoder(stream: self)
     schema.encode(value, to: &encoder)
     self = encoder.stream
   }
@@ -243,8 +246,8 @@ extension JSON.DecodingStream {
   mutating func decodeValue<Schema: SchemaCoding.Schema>(
     using schema: Schema,
     state: inout Schema.ValueDecodingState
-  ) throws -> SchemaCoding.SchemaDecodingResult<Schema.Value> {
-    var decoder = SchemaCoding.SchemaValueDecoder(stream: self)
+  ) throws -> SchemaCoding.SchemaCodingSupport.DecodingResult<Schema.Value> {
+    var decoder = SchemaCoding.SchemaCodingSupport.SchemaValueDecoder(stream: self)
     do {
       let result = try schema.decodeValue(from: &decoder, state: &state)
       self = decoder.stream
@@ -258,7 +261,7 @@ extension JSON.DecodingStream {
 }
 
 extension JSON.DecodingResult {
-  var schemaDecodingResult: SchemaCoding.SchemaDecodingResult<Value> {
+  var schemaDecodingResult: SchemaCoding.SchemaCodingSupport.DecodingResult<Value> {
     switch self {
     case .needsMoreData:
       return .needsMoreData
