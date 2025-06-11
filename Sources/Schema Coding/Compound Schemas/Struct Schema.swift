@@ -1,6 +1,6 @@
 import JSONSupport
 
-extension SchemaCoding.SchemaResolver {
+extension SchemaCoding.SchemaCodingSupport {
 
   public static func structSchema<
     Value,
@@ -12,7 +12,7 @@ extension SchemaCoding.SchemaResolver {
       repeat (
         description: String?,
         keyPath: KeyPath<Value, (each PropertySchema).Value> & Sendable,
-        key: SchemaCoding.SchemaCodingKey,
+        key: SchemaCoding.CodingKey,
         schema: (each PropertySchema)
       )
     ),
@@ -109,7 +109,7 @@ private struct StructSchema<
       repeat each AdditionalPropertySchema
     >
   ) throws
-    -> SchemaCoding.SchemaDecodingResult<
+    -> SchemaCoding.DecodingResult<
       (
         Value,
         (repeat (each AdditionalPropertySchema).Value)

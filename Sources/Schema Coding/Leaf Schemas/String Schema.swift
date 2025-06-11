@@ -1,6 +1,6 @@
 import JSONSupport
 
-extension SchemaCoding.SchemaResolver {
+extension SchemaCoding.SchemaCodingSupport {
 
   public static func schema(
     representing _: String.Type = String.self
@@ -10,10 +10,10 @@ extension SchemaCoding.SchemaResolver {
 
 }
 
-extension String: SchemaCodable {
+extension String: SchemaCoding.SchemaCodable {
 
   public static var schema: some SchemaCoding.Schema<Self> {
-    SchemaCoding.SchemaResolver.schema(representing: String.self)
+    SchemaCoding.SchemaCodingSupport.schema(representing: String.self)
   }
 
 }
@@ -38,7 +38,7 @@ struct StringSchema: LeafSchema {
   func decodeValue(
     from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ValueDecodingState
-  ) throws -> SchemaCoding.SchemaDecodingResult<String> {
+  ) throws -> SchemaCoding.DecodingResult<String> {
     let result = try decoder.stream.decodeStringFragments(
       state: &state.decodingState,
       onFragment: { state.fragments.append($0) }

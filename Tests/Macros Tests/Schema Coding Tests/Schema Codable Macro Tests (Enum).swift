@@ -55,7 +55,7 @@ struct SchemaCodableEnumMacroTests {
               values: (
                 (
                   key: nil,
-                  schema: SchemaCoding.SchemaResolver.schema(representing: Int.self)
+                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: Int.self)
                 )
               )
             )
@@ -73,7 +73,7 @@ struct SchemaCodableEnumMacroTests {
               values: (
                 (
                   key: nil,
-                  schema: SchemaCoding.SchemaResolver.schema(representing: String.self)
+                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: String.self)
                 )
               )
             )
@@ -81,7 +81,7 @@ struct SchemaCodableEnumMacroTests {
               values: (
                 (
                   key: nil,
-                  schema: SchemaCoding.SchemaResolver.schema(representing: Int.self)
+                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: Int.self)
                 )
               )
             )
@@ -89,10 +89,10 @@ struct SchemaCodableEnumMacroTests {
               values: (
                 (
                   key: nil,
-                  schema: SchemaCoding.SchemaResolver.schema(representing: Int.self)
+                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: Int.self)
                 ), (
                   key: nil,
-                  schema: SchemaCoding.SchemaResolver.schema(representing: String.self)
+                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: String.self)
                 )
               )
             )
@@ -100,13 +100,13 @@ struct SchemaCodableEnumMacroTests {
               values: (
                 (
                   key: "a" as SchemaCoding.SchemaCodingKey,
-                  schema: SchemaCoding.SchemaResolver.schema(representing: Int.self)
+                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: Int.self)
                 ), (
                   key: "b" as SchemaCoding.SchemaCodingKey,
-                  schema: SchemaCoding.SchemaResolver.schema(representing: String.self)
+                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: String.self)
                 ), (
                   key: "c" as SchemaCoding.SchemaCodingKey,
-                  schema: SchemaCoding.SchemaResolver.schema(representing: Bool.self)
+                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: Bool.self)
                 )
               )
             )
@@ -114,13 +114,13 @@ struct SchemaCodableEnumMacroTests {
               values: (
                 (
                   key: nil,
-                  schema: SchemaCoding.SchemaResolver.schema(representing: Int.self)
+                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: Int.self)
                 ), (
                   key: "b" as SchemaCoding.SchemaCodingKey,
-                  schema: SchemaCoding.SchemaResolver.schema(representing: String.self)
+                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: String.self)
                 ), (
                   key: "c" as SchemaCoding.SchemaCodingKey,
-                  schema: SchemaCoding.SchemaResolver.schema(representing: Bool.self)
+                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: Bool.self)
                 )
               )
             )

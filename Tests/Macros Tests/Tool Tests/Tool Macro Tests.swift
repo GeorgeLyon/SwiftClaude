@@ -47,7 +47,7 @@ struct ToolMacroTests {
             private let b: String
             private let c: Bool
             static var schema: some ToolInput.Schema<Self> {
-              ToolInput.SchemaResolver.structSchema(
+              ToolInput.SchemaCodingSupport.structSchema(
                 representing: Self.self,
                 description: ####"""
                 A tool with a single action
@@ -57,19 +57,19 @@ struct ToolMacroTests {
                     description: nil,
                     keyPath: \Self.a,
                     key: "a" as ToolInput.SchemaCodingKey,
-                    schema: ToolInput.SchemaResolver.schema(representing: Int.self)
+                    schema: ToolInput.SchemaCodingSupport.schema(representing: Int.self)
                   ),
                   (
                     description: nil,
                     keyPath: \Self.b,
                     key: "b" as ToolInput.SchemaCodingKey,
-                    schema: ToolInput.SchemaResolver.schema(representing: String.self)
+                    schema: ToolInput.SchemaCodingSupport.schema(representing: String.self)
                   ),
                   (
                     description: nil,
                     keyPath: \Self.c,
                     key: "c" as ToolInput.SchemaCodingKey,
-                    schema: ToolInput.SchemaResolver.schema(representing: Bool.self)
+                    schema: ToolInput.SchemaCodingSupport.schema(representing: Bool.self)
                   )
                 ),
                 initializer: Self.init(structSchemaDecoder:)

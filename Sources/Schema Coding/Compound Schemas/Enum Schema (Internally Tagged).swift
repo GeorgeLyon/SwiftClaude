@@ -1,6 +1,6 @@
 import JSONSupport
 
-extension SchemaCoding.SchemaResolver {
+extension SchemaCoding.SchemaCodingSupport {
 
   public static func internallyTaggedEnumSchema<
     Value,
@@ -11,7 +11,7 @@ extension SchemaCoding.SchemaResolver {
     discriminatorPropertyName: StaticString,
     cases: (
       repeat (
-        key: SchemaCoding.SchemaCodingKey,
+        key: SchemaCoding.SchemaCodingSupport.CodingKey,
         description: String?,
         schema: each AssociatedValuesSchema,
         initializer: @Sendable ((each AssociatedValuesSchema).Value) -> Value
@@ -27,7 +27,7 @@ extension SchemaCoding.SchemaResolver {
       description: description,
       discriminatorSchema: SchemaCoding.AdditionalPropertiesSchema(
         properties: ObjectPropertySchema(
-          key: SchemaCoding.SchemaCodingKey(discriminatorPropertyName),
+          key: SchemaCoding.CodingKey(discriminatorPropertyName),
           description: nil,
           schema: StringSchema()
         )
@@ -86,7 +86,7 @@ private struct InternallyTaggedEnumSchemaCase<
   Value,
   Schema: SchemaCoding.ExtendableSchema
 > {
-  let key: SchemaCoding.SchemaCodingKey
+  let key: SchemaCoding.CodingKey
   let description: String?
   let schema: Schema
   let initializer: @Sendable (Schema.Value) -> Value
@@ -130,6 +130,15 @@ extension InternallyTaggedEnumSchema {
 // MARK: - Value Encoding
 
 extension SchemaCoding {
+  public typealias InternallyTaggedEnumCaseEncoder = SchemaCodingSupport
+    .InternallyTaggedEnumCaseEncoder
+  fileprivate typealias InternallyTaggedEnumCaseEncoderImplementationProtocol =
+    SchemaCodingSupport.InternallyTaggedEnumCaseEncoderImplementationProtocol
+  fileprivate typealias InternallyTaggedEnumCaseEncoderImplementation =
+    SchemaCodingSupport.InternallyTaggedEnumCaseEncoderImplementation
+}
+
+extension SchemaCoding.SchemaCodingSupport {
 
   public struct InternallyTaggedEnumCaseEncoder {
     fileprivate let implementation: InternallyTaggedEnumCaseEncoderImplementationProtocol
@@ -191,7 +200,7 @@ extension InternallyTaggedEnumSchema {
 extension InternallyTaggedEnumSchema {
 
   typealias AssociatedValueDecodingStates = (
-    repeat SchemaCoding.AdditionalPropertiesSchema<
+    repeat SchemaCoding.SchemaCodingSupport.AdditionalPropertiesSchema<
       StringSchema
     >.ValueDecodingState<(each AssociatedValuesSchema).ValueDecodingState>
   )
@@ -199,11 +208,13 @@ extension InternallyTaggedEnumSchema {
   typealias EnumCaseDecoder = @Sendable (
     inout SchemaCoding.SchemaValueDecoder,
     inout AssociatedValueDecodingStates
-  ) throws -> SchemaCoding.SchemaDecodingResult<Value>
+  ) throws -> SchemaCoding.DecodingResult<Value>
 
   struct EnumCaseDecoderProvider {
     init(
-      discriminatorSchema: SchemaCoding.AdditionalPropertiesSchema<StringSchema>,
+      discriminatorSchema: SchemaCoding.SchemaCodingSupport.AdditionalPropertiesSchema<
+        StringSchema
+      >,
       cases: repeat InternallyTaggedEnumSchemaCase<Value, each AssociatedValuesSchema>
     ) {
       var decoders: [Substring: EnumCaseDecoder] = [:]
@@ -272,7 +283,7 @@ extension InternallyTaggedEnumSchema {
   func decodeValue(
     from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ValueDecodingState
-  ) throws -> SchemaCoding.SchemaDecodingResult<Value> {
+  ) throws -> SchemaCoding.DecodingResult<Value> {
     while true {
       if let caseDecoder = state.decoder {
         return try caseDecoder(&decoder, &state.associatedValueStates)

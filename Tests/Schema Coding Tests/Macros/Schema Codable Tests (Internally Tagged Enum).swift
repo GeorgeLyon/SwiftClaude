@@ -22,7 +22,7 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
   
   @Test
   private func testShapeSchemaEncoding() throws {
-    let schema = SchemaCoding.SchemaResolver.schema(representing: Shape.self)
+    let schema = SchemaCoding.SchemaCodingSupport.schema(representing: Shape.self)
     #expect(
       schema.schemaJSON == """
         {
@@ -84,7 +84,7 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
   
   @Test
   private func testShapeValueEncoding() throws {
-    let schema = SchemaCoding.SchemaResolver.schema(representing: Shape.self)
+    let schema = SchemaCoding.SchemaCodingSupport.schema(representing: Shape.self)
   
     #expect(
       schema.encodedJSON(for: .circle(radius: 5.0)) == """
@@ -114,7 +114,7 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
   
   @Test
   private func testShapeValueDecoding() throws {
-    let schema = SchemaCoding.SchemaResolver.schema(representing: Shape.self)
+    let schema = SchemaCoding.SchemaCodingSupport.schema(representing: Shape.self)
   
     #expect(
       schema.value(
@@ -162,7 +162,7 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
   
   @Test
   private func testAnimalSchemaEncoding() throws {
-    let schema = SchemaCoding.SchemaResolver.schema(representing: Animal.self)
+    let schema = SchemaCoding.SchemaCodingSupport.schema(representing: Animal.self)
     #expect(
       schema.schemaJSON == """
         {
@@ -228,7 +228,7 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
   
   @Test
   private func testAnimalValueEncoding() throws {
-    let schema = SchemaCoding.SchemaResolver.schema(representing: Animal.self)
+    let schema = SchemaCoding.SchemaCodingSupport.schema(representing: Animal.self)
   
     #expect(
       schema.encodedJSON(for: .dog(name: "Buddy", favoriteToy: "Tennis Ball")) == """
@@ -259,7 +259,7 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
   
   @Test
   private func testAnimalValueDecoding() throws {
-    let schema = SchemaCoding.SchemaResolver.schema(representing: Animal.self)
+    let schema = SchemaCoding.SchemaCodingSupport.schema(representing: Animal.self)
   
     #expect(
       schema.value(
@@ -308,7 +308,7 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
   
   @Test
   private func testPaymentMethodSchemaEncoding() throws {
-    let schema = SchemaCoding.SchemaResolver.schema(representing: PaymentMethod.self)
+    let schema = SchemaCoding.SchemaCodingSupport.schema(representing: PaymentMethod.self)
     #expect(
       schema.schemaJSON == """
         {
@@ -382,7 +382,7 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
   
   @Test
   private func testPaymentMethodValueEncoding() throws {
-    let schema = SchemaCoding.SchemaResolver.schema(representing: PaymentMethod.self)
+    let schema = SchemaCoding.SchemaCodingSupport.schema(representing: PaymentMethod.self)
   
     #expect(
       schema.encodedJSON(
@@ -418,7 +418,7 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
   
   @Test
   private func testPaymentMethodValueDecoding() throws {
-    let schema = SchemaCoding.SchemaResolver.schema(representing: PaymentMethod.self)
+    let schema = SchemaCoding.SchemaCodingSupport.schema(representing: PaymentMethod.self)
   
     #expect(
       schema.value(

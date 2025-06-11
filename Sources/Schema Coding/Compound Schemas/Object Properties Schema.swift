@@ -93,7 +93,7 @@ struct ObjectPropertiesSchema<
       repeat each AdditionalPropertySchema
     >
   ) throws
-    -> SchemaCoding.SchemaDecodingResult<
+    -> SchemaCoding.DecodingResult<
       (
         Value,
         (repeat (each AdditionalPropertySchema).Value)
@@ -165,12 +165,12 @@ struct ObjectPropertiesSchema<
   private typealias PropertyDecoder = @Sendable (
     inout JSON.DecodingStream,
     inout PropertyStates
-  ) throws -> SchemaCoding.SchemaDecodingResult<Void>
+  ) throws -> SchemaCoding.DecodingResult<Void>
 
 }
 
 struct ObjectPropertySchema<Schema: SchemaCoding.Schema> {
-  let key: SchemaCoding.SchemaCodingKey
+  let key: SchemaCoding.CodingKey
   let description: String?
   let schema: Schema
 
@@ -243,6 +243,10 @@ struct ObjectPropertySchema<Schema: SchemaCoding.Schema> {
 // MARK: - Additional Properties
 
 extension SchemaCoding {
+  public typealias AdditionalPropertiesSchema = SchemaCodingSupport.AdditionalPropertiesSchema
+}
+
+extension SchemaCoding.SchemaCodingSupport {
 
   public struct AdditionalPropertiesSchema<
     each PropertySchema: SchemaCoding.Schema
@@ -297,7 +301,7 @@ private struct PropertyDecoderProvider<
   typealias PropertyDecoder = @Sendable (
     inout JSON.DecodingStream,
     inout PropertyStates
-  ) throws -> SchemaCoding.SchemaDecodingResult<Void>
+  ) throws -> SchemaCoding.DecodingResult<Void>
 
   init(properties: Properties) {
     var decoders: [Substring: PropertyDecoder] = [:]

@@ -9,7 +9,7 @@ struct StringSchemaTests {
   @Test
   private func testSchemaEncoding() throws {
     #expect(
-      SchemaCoding.SchemaResolver.schema(representing: String.self).schemaJSON == """
+      SchemaCoding.SchemaCodingSupport.schema(representing: String.self).schemaJSON == """
         {
           "type": "string"
         }
@@ -20,12 +20,14 @@ struct StringSchemaTests {
   @Test
   private func testValueEncoding() throws {
     #expect(
-      SchemaCoding.SchemaResolver.schema(representing: String.self).encodedJSON(for: "foo") == """
+      SchemaCoding.SchemaCodingSupport.schema(representing: String.self).encodedJSON(for: "foo")
+        == """
         "foo"
         """
     )
     #expect(
-      SchemaCoding.SchemaResolver.schema(representing: String.self).encodedJSON(for: "bar") == """
+      SchemaCoding.SchemaCodingSupport.schema(representing: String.self).encodedJSON(for: "bar")
+        == """
         "bar"
         """
     )
@@ -34,11 +36,11 @@ struct StringSchemaTests {
   @Test
   private func testValueDecoding() throws {
     #expect(
-      SchemaCoding.SchemaResolver.schema(representing: String.self).value(fromJSON: "\"foo\"")
+      SchemaCoding.SchemaCodingSupport.schema(representing: String.self).value(fromJSON: "\"foo\"")
         == "foo"
     )
     #expect(
-      SchemaCoding.SchemaResolver.schema(representing: String.self).value(fromJSON: "\"bar\"")
+      SchemaCoding.SchemaCodingSupport.schema(representing: String.self).value(fromJSON: "\"bar\"")
         == "bar"
     )
   }

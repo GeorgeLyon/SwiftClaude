@@ -52,7 +52,7 @@ struct ToolInputEnumTests {
 
   @Test
   private func testEnumSchemaEncoding() throws {
-    let schema = ToolInput.SchemaResolver.schema(representing: TestEnum.self)
+    let schema = ToolInput.SchemaCodingSupport.schema(representing: TestEnum.self)
     #expect(
       schema.schemaJSON == """
         {
@@ -103,7 +103,7 @@ struct ToolInputEnumTests {
 
   @Test
   private func testEnumValueEncoding() throws {
-    let schema = ToolInput.SchemaResolver.schema(representing: TestEnum.self)
+    let schema = ToolInput.SchemaCodingSupport.schema(representing: TestEnum.self)
     #expect(
       schema.encodedJSON(for: .first("a")) == """
         {
@@ -123,7 +123,7 @@ struct ToolInputEnumTests {
 
   @Test
   private func testEnumValueDecoding() throws {
-    let schema = ToolInput.SchemaResolver.schema(representing: TestEnum.self)
+    let schema = ToolInput.SchemaCodingSupport.schema(representing: TestEnum.self)
     #expect(
       schema.value(
         fromJSON: """
@@ -136,7 +136,7 @@ struct ToolInputEnumTests {
 
   @Test
   private func testCaseIterableStringEnumSchemaEncoding() throws {
-    let schema = ToolInput.SchemaResolver.schema(representing: StringEnum.self)
+    let schema = ToolInput.SchemaCodingSupport.schema(representing: StringEnum.self)
     #expect(
       schema.schemaJSON == """
         {
@@ -153,7 +153,7 @@ struct ToolInputEnumTests {
 
   @Test
   private func testCaseIterableStringEnumValueEncoding() throws {
-    let schema = ToolInput.SchemaResolver.schema(representing: StringEnum.self)
+    let schema = ToolInput.SchemaCodingSupport.schema(representing: StringEnum.self)
     #expect(
       schema.encodedJSON(for: .two) == """
         "two"
@@ -163,7 +163,7 @@ struct ToolInputEnumTests {
 
   @Test
   private func testCaseIterableStringEnumValueDecoding() throws {
-    let schema = ToolInput.SchemaResolver.schema(representing: StringEnum.self)
+    let schema = ToolInput.SchemaCodingSupport.schema(representing: StringEnum.self)
     #expect(
       schema.value(
         fromJSON: """
@@ -174,7 +174,7 @@ struct ToolInputEnumTests {
 
   @Test
   private func testCaseIterableIntEnumSchemaEncoding() throws {
-    let schema = ToolInput.SchemaResolver.schema(representing: IntEnum.self)
+    let schema = ToolInput.SchemaCodingSupport.schema(representing: IntEnum.self)
     #expect(
       schema.schemaJSON == """
         {
@@ -191,7 +191,7 @@ struct ToolInputEnumTests {
 
   @Test
   private func testCaseIterableIntEnumValueEncoding() throws {
-    let schema = ToolInput.SchemaResolver.schema(representing: IntEnum.self)
+    let schema = ToolInput.SchemaCodingSupport.schema(representing: IntEnum.self)
     #expect(
       schema.encodedJSON(for: .one) == """
         1
@@ -201,7 +201,7 @@ struct ToolInputEnumTests {
 
   @Test
   private func testCaseIterableIntEnumValueDecoding() throws {
-    let schema = ToolInput.SchemaResolver.schema(representing: IntEnum.self)
+    let schema = ToolInput.SchemaCodingSupport.schema(representing: IntEnum.self)
     #expect(
       schema.value(
         fromJSON: """
@@ -212,7 +212,7 @@ struct ToolInputEnumTests {
 
   @Test
   private func testSingleCaseEnumSchemaEncoding() throws {
-    let schema = ToolInput.SchemaResolver.schema(representing: SingleCaseEnum.self)
+    let schema = ToolInput.SchemaCodingSupport.schema(representing: SingleCaseEnum.self)
     #expect(
       schema.schemaJSON == """
         {
@@ -225,7 +225,7 @@ struct ToolInputEnumTests {
 
   @Test
   private func testSingleCaseEnumValueEncoding() throws {
-    let schema = ToolInput.SchemaResolver.schema(representing: SingleCaseEnum.self)
+    let schema = ToolInput.SchemaCodingSupport.schema(representing: SingleCaseEnum.self)
     #expect(
       schema.encodedJSON(for: .only("test")) == """
         "test"
@@ -235,7 +235,7 @@ struct ToolInputEnumTests {
 
   @Test
   private func testSingleCaseEnumValueDecoding() throws {
-    let schema = ToolInput.SchemaResolver.schema(representing: SingleCaseEnum.self)
+    let schema = ToolInput.SchemaCodingSupport.schema(representing: SingleCaseEnum.self)
     #expect(
       schema.value(
         fromJSON: """
@@ -246,7 +246,7 @@ struct ToolInputEnumTests {
 
   @Test
   private func testSimpleEnumSchemaEncoding() throws {
-    let schema = ToolInput.SchemaResolver.schema(representing: SimpleEnum.self)
+    let schema = ToolInput.SchemaCodingSupport.schema(representing: SimpleEnum.self)
     #expect(
       schema.schemaJSON == """
         {
@@ -263,7 +263,7 @@ struct ToolInputEnumTests {
 
   @Test
   private func testSimpleEnumValueEncoding() throws {
-    let schema = ToolInput.SchemaResolver.schema(representing: SimpleEnum.self)
+    let schema = ToolInput.SchemaCodingSupport.schema(representing: SimpleEnum.self)
     #expect(
       schema.encodedJSON(for: .two) == """
         "two"
@@ -273,7 +273,7 @@ struct ToolInputEnumTests {
 
   @Test
   private func testSimpleEnumValueDecoding() throws {
-    let schema = ToolInput.SchemaResolver.schema(representing: SimpleEnum.self)
+    let schema = ToolInput.SchemaCodingSupport.schema(representing: SimpleEnum.self)
     #expect(
       schema.value(
         fromJSON: """

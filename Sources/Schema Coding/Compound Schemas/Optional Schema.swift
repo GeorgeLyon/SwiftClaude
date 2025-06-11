@@ -1,6 +1,6 @@
 import JSONSupport
 
-extension SchemaCoding.SchemaResolver {
+extension SchemaCoding.SchemaCodingSupport {
 
   public static func schema<Wrapped: SchemaCodable>(
     representing: Wrapped?.Type = Wrapped?.self
@@ -12,10 +12,10 @@ extension SchemaCoding.SchemaResolver {
 
 }
 
-extension Optional: SchemaCodable where Wrapped: SchemaCodable {
+extension Optional: SchemaCoding.SchemaCodable where Wrapped: SchemaCoding.SchemaCodable {
 
   public static var schema: some SchemaCoding.Schema<Self> {
-    SchemaCoding.SchemaResolver.schema(representing: Self.self)
+    SchemaCoding.SchemaCodingSupport.schema(representing: Self.self)
   }
 
 }
@@ -120,7 +120,7 @@ private struct OptionalSchema<WrappedSchema: SchemaCoding.Schema>: OptionalSchem
   func decodeValue(
     from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ValueDecodingState
-  ) throws -> SchemaCoding.SchemaDecodingResult<WrappedSchema.Value?> {
+  ) throws -> SchemaCoding.DecodingResult<WrappedSchema.Value?> {
     while true {
       switch state {
       case .decodingNonNullableWrapperPrologue(var objectState):

@@ -40,7 +40,7 @@ struct InternallyTaggedEnumMacroTests {
               values: (
                 (
                   key: "radius" as SchemaCoding.SchemaCodingKey,
-                  schema: SchemaCoding.SchemaResolver.schema(representing: Double.self)
+                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: Double.self)
                 )
               )
             )
@@ -48,10 +48,10 @@ struct InternallyTaggedEnumMacroTests {
               values: (
                 (
                   key: "width" as SchemaCoding.SchemaCodingKey,
-                  schema: SchemaCoding.SchemaResolver.schema(representing: Double.self)
+                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: Double.self)
                 ), (
                   key: "height" as SchemaCoding.SchemaCodingKey,
-                  schema: SchemaCoding.SchemaResolver.schema(representing: Double.self)
+                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: Double.self)
                 )
               )
             )
@@ -59,7 +59,7 @@ struct InternallyTaggedEnumMacroTests {
               values: (
                 (
                   key: "side" as SchemaCoding.SchemaCodingKey,
-                  schema: SchemaCoding.SchemaResolver.schema(representing: Double.self)
+                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: Double.self)
                 )
               )
             )
@@ -164,10 +164,10 @@ struct InternallyTaggedEnumMacroTests {
               values: (
                 (
                   key: "name" as SchemaCoding.SchemaCodingKey,
-                  schema: SchemaCoding.SchemaResolver.schema(representing: String.self)
+                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: String.self)
                 ), (
                   key: "favoriteToy" as SchemaCoding.SchemaCodingKey,
-                  schema: SchemaCoding.SchemaResolver.schema(representing: String.self)
+                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: String.self)
                 )
               )
             )
@@ -175,10 +175,10 @@ struct InternallyTaggedEnumMacroTests {
               values: (
                 (
                   key: "name" as SchemaCoding.SchemaCodingKey,
-                  schema: SchemaCoding.SchemaResolver.schema(representing: String.self)
+                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: String.self)
                 ), (
                   key: "lives" as SchemaCoding.SchemaCodingKey,
-                  schema: SchemaCoding.SchemaResolver.schema(representing: Int.self)
+                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: Int.self)
                 )
               )
             )
@@ -186,7 +186,7 @@ struct InternallyTaggedEnumMacroTests {
               values: (
                 (
                   key: "canFly" as SchemaCoding.SchemaCodingKey,
-                  schema: SchemaCoding.SchemaResolver.schema(representing: Bool.self)
+                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: Bool.self)
                 )
               )
             )
@@ -298,7 +298,7 @@ struct InternallyTaggedEnumMacroTests {
               values: (
                 (
                   key: nil,
-                  schema: SchemaCoding.SchemaResolver.schema(representing: String.self)
+                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: String.self)
                 )
               )
             )
@@ -306,10 +306,10 @@ struct InternallyTaggedEnumMacroTests {
               values: (
                 (
                   key: nil,
-                  schema: SchemaCoding.SchemaResolver.schema(representing: String.self)
+                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: String.self)
                 ), (
                   key: nil,
-                  schema: SchemaCoding.SchemaResolver.schema(representing: Data.self)
+                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: Data.self)
                 )
               )
             )
@@ -317,10 +317,10 @@ struct InternallyTaggedEnumMacroTests {
               values: (
                 (
                   key: nil,
-                  schema: SchemaCoding.SchemaResolver.schema(representing: String.self)
+                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: String.self)
                 ), (
                   key: nil,
-                  schema: SchemaCoding.SchemaResolver.schema(representing: Bool.self)
+                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: Bool.self)
                 )
               )
             )

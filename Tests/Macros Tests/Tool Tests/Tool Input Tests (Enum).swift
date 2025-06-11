@@ -42,59 +42,59 @@ struct ToolInputEnumTests {
 
         extension ToolInputEnum: ToolInput.SchemaCodable {
           static var schema: some ToolInput.Schema<Self> {
-            let associatedValuesSchema_0_0 = ToolInput.SchemaResolver.enumCaseAssociatedValuesSchema(
+            let associatedValuesSchema_0_0 = ToolInput.SchemaCodingSupport.enumCaseAssociatedValuesSchema(
               values: (
 
               )
             )
-            let associatedValuesSchema_1_0 = ToolInput.SchemaResolver.enumCaseAssociatedValuesSchema(
+            let associatedValuesSchema_1_0 = ToolInput.SchemaCodingSupport.enumCaseAssociatedValuesSchema(
               values: (
                 (
                   key: nil,
-                  schema: ToolInput.SchemaResolver.schema(representing: Int.self)
+                  schema: ToolInput.SchemaCodingSupport.schema(representing: Int.self)
                 )
               )
             )
-            let associatedValuesSchema_2_0 = ToolInput.SchemaResolver.enumCaseAssociatedValuesSchema(
+            let associatedValuesSchema_2_0 = ToolInput.SchemaCodingSupport.enumCaseAssociatedValuesSchema(
               values: (
                 (
                   key: nil,
-                  schema: ToolInput.SchemaResolver.schema(representing: Int.self)
+                  schema: ToolInput.SchemaCodingSupport.schema(representing: Int.self)
                 ), (
                   key: nil,
-                  schema: ToolInput.SchemaResolver.schema(representing: String.self)
+                  schema: ToolInput.SchemaCodingSupport.schema(representing: String.self)
                 )
               )
             )
-            let associatedValuesSchema_3_0 = ToolInput.SchemaResolver.enumCaseAssociatedValuesSchema(
+            let associatedValuesSchema_3_0 = ToolInput.SchemaCodingSupport.enumCaseAssociatedValuesSchema(
               values: (
                 (
                   key: "a" as ToolInput.SchemaCodingKey,
-                  schema: ToolInput.SchemaResolver.schema(representing: Int.self)
+                  schema: ToolInput.SchemaCodingSupport.schema(representing: Int.self)
                 ), (
                   key: "b" as ToolInput.SchemaCodingKey,
-                  schema: ToolInput.SchemaResolver.schema(representing: String.self)
+                  schema: ToolInput.SchemaCodingSupport.schema(representing: String.self)
                 ), (
                   key: "c" as ToolInput.SchemaCodingKey,
-                  schema: ToolInput.SchemaResolver.schema(representing: Bool.self)
+                  schema: ToolInput.SchemaCodingSupport.schema(representing: Bool.self)
                 )
               )
             )
-            let associatedValuesSchema_4_0 = ToolInput.SchemaResolver.enumCaseAssociatedValuesSchema(
+            let associatedValuesSchema_4_0 = ToolInput.SchemaCodingSupport.enumCaseAssociatedValuesSchema(
               values: (
                 (
                   key: nil,
-                  schema: ToolInput.SchemaResolver.schema(representing: Int.self)
+                  schema: ToolInput.SchemaCodingSupport.schema(representing: Int.self)
                 ), (
                   key: "b" as ToolInput.SchemaCodingKey,
-                  schema: ToolInput.SchemaResolver.schema(representing: String.self)
+                  schema: ToolInput.SchemaCodingSupport.schema(representing: String.self)
                 ), (
                   key: "c" as ToolInput.SchemaCodingKey,
-                  schema: ToolInput.SchemaResolver.schema(representing: Bool.self)
+                  schema: ToolInput.SchemaCodingSupport.schema(representing: Bool.self)
                 )
               )
             )
-            return ToolInput.SchemaResolver.enumSchema(
+            return ToolInput.SchemaCodingSupport.enumSchema(
               representing: Self.self,
               description: nil,
               cases: (

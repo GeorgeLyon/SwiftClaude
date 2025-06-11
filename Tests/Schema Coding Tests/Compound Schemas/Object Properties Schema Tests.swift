@@ -12,17 +12,17 @@ struct ObjectPropertiesSchemaTests {
       properties: ObjectPropertySchema(
         key: "name",
         description: "User's name",
-        schema: SchemaCoding.SchemaResolver.schema(representing: String.self)
+        schema: SchemaCoding.SchemaCodingSupport.schema(representing: String.self)
       ),
       ObjectPropertySchema(
         key: "age",
         description: "User's age",
-        schema: SchemaCoding.SchemaResolver.schema(representing: Int.self)
+        schema: SchemaCoding.SchemaCodingSupport.schema(representing: Int.self)
       ),
       ObjectPropertySchema(
         key: "isActive",
         description: "Whether the user is active",
-        schema: SchemaCoding.SchemaResolver.schema(representing: Bool?.self)
+        schema: SchemaCoding.SchemaCodingSupport.schema(representing: Bool?.self)
       )
     )
 

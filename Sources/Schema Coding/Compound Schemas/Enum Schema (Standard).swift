@@ -4,7 +4,7 @@ import JSONSupport
 
 /// This extension defines a family of `enumSchema` methods.
 /// These are intended to be added to enums via a macro and so are structured to be very regular.
-extension SchemaCoding.SchemaResolver {
+extension SchemaCoding.SchemaCodingSupport {
 
   @_disfavoredOverload
   public static func enumSchema<
@@ -15,7 +15,7 @@ extension SchemaCoding.SchemaResolver {
     description: String?,
     cases: (
       repeat (
-        key: SchemaCoding.SchemaCodingKey,
+        key: CodingKey,
         description: String?,
         schema: each AssociatedValuesSchema,
         initializer: @Sendable ((each AssociatedValuesSchema).Value) -> Value
@@ -67,7 +67,7 @@ extension SchemaCoding {
 
 // MARK: - Associated Values
 
-extension SchemaCoding.SchemaResolver {
+extension SchemaCoding.SchemaCodingSupport {
 
   public static func enumCaseAssociatedValuesSchema(
     values: ()
@@ -79,7 +79,7 @@ extension SchemaCoding.SchemaResolver {
     ValueSchema: SchemaCoding.Schema
   >(
     values: (
-      key: SchemaCoding.SchemaCodingKey?,
+      key: SchemaCoding.CodingKey?,
       schema: ValueSchema
     )
   ) -> some SchemaCoding.Schema<ValueSchema.Value> {
@@ -90,7 +90,7 @@ extension SchemaCoding.SchemaResolver {
     ValueSchema: SchemaCoding.ExtendableSchema
   >(
     values: (
-      key: SchemaCoding.SchemaCodingKey?,
+      key: SchemaCoding.CodingKey?,
       schema: ValueSchema
     )
   ) -> some SchemaCoding.ExtendableSchema<ValueSchema.Value> {
@@ -101,7 +101,7 @@ extension SchemaCoding.SchemaResolver {
   //   ValueSchema: SchemaCoding.Schema
   // >(
   //   values: (
-  //     key: SchemaCoding.SchemaCodingKey,
+  //     key: SchemaCoding.CodingKey,
   //     schema: ValueSchema
   //   )
   // ) -> some SchemaCoding.ExtendableSchema<ValueSchema.Value> {
@@ -114,7 +114,7 @@ extension SchemaCoding.SchemaResolver {
   >(
     values: (
       repeat (
-        key: SchemaCoding.SchemaCodingKey,
+        key: SchemaCoding.CodingKey,
         schema: each ValueSchema
       )
     )
@@ -136,7 +136,7 @@ extension SchemaCoding.SchemaResolver {
   >(
     values: (
       repeat (
-        key: SchemaCoding.SchemaCodingKey?,
+        key: SchemaCoding.CodingKey?,
         schema: each ValueSchema
       )
     )
@@ -344,7 +344,7 @@ extension StandardEnumSchema {
   typealias EnumCaseDecoder = @Sendable (
     inout SchemaCoding.SchemaValueDecoder,
     inout AssociatedValueDecodingStates
-  ) throws -> SchemaCoding.SchemaDecodingResult<Value>
+  ) throws -> SchemaCoding.DecodingResult<Value>
 
   struct EnumCaseDecoderProvider {
     init(cases: repeat StandardEnumSchemaCase<Value, each AssociatedValuesSchema>) {
@@ -418,7 +418,7 @@ extension StandardEnumSchema {
   func decodeValue(
     from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ValueDecodingState
-  ) throws -> SchemaCoding.SchemaDecodingResult<Value> {
+  ) throws -> SchemaCoding.DecodingResult<Value> {
     switch style {
     case .singleCase:
       return try decoderProvider.singleCaseDecoder(&decoder, &state.associatedValueStates)
@@ -489,7 +489,7 @@ private struct StandardEnumSchemaCase<
   Value,
   AssociatedValuesSchema: SchemaCoding.Schema
 > {
-  let key: SchemaCoding.SchemaCodingKey
+  let key: SchemaCoding.CodingKey
   let description: String?
   let schema: AssociatedValuesSchema
   let initializer: @Sendable (AssociatedValuesSchema.Value) -> Value

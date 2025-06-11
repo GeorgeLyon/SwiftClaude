@@ -1,6 +1,6 @@
 import JSONSupport
 
-extension SchemaCoding.SchemaResolver {
+extension SchemaCoding.SchemaCodingSupport {
 
   public static func nullSchema() -> some SchemaCoding.Schema<Void> {
     NullSchema()
@@ -19,7 +19,7 @@ struct NullSchema: LeafSchema {
   func decodeValue(
     from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ValueDecodingState
-  ) throws -> SchemaCoding.SchemaDecodingResult<Value> {
+  ) throws -> SchemaCoding.DecodingResult<Value> {
     try decoder.stream.decodeNull().schemaDecodingResult
   }
 

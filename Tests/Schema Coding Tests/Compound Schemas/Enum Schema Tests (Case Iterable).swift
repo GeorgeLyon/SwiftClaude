@@ -30,7 +30,7 @@ struct EnumSchemaCaseIterableTests {
 
   @Test
   private func testCaseIterableStringEnumSchemaEncoding() throws {
-    let schema = SchemaCoding.SchemaResolver.schema(representing: StringEnum.self)
+    let schema = SchemaCoding.SchemaCodingSupport.schema(representing: StringEnum.self)
     #expect(
       schema.schemaJSON == """
         {
@@ -47,7 +47,7 @@ struct EnumSchemaCaseIterableTests {
 
   @Test
   private func testCaseIterableStringEnumValueEncoding() throws {
-    let schema = SchemaCoding.SchemaResolver.schema(representing: StringEnum.self)
+    let schema = SchemaCoding.SchemaCodingSupport.schema(representing: StringEnum.self)
     #expect(
       schema.encodedJSON(for: .two) == """
         "two"
@@ -57,7 +57,7 @@ struct EnumSchemaCaseIterableTests {
 
   @Test
   private func testCaseIterableStringEnumValueDecoding() throws {
-    let schema = SchemaCoding.SchemaResolver.schema(representing: StringEnum.self)
+    let schema = SchemaCoding.SchemaCodingSupport.schema(representing: StringEnum.self)
     #expect(
       schema.value(
         fromJSON: """
@@ -68,7 +68,7 @@ struct EnumSchemaCaseIterableTests {
 
   @Test
   private func testCaseIterableIntEnumSchemaEncoding() throws {
-    let schema = SchemaCoding.SchemaResolver.schema(representing: IntEnum.self)
+    let schema = SchemaCoding.SchemaCodingSupport.schema(representing: IntEnum.self)
     #expect(
       schema.schemaJSON == """
         {
@@ -85,7 +85,7 @@ struct EnumSchemaCaseIterableTests {
 
   @Test
   private func testCaseIterableIntEnumValueEncoding() throws {
-    let schema = SchemaCoding.SchemaResolver.schema(representing: IntEnum.self)
+    let schema = SchemaCoding.SchemaCodingSupport.schema(representing: IntEnum.self)
     #expect(
       schema.encodedJSON(for: .one) == """
         1
@@ -95,7 +95,7 @@ struct EnumSchemaCaseIterableTests {
 
   @Test
   private func testCaseIterableIntEnumValueDecoding() throws {
-    let schema = SchemaCoding.SchemaResolver.schema(representing: IntEnum.self)
+    let schema = SchemaCoding.SchemaCodingSupport.schema(representing: IntEnum.self)
     #expect(
       schema.value(
         fromJSON: """

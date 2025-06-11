@@ -1,6 +1,6 @@
 import JSONSupport
 
-extension SchemaCoding.SchemaResolver {
+extension SchemaCoding.SchemaCodingSupport {
 
   public static func schema<
     T: SchemaCodable & BinaryFloatingPoint & LosslessStringConvertible & Codable
@@ -13,17 +13,17 @@ extension SchemaCoding.SchemaResolver {
 
 }
 
-extension Float: SchemaCodable {}
-extension Float16: SchemaCodable {}
-extension Double: SchemaCodable {}
+extension Float: SchemaCoding.SchemaCodable {}
+extension Float16: SchemaCoding.SchemaCodable {}
+extension Double: SchemaCoding.SchemaCodable {}
 
 // MARK: - Implementation Details
 
-extension SchemaCodable
+extension SchemaCoding.SchemaCodable
 where Self: BinaryFloatingPoint & LosslessStringConvertible & Codable & Sendable {
 
   public static var schema: some SchemaCoding.Schema<Self> {
-    SchemaCoding.SchemaResolver.schema(representing: Self.self)
+    SchemaCoding.SchemaCodingSupport.schema(representing: Self.self)
   }
 
 }
@@ -37,7 +37,7 @@ private struct NumberSchema<
   func decodeValue(
     from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ()
-  ) throws -> SchemaCoding.SchemaDecodingResult<Value> {
+  ) throws -> SchemaCoding.DecodingResult<Value> {
     try decoder.stream.decodeNumber().map { try $0.decode() }.schemaDecodingResult
   }
 

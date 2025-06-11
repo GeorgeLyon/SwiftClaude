@@ -1,39 +1,49 @@
 import JSONSupport
 
-public typealias SchemaCodable = SchemaCoding.SchemaCodable
-
 /// Most public types are nested in `SchemaCoding` since most don't need to be referenced directly.
 public enum SchemaCoding {
 
-  public protocol SchemaCodable {
+  public typealias Schema = SchemaCodingSupport.Schema
+  public typealias SchemaCodable = SchemaCodingSupport.SchemaCodable
+  public typealias SchemaEncoder = SchemaCodingSupport.SchemaEncoder
+  public typealias SchemaValueEncoder = SchemaCodingSupport.SchemaValueEncoder
+  public typealias SchemaValueDecoder = SchemaCodingSupport.SchemaValueDecoder
+  public typealias DecodingResult = SchemaCodingSupport.DecodingResult
+  public typealias CodingKey = SchemaCodingSupport.CodingKey
+  public typealias CodingKeyConversionStrategy = SchemaCodingSupport.CodingKeyConversionStrategy
 
-    associatedtype Schema: SchemaCoding.Schema<Self>
-
-    static var schema: Schema { get }
-
-  }
-
-  /// A Schema describing the shape of a tool input
-  public protocol Schema<Value>: Sendable {
-
-    associatedtype Value
-
-    func encodeSchemaDefinition(to encoder: inout SchemaCodingSupport.SchemaEncoder)
-
-    associatedtype ValueDecodingState = ()
-
-    var initialValueDecodingState: ValueDecodingState { get }
-
-    func decodeValue(
-      from stream: inout SchemaCodingSupport.SchemaValueDecoder,
-      state: inout ValueDecodingState
-    ) throws -> SchemaCodingSupport.DecodingResult<Value>
-
-    func encode(_ value: Value, to encoder: inout SchemaCodingSupport.SchemaValueEncoder)
-
-  }
-
+  /// We group all of our types into a single namespace that can be aliased to simplify the implementation of derivative macros like `ToolInput` and `APICodable`.
+  /// Some types are also re-exported at the top level for convenience.
+  /// Code in this target can use the alias, but we use the full path in the macros.
   public enum SchemaCodingSupport {
+
+    public protocol SchemaCodable {
+
+      associatedtype Schema: SchemaCoding.Schema<Self>
+
+      static var schema: Schema { get }
+
+    }
+
+    /// A Schema describing the shape of a tool input
+    public protocol Schema<Value>: Sendable {
+
+      associatedtype Value
+
+      func encodeSchemaDefinition(to encoder: inout SchemaCodingSupport.SchemaEncoder)
+
+      associatedtype ValueDecodingState = ()
+
+      var initialValueDecodingState: ValueDecodingState { get }
+
+      func decodeValue(
+        from stream: inout SchemaCodingSupport.SchemaValueDecoder,
+        state: inout ValueDecodingState
+      ) throws -> DecodingResult<Value>
+
+      func encode(_ value: Value, to encoder: inout SchemaCodingSupport.SchemaValueEncoder)
+
+    }
 
     public static func schema<Value: SchemaCodable>(
       representing: Value.Type
@@ -138,7 +148,7 @@ extension SchemaCoding.Schema where ValueDecodingState == Void {
 
 @attached(
   extension,
-  conformances: SchemaCodable,
+  conformances: SchemaCoding.SchemaCodingSupport.SchemaCodable,
   names: named(schema), named(init)
 )
 public macro SchemaCodable(
@@ -152,7 +162,7 @@ public macro SchemaCodable(
 
 @attached(
   extension,
-  conformances: SchemaCodable,
+  conformances: SchemaCoding.SchemaCodingSupport.SchemaCodable,
   names: named(schema), named(init)
 )
 public macro SchemaCodable(
@@ -246,7 +256,7 @@ extension JSON.DecodingStream {
   mutating func decodeValue<Schema: SchemaCoding.Schema>(
     using schema: Schema,
     state: inout Schema.ValueDecodingState
-  ) throws -> SchemaCoding.SchemaCodingSupport.DecodingResult<Schema.Value> {
+  ) throws -> SchemaCoding.DecodingResult<Schema.Value> {
     var decoder = SchemaCoding.SchemaCodingSupport.SchemaValueDecoder(stream: self)
     do {
       let result = try schema.decodeValue(from: &decoder, state: &state)
@@ -261,7 +271,7 @@ extension JSON.DecodingStream {
 }
 
 extension JSON.DecodingResult {
-  var schemaDecodingResult: SchemaCoding.SchemaCodingSupport.DecodingResult<Value> {
+  var schemaDecodingResult: SchemaCoding.DecodingResult<Value> {
     switch self {
     case .needsMoreData:
       return .needsMoreData

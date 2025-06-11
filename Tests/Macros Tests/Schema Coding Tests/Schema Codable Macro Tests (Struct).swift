@@ -52,7 +52,7 @@ private struct SchemaCodableStructTests {
                   description: nil,
                   keyPath: \Self.anInteger,
                   key: "anInteger" as SchemaCoding.SchemaCodingKey,
-                  schema: SchemaCoding.SchemaResolver.schema(representing: Int.self)
+                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: Int.self)
                 ),
                 (
                   description: ####"""
@@ -60,7 +60,7 @@ private struct SchemaCodableStructTests {
                   """####,
                   keyPath: \Self.aCoordinate,
                   key: "aCoordinate" as SchemaCoding.SchemaCodingKey,
-                  schema: SchemaCoding.SchemaResolver.schema(representing: (Int, Int).self)
+                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: (Int, Int).self)
                 ),
                 (
                   description: ####"""
@@ -68,7 +68,7 @@ private struct SchemaCodableStructTests {
                   """####,
                   keyPath: \Self.c,
                   key: "c" as SchemaCoding.SchemaCodingKey,
-                  schema: SchemaCoding.SchemaResolver.schema(representing: String.self)
+                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: String.self)
                 ),
                 (
                   description: ####"""
@@ -76,7 +76,7 @@ private struct SchemaCodableStructTests {
                   """####,
                   keyPath: \Self.b,
                   key: "b" as SchemaCoding.SchemaCodingKey,
-                  schema: SchemaCoding.SchemaResolver.schema(representing: Bool.self)
+                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: Bool.self)
                 ),
                 (
                   description: ####"""
@@ -84,7 +84,7 @@ private struct SchemaCodableStructTests {
                   """####,
                   keyPath: \Self.a,
                   key: "a" as SchemaCoding.SchemaCodingKey,
-                  schema: SchemaCoding.SchemaResolver.schema(representing: Bool.self)
+                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: Bool.self)
                 )
               ),
               initializer: Self.init(structSchemaDecoder:)

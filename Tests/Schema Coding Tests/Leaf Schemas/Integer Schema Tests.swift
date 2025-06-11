@@ -9,7 +9,7 @@ struct IntegerSchemaTests {
   @Test
   private func testSchemaEncoding() throws {
     #expect(
-      SchemaCoding.SchemaResolver.schema(representing: Int.self).schemaJSON == """
+      SchemaCoding.SchemaCodingSupport.schema(representing: Int.self).schemaJSON == """
         {
           "type": "integer"
         }
@@ -20,12 +20,12 @@ struct IntegerSchemaTests {
   @Test
   private func testValueEncoding() throws {
     #expect(
-      SchemaCoding.SchemaResolver.schema(representing: Int.self).encodedJSON(for: 42) == """
+      SchemaCoding.SchemaCodingSupport.schema(representing: Int.self).encodedJSON(for: 42) == """
         42
         """
     )
     #expect(
-      SchemaCoding.SchemaResolver.schema(representing: Int.self).encodedJSON(for: -7) == """
+      SchemaCoding.SchemaCodingSupport.schema(representing: Int.self).encodedJSON(for: -7) == """
         -7
         """
     )
@@ -34,10 +34,10 @@ struct IntegerSchemaTests {
   @Test
   private func testValueDecoding() throws {
     #expect(
-      SchemaCoding.SchemaResolver.schema(representing: Int.self).value(fromJSON: "42") == 42
+      SchemaCoding.SchemaCodingSupport.schema(representing: Int.self).value(fromJSON: "42") == 42
     )
     #expect(
-      SchemaCoding.SchemaResolver.schema(representing: Int.self).value(fromJSON: "-7") == -7
+      SchemaCoding.SchemaCodingSupport.schema(representing: Int.self).value(fromJSON: "-7") == -7
     )
   }
 

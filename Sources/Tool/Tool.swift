@@ -65,18 +65,9 @@ public struct ClientDefinedToolDefinition<InputSchema: SchemaCoding.Schema>: Too
 // MARK: - Tool Input
 
 public enum ToolInput {
-
-  /// Alias SchemaCoding Types
-  public typealias SchemaCodable = SchemaCoding.SchemaCodable
   public typealias Schema = SchemaCoding.Schema
-  public typealias SchemaResolver = SchemaCoding.SchemaResolver
-  public typealias SchemaCodingKey = SchemaCoding.SchemaCodingKey
-  public typealias SchemaEncoder = SchemaCoding.SchemaEncoder
-  public typealias StructSchemaDecoder = SchemaCoding.StructSchemaDecoder
-  public typealias EnumCaseEncoder = SchemaCoding.EnumCaseEncoder
-  public typealias InternallyTaggedEnumCaseEncoder = SchemaCoding.InternallyTaggedEnumCaseEncoder
-  public typealias ExtendableSchema = SchemaCoding.ExtendableSchema
-
+  public typealias SchemaCodable = SchemaCoding.SchemaCodable
+  public typealias SchemaCodingSupport = SchemaCoding.SchemaCodingSupport
 }
 
 // MARK: - Macros
@@ -94,7 +85,7 @@ public macro Tool() =
 
 @attached(
   extension,
-  conformances: SchemaCodable,
+  conformances: ToolInput.SchemaCodable,
   names: named(schema), named(init)
 )
 public macro ToolInput() =

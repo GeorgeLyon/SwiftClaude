@@ -2,7 +2,7 @@ import JSONSupport
 
 // MARK: - API
 
-extension SchemaCoding.SchemaResolver {
+extension SchemaCoding.SchemaCodingSupport {
 
   public static func typeUnionSchema<
     Value,
@@ -47,7 +47,7 @@ extension SchemaCoding.SchemaResolver {
 
 // MARK: - Case
 
-extension SchemaCoding.SchemaResolver {
+extension SchemaCoding.SchemaCodingSupport {
 
   public static func typeUnionSchemaCase<Value, Schema: SchemaCoding.Schema>(
     schema: Schema,
@@ -97,7 +97,7 @@ private struct UnhandledCaseSchema: SchemaCoding.Schema {
   func decodeValue(
     from stream: inout SchemaCoding.SchemaValueDecoder,
     state: inout ()
-  ) throws -> SchemaCoding.SchemaDecodingResult<Never> {
+  ) throws -> SchemaCoding.DecodingResult<Never> {
     throw Error.unexpectedType
   }
 }
@@ -274,7 +274,7 @@ private struct TypeUnionSchema<
   func decodeValue(
     from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ValueDecodingState
-  ) throws -> SchemaCoding.SchemaDecodingResult<Value> {
+  ) throws -> SchemaCoding.DecodingResult<Value> {
     let kind: JSON.ValueKind
 
     if let decodedKind = state.kind {
@@ -321,11 +321,11 @@ private struct TypeUnionSchema<
 
 // MARK: - Implementation Details
 
-extension SchemaCoding.SchemaDecodingResult {
+extension SchemaCoding.DecodingResult {
 
   func map<T>(
     _ transform: (Value) -> T
-  ) -> SchemaCoding.SchemaDecodingResult<T> {
+  ) -> SchemaCoding.DecodingResult<T> {
     switch self {
     case .needsMoreData:
       return .needsMoreData

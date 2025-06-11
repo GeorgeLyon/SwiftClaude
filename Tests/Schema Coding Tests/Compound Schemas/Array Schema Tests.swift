@@ -9,7 +9,7 @@ struct ArraySchemaTests {
   @Test
   private func testSchemaEncoding() throws {
     #expect(
-      SchemaCoding.SchemaResolver.schema(representing: [String].self).schemaJSON == """
+      SchemaCoding.SchemaCodingSupport.schema(representing: [String].self).schemaJSON == """
         {
           "items": {
             "type": "string"
@@ -22,7 +22,7 @@ struct ArraySchemaTests {
   @Test
   private func testValueEncoding() throws {
     #expect(
-      SchemaCoding.SchemaResolver.schema(representing: [String].self).encodedJSON(for: [
+      SchemaCoding.SchemaCodingSupport.schema(representing: [String].self).encodedJSON(for: [
         "foo", "bar", "baz",
       ])
         == """
@@ -35,7 +35,7 @@ struct ArraySchemaTests {
     )
 
     #expect(
-      SchemaCoding.SchemaResolver.schema(representing: [Int].self).encodedJSON(for: [1, 2, 3])
+      SchemaCoding.SchemaCodingSupport.schema(representing: [Int].self).encodedJSON(for: [1, 2, 3])
         == """
         [
           1,
@@ -46,7 +46,8 @@ struct ArraySchemaTests {
     )
 
     #expect(
-      SchemaCoding.SchemaResolver.schema(representing: [Double].self).encodedJSON(for: []) == """
+      SchemaCoding.SchemaCodingSupport.schema(representing: [Double].self).encodedJSON(for: [])
+        == """
         [
 
         ]
@@ -56,7 +57,7 @@ struct ArraySchemaTests {
 
   @Test
   private func testValueDecoding() throws {
-    let stringSchema = SchemaCoding.SchemaResolver.schema(representing: [String].self)
+    let stringSchema = SchemaCoding.SchemaCodingSupport.schema(representing: [String].self)
     #expect(
       stringSchema.value(
         fromJSON: """
@@ -68,7 +69,7 @@ struct ArraySchemaTests {
           """) == ["foo", "bar", "baz"]
     )
 
-    let intSchema = SchemaCoding.SchemaResolver.schema(representing: [Int].self)
+    let intSchema = SchemaCoding.SchemaCodingSupport.schema(representing: [Int].self)
     #expect(
       intSchema.value(
         fromJSON: """
@@ -80,7 +81,7 @@ struct ArraySchemaTests {
           """) == [1, 2, 3]
     )
 
-    let doubleSchema = SchemaCoding.SchemaResolver.schema(representing: [Double].self)
+    let doubleSchema = SchemaCoding.SchemaCodingSupport.schema(representing: [Double].self)
     #expect(
       doubleSchema.value(
         fromJSON: """

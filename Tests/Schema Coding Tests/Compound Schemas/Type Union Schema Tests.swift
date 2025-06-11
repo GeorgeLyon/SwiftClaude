@@ -14,11 +14,11 @@ private enum TypeUnion: Equatable {
       boolean: SchemaCoding.SchemaResolver.typeUnionSchemaUnhandledCase(),
       number: SchemaCoding.SchemaResolver.typeUnionSchemaUnhandledCase(),
       string: .init(
-        schema: SchemaCoding.SchemaResolver.schema(representing: String.self),
+        schema: SchemaCoding.SchemaCodingSupport.schema(representing: String.self),
         initializer: { .string($0) }
       ),
       array: .init(
-        schema: SchemaCoding.SchemaResolver.schema(representing: [Int].self),
+        schema: SchemaCoding.SchemaCodingSupport.schema(representing: [Int].self),
         initializer: { .array($0) }
       ),
       object: SchemaCoding.SchemaResolver.typeUnionSchemaUnhandledCase(),
@@ -39,8 +39,8 @@ struct TypeUnionSchemaTests {
 
   @Test
   func testTypeUnionSchema() throws {
-    
-    // Note: There's a bug in TypeUnion schema encoding where multiple schemas 
+
+    // Note: There's a bug in TypeUnion schema encoding where multiple schemas
     // are encoded in a single array element, causing missing commas.
     // This test verifies the current behavior.
     #expect(
@@ -63,14 +63,14 @@ struct TypeUnionSchemaTests {
 
   @Test
   func testTypeUnionEncoding() throws {
-    
+
     // Test string case
     #expect(
       TypeUnion.schema.encodedJSON(for: .string("hello")) == """
         "hello"
         """
     )
-    
+
     // Test array case
     #expect(
       TypeUnion.schema.encodedJSON(for: .array([1, 2, 3])) == """
@@ -81,7 +81,7 @@ struct TypeUnionSchemaTests {
         ]
         """
     )
-    
+
     // Test empty array
     #expect(
       TypeUnion.schema.encodedJSON(for: .array([])) == """
@@ -90,38 +90,41 @@ struct TypeUnionSchemaTests {
         ]
         """
     )
-    
+
   }
 
   @Test
   func testTypeUnionDecoding() throws {
-    
+
     // Test string case
     #expect(
-      TypeUnion.schema.value(fromJSON: """
-        "hello"
-        """) == .string("hello")
+      TypeUnion.schema.value(
+        fromJSON: """
+          "hello"
+          """) == .string("hello")
     )
-    
+
     // Test array case
     #expect(
-      TypeUnion.schema.value(fromJSON: """
-        [1, 2, 3]
-        """) == .array([1, 2, 3])
+      TypeUnion.schema.value(
+        fromJSON: """
+          [1, 2, 3]
+          """) == .array([1, 2, 3])
     )
-    
+
     // Test empty array
     #expect(
-      TypeUnion.schema.value(fromJSON: """
-        []
-        """) == .array([])
+      TypeUnion.schema.value(
+        fromJSON: """
+          []
+          """) == .array([])
     )
-    
+
   }
 
   @Test
   func testTypeUnionRoundTrip() throws {
-    
+
     let values: [TypeUnion] = [
       .string("test"),
       .string(""),
@@ -129,15 +132,15 @@ struct TypeUnionSchemaTests {
       .array([]),
       .array([1]),
       .array([1, 2, 3, 4, 5]),
-      .array([42, -17, 0])
+      .array([42, -17, 0]),
     ]
-    
+
     for value in values {
       let json = TypeUnion.schema.encodedJSON(for: value)
       let decoded = TypeUnion.schema.value(fromJSON: json)
       #expect(decoded == value)
     }
-    
+
   }
 
 }

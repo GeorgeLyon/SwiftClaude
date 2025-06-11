@@ -1,6 +1,10 @@
 import JSONSupport
 
 extension SchemaCoding {
+  public typealias ExtendableSchema = SchemaCodingSupport.ExtendableSchema
+}
+
+extension SchemaCoding.SchemaCodingSupport {
 
   public protocol ExtendableSchema<Value>: SchemaCoding.Schema {
 
@@ -19,7 +23,7 @@ extension SchemaCoding {
       additionalProperties: AdditionalPropertiesSchema<
         repeat each AdditionalPropertySchema
       >
-    ) throws -> SchemaDecodingResult<(Value, (repeat (each AdditionalPropertySchema).Value))>
+    ) throws -> DecodingResult<(Value, (repeat (each AdditionalPropertySchema).Value))>
 
     func encode<each AdditionalPropertySchema>(
       _ value: Value,
@@ -60,7 +64,7 @@ extension SchemaCoding.ExtendableSchema {
   public func decodeValue(
     from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ValueDecodingState
-  ) throws -> SchemaCoding.SchemaDecodingResult<Value> {
+  ) throws -> SchemaCoding.DecodingResult<Value> {
     let additionalProperties = SchemaCoding.AdditionalPropertiesSchema()
     /// This gets re-created every time, but that is OK since we're not actually decoding any additional properties and thus do not need to maintain state for them.
     var additionalPropertyState =
@@ -127,7 +131,7 @@ private struct ExtendedSchema<
     from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ValueDecodingState
   ) throws
-    -> SchemaCoding.SchemaDecodingResult<Value>
+    -> SchemaCoding.DecodingResult<Value>
   {
     try baseSchema
       .decodeValue(

@@ -1,6 +1,6 @@
 import JSONSupport
 
-extension SchemaCoding.SchemaResolver {
+extension SchemaCoding.SchemaCodingSupport {
 
   public static func schema<Element: SchemaCodable>(
     representing: [Element].Type = [Element].self
@@ -10,10 +10,10 @@ extension SchemaCoding.SchemaResolver {
 
 }
 
-extension Array: SchemaCodable where Element: SchemaCodable {
+extension Array: SchemaCoding.SchemaCodable where Element: SchemaCoding.SchemaCodable {
 
   public static var schema: some SchemaCoding.Schema<Self> {
-    SchemaCoding.SchemaResolver.schema(representing: Self.self)
+    SchemaCoding.SchemaCodingSupport.schema(representing: Self.self)
   }
 
 }
@@ -55,7 +55,7 @@ private struct ArraySchema<ElementSchema: SchemaCoding.Schema>: InternalSchema {
   func decodeValue(
     from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ValueDecodingState
-  ) throws -> SchemaCoding.SchemaDecodingResult<Value> {
+  ) throws -> SchemaCoding.DecodingResult<Value> {
     while true {
       if var elementState = state.elementState {
         switch try elementSchema.decodeValue(from: &decoder, state: &elementState) {

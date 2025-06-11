@@ -36,7 +36,7 @@ struct ToolInputStructMacroTests {
 
         extension ToolInputStruct: ToolInput.SchemaCodable {
           static var schema: some ToolInput.Schema<Self> {
-            ToolInput.SchemaResolver.structSchema(
+            ToolInput.SchemaCodingSupport.structSchema(
               representing: Self.self,
               description: ####"""
               A tool input struct
@@ -46,7 +46,7 @@ struct ToolInputStructMacroTests {
                   description: nil,
                   keyPath: \Self.anInteger,
                   key: "anInteger" as ToolInput.SchemaCodingKey,
-                  schema: ToolInput.SchemaResolver.schema(representing: Int.self)
+                  schema: ToolInput.SchemaCodingSupport.schema(representing: Int.self)
                 ),
                 (
                   description: ####"""
@@ -54,7 +54,7 @@ struct ToolInputStructMacroTests {
                   """####,
                   keyPath: \Self.aCoordinate,
                   key: "aCoordinate" as ToolInput.SchemaCodingKey,
-                  schema: ToolInput.SchemaResolver.schema(representing: (Int, Int).self)
+                  schema: ToolInput.SchemaCodingSupport.schema(representing: (Int, Int).self)
                 ),
                 (
                   description: ####"""
@@ -62,7 +62,7 @@ struct ToolInputStructMacroTests {
                   """####,
                   keyPath: \Self.c,
                   key: "c" as ToolInput.SchemaCodingKey,
-                  schema: ToolInput.SchemaResolver.schema(representing: String.self)
+                  schema: ToolInput.SchemaCodingSupport.schema(representing: String.self)
                 ),
                 (
                   description: ####"""
@@ -70,7 +70,7 @@ struct ToolInputStructMacroTests {
                   """####,
                   keyPath: \Self.b,
                   key: "b" as ToolInput.SchemaCodingKey,
-                  schema: ToolInput.SchemaResolver.schema(representing: Bool.self)
+                  schema: ToolInput.SchemaCodingSupport.schema(representing: Bool.self)
                 ),
                 (
                   description: ####"""
@@ -78,7 +78,7 @@ struct ToolInputStructMacroTests {
                   """####,
                   keyPath: \Self.a,
                   key: "a" as ToolInput.SchemaCodingKey,
-                  schema: ToolInput.SchemaResolver.schema(representing: Bool.self)
+                  schema: ToolInput.SchemaCodingSupport.schema(representing: Bool.self)
                 )
               ),
               initializer: Self.init(structSchemaDecoder:)

@@ -9,7 +9,7 @@ struct TupleSchemaTests {
   @Test
   private func testSchemaEncoding() throws {
     #expect(
-      SchemaCoding.SchemaResolver.schema(representing: (String, Int).self).schemaJSON == """
+      SchemaCoding.SchemaCodingSupport.schema(representing: (String, Int).self).schemaJSON == """
         {
           "prefixItems": [
             {
@@ -26,7 +26,7 @@ struct TupleSchemaTests {
 
   @Test
   private func testValueEncoding() throws {
-    let schema1 = SchemaCoding.SchemaResolver.schema(representing: (String, Int).self)
+    let schema1 = SchemaCoding.SchemaCodingSupport.schema(representing: (String, Int).self)
     let value1 = schema1.encodedJSON(
       for: schema1.value(
         fromJSON: """
@@ -42,7 +42,7 @@ struct TupleSchemaTests {
         """
     )
 
-    let schema2 = SchemaCoding.SchemaResolver.schema(representing: (String, Int, Double).self)
+    let schema2 = SchemaCoding.SchemaCodingSupport.schema(representing: (String, Int, Double).self)
     let value2 = schema2.encodedJSON(
       for: schema2.value(
         fromJSON: """
@@ -62,7 +62,7 @@ struct TupleSchemaTests {
 
   @Test
   private func testValueDecoding() throws {
-    let stringIntSchema = SchemaCoding.SchemaResolver.schema(representing: (String, Int).self)
+    let stringIntSchema = SchemaCoding.SchemaCodingSupport.schema(representing: (String, Int).self)
     let tuple: (String, Int) = stringIntSchema.value(
       fromJSON: """
         ["hello", 42]
@@ -71,7 +71,7 @@ struct TupleSchemaTests {
     #expect(tuple.0 == "hello")
     #expect(tuple.1 == 42)
 
-    let stringIntDoubleSchema = SchemaCoding.SchemaResolver.schema(
+    let stringIntDoubleSchema = SchemaCoding.SchemaCodingSupport.schema(
       representing: (String, Int, Double).self)
     let tuple3: (String, Int, Double) = stringIntDoubleSchema.value(
       fromJSON: """

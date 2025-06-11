@@ -1,6 +1,6 @@
 import JSONSupport
 
-extension SchemaCoding.SchemaResolver {
+extension SchemaCoding.SchemaCodingSupport {
 
   // Needs to be disfavored because otherwise it catches single-element tuples
   @_disfavoredOverload
@@ -80,7 +80,7 @@ struct TupleSchema<each ElementSchema: SchemaCoding.Schema>: InternalSchema {
   func decodeValue(
     from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ValueDecodingState
-  ) throws -> SchemaCoding.SchemaDecodingResult<(repeat (each ElementSchema).Value)> {
+  ) throws -> SchemaCoding.DecodingResult<(repeat (each ElementSchema).Value)> {
     while true {
 
       switch try decoder.stream.decodeArrayComponent(&state.arrayState) {
@@ -137,7 +137,7 @@ struct TupleSchema<each ElementSchema: SchemaCoding.Schema>: InternalSchema {
   fileprivate typealias ElementDecoder = @Sendable (
     inout SchemaCoding.SchemaValueDecoder,
     inout ElementStates
-  ) throws -> SchemaCoding.SchemaDecodingResult<Void>
+  ) throws -> SchemaCoding.DecodingResult<Void>
 
   private struct ValueDecodingStateProvider: Sendable {
     init(elements: (repeat TupleElement<each ElementSchema>)) {

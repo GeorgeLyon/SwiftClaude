@@ -1,6 +1,6 @@
 import JSONSupport
 
-extension SchemaCoding.SchemaResolver {
+extension SchemaCoding.SchemaCodingSupport {
 
   public static func schema<T: SchemaCodable & FixedWidthInteger & Codable & Sendable>(
     representing _: T.Type = T.self
@@ -10,24 +10,24 @@ extension SchemaCoding.SchemaResolver {
 
 }
 
-extension Int: SchemaCodable {}
-extension Int8: SchemaCodable {}
-extension Int16: SchemaCodable {}
-extension Int32: SchemaCodable {}
-extension Int64: SchemaCodable {}
+extension Int: SchemaCoding.SchemaCodable {}
+extension Int8: SchemaCoding.SchemaCodable {}
+extension Int16: SchemaCoding.SchemaCodable {}
+extension Int32: SchemaCoding.SchemaCodable {}
+extension Int64: SchemaCoding.SchemaCodable {}
 
-extension UInt: SchemaCodable {}
-extension UInt8: SchemaCodable {}
-extension UInt16: SchemaCodable {}
-extension UInt32: SchemaCodable {}
-extension UInt64: SchemaCodable {}
+extension UInt: SchemaCoding.SchemaCodable {}
+extension UInt8: SchemaCoding.SchemaCodable {}
+extension UInt16: SchemaCoding.SchemaCodable {}
+extension UInt32: SchemaCoding.SchemaCodable {}
+extension UInt64: SchemaCoding.SchemaCodable {}
 
 // MARK: - Implementation Details
 
-extension SchemaCodable where Self: FixedWidthInteger & Codable & Sendable {
+extension SchemaCoding.SchemaCodable where Self: FixedWidthInteger & Codable & Sendable {
 
   public static var schema: some SchemaCoding.Schema<Self> {
-    SchemaCoding.SchemaResolver.schema(representing: Self.self)
+    SchemaCoding.SchemaCodingSupport.schema(representing: Self.self)
   }
 
 }
@@ -39,7 +39,7 @@ private struct IntegerSchema<Value: FixedWidthInteger & Codable & Sendable>: Lea
   func decodeValue(
     from decoder: inout SchemaCoding.SchemaValueDecoder,
     state: inout ()
-  ) throws -> SchemaCoding.SchemaDecodingResult<Value> {
+  ) throws -> SchemaCoding.DecodingResult<Value> {
     try decoder.stream.decodeNumber().map { try $0.decode() }.schemaDecodingResult
   }
 

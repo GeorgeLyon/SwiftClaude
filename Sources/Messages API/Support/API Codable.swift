@@ -2,7 +2,7 @@ public import SchemaCoding
 
 @attached(
   extension,
-  conformances: SchemaCodable,
+  conformances: APICodable.SchemaCodable,
   names: named(schema), named(init)
 )
 macro APICodable() =
@@ -13,15 +13,8 @@ macro APICodable() =
 
 public enum APICodable {
 
-  /// Alias SchemaCoding Types
-  public typealias SchemaCodable = SchemaCoding.SchemaCodable
   public typealias Schema = SchemaCoding.Schema
-  public typealias ExtendableSchema = SchemaCoding.ExtendableSchema
-  public typealias SchemaResolver = SchemaCoding.SchemaResolver
-  public typealias SchemaCodingKey = SchemaCoding.SchemaCodingKey
-  public typealias SchemaEncoder = SchemaCoding.SchemaEncoder
-  public typealias StructSchemaDecoder = SchemaCoding.StructSchemaDecoder
-  public typealias EnumCaseEncoder = SchemaCoding.EnumCaseEncoder
-  public typealias InternallyTaggedEnumCaseEncoder = SchemaCoding.InternallyTaggedEnumCaseEncoder
+  public typealias SchemaCodable = SchemaCoding.SchemaCodable
+  public typealias SchemaCodingSupport = SchemaCoding.SchemaCodingSupport
 
 }

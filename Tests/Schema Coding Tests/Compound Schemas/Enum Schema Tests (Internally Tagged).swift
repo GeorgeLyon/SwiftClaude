@@ -15,7 +15,7 @@ struct EnumSchemaInternallyTaggedTests {
       let circleCase = SchemaCoding.SchemaResolver.enumCaseAssociatedValuesSchema(
         values: ((
           key: "radius" as SchemaCoding.SchemaCodingKey,
-          schema: SchemaCoding.SchemaResolver.schema(representing: Double.self)
+          schema: SchemaCoding.SchemaCodingSupport.schema(representing: Double.self)
         ),)
       )
   
@@ -23,11 +23,11 @@ struct EnumSchemaInternallyTaggedTests {
         values: (
           (
             key: "width" as SchemaCoding.SchemaCodingKey,
-            schema: SchemaCoding.SchemaResolver.schema(representing: Double.self)
+            schema: SchemaCoding.SchemaCodingSupport.schema(representing: Double.self)
           ),
           (
             key: "height" as SchemaCoding.SchemaCodingKey,
-            schema: SchemaCoding.SchemaResolver.schema(representing: Double.self)
+            schema: SchemaCoding.SchemaCodingSupport.schema(representing: Double.self)
           )
         )
       )
@@ -80,11 +80,11 @@ struct EnumSchemaInternallyTaggedTests {
         values: (
           (
             key: "name" as SchemaCoding.SchemaCodingKey,
-            schema: SchemaCoding.SchemaResolver.schema(representing: String.self)
+            schema: SchemaCoding.SchemaCodingSupport.schema(representing: String.self)
           ),
           (
             key: "breed" as SchemaCoding.SchemaCodingKey,
-            schema: SchemaCoding.SchemaResolver.schema(representing: String.self)
+            schema: SchemaCoding.SchemaCodingSupport.schema(representing: String.self)
           )
         )
       )
@@ -93,11 +93,11 @@ struct EnumSchemaInternallyTaggedTests {
         values: (
           (
             key: "name" as SchemaCoding.SchemaCodingKey,
-            schema: SchemaCoding.SchemaResolver.schema(representing: String.self)
+            schema: SchemaCoding.SchemaCodingSupport.schema(representing: String.self)
           ),
           (
             key: "livesRemaining" as SchemaCoding.SchemaCodingKey,
-            schema: SchemaCoding.SchemaResolver.schema(representing: Int.self)
+            schema: SchemaCoding.SchemaCodingSupport.schema(representing: Int.self)
           )
         )
       )
@@ -106,11 +106,11 @@ struct EnumSchemaInternallyTaggedTests {
         values: (
           (
             key: "species" as SchemaCoding.SchemaCodingKey,
-            schema: SchemaCoding.SchemaResolver.schema(representing: String.self)
+            schema: SchemaCoding.SchemaCodingSupport.schema(representing: String.self)
           ),
           (
             key: "canFly" as SchemaCoding.SchemaCodingKey,
-            schema: SchemaCoding.SchemaResolver.schema(representing: Bool.self)
+            schema: SchemaCoding.SchemaCodingSupport.schema(representing: Bool.self)
           )
         )
       )
@@ -156,7 +156,7 @@ struct EnumSchemaInternallyTaggedTests {
   /*
   @Test
   private func testShapeSchemaEncoding() throws {
-    let schema = SchemaCoding.SchemaResolver.schema(representing: Shape.self)
+    let schema = SchemaCoding.SchemaCodingSupport.schema(representing: Shape.self)
     #expect(
       schema.schemaJSON == """
         {
@@ -205,7 +205,7 @@ struct EnumSchemaInternallyTaggedTests {
 
   @Test
   private func testAnimalSchemaEncoding() throws {
-    let schema = SchemaCoding.SchemaResolver.schema(representing: Animal.self)
+    let schema = SchemaCoding.SchemaCodingSupport.schema(representing: Animal.self)
     #expect(
       schema.schemaJSON == """
         {
@@ -277,7 +277,7 @@ struct EnumSchemaInternallyTaggedTests {
   /*
   @Test
   private func testCircleValueEncoding() throws {
-    let schema = SchemaCoding.SchemaResolver.schema(representing: Shape.self)
+    let schema = SchemaCoding.SchemaCodingSupport.schema(representing: Shape.self)
     #expect(
       schema.encodedJSON(for: .circle(radius: 5.0)) == """
         {
@@ -290,7 +290,7 @@ struct EnumSchemaInternallyTaggedTests {
   
   @Test
   private func testRectangleValueEncoding() throws {
-    let schema = SchemaCoding.SchemaResolver.schema(representing: Shape.self)
+    let schema = SchemaCoding.SchemaCodingSupport.schema(representing: Shape.self)
     #expect(
       schema.encodedJSON(for: .rectangle(width: 10.0, height: 20.0)) == """
         {
@@ -304,7 +304,7 @@ struct EnumSchemaInternallyTaggedTests {
   
   @Test
   private func testCircleValueDecoding() throws {
-    let schema = SchemaCoding.SchemaResolver.schema(representing: Shape.self)
+    let schema = SchemaCoding.SchemaCodingSupport.schema(representing: Shape.self)
     #expect(
       schema.value(
         fromJSON: """
@@ -315,7 +315,7 @@ struct EnumSchemaInternallyTaggedTests {
   
   @Test
   private func testRectangleValueDecoding() throws {
-    let schema = SchemaCoding.SchemaResolver.schema(representing: Shape.self)
+    let schema = SchemaCoding.SchemaCodingSupport.schema(representing: Shape.self)
     #expect(
       schema.value(
         fromJSON: """
@@ -327,7 +327,7 @@ struct EnumSchemaInternallyTaggedTests {
 
   @Test
   private func testDogValueEncoding() throws {
-    let schema = SchemaCoding.SchemaResolver.schema(representing: Animal.self)
+    let schema = SchemaCoding.SchemaCodingSupport.schema(representing: Animal.self)
     #expect(
       schema.encodedJSON(for: .dog(name: "Rover", breed: "Golden Retriever")) == """
         {
@@ -341,7 +341,7 @@ struct EnumSchemaInternallyTaggedTests {
 
   @Test
   private func testCatValueEncoding() throws {
-    let schema = SchemaCoding.SchemaResolver.schema(representing: Animal.self)
+    let schema = SchemaCoding.SchemaCodingSupport.schema(representing: Animal.self)
     #expect(
       schema.encodedJSON(for: .cat(name: "Whiskers", livesRemaining: 8)) == """
         {
@@ -355,7 +355,7 @@ struct EnumSchemaInternallyTaggedTests {
 
   @Test
   private func testDogValueDecoding() throws {
-    let schema = SchemaCoding.SchemaResolver.schema(representing: Animal.self)
+    let schema = SchemaCoding.SchemaCodingSupport.schema(representing: Animal.self)
     #expect(
       schema.value(
         fromJSON: """
@@ -376,7 +376,7 @@ struct EnumSchemaInternallyTaggedTests {
 
   @Test
   private func testPropertiesInDifferentOrder() throws {
-    let schema = SchemaCoding.SchemaResolver.schema(representing: Animal.self)
+    let schema = SchemaCoding.SchemaCodingSupport.schema(representing: Animal.self)
     #expect(
       schema.value(
         fromJSON: """
