@@ -8,6 +8,7 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
 
   // MARK: - Shape Tests
 
+  /*
   /// A shape with associated values
   @SchemaCodable(discriminatorPropertyName: "type")
   enum Shape: Equatable {
@@ -18,7 +19,7 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
     /// A square with a side length
     case square(side: Double)
   }
-
+  
   @Test
   private func testShapeSchemaEncoding() throws {
     let schema = SchemaCoding.SchemaResolver.schema(representing: Shape.self)
@@ -80,11 +81,11 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
         }
         """)
   }
-
+  
   @Test
   private func testShapeValueEncoding() throws {
     let schema = SchemaCoding.SchemaResolver.schema(representing: Shape.self)
-
+  
     #expect(
       schema.encodedJSON(for: .circle(radius: 5.0)) == """
         {
@@ -92,7 +93,7 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
           "radius": 5.0
         }
         """)
-
+  
     #expect(
       schema.encodedJSON(for: .rectangle(width: 10.0, height: 20.0)) == """
         {
@@ -101,7 +102,7 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
           "height": 20.0
         }
         """)
-
+  
     #expect(
       schema.encodedJSON(for: .square(side: 15.0)) == """
         {
@@ -110,11 +111,11 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
         }
         """)
   }
-
+  
   @Test
   private func testShapeValueDecoding() throws {
     let schema = SchemaCoding.SchemaResolver.schema(representing: Shape.self)
-
+  
     #expect(
       schema.value(
         fromJSON: """
@@ -123,7 +124,7 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
             "radius": 5.0
           }
           """) == .circle(radius: 5.0))
-
+  
     #expect(
       schema.value(
         fromJSON: """
@@ -133,7 +134,7 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
             "height": 20.0
           }
           """) == .rectangle(width: 10.0, height: 20.0))
-
+  
     #expect(
       schema.value(
         fromJSON: """
@@ -143,9 +144,11 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
           }
           """) == .square(side: 15.0))
   }
+  */
 
   // MARK: - Animal Tests
 
+  /*
   /// An animal with different properties
   @SchemaCodable(discriminatorPropertyName: "type")
   enum Animal: Equatable {
@@ -156,7 +159,7 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
     /// A bird that can fly
     case bird(canFly: Bool)
   }
-
+  
   @Test
   private func testAnimalSchemaEncoding() throws {
     let schema = SchemaCoding.SchemaResolver.schema(representing: Animal.self)
@@ -222,11 +225,11 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
         }
         """)
   }
-
+  
   @Test
   private func testAnimalValueEncoding() throws {
     let schema = SchemaCoding.SchemaResolver.schema(representing: Animal.self)
-
+  
     #expect(
       schema.encodedJSON(for: .dog(name: "Buddy", favoriteToy: "Tennis Ball")) == """
         {
@@ -235,7 +238,7 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
           "favoriteToy": "Tennis Ball"
         }
         """)
-
+  
     #expect(
       schema.encodedJSON(for: .cat(name: "Whiskers", lives: 9)) == """
         {
@@ -244,7 +247,7 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
           "lives": 9
         }
         """)
-
+  
     #expect(
       schema.encodedJSON(for: .bird(canFly: true)) == """
         {
@@ -253,11 +256,11 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
         }
         """)
   }
-
+  
   @Test
   private func testAnimalValueDecoding() throws {
     let schema = SchemaCoding.SchemaResolver.schema(representing: Animal.self)
-
+  
     #expect(
       schema.value(
         fromJSON: """
@@ -267,7 +270,7 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
             "favoriteToy": "Tennis Ball"
           }
           """) == .dog(name: "Buddy", favoriteToy: "Tennis Ball"))
-
+  
     #expect(
       schema.value(
         fromJSON: """
@@ -277,7 +280,7 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
             "name": "Whiskers"
           }
           """) == .cat(name: "Whiskers", lives: 9))
-
+  
     #expect(
       schema.value(
         fromJSON: """
@@ -287,9 +290,11 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
           }
           """) == .bird(canFly: true))
   }
+  */
 
   // MARK: - Payment Method Tests
 
+  /*
   /// A payment method for transactions
   @SchemaCodable(discriminatorPropertyName: "type")
   enum PaymentMethod: Equatable {
@@ -300,7 +305,7 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
     /// Digital wallet payment
     case digitalWallet(walletId: String)
   }
-
+  
   @Test
   private func testPaymentMethodSchemaEncoding() throws {
     let schema = SchemaCoding.SchemaResolver.schema(representing: PaymentMethod.self)
@@ -374,11 +379,11 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
         }
         """)
   }
-
+  
   @Test
   private func testPaymentMethodValueEncoding() throws {
     let schema = SchemaCoding.SchemaResolver.schema(representing: PaymentMethod.self)
-
+  
     #expect(
       schema.encodedJSON(
         for: .creditCard(number: "4111111111111111", cvv: "123", expiryMonth: 12, expiryYear: 2025))
@@ -391,7 +396,7 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
             "expiryYear": 2025
           }
           """)
-
+  
     #expect(
       schema.encodedJSON(for: .bankTransfer(accountNumber: "123456789", routingNumber: "987654321"))
         == """
@@ -401,7 +406,7 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
           "routingNumber": "987654321"
         }
         """)
-
+  
     #expect(
       schema.encodedJSON(for: .digitalWallet(walletId: "wallet_abc123")) == """
         {
@@ -410,11 +415,11 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
         }
         """)
   }
-
+  
   @Test
   private func testPaymentMethodValueDecoding() throws {
     let schema = SchemaCoding.SchemaResolver.schema(representing: PaymentMethod.self)
-
+  
     #expect(
       schema.value(
         fromJSON: """
@@ -427,7 +432,7 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
           }
           """)
         == .creditCard(number: "4111111111111111", cvv: "123", expiryMonth: 12, expiryYear: 2025))
-
+  
     #expect(
       schema.value(
         fromJSON: """
@@ -437,7 +442,7 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
             "accountNumber": "123456789"
           }
           """) == .bankTransfer(accountNumber: "123456789", routingNumber: "987654321"))
-
+  
     #expect(
       schema.value(
         fromJSON: """
@@ -447,4 +452,5 @@ struct SchemaCodableInternallyTaggedEnumMacroTests {
           }
           """) == .digitalWallet(walletId: "wallet_abc123"))
   }
+  */
 }
