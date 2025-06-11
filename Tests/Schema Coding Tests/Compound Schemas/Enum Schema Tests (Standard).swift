@@ -15,80 +15,80 @@ struct EnumSchemaStandardTests {
     case fifth
 
     static let schema: some SchemaCoding.Schema<Self> = {
-      let associatedValues_first = SchemaCoding.SchemaResolver.enumCaseAssociatedValuesSchema(
+      let associatedValues_first = SchemaCoding.SchemaCodingSupport.enumCaseAssociatedValuesSchema(
         values: (
           key: nil,
           schema: SchemaCoding.SchemaCodingSupport.schema(representing: String.self)
         )
       )
 
-      let associatedValues_second = SchemaCoding.SchemaResolver.enumCaseAssociatedValuesSchema(
+      let associatedValues_second = SchemaCoding.SchemaCodingSupport.enumCaseAssociatedValuesSchema(
         values: (
-          key: "x" as SchemaCoding.SchemaCodingKey,
+          key: "x" as SchemaCoding.SchemaCodingSupport.CodingKey,
           schema: SchemaCoding.SchemaCodingSupport.schema(representing: Int.self)
         )
       )
 
-      let associatedValues_third = SchemaCoding.SchemaResolver.enumCaseAssociatedValuesSchema(
+      let associatedValues_third = SchemaCoding.SchemaCodingSupport.enumCaseAssociatedValuesSchema(
         values: (
           (
             key: nil,
             schema: SchemaCoding.SchemaCodingSupport.schema(representing: String.self)
           ),
           (
-            key: "x" as SchemaCoding.SchemaCodingKey,
+            key: "x" as SchemaCoding.SchemaCodingSupport.CodingKey,
             schema: SchemaCoding.SchemaCodingSupport.schema(representing: Int.self)
           )
         )
       )
 
-      let associatedValues_fourth = SchemaCoding.SchemaResolver.enumCaseAssociatedValuesSchema(
+      let associatedValues_fourth = SchemaCoding.SchemaCodingSupport.enumCaseAssociatedValuesSchema(
         values: (
           (
-            key: "x" as SchemaCoding.SchemaCodingKey,
+            key: "x" as SchemaCoding.SchemaCodingSupport.CodingKey,
             schema: SchemaCoding.SchemaCodingSupport.schema(representing: String.self)
           ),
           (
-            key: "y" as SchemaCoding.SchemaCodingKey,
+            key: "y" as SchemaCoding.SchemaCodingSupport.CodingKey,
             schema: SchemaCoding.SchemaCodingSupport.schema(representing: Int.self)
           )
         )
       )
 
-      let associatedValues_fifth = SchemaCoding.SchemaResolver.enumCaseAssociatedValuesSchema(
+      let associatedValues_fifth = SchemaCoding.SchemaCodingSupport.enumCaseAssociatedValuesSchema(
         values: ()
       )
 
-      return SchemaCoding.SchemaResolver.enumSchema(
+      return SchemaCoding.SchemaCodingSupport.enumSchema(
         representing: Self.self,
         description: "A simple enum with multiple cases",
         cases: (
           (
-            key: "first" as SchemaCoding.SchemaCodingKey,
+            key: "first" as SchemaCoding.SchemaCodingSupport.CodingKey,
             description: "A string",
             schema: associatedValues_first,
             initializer: { @Sendable first in .first(first) }
           ),
           (
-            key: "second" as SchemaCoding.SchemaCodingKey,
+            key: "second" as SchemaCoding.SchemaCodingSupport.CodingKey,
             description: String?.none,
             schema: associatedValues_second,
             initializer: { @Sendable second in .second(x: second) }
           ),
           (
-            key: "third" as SchemaCoding.SchemaCodingKey,
+            key: "third" as SchemaCoding.SchemaCodingSupport.CodingKey,
             description: nil,
             schema: associatedValues_third,
             initializer: { @Sendable third in Self.third(third.0, x: third.1) }
           ),
           (
-            key: "fourth" as SchemaCoding.SchemaCodingKey,
+            key: "fourth" as SchemaCoding.SchemaCodingSupport.CodingKey,
             description: nil,
             schema: associatedValues_fourth,
             initializer: { @Sendable fourth in Self.fourth(x: fourth.0, y: fourth.1) }
           ),
           (
-            key: "fifth" as SchemaCoding.SchemaCodingKey,
+            key: "fifth" as SchemaCoding.SchemaCodingSupport.CodingKey,
             description: nil,
             schema: associatedValues_fifth,
             initializer: { @Sendable fifth in Self.fifth }
@@ -114,34 +114,34 @@ struct EnumSchemaStandardTests {
     case three
 
     static let schema: some SchemaCoding.Schema<Self> = {
-      let associatedValues_one = SchemaCoding.SchemaResolver.enumCaseAssociatedValuesSchema(
+      let associatedValues_one = SchemaCoding.SchemaCodingSupport.enumCaseAssociatedValuesSchema(
         values: ()
       )
-      let associatedValues_two = SchemaCoding.SchemaResolver.enumCaseAssociatedValuesSchema(
+      let associatedValues_two = SchemaCoding.SchemaCodingSupport.enumCaseAssociatedValuesSchema(
         values: ()
       )
-      let associatedValues_three = SchemaCoding.SchemaResolver.enumCaseAssociatedValuesSchema(
+      let associatedValues_three = SchemaCoding.SchemaCodingSupport.enumCaseAssociatedValuesSchema(
         values: ()
       )
 
-      return SchemaCoding.SchemaResolver.enumSchema(
+      return SchemaCoding.SchemaCodingSupport.enumSchema(
         representing: Self.self,
         description: "A simple string-based enum",
         cases: (
           (
-            key: "one" as SchemaCoding.SchemaCodingKey,
+            key: "one" as SchemaCoding.SchemaCodingSupport.CodingKey,
             description: nil,
             schema: associatedValues_one,
             initializer: { @Sendable _ in .one }
           ),
           (
-            key: "two" as SchemaCoding.SchemaCodingKey,
+            key: "two" as SchemaCoding.SchemaCodingSupport.CodingKey,
             description: nil,
             schema: associatedValues_two,
             initializer: { @Sendable _ in .two }
           ),
           (
-            key: "three" as SchemaCoding.SchemaCodingKey,
+            key: "three" as SchemaCoding.SchemaCodingSupport.CodingKey,
             description: nil,
             schema: associatedValues_three,
             initializer: { @Sendable _ in .three }
@@ -160,14 +160,14 @@ struct EnumSchemaStandardTests {
   }
 
   // Enum with a single case for SingleCaseEnumSchema
-  private enum SingleCaseEnum: SchemaCodable, Equatable {
+  private enum SingleCaseEnum: SchemaCoding.SchemaCodable, Equatable {
     case only(String)
 
-    static let schema: some SchemaCoding.Schema<Self> = SchemaCoding.SchemaResolver.enumSchema(
+    static let schema: some SchemaCoding.Schema<Self> = SchemaCoding.SchemaCodingSupport.enumSchema(
       representing: Self.self,
       description: "An enum with only one case",
       cases: ((
-        key: "only" as SchemaCoding.SchemaCodingKey,
+        key: "only" as SchemaCoding.SchemaCodingSupport.CodingKey,
         description: "The only case",
         schema: SchemaCoding.SchemaCodingSupport.schema(representing: String.self),
         initializer: { @Sendable value in Self.only(value) }

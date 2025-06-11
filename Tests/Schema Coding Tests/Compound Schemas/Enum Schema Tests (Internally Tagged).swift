@@ -12,39 +12,39 @@ struct EnumSchemaInternallyTaggedTests {
     case rectangle(width: Double, height: Double)
   
     static let schema: some SchemaCoding.Schema<Self> = {
-      let circleCase = SchemaCoding.SchemaResolver.enumCaseAssociatedValuesSchema(
+      let circleCase = SchemaCoding.SchemaCodingSupport.enumCaseAssociatedValuesSchema(
         values: ((
-          key: "radius" as SchemaCoding.SchemaCodingKey,
+          key: "radius" as SchemaCoding.SchemaCodingSupport.CodingKey,
           schema: SchemaCoding.SchemaCodingSupport.schema(representing: Double.self)
         ),)
       )
   
-      let rectangleCase = SchemaCoding.SchemaResolver.enumCaseAssociatedValuesSchema(
+      let rectangleCase = SchemaCoding.SchemaCodingSupport.enumCaseAssociatedValuesSchema(
         values: (
           (
-            key: "width" as SchemaCoding.SchemaCodingKey,
+            key: "width" as SchemaCoding.SchemaCodingSupport.CodingKey,
             schema: SchemaCoding.SchemaCodingSupport.schema(representing: Double.self)
           ),
           (
-            key: "height" as SchemaCoding.SchemaCodingKey,
+            key: "height" as SchemaCoding.SchemaCodingSupport.CodingKey,
             schema: SchemaCoding.SchemaCodingSupport.schema(representing: Double.self)
           )
         )
       )
   
-      return SchemaCoding.SchemaResolver.internallyTaggedEnumSchema(
+      return SchemaCoding.SchemaCodingSupport.internallyTaggedEnumSchema(
         representing: Shape.self,
         description: "A geometric shape",
         discriminatorPropertyName: "type",
         cases: (
           (
-            key: "circle" as SchemaCoding.SchemaCodingKey,
+            key: "circle" as SchemaCoding.SchemaCodingSupport.CodingKey,
             description: "A circular shape",
             schema: circleCase,
             initializer: { @Sendable circle in Shape.circle(radius: circle) }
           ),
           (
-            key: "rectangle" as SchemaCoding.SchemaCodingKey,
+            key: "rectangle" as SchemaCoding.SchemaCodingSupport.CodingKey,
             description: "A rectangular shape",
             schema: rectangleCase,
             initializer: { @Sendable rectangle in
@@ -76,64 +76,64 @@ struct EnumSchemaInternallyTaggedTests {
     case bird(species: String, canFly: Bool)
 
     static let schema: some SchemaCoding.Schema<Self> = {
-      let dogCase = SchemaCoding.SchemaResolver.enumCaseAssociatedValuesSchema(
+      let dogCase = SchemaCoding.SchemaCodingSupport.enumCaseAssociatedValuesSchema(
         values: (
           (
-            key: "name" as SchemaCoding.SchemaCodingKey,
+            key: "name" as SchemaCoding.SchemaCodingSupport.CodingKey,
             schema: SchemaCoding.SchemaCodingSupport.schema(representing: String.self)
           ),
           (
-            key: "breed" as SchemaCoding.SchemaCodingKey,
+            key: "breed" as SchemaCoding.SchemaCodingSupport.CodingKey,
             schema: SchemaCoding.SchemaCodingSupport.schema(representing: String.self)
           )
         )
       )
 
-      let catCase = SchemaCoding.SchemaResolver.enumCaseAssociatedValuesSchema(
+      let catCase = SchemaCoding.SchemaCodingSupport.enumCaseAssociatedValuesSchema(
         values: (
           (
-            key: "name" as SchemaCoding.SchemaCodingKey,
+            key: "name" as SchemaCoding.SchemaCodingSupport.CodingKey,
             schema: SchemaCoding.SchemaCodingSupport.schema(representing: String.self)
           ),
           (
-            key: "livesRemaining" as SchemaCoding.SchemaCodingKey,
+            key: "livesRemaining" as SchemaCoding.SchemaCodingSupport.CodingKey,
             schema: SchemaCoding.SchemaCodingSupport.schema(representing: Int.self)
           )
         )
       )
 
-      let birdCase = SchemaCoding.SchemaResolver.enumCaseAssociatedValuesSchema(
+      let birdCase = SchemaCoding.SchemaCodingSupport.enumCaseAssociatedValuesSchema(
         values: (
           (
-            key: "species" as SchemaCoding.SchemaCodingKey,
+            key: "species" as SchemaCoding.SchemaCodingSupport.CodingKey,
             schema: SchemaCoding.SchemaCodingSupport.schema(representing: String.self)
           ),
           (
-            key: "canFly" as SchemaCoding.SchemaCodingKey,
+            key: "canFly" as SchemaCoding.SchemaCodingSupport.CodingKey,
             schema: SchemaCoding.SchemaCodingSupport.schema(representing: Bool.self)
           )
         )
       )
 
-      return SchemaCoding.SchemaResolver.internallyTaggedEnumSchema(
+      return SchemaCoding.SchemaCodingSupport.internallyTaggedEnumSchema(
         representing: Animal.self,
         description: "Different types of animals",
         discriminatorPropertyName: "animal",
         cases: (
           (
-            key: "dog" as SchemaCoding.SchemaCodingKey,
+            key: "dog" as SchemaCoding.SchemaCodingSupport.CodingKey,
             description: "A domestic dog",
             schema: dogCase,
             initializer: { @Sendable dog in Animal.dog(name: dog.0, breed: dog.1) }
           ),
           (
-            key: "cat" as SchemaCoding.SchemaCodingKey,
+            key: "cat" as SchemaCoding.SchemaCodingSupport.CodingKey,
             description: "A domestic cat",
             schema: catCase,
             initializer: { @Sendable cat in Animal.cat(name: cat.0, livesRemaining: cat.1) }
           ),
           (
-            key: "bird" as SchemaCoding.SchemaCodingKey,
+            key: "bird" as SchemaCoding.SchemaCodingSupport.CodingKey,
             description: "A bird",
             schema: birdCase,
             initializer: { @Sendable bird in Animal.bird(species: bird.0, canFly: bird.1) }

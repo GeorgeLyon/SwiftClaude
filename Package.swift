@@ -21,7 +21,7 @@ let package = Package(
     /// Temporary
     .library(
       name: "Temporary",
-      targets: ["MessagesAPI"]
+      targets: ["SchemaCoding"]
     )
   ],
   dependencies: [
@@ -73,34 +73,34 @@ let package = Package(
 
     // MARK: - API
 
-    .target(
-      name: "MessagesAPI",
-      dependencies: [
-        "Tool",
-        "Macros",
-      ],
-      path: "Sources/Messages API",
-      swiftSettings: .projectDefaults,
-    ),
+    // .target(
+    //   name: "MessagesAPI",
+    //   dependencies: [
+    //     "Tool",
+    //     "Macros",
+    //   ],
+    //   path: "Sources/Messages API",
+    //   swiftSettings: .projectDefaults,
+    // ),
 
     // MARK: - Tool
 
-    .target(
-      name: "Tool",
-      dependencies: [
-        "Macros",
-        "SchemaCoding",
-      ],
-      swiftSettings: .projectDefaults,
-    ),
-    .testTarget(
-      name: "ToolTests",
-      dependencies: [
-        "Tool",
-        "SchemaCodingTestSupport",
-      ],
-      path: "Tests/Tool Tests"
-    ),
+    // .target(
+    //   name: "Tool",
+    //   dependencies: [
+    //     "Macros",
+    //     "SchemaCoding",
+    //   ],
+    //   swiftSettings: .projectDefaults,
+    // ),
+    // .testTarget(
+    //   name: "ToolTests",
+    //   dependencies: [
+    //     "Tool",
+    //     "SchemaCodingTestSupport",
+    //   ],
+    //   path: "Tests/Tool Tests"
+    // ),
 
     // MARK: - Schema Coding
 
@@ -113,13 +113,13 @@ let package = Package(
       path: "Sources/Schema Coding",
       swiftSettings: .projectDefaults
     ),
-    .testTarget(
-      name: "SchemaCodingTests",
-      dependencies: [
-        "SchemaCodingTestSupport"
-      ],
-      path: "Tests/Schema Coding Tests"
-    ),
+    // .testTarget(
+    //   name: "SchemaCodingTests",
+    //   dependencies: [
+    //     "SchemaCodingTestSupport"
+    //   ],
+    //   path: "Tests/Schema Coding Tests"
+    // ),
 
     // MARK: - Macros Support
 

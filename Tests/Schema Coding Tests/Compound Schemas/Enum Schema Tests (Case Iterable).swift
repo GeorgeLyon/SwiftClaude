@@ -11,7 +11,7 @@ struct EnumSchemaCaseIterableTests {
     case two
     case three
 
-    static let schema: some SchemaCoding.Schema<Self> = SchemaCoding.SchemaResolver.enumSchema(
+    static let schema: some SchemaCoding.Schema<Self> = SchemaCoding.SchemaCodingSupport.enumSchema(
       representing: Self.self,
       description: "A simple string-based enum"
     )
@@ -22,7 +22,7 @@ struct EnumSchemaCaseIterableTests {
     case one = 1
     case two = 2
 
-    static let schema: some SchemaCoding.Schema<Self> = SchemaCoding.SchemaResolver.enumSchema(
+    static let schema: some SchemaCoding.Schema<Self> = SchemaCoding.SchemaCodingSupport.enumSchema(
       representing: Self.self,
       description: "An integer-based enum"
     )

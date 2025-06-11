@@ -25,7 +25,7 @@ struct APICodableMacro: ExtensionMacro {
         } else if let enumDecl = declaration.as(EnumDeclSyntax.self) {
           enumDecl.schemaCodableMembers(
             schemaCodingNamespace: "APICodable",
-            enumSchemaFunctionName: "internallyTaggedEnumSchema",
+            enumSchemaFunctionName: "enumSchema",
             enumAssociatedValueSchemaFunctionName: "enumCaseAssociatedValuesSchema",
             discriminatorPropertyName: StringLiteralExprSyntax(content: "type"),
             codingKeyConversionFunction: { String.convertToSnakeCase($0) },

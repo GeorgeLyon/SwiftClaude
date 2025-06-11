@@ -42,7 +42,7 @@ private struct SchemaCodableStructTests {
 
         extension TestStruct: SchemaCoding.SchemaCodable {
           public static var schema: some SchemaCoding.Schema<Self> {
-            SchemaCoding.SchemaResolver.structSchema(
+            SchemaCoding.SchemaCodingSupport.structSchema(
               representing: Self.self,
               description: ####"""
               A test struct\####nTwo lines of comments
@@ -51,7 +51,7 @@ private struct SchemaCodableStructTests {
                 (
                   description: nil,
                   keyPath: \Self.anInteger,
-                  key: "anInteger" as SchemaCoding.SchemaCodingKey,
+                  key: "anInteger" as SchemaCoding.SchemaCodingSupport.CodingKey,
                   schema: SchemaCoding.SchemaCodingSupport.schema(representing: Int.self)
                 ),
                 (
@@ -59,7 +59,7 @@ private struct SchemaCodableStructTests {
                   An (x, y) coordinate
                   """####,
                   keyPath: \Self.aCoordinate,
-                  key: "aCoordinate" as SchemaCoding.SchemaCodingKey,
+                  key: "aCoordinate" as SchemaCoding.SchemaCodingSupport.CodingKey,
                   schema: SchemaCoding.SchemaCodingSupport.schema(representing: (Int, Int).self)
                 ),
                 (
@@ -67,7 +67,7 @@ private struct SchemaCodableStructTests {
                   Crazy Declaration
                   """####,
                   keyPath: \Self.c,
-                  key: "c" as SchemaCoding.SchemaCodingKey,
+                  key: "c" as SchemaCoding.SchemaCodingSupport.CodingKey,
                   schema: SchemaCoding.SchemaCodingSupport.schema(representing: String.self)
                 ),
                 (
@@ -75,7 +75,7 @@ private struct SchemaCodableStructTests {
                   Crazy Declaration
                   """####,
                   keyPath: \Self.b,
-                  key: "b" as SchemaCoding.SchemaCodingKey,
+                  key: "b" as SchemaCoding.SchemaCodingSupport.CodingKey,
                   schema: SchemaCoding.SchemaCodingSupport.schema(representing: Bool.self)
                 ),
                 (
@@ -83,7 +83,7 @@ private struct SchemaCodableStructTests {
                   Crazy Declaration
                   """####,
                   keyPath: \Self.a,
-                  key: "a" as SchemaCoding.SchemaCodingKey,
+                  key: "a" as SchemaCoding.SchemaCodingSupport.CodingKey,
                   schema: SchemaCoding.SchemaCodingSupport.schema(representing: Bool.self)
                 )
               ),

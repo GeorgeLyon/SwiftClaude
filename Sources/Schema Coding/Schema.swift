@@ -172,7 +172,7 @@ public macro SchemaCodable(
 ) =
   #externalMacro(
     module: "Macros",
-    type: "InternallyTaggedEnumSchemaCodableMacro"
+    type: "enumSchemaCodableMacro"
   )
 
 // MARK: - Internal API

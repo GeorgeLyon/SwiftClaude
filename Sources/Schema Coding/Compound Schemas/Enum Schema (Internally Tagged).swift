@@ -2,7 +2,7 @@ import JSONSupport
 
 extension SchemaCoding.SchemaCodingSupport {
 
-  public static func internallyTaggedEnumSchema<
+  public static func enumSchema<
     Value,
     each AssociatedValuesSchema: SchemaCoding.ExtendableSchema
   >(
@@ -20,8 +20,8 @@ extension SchemaCoding.SchemaCodingSupport {
     caseEncoder: @escaping @Sendable (
       Value,
       repeat ((each AssociatedValuesSchema).Value) ->
-        SchemaCoding.InternallyTaggedEnumCaseEncoder
-    ) -> SchemaCoding.InternallyTaggedEnumCaseEncoder
+        InternallyTaggedEnumCaseEncoder
+    ) -> InternallyTaggedEnumCaseEncoder
   ) -> some SchemaCoding.Schema<Value> {
     InternallyTaggedEnumSchema(
       description: description,
@@ -55,8 +55,8 @@ private struct InternallyTaggedEnumSchema<
   typealias CaseEncoder = @Sendable (
     Value,
     repeat @escaping ((each AssociatedValuesSchema).Value) ->
-      SchemaCoding.InternallyTaggedEnumCaseEncoder
-  ) -> SchemaCoding.InternallyTaggedEnumCaseEncoder
+      SchemaCoding.SchemaCodingSupport.InternallyTaggedEnumCaseEncoder
+  ) -> SchemaCoding.SchemaCodingSupport.InternallyTaggedEnumCaseEncoder
 
   init(
     description: String?,
@@ -132,10 +132,10 @@ extension InternallyTaggedEnumSchema {
 extension SchemaCoding {
   public typealias InternallyTaggedEnumCaseEncoder = SchemaCodingSupport
     .InternallyTaggedEnumCaseEncoder
-  fileprivate typealias InternallyTaggedEnumCaseEncoderImplementationProtocol =
-    SchemaCodingSupport.InternallyTaggedEnumCaseEncoderImplementationProtocol
-  fileprivate typealias InternallyTaggedEnumCaseEncoderImplementation =
-    SchemaCodingSupport.InternallyTaggedEnumCaseEncoderImplementation
+  fileprivate typealias InternallyTaggedEnumCaseEncoderImplementationProtocol = SchemaCodingSupport
+    .InternallyTaggedEnumCaseEncoderImplementationProtocol
+  fileprivate typealias InternallyTaggedEnumCaseEncoderImplementation = SchemaCodingSupport
+    .InternallyTaggedEnumCaseEncoderImplementation
 }
 
 extension SchemaCoding.SchemaCodingSupport {
@@ -178,12 +178,13 @@ extension InternallyTaggedEnumSchema {
     let enumCaseEncoder = caseEncoder(
       value,
       repeat { value in
-        SchemaCoding.InternallyTaggedEnumCaseEncoder(
-          implementation: SchemaCoding.InternallyTaggedEnumCaseEncoderImplementation(
-            key: (each cases).key.stringValue,
-            schema: (each cases).schema,
-            value: value
-          )
+        SchemaCoding.SchemaCodingSupport.InternallyTaggedEnumCaseEncoder(
+          implementation: SchemaCoding.SchemaCodingSupport
+            .InternallyTaggedEnumCaseEncoderImplementation(
+              key: (each cases).key.stringValue,
+              schema: (each cases).schema,
+              value: value
+            )
         )
       }
     )

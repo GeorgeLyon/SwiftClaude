@@ -14,26 +14,26 @@ private struct Person: SchemaCoding.SchemaCodable {
 extension Person {
 
   static let schema: some SchemaCoding.Schema<Self> =
-    SchemaCoding.SchemaResolver.structSchema(
+    SchemaCoding.SchemaCodingSupport.structSchema(
       representing: Self.self,
       description: "A person object",
       properties: (
         (
           description: nil,
           keyPath: \.name,
-          key: "name" as SchemaCoding.SchemaCodingKey,
+          key: "name" as SchemaCoding.SchemaCodingSupport.CodingKey,
           schema: SchemaCoding.SchemaCodingSupport.schema(representing: String.self)
         ),
         (
           description: "The person's age",
           keyPath: \.age,
-          key: "age" as SchemaCoding.SchemaCodingKey,
+          key: "age" as SchemaCoding.SchemaCodingSupport.CodingKey,
           schema: SchemaCoding.SchemaCodingSupport.schema(representing: Int.self)
         ),
         (
           description: "Whether the person is active",
           keyPath: \.isActive,
-          key: "isActive" as SchemaCoding.SchemaCodingKey,
+          key: "isActive" as SchemaCoding.SchemaCodingSupport.CodingKey,
           schema: SchemaCoding.SchemaCodingSupport.schema(representing: Bool?.self)
         )
       ),

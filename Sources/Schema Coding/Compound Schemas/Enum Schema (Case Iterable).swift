@@ -34,8 +34,8 @@ extension SchemaCoding.SchemaCodingSupport {
     ),
     caseEncoder: @escaping @Sendable (
       Value,
-      repeat ((each AssociatedValuesSchema).Value) -> SchemaCoding.EnumCaseEncoder
-    ) -> SchemaCoding.EnumCaseEncoder
+      repeat ((each AssociatedValuesSchema).Value) -> EnumCaseEncoder
+    ) -> EnumCaseEncoder
   ) -> some SchemaCoding.Schema<Value>
   where Value.RawValue == String {
     /// Fall back to case iterable conformance if an enum is case iterable
@@ -60,8 +60,8 @@ extension SchemaCoding.SchemaCodingSupport {
     ),
     caseEncoder: @escaping @Sendable (
       Value,
-      repeat ((each AssociatedValuesSchema).Value) -> SchemaCoding.EnumCaseEncoder
-    ) -> SchemaCoding.EnumCaseEncoder
+      repeat ((each AssociatedValuesSchema).Value) -> EnumCaseEncoder
+    ) -> EnumCaseEncoder
   ) -> some SchemaCoding.Schema<Value>
   where Value.RawValue: FixedWidthInteger & Codable & Sendable {
     /// Fall back to case iterable conformance if an enum is case iterable

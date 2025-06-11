@@ -23,8 +23,8 @@ extension SchemaCoding.SchemaCodingSupport {
     ),
     caseEncoder: @escaping @Sendable (
       Value,
-      repeat ((each AssociatedValuesSchema).Value) -> SchemaCoding.EnumCaseEncoder
-    ) -> SchemaCoding.EnumCaseEncoder
+      repeat ((each AssociatedValuesSchema).Value) -> EnumCaseEncoder
+    ) -> EnumCaseEncoder
   ) -> some SchemaCoding.Schema<Value> {
     StandardEnumSchema(
       description: description,
@@ -43,6 +43,12 @@ extension SchemaCoding.SchemaCodingSupport {
 // MARK: - Encoding Enums
 
 extension SchemaCoding {
+  public typealias EnumCaseEncoder = SchemaCodingSupport.EnumCaseEncoder
+  fileprivate typealias EnumCaseEncoderImplementationProtocol = SchemaCodingSupport.EnumCaseEncoderImplementationProtocol
+  fileprivate typealias EnumCaseEncoderImplementation = SchemaCodingSupport.EnumCaseEncoderImplementation
+}
+
+extension SchemaCoding.SchemaCodingSupport {
 
   public struct EnumCaseEncoder {
     fileprivate let key: String
@@ -162,8 +168,8 @@ private struct StandardEnumSchema<
 
   typealias CaseEncoder = @Sendable (
     Value,
-    repeat @escaping ((each AssociatedValuesSchema).Value) -> SchemaCoding.EnumCaseEncoder
-  ) -> SchemaCoding.EnumCaseEncoder
+    repeat @escaping ((each AssociatedValuesSchema).Value) -> SchemaCoding.SchemaCodingSupport.EnumCaseEncoder
+  ) -> SchemaCoding.SchemaCodingSupport.EnumCaseEncoder
 
   init(
     description: String?,
@@ -308,9 +314,9 @@ private struct StandardEnumSchema<
     let enumCaseEncoder = caseEncoder(
       value,
       repeat { value in
-        SchemaCoding.EnumCaseEncoder(
+        SchemaCoding.SchemaCodingSupport.EnumCaseEncoder(
           key: (each cases).key.stringValue,
-          implementation: SchemaCoding.EnumCaseEncoderImplementation(
+          implementation: SchemaCoding.SchemaCodingSupport.EnumCaseEncoderImplementation(
             schema: (each cases).schema,
             value: value
           )

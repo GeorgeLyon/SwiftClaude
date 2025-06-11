@@ -186,7 +186,7 @@ extension StructDeclSyntax {
         calledExpression: MemberAccessExprSyntax(
           base: MemberAccessExprSyntax(
             base: DeclReferenceExprSyntax(baseName: schemaCodingNamespace),
-            name: "SchemaResolver"
+            name: "SchemaCodingSupport"
           ),
           name: "structSchema"
         ),
@@ -258,7 +258,10 @@ extension StructDeclSyntax {
             FunctionParameterSyntax(
               firstName: "structSchemaDecoder",
               type: MemberTypeSyntax(
-                baseType: IdentifierTypeSyntax(name: schemaCodingNamespace),
+                baseType: MemberTypeSyntax(
+                  baseType: IdentifierTypeSyntax(name: schemaCodingNamespace),
+                  name: "SchemaCodingSupport"
+                ),
                 name: "StructSchemaDecoder",
                 genericArgumentClause: GenericArgumentClauseSyntax {
                   for property in storedProperties {
@@ -449,9 +452,9 @@ extension StructDeclSyntax.StoredProperty {
               content: codingKeyConversionFunction(name.identifierOrText)
             ),
             asKeyword: .keyword(.as, trailingTrivia: .space),
-            type: MemberTypeSyntax(
-              baseType: IdentifierTypeSyntax(name: schemaCodingNamespace),
-              name: "SchemaCodingKey"
+            type: .schemaCodingSupport(
+              namespace: schemaCodingNamespace,
+              name: "CodingKey"
             )
           ),
           trailingComma: .commaToken(trailingTrivia: .newline)
@@ -515,11 +518,8 @@ extension EnumDeclSyntax {
       /// return ToolInput.enumSchema(…)
       ReturnStmtSyntax(
         expression: FunctionCallExprSyntax(
-          calledExpression: MemberAccessExprSyntax(
-            base: MemberAccessExprSyntax(
-              base: DeclReferenceExprSyntax(baseName: schemaCodingNamespace),
-              name: "SchemaResolver"
-            ),
+          calledExpression: .schemaCodingSupport(
+            namespace: schemaCodingNamespace,
             name: enumSchemaFunctionName
           ),
           leftParen: .leftParenToken(trailingTrivia: .newline),
@@ -636,11 +636,8 @@ extension EnumCaseElementListSyntax.Element {
     codingKeyConversionFunction: (String) -> String
   ) -> FunctionCallExprSyntax {
     return FunctionCallExprSyntax(
-      calledExpression: MemberAccessExprSyntax(
-        base: MemberAccessExprSyntax(
-          base: DeclReferenceExprSyntax(baseName: schemaCodingNamespace),
-          name: "SchemaResolver"
-        ),
+      calledExpression: .schemaCodingSupport(
+        namespace: schemaCodingNamespace,
         name: enumAssociatedValueSchemaFunctionName
       ),
       leftParen: .leftParenToken(trailingTrivia: .newline),
@@ -690,9 +687,9 @@ extension EnumCaseElementListSyntax.Element {
               content: codingKeyConversionFunction(name.identifierOrText)
             ),
             asKeyword: .keyword(.as, trailingTrivia: .space),
-            type: MemberTypeSyntax(
-              baseType: IdentifierTypeSyntax(name: schemaCodingNamespace),
-              name: "SchemaCodingKey"
+            type: .schemaCodingSupport(
+              namespace: schemaCodingNamespace,
+              name: "CodingKey"
             )
           ),
           trailingComma: .commaToken(trailingTrivia: .newline)
@@ -873,9 +870,9 @@ extension EnumCaseParameterListSyntax.Element {
                 content: codingKeyConversionFunction(name.identifierOrText)
               ),
               asKeyword: .keyword(.as, trailingTrivia: .space),
-              type: MemberTypeSyntax(
-                baseType: IdentifierTypeSyntax(name: schemaCodingNamespace),
-                name: "SchemaCodingKey"
+              type: .schemaCodingSupport(
+                namespace: schemaCodingNamespace,
+                name: "CodingKey"
               )
             ),
             trailingComma: .commaToken(trailingTrivia: .newline)
@@ -885,7 +882,16 @@ extension EnumCaseParameterListSyntax.Element {
           LabeledExprSyntax(
             label: "key",
             colon: .colonToken(),
-            expression: NilLiteralExprSyntax(),
+            expression: AsExprSyntax(
+              expression: NilLiteralExprSyntax(),
+              asKeyword: .keyword(.as, trailingTrivia: .space),
+              type: OptionalTypeSyntax(
+                wrappedType: .schemaCodingSupport(
+                  namespace: schemaCodingNamespace,
+                  name: "CodingKey"
+                )
+              )
+            ),
             trailingComma: .commaToken(trailingTrivia: .newline)
           )
         }
@@ -946,8 +952,8 @@ extension VariableDeclSyntax {
           typeAnnotation: TypeAnnotationSyntax(
             type: SomeOrAnyTypeSyntax(
               someOrAnySpecifier: .keyword(.some),
-              constraint: MemberTypeSyntax(
-                baseType: IdentifierTypeSyntax(name: schemaCodingNamespace),
+              constraint: .schemaCodingSupport(
+                namespace: schemaCodingNamespace,
                 name: schemaProtocolName,
                 genericArgumentClause: GenericArgumentClauseSyntax {
                   GenericArgumentSyntax(
@@ -975,11 +981,8 @@ extension TypeSyntax {
     schemaCodingNamespace: TokenSyntax
   ) -> some ExprSyntaxProtocol {
     FunctionCallExprSyntax(
-      calledExpression: MemberAccessExprSyntax(
-        base: MemberAccessExprSyntax(
-          base: DeclReferenceExprSyntax(baseName: schemaCodingNamespace),
-          name: "SchemaResolver"
-        ),
+      calledExpression: .schemaCodingSupport(
+        namespace: schemaCodingNamespace,
         name: "schema"
       ),
       leftParen: .leftParenToken(),
@@ -998,4 +1001,40 @@ extension TypeSyntax {
     )
   }
 
+}
+
+extension ExprSyntaxProtocol where Self == MemberAccessExprSyntax {
+  
+  static func schemaCodingSupport(
+    namespace: TokenSyntax,
+    name: TokenSyntax
+  ) -> Self {
+    MemberAccessExprSyntax(
+      base: MemberAccessExprSyntax(
+        base: DeclReferenceExprSyntax(baseName: namespace),
+        name: "SchemaCodingSupport"
+      ),
+      name: name
+    )
+  }
+  
+}
+
+extension TypeSyntaxProtocol where Self == MemberTypeSyntax {
+  
+  static func schemaCodingSupport(
+    namespace: TokenSyntax,
+    name: TokenSyntax,
+    genericArgumentClause: GenericArgumentClauseSyntax? = nil
+  ) -> Self {
+    MemberTypeSyntax(
+      baseType: MemberTypeSyntax(
+        baseType: IdentifierTypeSyntax(name: namespace),
+        name: "SchemaCodingSupport"
+      ),
+      name: name,
+      genericArgumentClause: genericArgumentClause
+    )
+  }
+  
 }

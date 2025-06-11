@@ -8,11 +8,11 @@ private enum TypeUnion: Equatable {
   case array([Int])
 
   static var schema: some SchemaCoding.Schema<TypeUnion> {
-    SchemaCoding.SchemaResolver.typeUnionSchema(
+    SchemaCoding.SchemaCodingSupport.typeUnionSchema(
       representing: TypeUnion.self,
-      null: SchemaCoding.SchemaResolver.typeUnionSchemaUnhandledCase(),
-      boolean: SchemaCoding.SchemaResolver.typeUnionSchemaUnhandledCase(),
-      number: SchemaCoding.SchemaResolver.typeUnionSchemaUnhandledCase(),
+      null: SchemaCoding.SchemaCodingSupport.typeUnionSchemaUnhandledCase(),
+      boolean: SchemaCoding.SchemaCodingSupport.typeUnionSchemaUnhandledCase(),
+      number: SchemaCoding.SchemaCodingSupport.typeUnionSchemaUnhandledCase(),
       string: .init(
         schema: SchemaCoding.SchemaCodingSupport.schema(representing: String.self),
         initializer: { .string($0) }
@@ -21,7 +21,7 @@ private enum TypeUnion: Equatable {
         schema: SchemaCoding.SchemaCodingSupport.schema(representing: [Int].self),
         initializer: { .array($0) }
       ),
-      object: SchemaCoding.SchemaResolver.typeUnionSchemaUnhandledCase(),
+      object: SchemaCoding.SchemaCodingSupport.typeUnionSchemaUnhandledCase(),
       caseEncoder: { value, null, boolean, number, string, array, object in
         switch value {
         case .string(let str):

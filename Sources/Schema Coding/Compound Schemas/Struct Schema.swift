@@ -36,6 +36,10 @@ extension SchemaCoding.SchemaCodingSupport {
 }
 
 extension SchemaCoding {
+  public typealias StructSchemaDecoder = SchemaCodingSupport.StructSchemaDecoder
+}
+
+extension SchemaCoding.SchemaCodingSupport {
 
   public struct StructSchemaDecoder<each PropertyValue> {
 
