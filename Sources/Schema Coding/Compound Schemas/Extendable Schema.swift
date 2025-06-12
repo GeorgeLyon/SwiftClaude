@@ -88,21 +88,21 @@ extension SchemaCoding.ExtendableSchema {
 
 }
 
-// MARK: - Implementation Details
+// MARK: - Extended Schema
 
-private struct ExtendedSchema<
+struct ExtendedSchema<
   BaseSchema: SchemaCoding.ExtendableSchema,
   each PropertySchema: SchemaCoding.Schema
 >: SchemaCoding.Schema {
 
   typealias Value = (BaseSchema.Value, (repeat (each PropertySchema).Value))
-
   typealias AdditionalProperties = SchemaCoding.AdditionalPropertiesSchema<
     repeat each PropertySchema
   >
 
   let baseSchema: BaseSchema
   let additionalProperties: AdditionalProperties
+
   func encodeSchemaDefinition(to encoder: inout SchemaCoding.SchemaEncoder) {
     baseSchema.encodeSchemaDefinition(
       to: &encoder,
@@ -119,26 +119,28 @@ private struct ExtendedSchema<
     )
   }
 
-  var initialValueDecodingState:
+  typealias ValueDecodingState =
     AdditionalProperties.ValueDecodingState<BaseSchema.ValueDecodingState>
-  {
+
+  var initialValueDecodingState: ValueDecodingState {
     additionalProperties.initialValueDecodingState(
       base: baseSchema.initialValueDecodingState
     )
   }
 
   func decodeValue(
-    from decoder: inout SchemaCoding.SchemaValueDecoder,
+    from decoder: inout SchemaCoding.SchemaCodingSupport.SchemaValueDecoder,
     state: inout ValueDecodingState
   ) throws
-    -> SchemaCoding.DecodingResult<Value>
+    -> SchemaCoding.SchemaCodingSupport.DecodingResult<
+      (BaseSchema.Value, (repeat (each PropertySchema).Value))
+    >
   {
-    try baseSchema
-      .decodeValue(
-        from: &decoder,
-        state: &state,
-        additionalProperties: additionalProperties
-      )
+    try baseSchema.decodeValue(
+      from: &decoder,
+      state: &state,
+      additionalProperties: additionalProperties
+    )
   }
 
 }

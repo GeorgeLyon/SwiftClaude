@@ -37,7 +37,7 @@ public enum SchemaCoding {
       var initialValueDecodingState: ValueDecodingState { get }
 
       func decodeValue(
-        from stream: inout SchemaCodingSupport.SchemaValueDecoder,
+        from decoder: inout SchemaCodingSupport.SchemaValueDecoder,
         state: inout ValueDecodingState
       ) throws -> DecodingResult<Value>
 
