@@ -80,7 +80,7 @@ struct ObjectPropertiesSchema<
 
   var initialValueDecodingState: ValueDecodingState {
     ValueDecodingState(
-      propertyStates: (repeat .decoding((each properties).schema.initialValueDecodingState))
+      propertyStates: (repeat (each properties).initialDecodingState)
     )
   }
 
@@ -181,6 +181,9 @@ struct ObjectPropertySchema<Schema: SchemaCoding.Schema> {
   }
   fileprivate var decodingStateType: DecodingState.Type {
     DecodingState.self
+  }
+  fileprivate var initialDecodingState: DecodingState {
+    .missing
   }
 
   fileprivate func encodeSchemaDefinition(

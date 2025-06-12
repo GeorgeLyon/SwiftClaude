@@ -97,7 +97,8 @@ private struct StructSchema<
       (repeat value[keyPath: each keyPaths]),
       additionalProperties: additionalProperties,
       additionalPropertyValues: additionalPropertyValues,
-      to: &encoder)
+      to: &encoder
+    )
   }
 
   var initialValueDecodingState: PropertiesSchema.ValueDecodingState {
