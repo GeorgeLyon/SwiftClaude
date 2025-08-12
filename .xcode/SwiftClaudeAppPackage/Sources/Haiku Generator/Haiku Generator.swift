@@ -1,4 +1,4 @@
-import Claude
+import ClaudeAPI
 import SwiftUI
 
 public struct HaikuGenerator: View {
