@@ -15,7 +15,7 @@ let package = Package(
   products: [
     .library(
       name: "SwiftClaude",
-      targets: ["Claude"]
+      targets: ["ClaudeAPI"]
     )
   ],
   dependencies: [
@@ -50,17 +50,18 @@ let package = Package(
     ),
 
     .target(
-      name: "Claude",
+      name: "ClaudeAPI",
       dependencies: [
         "ClaudeMessagesEndpoint",
         .target(name: "Tool", condition: .when(platforms: .supportToolInput)),
         .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
       ],
+      path: "Sources/Claude API",
       swiftSettings: .claude
     ),
     .testTarget(
       name: "ClaudeTests",
-      dependencies: ["Claude"],
+      dependencies: ["ClaudeAPI"],
       path: "Tests/Claude Tests"
     ),
 

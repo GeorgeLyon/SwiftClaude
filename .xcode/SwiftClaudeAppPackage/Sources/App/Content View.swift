@@ -1,4 +1,4 @@
-import Claude
+import ClaudeAPI
 import ClaudeClient
 import HaikuGenerator
 import SwiftUI
