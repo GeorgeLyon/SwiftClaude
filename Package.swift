@@ -56,6 +56,7 @@ let package = Package(
         .target(name: "Tool", condition: .when(platforms: .supportToolInput)),
         .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
       ],
+      path: "Sources/Claude API",
       swiftSettings: .claude
     ),
     .testTarget(
