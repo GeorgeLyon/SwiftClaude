@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@testable import Claude
+@testable import ClaudeAPI
 
 @Test
 func userMessageTextConcatenation() throws {
