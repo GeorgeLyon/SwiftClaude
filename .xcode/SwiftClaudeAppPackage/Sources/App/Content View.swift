@@ -1,5 +1,5 @@
 import ClaudeAPI
-import ClaudeAPIClient
+import ClaudeClient
 import HaikuGenerator
 import SwiftUI
 
