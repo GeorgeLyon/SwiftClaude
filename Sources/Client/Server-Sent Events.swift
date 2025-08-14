@@ -30,7 +30,8 @@ extension ClaudeClient {
               try await client.decode(
                 AnthropicEnum<Event>.self,
                 fromResponseData: rawEvent.data
-              ).wrappedValue
+              )
+              .wrappedValue
             )
           } catch {
             return .failure(.decodingFailure(error))
@@ -121,7 +122,8 @@ extension ClaudeClient {
         }
 
         /// Uncomment to print server-sent events
-        // print("SSE: \(data)")
+        // print(eventLine)
+        // print(dataLine)
 
         return .success(RawServerSentEvent(name: eventName, data: Data(data.utf8)))
       }

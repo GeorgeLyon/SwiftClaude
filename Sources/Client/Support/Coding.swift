@@ -32,7 +32,10 @@ struct ResponseBodyDecoder {
     return Self(decoder: .anthropic)
   }
 
-  func decode<T: Decodable>(_ type: T.Type, from data: Data) throws -> sending T {
+  func decode<T: Decodable & SendableMetatype>(
+    _ type: T.Type,
+    from data: Data
+  ) throws -> sending T {
     try decoder.decode(type, from: data)
   }
 

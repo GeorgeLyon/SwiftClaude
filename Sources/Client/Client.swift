@@ -79,7 +79,7 @@ public actor ClaudeClient {
     return ServerSentEvents(client: self, body: response.body)
   }
 
-  package func decode<T: Decodable>(
+  package func decode<T: Decodable & SendableMetatype>(
     _ type: T.Type,
     fromResponseData data: Data
   ) throws -> sending T {
@@ -138,11 +138,12 @@ public actor ClaudeClient {
       httpRequest = mutableRequest
     }
 
+    let request = HTTPTransportRequest(
+      http: httpRequest,
+      body: try requestBodyEncoder.encode(body)
+    )
     let response = try await httpTransport.send(
-      HTTPTransportRequest(
-        http: httpRequest,
-        body: try requestBodyEncoder.encode(body)
-      ),
+      request,
       isolation: self
     )
     return response
