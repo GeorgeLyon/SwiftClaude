@@ -79,7 +79,7 @@ public actor ClaudeClient {
     return ServerSentEvents(client: self, body: response.body)
   }
 
-  package func decode<T: Decodable & SendableMetatype>(
+  package func decode<T: ResponseBodyDecodable>(
     _ type: T.Type,
     fromResponseData data: Data
   ) throws -> sending T {

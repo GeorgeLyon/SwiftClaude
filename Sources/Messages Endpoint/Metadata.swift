@@ -25,6 +25,7 @@ extension ClaudeClient.MessagesEndpoint {
       case maxTokens = "max_tokens"
       case toolUse = "tool_use"
       case stopSequence = "stop_sequence"
+      case refusal = "refusal"
     }
 
     public struct Usage: Decodable {

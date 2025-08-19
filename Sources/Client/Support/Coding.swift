@@ -32,7 +32,7 @@ struct ResponseBodyDecoder {
     return Self(decoder: .anthropic)
   }
 
-  func decode<T: Decodable & SendableMetatype>(
+  func decode<T: ResponseBodyDecodable>(
     _ type: T.Type,
     from data: Data
   ) throws -> sending T {
@@ -52,6 +52,12 @@ struct ResponseBodyDecoder {
   private let decoder: JSONDecoder
 
 }
+
+#if swift(>=6.2)
+package typealias ResponseBodyDecodable = Decodable & SendableMetatype
+#else
+package typealias ResponseBodyDecodable = Decodable
+#endif
 
 // MARK: - Configuration
 

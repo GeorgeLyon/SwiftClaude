@@ -257,6 +257,8 @@ extension Claude.ConversationAssistantMessage {
         return .user
       case .toolUse:
         return .toolUseResult
+      case .refusal:
+        throw Claude.StreamingClassifierRefusal()
       }
     }
   }
@@ -268,6 +270,8 @@ extension Claude {
   private struct NoStopReasonProvided: Error {}
 
   private struct MaxOutputTokensReached: Error {}
+  
+  private struct StreamingClassifierRefusal: Error {}
 
 }
 
