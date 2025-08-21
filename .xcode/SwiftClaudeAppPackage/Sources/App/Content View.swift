@@ -3,13 +3,11 @@ import ClaudeClient
 import HaikuGenerator
 import SwiftUI
 
-/// Currently computer use doesn't work great, probably something to do with the image resizing logic
-
 struct ContentView: View {
 
   var body: some View {
     ClaudeProvider(
-      defaultModel: .claude35Sonnet20241022
+      defaultModel: .default
     ) { claude in
       TabView {
         Tab("Haiku Generator", systemImage: "sparkles.rectangle.stack") {

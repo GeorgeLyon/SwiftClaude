@@ -196,7 +196,7 @@ extension Claude {
         guard case .toolUseBlock(_, let toolUse) = block else {
           continue
         }
-        
+
         /// We ignore invocation errors, since those will be reported in the tool use result
         _ = try? await toolUse.output(isolation: isolation)
       }

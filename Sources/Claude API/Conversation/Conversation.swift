@@ -270,7 +270,7 @@ extension Claude {
   private struct NoStopReasonProvided: Error {}
 
   private struct MaxOutputTokensReached: Error {}
-  
+
   private struct StreamingClassifierRefusal: Error {}
 
 }

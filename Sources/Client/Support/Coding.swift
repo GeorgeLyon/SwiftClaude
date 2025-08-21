@@ -54,9 +54,9 @@ struct ResponseBodyDecoder {
 }
 
 #if swift(>=6.2)
-package typealias ResponseBodyDecodable = Decodable & SendableMetatype
+  package typealias ResponseBodyDecodable = Decodable & SendableMetatype
 #else
-package typealias ResponseBodyDecodable = Decodable
+  package typealias ResponseBodyDecodable = Decodable
 #endif
 
 // MARK: - Configuration
