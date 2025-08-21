@@ -9,7 +9,7 @@ func userMessageTextConcatenation() throws {
   let requestContent =
     try userMessage
     .messagesRequestMessageContent(
-      for: .claude35Sonnet20241022,
+      for: .default,
       imagePreprocessingMode: .recommended(quality: 1),
       renderImage: { _ in
         fatalError()
