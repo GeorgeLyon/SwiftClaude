@@ -196,7 +196,9 @@ extension Claude {
         guard case .toolUseBlock(_, let toolUse) = block else {
           continue
         }
-        _ = try await toolUse.output(isolation: isolation)
+
+        /// We ignore invocation errors, since those will be reported in the tool use result
+        _ = try? await toolUse.output(isolation: isolation)
       }
     }
 
@@ -560,36 +562,28 @@ extension Claude.ConversationAssistantMessage {
           )
         )
 
-        guard let invocationResult = toolUse.invocationResult else {
-          throw IncompleteMessage()
-        }
-
-        let output: Conversation.ToolOutput
-        do {
-          output = try invocationResult.get()
-        } catch {
-          /// We only errors thrown by the tool to be encoded as "error" results.
-          toolInvocationResultContent.append(
-            .toolResult(
-              id: toolUse.id,
-              content: "\(error)",
-              isError: true
-            )
-          )
-          continue
-        }
-
-        toolInvocationResultContent.append(
-          .toolResult(
+        let block: ClaudeClient.MessagesEndpoint.Request.Message.Content.Block
+        if let error = toolUse.currentError {
+          block = .toolResult(
             id: toolUse.id,
-            content: try renderToolOutput(output)
+            content: "\(error)",
+            isError: true
+          )
+        } else {
+          guard let invocationResult = toolUse.invocationResult else {
+            throw IncompleteMessage()
+          }
+          block = .toolResult(
+            id: toolUse.id,
+            content: try renderToolOutput(invocationResult.get())
               .messageContent
               .messagesRequestMessageContent(
                 for: model,
                 imagePreprocessingMode: imagePreprocessingMode
               )
           )
-        )
+        }
+        toolInvocationResultContent.append(block)
       }
     }
 
@@ -646,6 +640,16 @@ extension Claude.ToolUse: PrivateToolUseProtocol {
   func contentBlock(
     inputDecodingFailureEncodingStrategy: Claude.ToolInputDecodingFailureEncodingStrategy
   ) throws -> ClaudeClient.MessagesEndpoint.Request.Message.Content.Block {
+    guard inputDecodingError == nil else {
+      /// If input decoding failed, we use the JSON string as the input
+      return .toolUse(
+        id: id,
+        name: concreteTool.definition.name,
+        input: [
+          "inputJSON": currentInputJSON
+        ]
+      )
+    }
     guard let input = try currentInput else {
       throw IncompleteMessage()
     }
