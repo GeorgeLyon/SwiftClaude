@@ -1,0 +1,659 @@
+import SwiftDiagnostics
+import SwiftSyntax
+import SwiftSyntaxBuilder
+import SwiftSyntaxMacros
+
+// MARK: - Schema Codable
+
+extension SchemaCodableType {
+
+  @MemberBlockItemListBuilder
+  var members: MemberBlockItemListSyntax {
+    switch schemaKind {
+    case .struct(let schema):
+      VariableDeclSyntax.schemaProperty(
+        namespace: namespace,
+        isPublic: isPublic,
+        schemaProtocolName: "ObjectSchema",
+        getter: {
+          schema.expr
+        }
+      )
+
+      InitializerDeclSyntax.schemaCodableStructInitializer(
+        namespace: namespace,
+        properties: schema.properties
+      )
+
+      EnumDeclSyntax.codingKeys(
+        name: schema.propertyNameTypeName,
+        identifiers: schema.properties.map(\.name),
+        conversionStrategy: codingKeyConversionStrategy
+      )
+    case .enum(let schema):
+      VariableDeclSyntax.schemaProperty(
+        namespace: namespace,
+        isPublic: isPublic,
+        schemaProtocolName: "Schema",
+        getter: {
+          schema.expr
+        }
+      )
+
+      EnumDeclSyntax.codingKeys(
+        name: schema.caseNameTypeName,
+        identifiers: schema.cases.map(\.name),
+        conversionStrategy: codingKeyConversionStrategy
+      )
+
+      for `case` in schema.cases {
+        if !`case`.associatedValues.isEmpty {
+          EnumDeclSyntax.codingKeys(
+            name: `case`.associatedValueLabelTypeName,
+            identifiers: `case`.associatedValues.compactMap(\.name),
+            conversionStrategy: codingKeyConversionStrategy
+          )
+        }
+      }
+    }
+  }
+
+}
+
+extension DeclSyntaxProtocol where Self == VariableDeclSyntax {
+
+  fileprivate static func schemaProperty(
+    namespace: SchemaCodingNamespace,
+    isPublic: Bool,
+    schemaProtocolName: TokenSyntax,
+    @CodeBlockItemListBuilder getter: () -> CodeBlockItemListSyntax
+  ) -> VariableDeclSyntax {
+    VariableDeclSyntax(
+      modifiers: DeclModifierListSyntax {
+        if isPublic {
+          DeclModifierSyntax(name: "public")
+        }
+        DeclModifierSyntax(name: .keyword(.static))
+      },
+      bindingSpecifier: .keyword(.var),
+      bindings: PatternBindingListSyntax {
+        PatternBindingSyntax(
+          pattern: IdentifierPatternSyntax(identifier: "schema"),
+          typeAnnotation: TypeAnnotationSyntax(
+            type: SomeOrAnyTypeSyntax(
+              someOrAnySpecifier: .keyword(.some),
+              constraint: namespace.memberType(
+                name: schemaProtocolName,
+                genericArgumentClause: GenericArgumentClauseSyntax {
+                  GenericArgumentSyntax(
+                    argument: IdentifierTypeSyntax(name: "Self")
+                  )
+                }
+              )
+            )
+          ),
+          accessorBlock: AccessorBlockSyntax(
+            accessors: .getter(
+              CodeBlockItemListSyntax(itemsBuilder: getter)
+            )
+          )
+        )
+      }
+    )
+  }
+
+}
+
+extension EnumDeclSyntax {
+
+  fileprivate static func codingKeys(
+    name: TokenSyntax,
+    identifiers: [IdentifiableToken],
+    conversionStrategy: CodingKeyConversionStrategy
+  ) -> Self {
+    EnumDeclSyntax(
+      modifiers: DeclModifierListSyntax {
+        DeclModifierSyntax(name: .keyword(.private))
+      },
+      name: name,
+      inheritanceClause: InheritanceClauseSyntax {
+        if !identifiers.isEmpty {
+          /// Raw Values don't work if an enum has no cases
+          InheritedTypeSyntax(
+            type: MemberTypeSyntax(
+              baseType: IdentifierTypeSyntax(name: "Swift"),
+              name: "String"
+            ),
+            trailingComma: .commaToken()
+          )
+        }
+        InheritedTypeSyntax(
+          type: MemberTypeSyntax(
+            baseType: IdentifierTypeSyntax(name: "Swift"),
+            name: "CodingKey"
+          )
+        )
+      },
+      memberBlock: MemberBlockSyntax {
+        for identifier in identifiers {
+          EnumCaseDeclSyntax {
+            EnumCaseElementSyntax(
+              name: identifier.token,
+              rawValue: InitializerClauseSyntax(
+                value: StringLiteralExprSyntax(
+                  content: conversionStrategy.convert(identifier.identifier.name)
+                )
+              )
+            )
+          }
+        }
+      }
+    )
+  }
+
+}
+
+extension DeclSyntaxProtocol where Self == InitializerDeclSyntax {
+
+  fileprivate static func schemaCodableStructInitializer(
+    namespace: SchemaCodingNamespace,
+    properties: [StructSchema.Property]
+  ) -> Self {
+    InitializerDeclSyntax(
+      modifiers: .private,
+      signature: FunctionSignatureSyntax(
+        parameterClause: FunctionParameterClauseSyntax(
+          parameters: FunctionParameterListSyntax {
+            FunctionParameterSyntax(
+              firstName: "structDecoder",
+              type: namespace.memberType(
+                name: "StructDecoder",
+                genericArgumentClause: GenericArgumentClauseSyntax {
+                  for property in properties {
+                    GenericArgumentSyntax(
+                      argument: property.type
+                    )
+                  }
+                }
+              )
+            )
+          }
+        )
+      ),
+      body: CodeBlockSyntax {
+        let propertyValues =
+          if properties.count == 1 {
+            /// Single-element tuples are cursed, so we need to special-case this
+            [
+              MemberAccessExprSyntax(
+                base: DeclReferenceExprSyntax(baseName: "structDecoder"),
+                name: "propertyValues"
+              )
+            ]
+          } else {
+            properties.enumerated().map { index, _ in
+              MemberAccessExprSyntax(
+                base: MemberAccessExprSyntax(
+                  base: DeclReferenceExprSyntax(baseName: "structDecoder"),
+                  name: "propertyValues"
+                ),
+                name: "\(raw: index)"
+              )
+            }
+          }
+
+        for (property, value) in zip(properties, propertyValues) {
+          let accessExpr = MemberAccessExprSyntax(
+            base: DeclReferenceExprSyntax(baseName: "self"),
+            name: .identifier(property.name.name)
+          )
+          if property.isInitializedConstantProperty {
+            FunctionCallExprSyntax(
+              calledExpression: MemberAccessExprSyntax(
+                base: DeclReferenceExprSyntax(baseName: "structDecoder"),
+                name: "verifyInitializedConstantPropertyValue"
+              ),
+              leftParen: .leftParenToken(trailingTrivia: .newline),
+              arguments: LabeledExprListSyntax {
+                LabeledExprSyntax(
+                  label: "initialized",
+                  colon: .colonToken(),
+                  expression: accessExpr
+                )
+                LabeledExprSyntax(
+                  label: "decoded",
+                  colon: .colonToken(),
+                  expression: value
+                )
+              },
+              rightParen: .rightParenToken(leadingTrivia: .newline),
+            )
+          } else {
+            InfixOperatorExprSyntax(
+              leftOperand: accessExpr,
+              operator: AssignmentExprSyntax(),
+              rightOperand: value
+            )
+          }
+        }
+      }
+    )
+  }
+
+}
+
+// MARK: - Schema Expressions
+
+extension StructSchema {
+
+  var expr: FunctionCallExprSyntax {
+    FunctionCallExprSyntax(
+      calledExpression: namespace.supportMember(name: "structSchema"),
+      leftParen: .leftParenToken(trailingTrivia: .newline),
+      arguments: LabeledExprListSyntax {
+        additionalArguments
+
+        LabeledExprSyntax(
+          label: "propertyName",
+          colon: .colonToken(),
+          expression: MemberAccessExprSyntax(
+            base: DeclReferenceExprSyntax(baseName: propertyNameTypeName),
+            name: "self"
+          ),
+          trailingComma: .commaToken(trailingTrivia: .newline)
+        )
+
+        LabeledExprSyntax(
+          label: "properties",
+          colon: .colonToken(),
+          expression: ClosureExprSyntax {
+            for property in properties {
+              FunctionCallExprSyntax(
+                calledExpression: namespace.supportMember(name: "structProperty"),
+                leftParen: .leftParenToken(trailingTrivia: .newline),
+                arguments: LabeledExprListSyntax {
+
+                  LabeledExprSyntax(
+                    label: "name",
+                    colon: .colonToken(),
+                    expression: MemberAccessExprSyntax(
+                      base: DeclReferenceExprSyntax(baseName: propertyNameTypeName),
+                      name: .identifier(property.name.name)
+                    ),
+                    trailingComma: .commaToken(trailingTrivia: .newline)
+                  )
+
+                  LabeledExprSyntax(
+                    label: "schema",
+                    colon: .colonToken(),
+                    expression: .schema(
+                      namespace: namespace,
+                      representing: property.type,
+                      additionalArguments: property.additionalArguments
+                    ),
+                    trailingComma: .commaToken(trailingTrivia: .newline)
+                  )
+
+                  LabeledExprSyntax(
+                    label: "keyPath",
+                    colon: .colonToken(),
+                    expression: KeyPathExprSyntax(
+                      root: IdentifierTypeSyntax(name: typeName),
+                      components: KeyPathComponentListSyntax {
+                        KeyPathComponentSyntax(
+                          period: .periodToken(),
+                          component: .property(
+                            KeyPathPropertyComponentSyntax(
+                              declName: DeclReferenceExprSyntax(
+                                baseName: .identifier(property.name.name))
+                            )
+                          )
+                        )
+                      }
+                    )
+                  )
+
+                },
+                rightParen: .rightParenToken(leadingTrivia: .newline)
+              )
+            }
+
+          },
+          trailingComma: .commaToken(trailingTrivia: .newline)
+        )
+
+        LabeledExprSyntax(
+          label: "finishDecoding",
+          colon: .colonToken(),
+          expression: MemberAccessExprSyntax(
+            base: DeclReferenceExprSyntax(
+              baseName: "Self"
+            ),
+            declName: DeclReferenceExprSyntax(
+              baseName: "init",
+              argumentNames: DeclNameArgumentsSyntax(
+                arguments: DeclNameArgumentListSyntax {
+                  DeclNameArgumentSyntax(name: "structDecoder")
+                }
+              )
+            )
+          )
+        )
+      },
+      rightParen: .rightParenToken(leadingTrivia: .newline)
+    )
+  }
+
+}
+
+extension EnumSchema {
+
+  var expr: FunctionCallExprSyntax {
+    FunctionCallExprSyntax(
+      calledExpression: namespace.supportMember(name: "enumSchema"),
+      leftParen: .leftParenToken(trailingTrivia: .newline),
+      arguments: LabeledExprListSyntax {
+        additionalArguments
+
+        LabeledExprSyntax(
+          label: "caseName",
+          colon: .colonToken(),
+          expression: MemberAccessExprSyntax(
+            base: DeclReferenceExprSyntax(baseName: caseNameTypeName),
+            name: "self"
+          ),
+          trailingComma: .commaToken(trailingTrivia: .newline)
+        )
+
+        LabeledExprSyntax(
+          label: "cases",
+          colon: .colonToken(),
+          expression: ClosureExprSyntax {
+            for `case` in cases {
+              FunctionCallExprSyntax(
+                calledExpression: namespace.supportMember(name: "enumSchemaCase"),
+                leftParen: .leftParenToken(trailingTrivia: .newline),
+                arguments: LabeledExprListSyntax {
+
+                  LabeledExprSyntax(
+                    label: "name",
+                    colon: .colonToken(),
+                    expression: MemberAccessExprSyntax(
+                      base: DeclReferenceExprSyntax(baseName: caseNameTypeName),
+                      name: .identifier(`case`.name.name)
+                    ),
+                    trailingComma: .commaToken(trailingTrivia: .newline)
+                  )
+
+                  `case`.additionalArguments
+
+                  LabeledExprSyntax(
+                    label: "associatedValues",
+                    colon: .colonToken(),
+                    expression: ClosureExprSyntax {
+                      for associatedValue in `case`.associatedValues {
+                        FunctionCallExprSyntax(
+                          calledExpression: namespace.supportMember(
+                            name: "enumSchemaCaseAssociatedValue"
+                          ),
+                          leftParen: .leftParenToken(trailingTrivia: .newline),
+                          arguments: LabeledExprListSyntax {
+                            if let label = associatedValue.argumentLabel {
+                              LabeledExprSyntax(
+                                label: "label",
+                                colon: .colonToken(),
+                                expression: MemberAccessExprSyntax(
+                                  base: DeclReferenceExprSyntax(
+                                    baseName: `case`.associatedValueLabelTypeName),
+                                  name: label
+                                ),
+                                trailingComma: .commaToken(trailingTrivia: .newline)
+                              )
+                            }
+
+                            LabeledExprSyntax(
+                              label: "schema",
+                              colon: .colonToken(),
+                              expression: .schema(
+                                namespace: namespace,
+                                representing: associatedValue.type,
+                                additionalArguments: LabeledExprListSyntax()
+                              )
+                            )
+                          },
+                          rightParen: .rightParenToken(leadingTrivia: .newline)
+                        )
+                      }
+                    },
+                    trailingComma: .commaToken(trailingTrivia: .newline)
+                  )
+
+                  LabeledExprSyntax(
+                    label: "finishDecoding",
+                    colon: .colonToken(),
+                    expression: ClosureExprSyntax(
+                      signature: ClosureSignatureSyntax(
+                        parameterClause: .parameterClause(
+                          ClosureParameterClauseSyntax(
+                            parameters: ClosureParameterListSyntax {
+                              for associatedValue in `case`.associatedValues {
+                                ClosureParameterSyntax(
+                                  firstName: associatedValue.bindingName
+                                )
+                              }
+                            }
+                          )
+                        ),
+                      ),
+                      statements: CodeBlockItemListSyntax {
+                        if `case`.associatedValues.isEmpty {
+                          MemberAccessExprSyntax(
+                            base: DeclReferenceExprSyntax(baseName: typeName),
+                            name: `case`.name.token
+                          )
+                        } else {
+                          FunctionCallExprSyntax(
+                            calledExpression: MemberAccessExprSyntax(
+                              base: DeclReferenceExprSyntax(baseName: typeName),
+                              name: `case`.name.token
+                            ),
+                            leftParen: .leftParenToken(trailingTrivia: .newline),
+                            arguments: LabeledExprListSyntax {
+                              for associatedValue in `case`.associatedValues {
+                                LabeledExprSyntax(
+                                  label: associatedValue.argumentLabel,
+                                  colon: associatedValue.argumentLabel.map { _ in
+                                    .colonToken()
+                                  },
+                                  expression: DeclReferenceExprSyntax(
+                                    baseName: associatedValue.bindingName
+                                  )
+                                )
+                              }
+                            },
+                            rightParen: .rightParenToken(leadingTrivia: .newline)
+                          )
+                        }
+                      }
+                    )
+                  )
+                },
+                rightParen: .rightParenToken(leadingTrivia: .newline)
+              )
+            }
+          },
+          trailingComma: .commaToken(trailingTrivia: .newline)
+        )
+
+        LabeledExprSyntax(
+          label: "encodeValue",
+          colon: .colonToken(),
+          expression: ClosureExprSyntax(
+            signature: ClosureSignatureSyntax(
+              parameterClause: .simpleInput(
+                ClosureShorthandParameterListSyntax {
+                  ClosureShorthandParameterSyntax(name: "value")
+                  ClosureShorthandParameterSyntax(name: "encoder")
+                }
+              )
+            ),
+            statements: CodeBlockItemListSyntax {
+              VariableDeclSyntax(
+                bindingSpecifier: .keyword(.let),
+                bindings: PatternBindingListSyntax {
+                  PatternBindingSyntax(
+                    pattern: IdentifierPatternSyntax(identifier: "encodings"),
+                    initializer: InitializerClauseSyntax(
+                      value: MemberAccessExprSyntax(
+                        base: DeclReferenceExprSyntax(baseName: "encoder"),
+                        name: "encodings"
+                      )
+                    )
+                  )
+                }
+              )
+              SwitchExprSyntax(
+                subject: DeclReferenceExprSyntax(baseName: "value"),
+                cases: SwitchCaseListSyntax {
+                  for (offset, `case`) in cases.enumerated() {
+                    SwitchCaseSyntax(
+                      label: .case(
+                        SwitchCaseLabelSyntax {
+                          SwitchCaseItemListSyntax {
+                            if `case`.associatedValues.isEmpty {
+                              /// case .enumCase: …
+                              SwitchCaseItemSyntax(
+                                pattern: ExpressionPatternSyntax(
+                                  expression: MemberAccessExprSyntax(
+                                    name: .identifier(`case`.name.name)
+                                  )
+                                )
+                              )
+                            } else {
+                              /// case .enumCase(…):
+                              SwitchCaseItemSyntax(
+                                pattern: ExpressionPatternSyntax(
+                                  expression: FunctionCallExprSyntax(
+                                    calledExpression: MemberAccessExprSyntax(
+                                      name: .identifier(`case`.name.name)
+                                    ),
+                                    leftParen: .leftParenToken(),
+                                    arguments: LabeledExprListSyntax {
+                                      for associatedValue in `case`.associatedValues {
+                                        LabeledExprSyntax(
+                                          expression: PatternExprSyntax(
+                                            pattern: ValueBindingPatternSyntax(
+                                              bindingSpecifier: .keyword(.let),
+                                              pattern: IdentifierPatternSyntax(
+                                                identifier: associatedValue.bindingName
+                                              )
+                                            )
+                                          )
+                                        )
+                                      }
+                                    },
+                                    rightParen: .rightParenToken()
+                                  )
+                                )
+                              )
+                            }
+                          }
+                        }
+                      ),
+                      statements: CodeBlockItemListSyntax {
+                        /// let encoding = encoder.encoding…
+                        let encoding: ExprSyntax =
+                          if cases.count == 1 {
+                            ExprSyntax(
+                              DeclReferenceExprSyntax(baseName: "encodings")
+                            )
+                          } else {
+                            ExprSyntax(
+                              MemberAccessExprSyntax(
+                                base: DeclReferenceExprSyntax(baseName: "encodings"),
+                                name: "\(raw: offset)"
+                              )
+                            )
+                          }
+                        VariableDeclSyntax(
+                          bindingSpecifier: .keyword(.let),
+                          bindings: PatternBindingListSyntax {
+                            PatternBindingSyntax(
+                              pattern: IdentifierPatternSyntax(identifier: "encoding"),
+                              initializer: InitializerClauseSyntax(
+                                value: encoding
+                              )
+                            )
+                          }
+                        )
+
+                        /// encoder.encode(…)
+                        FunctionCallExprSyntax(
+                          calledExpression: MemberAccessExprSyntax(
+                            base: DeclReferenceExprSyntax(baseName: "encoder"),
+                            name: "encode"
+                          ),
+                          leftParen: .leftParenToken(),
+                          arguments: LabeledExprListSyntax {
+                            /// (…)
+                            LabeledExprSyntax(
+                              expression: TupleExprSyntax {
+                                for associatedValue in `case`.associatedValues {
+                                  LabeledExprSyntax(
+                                    expression: DeclReferenceExprSyntax(
+                                      baseName: associatedValue.bindingName
+                                    )
+                                  )
+                                }
+                              }
+                            )
+
+                            LabeledExprSyntax(
+                              label: "using",
+                              colon: .colonToken(),
+                              expression: DeclReferenceExprSyntax(baseName: "encoding")
+                            )
+                          },
+                          rightParen: .rightParenToken()
+                        )
+                      }
+                    )
+                  }
+                }
+              )
+            }
+          )
+        )
+      },
+      rightParen: .rightParenToken(leadingTrivia: .newline),
+    )
+  }
+
+}
+
+extension ExprSyntaxProtocol where Self == FunctionCallExprSyntax {
+
+  fileprivate static func schema(
+    namespace: SchemaCodingNamespace,
+    representing type: TypeSyntax,
+    additionalArguments: LabeledExprListSyntax = LabeledExprListSyntax()
+  ) -> Self {
+    FunctionCallExprSyntax(
+      calledExpression: namespace.supportMember(name: "schema"),
+      leftParen: .leftParenToken(trailingTrivia: .newline),
+      arguments: LabeledExprListSyntax {
+        LabeledExprSyntax(
+          label: "representing",
+          colon: .colonToken(),
+          expression: MemberAccessExprSyntax(
+            base: DeclReferenceExprSyntax(baseName: "\(type.trimmed)"),
+            name: "self"
+          )
+        )
+        additionalArguments
+      },
+      rightParen: .rightParenToken(leadingTrivia: .newline)
+    )
+  }
+
+}

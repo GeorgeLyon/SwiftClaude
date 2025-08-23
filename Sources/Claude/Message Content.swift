@@ -138,7 +138,7 @@ extension Claude {
         switch component.kind {
         case .text(let text):
           content.append(text)
-        case let .toolUse(id, name, input):
+        case .toolUse(let id, let name, let input):
           content.append(
             .toolUse(
               id: id,
@@ -146,7 +146,7 @@ extension Claude {
               input: input
             )
           )
-        case let .toolResult(id, resultContent, isError):
+        case .toolResult(let id, let resultContent, let isError):
           content.append(
             .toolResult(
               id: id,

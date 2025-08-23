@@ -13,100 +13,180 @@ let package = Package(
     .visionOS("2.0"),
   ],
   products: [
+    // .library(
+    //   name: "SwiftClaude",
+    //   targets: ["Claude"]
+    // ),
+
+    /// Temporary
     .library(
-      name: "SwiftClaude",
-      targets: ["Claude"]
+      name: "Temporary",
+      targets: ["SchemaCoding"]
     )
   ],
   dependencies: [
     .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
     .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "600.0.1"),
     .package(url: "https://github.com/apple/swift-async-algorithms", from: "1.0.0"),
+    .package(url: "https://github.com/apple/swift-collections.git", from: "1.1.0"),
   ],
   targets: [
+    // .target(
+    //   name: "ClaudeClient",
+    //   dependencies: [
+    //     "Tool",
+    //     .product(name: "HTTPTypes", package: "swift-http-types"),
+    //     .product(name: "HTTPTypesFoundation", package: "swift-http-types"),
+    //   ],
+    //   path: "Sources/Client",
+    //   swiftSettings: .claude
+    // ),
+    // .testTarget(
+    //   name: "ClaudeClientTests",
+    //   dependencies: ["ClaudeClient"],
+    //   path: "Tests/Client Tests"
+    // ),
+
+    // .target(
+    //   name: "ClaudeMessagesEndpoint",
+    //   dependencies: [
+    //     "ClaudeClient"
+    //   ],
+    //   path: "Sources/Messages Endpoint",
+    //   swiftSettings: .claude
+    // ),
+
+    // .target(
+    //   name: "Claude",
+    //   dependencies: [
+    //     "ClaudeMessagesEndpoint",
+    //     .target(name: "Tool", condition: .when(platforms: .supportToolInput)),
+    //     .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
+    //   ],
+    //   swiftSettings: .claude
+    // ),
+    // .testTarget(
+    //   name: "ClaudeTests",
+    //   dependencies: ["Claude"],
+    //   path: "Tests/Claude Tests"
+    // ),
+
+    // MARK: - API
+
+    // .target(
+    //   name: "MessagesAPI",
+    //   dependencies: [
+    //     "Tools",
+    //     "Macros",
+    //   ],
+    //   path: "Sources/Messages API",
+    //   swiftSettings: .projectDefaults,
+    // ),
+    // .testTarget(
+    //   name: "MessagesAPITests",
+    //   dependencies: [
+    //     "MessagesAPI",
+    //     "SchemaCodingTestSupport",
+    //   ],
+    //   path: "Tests/Messages API Tests"
+    // ),
+
+    // MARK: - Tool
+
+     .target(
+       name: "Tools",
+       dependencies: [
+         "Macros",
+         "SchemaCoding",
+       ],
+       swiftSettings: .projectDefaults,
+     ),
+     .testTarget(
+       name: "ToolsTests",
+       dependencies: [
+         "Tools",
+         "SchemaCodingTestSupport",
+       ],
+       path: "Tests/Tools Tests"
+     ),
+
+    // MARK: - Schema Coding
+
     .target(
-      name: "ClaudeClient",
+      name: "SchemaCoding",
       dependencies: [
-        "Tool",
-        .product(name: "HTTPTypes", package: "swift-http-types"),
-        .product(name: "HTTPTypesFoundation", package: "swift-http-types"),
+        "JSONSupport",
+        "Macros",
       ],
-      path: "Sources/Client",
-      swiftSettings: .claude
+      path: "Sources/Schema Coding",
+      swiftSettings: .projectDefaults + [
+        .define("ENABLE_META_SCHEMA")
+      ]
+    ),
+
+    .target(
+      name: "SchemaCodingTestSupport",
+      dependencies: [
+        "SchemaCoding"
+      ],
+      path: "Sources/Schema Coding Test Support",
+      swiftSettings: .projectDefaults
     ),
     .testTarget(
-      name: "ClaudeClientTests",
-      dependencies: ["ClaudeClient"],
-      path: "Tests/Client Tests"
-    ),
-
-    .target(
-      name: "ClaudeMessagesEndpoint",
+      name: "SchemaCodingTests",
       dependencies: [
-        "ClaudeClient"
+        "SchemaCodingTestSupport"
       ],
-      path: "Sources/Messages Endpoint",
-      swiftSettings: .claude
+      path: "Tests/Schema Coding Tests"
     ),
 
-    .target(
-      name: "Claude",
-      dependencies: [
-        "ClaudeMessagesEndpoint",
-        .target(name: "Tool", condition: .when(platforms: .supportToolInput)),
-        .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
-      ],
-      swiftSettings: .claude
-    ),
-    .testTarget(
-      name: "ClaudeTests",
-      dependencies: ["Claude"],
-      path: "Tests/Claude Tests"
-    ),
+    // MARK: - Macros Support
 
-    .target(
-      name: "Tool",
-      dependencies: [
-        "ToolMacros"
-      ],
-      swiftSettings: .claude
-    ),
-    .testTarget(
-      name: "ToolTests",
-      dependencies: ["Tool"],
-      path: "Tests/Tool Tests"
-    ),
-
+    /// Splitting macros into libraries causes a linker issue on macOS, so we put everything in one target
     .macro(
-      name: "ToolMacros",
+      name: "Macros",
       dependencies: [
+        .product(name: "SwiftDiagnostics", package: "swift-syntax"),
         .product(name: "SwiftSyntax", package: "swift-syntax"),
+        .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
         .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
         .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
-        .product(name: "SwiftDiagnostics", package: "swift-syntax"),
       ],
-      path: "Sources/Tool Macros"
+      path: "Sources/Macros",
+      exclude: [
+        "Support/Convert To Snake Case/LICENSE.md"
+      ],
+      swiftSettings: .projectDefaults
     ),
     .testTarget(
-      name: "ToolMacrosTests",
+      name: "MacrosTests",
       dependencies: [
-        "ToolMacros",
-        .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+        "Macros",
         .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
       ],
-      path: "Tests/Tool Macros Tests"
+      path: "Tests/Macros Tests"
+    ),
+
+    // MARK: - JSON Support
+
+    .target(
+      name: "JSONSupport",
+      dependencies: [],
+      path: "Sources/JSON Support",
+      swiftSettings: .projectDefaults
+    ),
+    .testTarget(
+      name: "JSONSupportTests",
+      dependencies: [
+        "JSONSupport"
+      ],
+      path: "Tests/JSON Support Tests"
     ),
   ]
 )
 
-extension Array where Element == Platform {
-  fileprivate static var supportToolInput: [Platform] {
-    [.iOS, .macOS, .macCatalyst, .visionOS, .tvOS, .watchOS, .linux]
-  }
-}
-
 extension Array where Element == SwiftSetting {
-  fileprivate static let claude: [SwiftSetting] = [
+  fileprivate static let projectDefaults: [SwiftSetting] = [
     .enableUpcomingFeature("InternalImportsByDefault")
   ]
 }

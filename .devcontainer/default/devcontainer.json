@@ -12,7 +12,7 @@
   "mounts": [
     /// Keep build products on a volume for performance and to separate host and guest build artifacts
     "type=volume,source=${localWorkspaceFolderBasename}-build,target=${containerWorkspaceFolder}/.build",
-    "type=volume,source=${localWorkspaceFolderBasename}-npm,target=/root/.npm"
+    "type=volume,source=claude-code-npm,target=/root/.npm"
   ],
 
   /// Install Claude Code, but only after creating the npm volume
@@ -30,7 +30,13 @@
     "vscode": {
       "extensions": [
         "swiftlang.swift-vscode"
-      ]
+      ],
+      "settings": {
+        "files.exclude": {
+          /// Code coverage data
+          "default.profraw": true
+        }
+      }
     }
   }
 }

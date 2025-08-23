@@ -7,6 +7,10 @@ DerivedData/
 .swiftpm/configuration/registries.json
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrc
+default.profraw
+
+# VSCode
+.vscode/
 
 # Claude Code
 .claude/code

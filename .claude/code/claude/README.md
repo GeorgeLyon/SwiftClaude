@@ -1,5 +1,4 @@
-# Local Claude Code State
+# Claude Code in Devcontainer Support
 
-This folder contains local Claude Code state. 
-This enables Claude Code's configuration survive rebuilding the devcontainer.
-This state should not be committed to the repository.
+We preserve state for running Claude Code in a devcontainer in this folder.
+This is nested here so that git creates the directories when cloning a new repo.

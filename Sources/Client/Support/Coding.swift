@@ -1,3 +1,4 @@
+import JSONSupport
 import Tool
 
 import struct Foundation.Data
@@ -36,11 +37,17 @@ struct ResponseBodyDecoder {
     try decoder.decode(type, from: data)
   }
 
-  func decodeValue<Schema: ToolInput.Schema>(
+  func decodeValue<Schema: Schema>(
     using schema: Schema,
     fromResponseData data: Data
   ) throws -> sending Schema.Value {
-    try decoder.decodeValue(using: schema, from: data)
+    var stream = JSON.DecodingStream()
+    stream.push(String(decoding: data, as: UTF8.self))
+    stream.finish()
+
+    var state = schema.initialValueDecodingState
+    let result = try schema.decodeValue(from: &stream, state: &state)
+    return try result.getValue()
   }
 
   private init(decoder: JSONDecoder) {
