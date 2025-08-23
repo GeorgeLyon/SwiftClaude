@@ -296,55 +296,53 @@ struct EnumSchemaTests {
     )
   }
 
-  #if false
-    @Test
-    func testStandardEnumSchema() throws {
-      try StandardTestEnum.schema.test(
-        encodesAs: """
-          {
-            "description": "Standard Test Enum",
-            "maxProperties": 1,
-            "properties": {
-              "first": {
-                "description": "First case with no associated values",
-                "properties": {
+  @Test
+  func testStandardEnumSchema() throws {
+    try StandardTestEnum.schema.test(
+      encodesAs: """
+        {
+          "description": "Standard Test Enum",
+          "maxProperties": 1,
+          "properties": {
+            "first": {
+              "description": "First case with no associated values",
+              "properties": {
 
+              }
+            },
+            "second": {
+              "type": "integer"
+            },
+            "third": {
+              "properties": {
+                "a": {
+                  "type": "string"
+                },
+                "b": {
+                  "type": "boolean"
                 }
               },
-              "second": {
-                "type": "integer"
-              },
-              "third": {
-                "properties": {
-                  "a": {
-                    "type": "string"
-                  },
-                  "b": {
-                    "type": "boolean"
-                  }
+              "required": [
+                "a",
+                "b"
+              ]
+            },
+            "fourth": {
+              "prefixItems": [
+                {
+                  "type": "string"
                 },
-                "required": [
-                  "a",
-                  "b"
-                ]
-              },
-              "fourth": {
-                "prefixItems": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "boolean"
-                  }
-                ]
-              }
+                {
+                  "type": "boolean"
+                }
+              ]
             }
           }
-          """,
-        prettyPrint: true
-      )
-    }
-  #endif
+        }
+        """,
+      prettyPrint: true
+    )
+  }
 
   @SchemaCodable(
     style: .internallyTagged(
@@ -382,56 +380,81 @@ struct EnumSchemaTests {
     )
   }
 
-  /// Omninously, this test crashes with what seems like a double-release when exiting the function scope
+  @Test
+  func testInternallyTaggedEnumSchema() throws {
+    try InternallyTaggedTestEnum.schema.test(
+      encodesAs: """
+        {
+          "oneOf": [
+            {
+              "properties": {
+                "type": {
+                  "const": "first"
+                },
+                "a": {
+                  "type": "integer"
+                },
+                "b": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "type",
+                "a",
+                "b"
+              ]
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "second"
+                },
+                "x": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "type",
+                "x"
+              ]
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "third"
+                },
+                "baz": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "type",
+                "baz"
+              ]
+            },
+            {
+              "properties": {
+                "type": {
+                  "const": "fourth"
+                }
+              },
+              "required": [
+                "type"
+              ]
+            }
+          ]
+        }
+        """,
+      prettyPrint: true
+    )
+  }
+
+  /// This breaks the compiler
   #if false
     @Test
-    func testInternallyTaggedEnumSchema() throws {
-      try InternallyTaggedTestEnum.schema.test(
+    func completeBatshitInsanity() throws {
+      try InternallyTaggedTestEnum.schema.metaSchema.metaSchema.test(
         encodesAs: """
-          {
-            "oneOf": [
-              {
-                "properties": {
-                  "type": {
-                    "const": "first"
-                  },
-                  "a": {
-                    "type": "integer"
-                  },
-                  "b": {
-                    "type": "string"
-                  }
-                }
-              },
-              {
-                "properties": {
-                  "type": {
-                    "const": "second"
-                  },
-                  "x": {
-                    "type": "integer"
-                  }
-                }
-              },
-              {
-                "properties": {
-                  "type": {
-                    "const": "third"
-                  },
-                  "baz": {
-                    "type": "string"
-                  }
-                }
-              },
-              {
-                "properties": {
-                  "type": {
-                    "const": "fourth"
-                  }
-                }
-              }
-            ]
-          }
           """,
         prettyPrint: true
       )

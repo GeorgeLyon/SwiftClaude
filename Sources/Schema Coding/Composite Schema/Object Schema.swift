@@ -110,19 +110,31 @@ extension SchemaCoding.Support {
     public typealias Value = (repeat (each Property).PropertyValue)
 
     public func encodeProperties(of value: Value, to encoder: inout ObjectEncoder) {
-      for (property, value) in repeat (each properties, each value) {
+      func encode<T: ObjectProperty>(_ property: T, _ value: T.PropertyValue) {
         if let schemaValue = type(of: property).coerceToSchemaValue(from: value) {
           guard let name = property.name else {
             /// This is a constant omitted property
-            continue
+            return
           }
           encoder.objectEncoder.encodeProperty(name: name.stringValue) { stream in
             stream.encode(schemaValue, using: property.schema)
           }
         }
       }
+      repeat encode(each properties, each value)
+//      for (property, value) in repeat (each properties, each value) {
+//        if let schemaValue = type(of: property).coerceToSchemaValue(from: value) {
+//          guard let name = property.name else {
+//            /// This is a constant omitted property
+//            continue
+//          }
+//          encoder.objectEncoder.encodeProperty(name: name.stringValue) { stream in
+//            stream.encode(schemaValue, using: property.schema)
+//          }
+//        }
+//      }
     }
-
+    
     public struct PropertyStates: Sendable {
       fileprivate var state = Archetype.DecodingState()
     }
