@@ -140,11 +140,12 @@ extension SchemaCoding.Support {
 
 extension SchemaCoding.Support {
 
-  public struct Decoder: ~Copyable {
+  public final class Decoder {
     public init() {
       self.stream = JSON.DecodingStream()
     }
 
+    var stack = MutableStack()
     var stream: JSON.DecodingStream
     init(stream: consuming JSON.DecodingStream) {
       self.stream = stream

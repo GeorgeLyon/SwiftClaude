@@ -122,19 +122,8 @@ extension SchemaCoding.Support {
         }
       }
       repeat encode(each properties, each value)
-//      for (property, value) in repeat (each properties, each value) {
-//        if let schemaValue = type(of: property).coerceToSchemaValue(from: value) {
-//          guard let name = property.name else {
-//            /// This is a constant omitted property
-//            continue
-//          }
-//          encoder.objectEncoder.encodeProperty(name: name.stringValue) { stream in
-//            stream.encode(schemaValue, using: property.schema)
-//          }
-//        }
-//      }
     }
-    
+
     public struct PropertyStates: Sendable {
       fileprivate var state = Archetype.DecodingState()
     }

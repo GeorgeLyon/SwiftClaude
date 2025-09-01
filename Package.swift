@@ -29,6 +29,10 @@ let package = Package(
     .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "600.0.1"),
     .package(url: "https://github.com/apple/swift-async-algorithms", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-collections.git", from: "1.1.0"),
+    .package(
+      url: "https://github.com/apple/swift-atomics.git",
+      .upToNextMajor(from: "1.3.0")
+    ),
   ],
   targets: [
     // .target(
@@ -93,22 +97,22 @@ let package = Package(
 
     // MARK: - Tool
 
-     .target(
-       name: "Tools",
-       dependencies: [
-         "Macros",
-         "SchemaCoding",
-       ],
-       swiftSettings: .projectDefaults,
-     ),
-     .testTarget(
-       name: "ToolsTests",
-       dependencies: [
-         "Tools",
-         "SchemaCodingTestSupport",
-       ],
-       path: "Tests/Tools Tests"
-     ),
+    .target(
+      name: "Tools",
+      dependencies: [
+        "Macros",
+        "SchemaCoding",
+      ],
+      swiftSettings: .projectDefaults,
+    ),
+    .testTarget(
+      name: "ToolsTests",
+      dependencies: [
+        "Tools",
+        "SchemaCodingTestSupport",
+      ],
+      path: "Tests/Tools Tests"
+    ),
 
     // MARK: - Schema Coding
 
@@ -117,6 +121,7 @@ let package = Package(
       dependencies: [
         "JSONSupport",
         "Macros",
+        .product(name: "Atomics", package: "swift-atomics"),
       ],
       path: "Sources/Schema Coding",
       swiftSettings: .projectDefaults + [
@@ -187,6 +192,7 @@ let package = Package(
 
 extension Array where Element == SwiftSetting {
   fileprivate static let projectDefaults: [SwiftSetting] = [
-    .enableUpcomingFeature("InternalImportsByDefault")
+    .enableUpcomingFeature("InternalImportsByDefault"),
+    .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
   ]
 }
