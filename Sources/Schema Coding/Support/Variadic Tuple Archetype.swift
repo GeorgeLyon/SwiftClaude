@@ -40,9 +40,45 @@ struct VariadicTupleArchetype<each Element> {
       }
     }
 
+    var unsafe: UnsafeVariadicTupleAccessor<AccessedElement> {
+      UnsafeVariadicTupleAccessor(offset: offset)
+    }
+
     fileprivate let offset: Int
   }
 
   let elementAccessors: ElementAccessors
+
+}
+
+struct UnsafeMutableVariadicTuple {
+  fileprivate let buffer: UnsafeMutableRawBufferPointer
+}
+
+func withUnsafeMutableVariadicTuple<each Element, T>(
+  _ tuple: inout (repeat each Element),
+  _ body: (inout UnsafeMutableVariadicTuple) throws -> T
+) rethrows -> T {
+  try withUnsafeMutableBytes(of: &tuple) { buffer in
+    var unsafeTuple = UnsafeMutableVariadicTuple(buffer: buffer)
+    return try body(&unsafeTuple)
+  }
+}
+
+struct UnsafeVariadicTupleAccessor<Element> {
+
+  func mutate<T>(
+    _ tuple: inout UnsafeMutableVariadicTuple,
+    _ body: (inout Element) throws -> T
+  ) rethrows -> T {
+    try withUnsafeMutableBytes(of: &tuple) { buffer in
+      assert(offset < buffer.count)
+      let pointer = (buffer.baseAddress! + offset)
+        .assumingMemoryBound(to: Element.self)
+      return try body(&pointer.pointee)
+    }
+  }
+
+  fileprivate let offset: Int
 
 }

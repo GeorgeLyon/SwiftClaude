@@ -20,6 +20,17 @@ extension SchemaCoding.Support {
     }
 
     subscript(
+      name: String
+    ) -> Decoder? {
+      get {
+        self[Substring(name)]
+      }
+      set {
+        self[Substring(name)] = newValue
+      }
+    }
+
+    subscript(
       name: Substring
     ) -> Decoder? {
       get {

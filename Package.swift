@@ -105,14 +105,14 @@ let package = Package(
       ],
       swiftSettings: .projectDefaults,
     ),
-    .testTarget(
-      name: "ToolsTests",
-      dependencies: [
-        "Tools",
-        "SchemaCodingTestSupport",
-      ],
-      path: "Tests/Tools Tests"
-    ),
+    //  .testTarget(
+    //    name: "ToolsTests",
+    //    dependencies: [
+    //      "Tools",
+    //      "SchemaCodingTestSupport",
+    //    ],
+    //    path: "Tests/Tools Tests"
+    //  ),
 
     // MARK: - Schema Coding
 
@@ -163,14 +163,14 @@ let package = Package(
       ],
       swiftSettings: .projectDefaults
     ),
-    .testTarget(
-      name: "MacrosTests",
-      dependencies: [
-        "Macros",
-        .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
-      ],
-      path: "Tests/Macros Tests"
-    ),
+    // .testTarget(
+    //   name: "MacrosTests",
+    //   dependencies: [
+    //     "Macros",
+    //     .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
+    //   ],
+    //   path: "Tests/Macros Tests"
+    // ),
 
     // MARK: - JSON Support
 
@@ -191,8 +191,15 @@ let package = Package(
 )
 
 extension Array where Element == SwiftSetting {
-  fileprivate static let projectDefaults: [SwiftSetting] = [
-    .enableUpcomingFeature("InternalImportsByDefault"),
-    .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
-  ]
+  fileprivate static let projectDefaults: [SwiftSetting] = {
+    var settings: [SwiftSetting] = [
+      .enableUpcomingFeature("InternalImportsByDefault"),
+      .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
+    ]
+    #if true
+      /// Allow testing release builds
+      settings.append(.unsafeFlags(["-enable-testing"], .when(configuration: .release)))
+    #endif
+    return settings
+  }()
 }

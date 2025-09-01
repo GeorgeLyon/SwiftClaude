@@ -98,11 +98,12 @@ extension SchemaCoding.Support {
       to encoder: inout Encoder
     ) {
       encoder.stream.encodeArray { arrayEncoder in
-        for (value, element) in repeat (each value, each archetype.elements) {
+        func process<T>(_ value: T.Value, _ element: Archetype.Element<T>) {
           arrayEncoder.encodeElement { stream in
             stream.encode(value, using: element.schema)
           }
         }
+        repeat process(each value, each archetype.elements)
       }
     }
 
@@ -115,12 +116,16 @@ extension SchemaCoding.Support {
 
     public var initialValueDecodingState: ValueDecodingState {
       var elementDecoders: [ElementDecoder] = []
-      for element in repeat each archetype.elements {
+      func process<T>(_ element: Archetype.Element<T>) {
         elementDecoders.append { decoder, state in
-          try archetype.decode(element, from: &decoder, state: &state)
-            .map { _ in () }
+          try archetype.decode(
+            element,
+            from: &decoder,
+            state: &state
+          ).map { _ in () }
         }
       }
+      repeat process(each archetype.elements)
       return ValueDecodingState(
         elementDecoders: elementDecoders[...]
       )

@@ -131,13 +131,32 @@ extension SchemaCoding.Support {
     public typealias ValueDecodingState = ObjectSchemaValueDecodingState<PropertyStates>
 
     public var initialValueDecodingState: ValueDecodingState {
-      let archetype = SchemaTupleArchetype(
+      typealias Archetype = SchemaCoding.Support.SchemaTupleArchetype<repeat (each Property).Schema>
+      let archetype = Archetype(
         repeat SchemaTupleElementDefinition(
           label: (each properties).name,
           schema: (each properties).schema
         )
       )
-      return ValueDecodingState(archetype: archetype)
+      var propertyDecoders = PropertyDecoders<PropertyStates, Void>()
+      func process<T>(_ element: Archetype.Element<T>) {
+        guard let label = element.label else {
+          /// This is a constant omitted property
+          return
+        }
+        propertyDecoders[Substring(label)] = { decoder, states in
+          try archetype.decode(
+            element,
+            from: &decoder,
+            state: &states.state
+          ).map { _ in }
+        }
+      }
+      repeat process(each archetype.elements)
+      return ValueDecodingState(
+        propertyDecoders: propertyDecoders,
+        propertyStates: PropertyStates()
+      )
     }
 
     public func finishDecoding(_ states: PropertyStates) throws -> Value {
@@ -252,20 +271,24 @@ extension SchemaCoding.Support {
       properties: (repeat each Property)
     ) {
       self.description = description
-      self.properties = (repeat each properties)
+      let x = (repeat each properties)
+      self.properties = x
+      // self.description = description
+      // self.properties =
     }
 
     fileprivate var requiredPropertyNames: [String]? {
       var requiredProperties: [String] = []
-      for property in repeat each properties {
+      func process<T: ObjectProperty>(_ property: T) {
         if property.isRequired {
           guard let name = property.name else {
             /// This is a constant omitted property
-            continue
+            return
           }
           requiredProperties.append(name.stringValue)
         }
       }
+      repeat process(each properties)
       return requiredProperties.isEmpty ? nil : requiredProperties
     }
 
@@ -289,9 +312,10 @@ extension SchemaCoding.Support {
     public typealias Value = (repeat (each Component).Value)
 
     public func encodeProperties(of value: Value, to encoder: inout ObjectEncoder) {
-      for (value, component) in repeat (each value, each components) {
+      func encode<T: ObjectSchema>(_ value: T.Value, using component: T) {
         component.encodeProperties(of: value, to: &encoder)
       }
+      repeat encode(each value, using: each components)
     }
 
     public typealias PropertyStates = (repeat (each Component).PropertyStates)
@@ -384,20 +408,24 @@ extension SchemaCoding.Support {
 
     private var requiredPropertyNames: [String]? {
       var requiredPropertyNames: [String] = []
-      for component in repeat each components {
+      func process<T: ObjectSchema>(_ component: T) {
         guard let names = component.objectSchemaMetadata.requiredPropertyNames else {
-          continue
+          return
         }
         requiredPropertyNames.append(contentsOf: names)
       }
+      repeat process(each components)
       return requiredPropertyNames.isEmpty ? nil : requiredPropertyNames
     }
 
     var description: String? {
       var descriptions: [String?] = []
-      for component in repeat each components {
-        descriptions.append(component.objectSchemaMetadata.description)
+      func process<T: ObjectSchema>(_ component: T) {
+        if let description = component.objectSchemaMetadata.description {
+          descriptions.append(description)
+        }
       }
+      repeat process(each components)
       return combineDescriptions(descriptions)
     }
     let components: (repeat each Component)
@@ -474,36 +502,6 @@ extension SchemaCoding.Support {
 
   public struct ObjectSchemaValueDecodingState<PropertyStates: Sendable>: Sendable {
 
-    fileprivate init<PropertyName, each Property>(
-      archetype: SchemaTupleArchetype<repeat (each Property).Schema>
-    )
-    where
-      PropertyStates == _TupleObjectSchema<
-        PropertyName,
-        repeat each Property
-      >.PropertyStates
-    {
-      self.propertyStates = _TupleObjectSchema.PropertyStates()
-
-      do {
-        var propertyDecoders = PropertyDecoders()
-        for element in repeat each archetype.elements {
-          guard let label = element.label else {
-            assertionFailure()
-            continue
-          }
-          propertyDecoders[Substring(label)] = { decoder, states in
-            try archetype.decode(
-              element,
-              from: &decoder,
-              state: &states.state
-            ).map { _ in }
-          }
-        }
-        self.propertyDecoders = propertyDecoders
-      }
-    }
-
     fileprivate init<each ComponentPropertyStates>(
       _ components: repeat ObjectSchemaValueDecodingState<
         each ComponentPropertyStates
@@ -516,9 +514,13 @@ extension SchemaCoding.Support {
       self.propertyStates = (repeat (each components).propertyStates)
 
       do {
-        let archetype = VariadicTupleArchetype<repeat each ComponentPropertyStates>()
+        typealias Archetype = VariadicTupleArchetype<repeat each ComponentPropertyStates>
+        let archetype = Archetype()
         var propertyDecoders = PropertyDecoders()
-        for (component, accessor) in repeat (each components, each archetype.elementAccessors) {
+        func process<T>(
+          _ component: ObjectSchemaValueDecodingState<T>,
+          _ accessor: Archetype.ElementAccessor<T>
+        ) {
           for (name, propertyDecoder) in component.propertyDecoders {
             propertyDecoders[name] = { decoder, states in
               try accessor.mutate(&states) { states in
@@ -527,20 +529,17 @@ extension SchemaCoding.Support {
             }
           }
         }
+        repeat process(each components, each archetype.elementAccessors)
         self.propertyDecoders = propertyDecoders
       }
     }
 
     fileprivate init(
       propertyDecoders: PropertyDecoders,
-      objectState: JSON.ObjectDecodingState,
       propertyStates: PropertyStates,
-      activePropertyDecoder: PropertyDecoder?
     ) {
       self.propertyDecoders = propertyDecoders
-      self.objectState = objectState
       self.propertyStates = propertyStates
-      self.activePropertyDecoder = activePropertyDecoder
     }
 
     fileprivate let propertyDecoders: PropertyDecoders

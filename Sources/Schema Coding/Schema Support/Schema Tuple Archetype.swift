@@ -57,6 +57,10 @@ extension SchemaCoding.Support {
       fileprivate let accessor:
         VariadicArchetype.ElementAccessor<SchemaTupleElementDecodingState<Schema>>
 
+      var unsafe: UnsafeSchemaTupleElement<Schema> {
+        UnsafeSchemaTupleElement(definition: definition, accessor: accessor.unsafe)
+      }
+
     }
     let elements: (repeat Element<each ElementSchema>)
 
@@ -84,6 +88,34 @@ extension SchemaCoding.Support {
           }
         case .decoded:
           throw Error.decodingTupleElementMultipleTimes(element.label)
+        }
+      }
+    }
+
+    func decode<Schema>(
+      _ element: UnsafeSchemaTupleElement<Schema>,
+      from decoder: inout Decoder,
+      state: inout UnsafeMutableVariadicTuple,
+    ) throws -> DecodingResult<Schema.Value> {
+      try element.accessor.mutate(&state) { elementState in
+        if case .uninitialized = elementState.kind {
+          elementState.kind = .decoding(element.definition.schema.initialValueDecodingState)
+        }
+        switch elementState.kind {
+        case .uninitialized:
+          assertionFailure()
+          throw Error.invalidState
+        case .decoding(var state):
+          switch try element.definition.schema.decodeValue(from: &decoder, state: &state).kind {
+          case .incomplete:
+            elementState.kind = .decoding(state)
+            return .incomplete
+          case .decoded(let value):
+            elementState.kind = .decoded(value)
+            return .decoded(value)
+          }
+        case .decoded:
+          throw Error.decodingTupleElementMultipleTimes(element.definition.label)
         }
       }
     }
@@ -149,6 +181,22 @@ extension SchemaCoding.Support {
 
   }
 
+  struct UnsafeSchemaTupleElement<Schema: SchemaCoding.Schema>: Sendable {
+    var label: String? {
+      definition.label
+    }
+    fileprivate let definition: SchemaTupleElementDefinition<Schema>
+    fileprivate let accessor: UnsafeVariadicTupleAccessor<SchemaTupleElementDecodingState<Schema>>
+  }
+
+}
+
+func withUnsafeSchemaTupleDecodingState<each ElementSchema, T>(
+  _ state:
+    inout (SchemaCoding.Support.SchemaTupleArchetype<repeat each ElementSchema>.DecodingState),
+  _ body: (inout UnsafeMutableVariadicTuple) throws -> T
+) rethrows -> T {
+  try withUnsafeMutableVariadicTuple(&state.elementStates, body)
 }
 
 // MARK: - Errors

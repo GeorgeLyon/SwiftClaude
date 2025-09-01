@@ -233,14 +233,18 @@ extension SchemaCoding.Support {
 
       do {
         var decoders = ValueDecoders()
-        for enumCase in repeat each self.cases {
+        func process<T>(_ enumCase: Case<T>) {
           decoders[enumCase.name] = { decoder, state in
-            try archetype.decode(enumCase.element, from: &decoder, state: &state)
-              .map { value in
-                enumCase.finishDecoding(value.1)
-              }
+            try archetype.decode(
+              enumCase.element,
+              from: &decoder,
+              state: &state
+            ).map { value in
+              enumCase.finishDecoding(value.1)
+            }
           }
         }
+        repeat process(each self.cases)
         self.valueDecoders = decoders
       }
     }

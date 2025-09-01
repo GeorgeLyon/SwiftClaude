@@ -58,13 +58,15 @@ extension SchemaCoding.Schema {
       isCodedAs: expectedJSONFragments,
       prettyPrint: prettyPrint,
       testEquality: { decoded, expected, sourceLocation in
-        for (decoded, expected) in repeat (each decoded, each expected) {
-          #expect(decoded == expected, sourceLocation: sourceLocation)
-          guard decoded == expected else {
-            return false
+        var isEqual = true
+        func process<T: Equatable>(_ a: T, _ b: T) {
+          #expect(a == b, sourceLocation: sourceLocation)
+          if a != b {
+            isEqual = false
           }
         }
-        return true
+        repeat process(each decoded, each expected)
+        return isEqual
       },
       sourceLocation: sourceLocation
     )
@@ -79,13 +81,15 @@ extension SchemaCoding.Schema {
       jsonFragments,
       decodesAs: (repeat each value),
       testEquality: { decoded, expected, sourceLocation in
-        for (decoded, expected) in repeat (each decoded, each expected) {
-          #expect(decoded == expected, sourceLocation: sourceLocation)
-          guard decoded == expected else {
-            return false
+        var isEqual = true
+        func process<T: Equatable>(_ a: T, _ b: T) {
+          #expect(a == b, sourceLocation: sourceLocation)
+          if a != b {
+            isEqual = false
           }
         }
-        return true
+        repeat process(each decoded, each expected)
+        return isEqual
       },
       sourceLocation: sourceLocation
     )

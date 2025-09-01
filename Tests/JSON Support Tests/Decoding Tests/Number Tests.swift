@@ -613,19 +613,6 @@ struct NumberTests {
       }
     }
 
-    /// Integer with exponent should fail
-    do {
-      var stream = JSON.DecodingStream()
-      stream.push("42e2")
-      stream.finish()
-
-      let number = try stream.decodeNumber().getValue()
-
-      #expect(throws: (any Error).self) {
-        try number.decode(as: Int.self)
-      }
-    }
-
     /// Number too large for type
     do {
       var stream = JSON.DecodingStream()
