@@ -1,3 +1,5 @@
+public import ClaudeCommon
+
 // MARK: - Tool
 
 public protocol Tool<Output> {
@@ -14,6 +16,8 @@ public protocol Tool<Output> {
     isolation: isolated Actor
   ) async throws(Failure) -> Output
 
+  func render(_ output: Output) -> ToolResultContent
+
 }
 
 extension Tool {
@@ -23,6 +27,26 @@ extension Tool {
     isolation: isolated Actor = #isolation
   ) async throws(Failure) -> Output {
     try await self.invoke(with: input, isolation: isolation)
+  }
+
+  public func render(_ output: Output) -> ToolResultContent {
+    "\(output)"
+  }
+
+}
+
+extension Tool where Output == String {
+
+  public func render(_ output: Output) -> ToolResultContent {
+    ToolResultContent(output)
+  }
+
+}
+
+extension Tool where Output == ToolResultContent {
+
+  public func render(_ output: Output) -> ToolResultContent {
+    output
   }
 
 }
@@ -48,13 +72,13 @@ public struct ClientDefinedToolDefinition<InputSchema: ToolInput.Schema>: ToolDe
     inputSchema: InputSchema
   ) {
     self.name = name
-    self.description = description
+    self.description = description ?? ""
     self.inputSchema = inputSchema
   }
 
   public let name: String
 
-  private let description: String?
+  private let description: String
 
   public let inputSchema: InputSchema
 
@@ -74,5 +98,83 @@ extension ClientDefinedToolDefinition: Encodable {
   private enum CodingKey: Swift.CodingKey {
     case name, description, inputSchema
   }
+
+}
+
+// MARK: - Tool Result Content
+
+public struct ToolResultContent: ExpressibleByStringInterpolation {
+
+  public init(_ text: String) {
+    self.blocks = [.text(TextBlock(text: text))]
+  }
+
+  public init(stringLiteral: String) {
+    self.init(stringLiteral)
+  }
+
+  public init(stringInterpolation: StringInterpolation) {
+    self.blocks = stringInterpolation.blocks
+  }
+
+  public struct StringInterpolation: StringInterpolationProtocol {
+
+    public init(literalCapacity: Int, interpolationCount: Int) {
+      blocks.reserveCapacity(literalCapacity + interpolationCount)
+    }
+
+    public mutating func appendLiteral(_ literal: String) {
+      blocks.append(.text(TextBlock(text: literal)))
+    }
+
+    /// The following methods mirror those defined on `DefaultStringInterpolation`
+    public mutating func appendInterpolation<T>(_ value: T)
+    where T: CustomStringConvertible, T: TextOutputStreamable {
+      appendInterpolation(raw: value)
+    }
+    public mutating func appendInterpolation<T>(_ value: T) where T: TextOutputStreamable {
+      appendInterpolation(raw: value)
+    }
+    public mutating func appendInterpolation<T>(_ value: T) where T: CustomStringConvertible {
+      appendInterpolation(raw: value)
+    }
+    public mutating func appendInterpolation<T>(_ value: T) {
+      appendInterpolation(raw: value)
+    }
+    public mutating func appendInterpolation(_ value: any Any.Type) {
+      appendInterpolation(raw: value)
+    }
+
+    /// `raw:`-prefixed methods to override other interpolations.
+    public mutating func appendInterpolation<T>(raw value: T)
+    where T: CustomStringConvertible, T: TextOutputStreamable {
+      appendLiteral("\(value)")
+    }
+    public mutating func appendInterpolation<T>(raw value: T) where T: TextOutputStreamable {
+      appendLiteral("\(value)")
+    }
+    public mutating func appendInterpolation<T>(raw value: T) where T: CustomStringConvertible {
+      appendLiteral("\(value)")
+    }
+    public mutating func appendInterpolation<T>(raw value: T) {
+      appendLiteral("\(value)")
+    }
+    public mutating func appendInterpolation(raw value: any Any.Type) {
+      appendLiteral("\(value)")
+    }
+
+    fileprivate var blocks: [Block] = []
+
+  }
+
+  public init(blocks: [Block]) {
+    self.blocks = blocks
+  }
+
+  public enum Block {
+    case text(TextBlock)
+    case image(ImageBlock)
+  }
+  public let blocks: [Block]
 
 }

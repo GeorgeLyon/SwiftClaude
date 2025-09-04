@@ -1,5 +1,6 @@
 private import AsyncAlgorithms
 public import ClaudeClient
+public import ClaudeCommon
 public import ClaudeMessagesEndpoint
 public import Observation
 private import Tool
@@ -12,7 +13,7 @@ extension Claude {
     in conversation: Conversation,
     model: Claude.Model? = nil,
     maxOutputTokens: Int? = nil,
-    imagePreprocessingMode: Claude.Image.PreprocessingMode? = nil,
+    imagePreprocessingMode: Image.PreprocessingMode? = nil,
     tools: Tools<Conversation.ToolOutput>? = nil,
     toolChoice: ToolChoice? = nil,
     invokeTools toolInvocationStrategy: ToolInvocationStrategy? = nil,
@@ -541,7 +542,7 @@ extension Claude.ConversationAssistantMessage {
 
   func messagesRequestMessages(
     for model: Claude.Model,
-    imagePreprocessingMode: Claude.Image.PreprocessingMode,
+    imagePreprocessingMode: Image.PreprocessingMode,
     toolInputDecodingFailureEncodingStrategy: Claude.ToolInputDecodingFailureEncodingStrategy,
     renderToolOutput: (Conversation.ToolOutput) throws -> ToolInvocationResultContent
   ) throws -> [ClaudeClient.MessagesEndpoint.Request.Message] {

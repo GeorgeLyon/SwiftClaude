@@ -1,4 +1,5 @@
 import ClaudeClient
+import ClaudeCommon
 import ClaudeMessagesEndpoint
 public import Observation
 
@@ -188,8 +189,8 @@ extension Claude.ConversationUserMessage {
 
   func messagesRequestMessageContent(
     for model: Claude.Model,
-    imagePreprocessingMode: Claude.Image.PreprocessingMode,
-    renderImage: (Image) throws -> Claude.Image
+    imagePreprocessingMode: ClaudeCommon.Image.PreprocessingMode,
+    renderImage: (Image) throws -> ClaudeCommon.Image
   ) throws -> ClaudeClient.MessagesEndpoint.Request.Message.Content {
     var content: ClaudeClient.MessagesEndpoint.Request.Message.Content = []
     for contentBlock in contentBlocks {
@@ -198,10 +199,12 @@ extension Claude.ConversationUserMessage {
         content.append(textBlock.text)
       case .imageBlock(let imageBlock):
         content.append(
-          contentsOf: try renderImage(imageBlock.image)
-            .messagesRequestMessageContent(
-              for: model,
-              preprocessingMode: imagePreprocessingMode)
+          .image(
+            try renderImage(imageBlock.image)
+              .block(
+                vision: model.vision,
+                preprocessingMode: imagePreprocessingMode)
+          )
         )
       }
     }

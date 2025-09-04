@@ -16,23 +16,30 @@ let package = Package(
     .library(
       name: "SwiftClaude",
       targets: ["ClaudeAPI"]
-    )
+    ),
+    .executable(
+      name: "MCPServerExample",
+      targets: ["MCPServerExample"]
+    ),
   ],
   dependencies: [
     .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
     .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "600.0.1"),
     .package(url: "https://github.com/apple/swift-async-algorithms", from: "1.0.0"),
+
+    .package(url: "https://github.com/modelcontextprotocol/swift-sdk.git", from: "0.10.0"),
   ],
   targets: [
     .target(
       name: "ClaudeClient",
       dependencies: [
         "Tool",
+        "ClaudeCommon",
         .product(name: "HTTPTypes", package: "swift-http-types"),
         .product(name: "HTTPTypesFoundation", package: "swift-http-types"),
       ],
       path: "Sources/Client",
-      swiftSettings: .claude
+      swiftSettings: .projectDefault
     ),
     .testTarget(
       name: "ClaudeClientTests",
@@ -43,10 +50,11 @@ let package = Package(
     .target(
       name: "ClaudeMessagesEndpoint",
       dependencies: [
-        "ClaudeClient"
+        "ClaudeClient",
+        "ClaudeCommon",
       ],
       path: "Sources/Messages Endpoint",
-      swiftSettings: .claude
+      swiftSettings: .projectDefault
     ),
 
     .target(
@@ -57,7 +65,7 @@ let package = Package(
         .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
       ],
       path: "Sources/Claude API",
-      swiftSettings: .claude
+      swiftSettings: .projectDefault
     ),
     .testTarget(
       name: "ClaudeTests",
@@ -66,11 +74,28 @@ let package = Package(
     ),
 
     .target(
+      name: "MCPServer",
+      dependencies: [
+        "Tool",
+        .product(name: "MCP", package: "swift-sdk"),
+      ],
+      path: "Sources/MCP Server",
+      swiftSettings: .projectDefault
+    ),
+    .executableTarget(
+      name: "MCPServerExample",
+      dependencies: ["MCPServer"],
+      path: "Examples/MCP Server",
+      swiftSettings: .projectDefault
+    ),
+
+    .target(
       name: "Tool",
       dependencies: [
-        "ToolMacros"
+        "ToolMacros",
+        "ClaudeCommon",
       ],
-      swiftSettings: .claude
+      swiftSettings: .projectDefault
     ),
     .testTarget(
       name: "ToolTests",
@@ -97,6 +122,11 @@ let package = Package(
       ],
       path: "Tests/Tool Macros Tests"
     ),
+
+    .target(
+      name: "ClaudeCommon",
+      path: "Sources/Common"
+    ),
   ]
 )
 
@@ -107,7 +137,7 @@ extension Array where Element == Platform {
 }
 
 extension Array where Element == SwiftSetting {
-  fileprivate static let claude: [SwiftSetting] = [
+  fileprivate static let projectDefault: [SwiftSetting] = [
     .enableUpcomingFeature("InternalImportsByDefault")
   ]
 }

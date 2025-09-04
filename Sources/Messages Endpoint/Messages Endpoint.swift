@@ -1,4 +1,5 @@
 public import ClaudeClient
+public import ClaudeCommon
 public import Tool
 
 public typealias MessagesEndpoint = ClaudeClient.MessagesEndpoint
@@ -292,7 +293,7 @@ extension ClaudeClient.MessagesEndpoint.Request {
   public struct AnthropicToolDefinition: Sendable {
 
     public static func computer(
-      displaySize: ClaudeClient.Image.Size,
+      displaySize: Image.Size,
       displayNumber: Int? = nil
     ) -> Self {
       let definition = Computer(

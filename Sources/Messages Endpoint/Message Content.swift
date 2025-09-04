@@ -1,4 +1,5 @@
 public import ClaudeClient
+public import ClaudeCommon
 
 public import struct Foundation.Data
 
@@ -196,13 +197,9 @@ extension ClaudeClient.MessagesEndpoint.Request.Message.Content {
     }
 
     public static func image(
-      _ imageSource: ImageSource
+      _ block: ImageBlock
     ) -> Block {
-      Block(
-        Image(
-          source: AnyEncodable(imageSource.payload)
-        )
-      )
+      Block(block)
     }
 
     public typealias CacheBreakpoint = ClaudeClient.MessagesEndpoint.Request.CacheBreakpoint
@@ -262,73 +259,6 @@ extension ClaudeClient.MessagesEndpoint.Request.Message.Content {
     >.Element
     fileprivate let cacheableComponentArrayElement: Element
 
-  }
-
-}
-
-// MARK: - Images
-
-extension ClaudeClient.MessagesEndpoint.Request.Message.Content {
-
-  public struct ImageSource {
-
-    public struct MediaType: ExpressibleByStringLiteral {
-      public static var jpeg: Self { "image/jpeg" }
-      public static var png: Self { "image/png" }
-      public static var gif: Self { "image/gif" }
-      public static var webp: Self { "image/webp" }
-
-      public func encode(to encoder: any Encoder) throws {
-        try rawValue.encode(to: encoder)
-      }
-
-      public init(stringLiteral value: StringLiteralType) {
-        self.rawValue = value
-      }
-
-      fileprivate let rawValue: String
-    }
-
-    public static func base64(
-      mediaType: MediaType,
-      data: Data
-    ) -> Self {
-      Self(
-        payload: Base64(
-          mediaType: mediaType.rawValue,
-          data: data
-        )
-      )
-    }
-
-    private struct Base64: Encodable {
-
-      init(
-        mediaType: String,
-        data: Data
-      ) {
-        self.mediaType = mediaType
-        self.data = Base64EncodedData(rawData: data)
-      }
-
-      private let type = "base64"
-      private let mediaType: String
-
-      private struct Base64EncodedData: Encodable {
-        let rawData: Data
-        func encode(to encoder: any Encoder) throws {
-          var container = encoder.singleValueContainer()
-          try container.encode(rawData.base64EncodedString())
-        }
-      }
-      private let data: Base64EncodedData
-    }
-
-    fileprivate let payload: any Encodable & Sendable
-
-    private init(payload: any Encodable & Sendable) {
-      self.payload = payload
-    }
   }
 
 }

@@ -1,4 +1,5 @@
 import ClaudeClient
+public import ClaudeCommon
 import ClaudeMessagesEndpoint
 public import Tool
 
@@ -28,7 +29,7 @@ extension Claude {
 
     static func image(
       for userMessageImage: UserMessageImage
-    ) throws -> Claude.Image
+    ) throws -> Image
 
     static func toolUseBlock<Tool: Claude.Tool>(
       for toolUse: Claude.ToolUse<Tool>
@@ -66,7 +67,7 @@ extension Claude.Conversation where UserMessageImage == Never {
 
   public static func image(
     for userMessageImage: UserMessageImage
-  ) throws -> Claude.Image {
+  ) throws -> Image {
 
   }
 
@@ -78,7 +79,7 @@ extension Claude.Conversation where UserMessageImage == Never {
     public static func image(
       for userMessageImage: UserMessageImage
     ) throws -> Claude.Image {
-      Claude.PlatformImage(userMessageImage)
+      Image(userMessageImage)
     }
 
   }
@@ -89,8 +90,8 @@ extension Claude.Conversation where UserMessageImage == Never {
 
     public static func image(
       for userMessageImage: UserMessageImage
-    ) throws -> Claude.Image {
-      Claude.PlatformImage(userMessageImage)
+    ) throws -> Image {
+      Image(userMessageImage)
     }
 
   }
@@ -317,7 +318,7 @@ extension Claude.Conversation {
 
   func messagesRequestMessages(
     for model: Claude.Model,
-    imagePreprocessingMode: Claude.Image.PreprocessingMode
+    imagePreprocessingMode: Image.PreprocessingMode
   ) throws -> [ClaudeClient.MessagesEndpoint.Request.Message] {
     var messages: [ClaudeClient.MessagesEndpoint.Request.Message] = []
     for message in self.messages {

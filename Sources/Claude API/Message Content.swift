@@ -1,4 +1,5 @@
 public import ClaudeClient
+public import ClaudeCommon
 public import ClaudeMessagesEndpoint
 
 #if canImport(UIKit)
@@ -84,7 +85,7 @@ extension Claude {
         public static func image(
           _ image: UIImage
         ) -> Self {
-          Self(kind: .image(Claude.PlatformImage(image)))
+          Self(kind: .image(Image(image)))
         }
       #endif
 
@@ -92,7 +93,7 @@ extension Claude {
         public static func image(
           _ image: NSImage
         ) -> Self {
-          Self(kind: .image(Claude.PlatformImage(image)))
+          Self(kind: .image(Image(image)))
         }
       #endif
 
@@ -158,11 +159,11 @@ extension Claude {
             )
           )
         case .image(let image):
-          let otherContent = try image.messagesRequestMessageContent(
-            for: model,
+          let otherContent = try image.block(
+            vision: model.vision,
             preprocessingMode: imagePreprocessingMode
           )
-          content.append(contentsOf: otherContent)
+          content.append(.image(otherContent))
           break
         case .cacheBreakpoint(let breakpoint):
           content.append(.cacheBreakpoint(breakpoint))
@@ -367,7 +368,7 @@ extension Claude.SupportsImagesInMessageContent {
     public init(
       _ image: UIImage
     ) {
-      self.init(Claude.PlatformImage(image))
+      self.init(Image(image))
     }
   #endif
 
@@ -375,12 +376,12 @@ extension Claude.SupportsImagesInMessageContent {
     public init(
       _ image: NSImage
     ) {
-      self.init(Claude.PlatformImage(image))
+      self.init(Image(image))
     }
   #endif
 
   public init(
-    _ image: Claude.Image
+    _ image: Image
   ) {
     self.init(
       messageContent: MessageContent(
@@ -397,7 +398,7 @@ extension Claude.SupportsImagesInMessageContent where Self: Claude.MessageConten
     public mutating func append(
       _ image: UIImage
     ) {
-      append(Claude.PlatformImage(image))
+      append(Image(image))
     }
   #endif
 
@@ -405,12 +406,12 @@ extension Claude.SupportsImagesInMessageContent where Self: Claude.MessageConten
     public mutating func append(
       _ image: NSImage
     ) {
-      append(Claude.PlatformImage(image))
+      append(Image(image))
     }
   #endif
 
   public mutating func append(
-    _ image: Claude.Image
+    _ image: Image
   ) {
     messageContent.append(
       contentsOf: MessageContent(
@@ -449,7 +450,7 @@ where Component: Claude.SupportsImagesInMessageContent {
   #endif
 
   public mutating func appendInterpolation(
-    _ image: Claude.Image,
+    _ image: Image,
     cacheBreakpoint: Claude.Beta.CacheBreakpoint? = nil
   ) {
     messageContent.components.append(.image(image))
@@ -491,7 +492,7 @@ extension Claude.MessageContentBuilder where Result: Claude.SupportsImagesInMess
   #endif
 
   public static func buildExpression(
-    _ image: Claude.Image
+    _ image: Image
   ) -> Component {
     Component(
       messageContent: Claude.MessageContent(

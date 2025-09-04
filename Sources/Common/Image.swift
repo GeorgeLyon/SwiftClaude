@@ -1,6 +1,3 @@
-public import ClaudeClient
-public import ClaudeMessagesEndpoint
-
 private import struct Foundation.Data
 
 #if canImport(AppKit)
@@ -11,110 +8,112 @@ private import struct Foundation.Data
   public import UIKit
 #endif
 
-extension Claude {
+public struct Image {
 
-  public typealias ImageSize = ClaudeClient.Image.Size
+  #if canImport(UIKit)
+    public init(
+      _ image: UIImage
+    ) {
+      self.backing = image
+    }
+  #endif
 
-  public protocol Image {
-    var size: Size { get }
+  #if canImport(AppKit)
+    public init(
+      _ image: NSImage
+    ) {
+      self.backing = image
+    }
+  #endif
 
-    func messagesRequestMessageContent(
-      for model: Model,
-      preprocessingMode: PreprocessingMode
-    ) throws -> ClaudeClient.MessagesEndpoint.Request.Message.Content
+  public struct Size: Sendable {
+    public init(
+      widthInPixels: Int,
+      heightInPixels: Int
+    ) {
+      self.widthInPixels = widthInPixels
+      self.heightInPixels = heightInPixels
+    }
+    public let widthInPixels: Int
+    public let heightInPixels: Int
+  }
+  public var size: Size {
+    backing.imageSize
   }
 
-}
+  public struct PreprocessingMode {
 
-extension Claude.Image {
-  public typealias Size = ClaudeClient.Image.Size
-  public typealias PreprocessingMode = ClaudeClient.Image.PreprocessingMode
-}
-
-extension Claude {
-
-  struct PlatformImage: Image {
-
-    #if canImport(UIKit)
-      public init(
-        _ image: UIImage
-      ) {
-        self.backing = image
-      }
-    #endif
-
-    #if canImport(AppKit)
-      public init(
-        _ image: NSImage
-      ) {
-        self.backing = image
-      }
-    #endif
-
-    public typealias Size = ClaudeClient.Image.Size
-    public var size: Size {
-      backing.claudeImageSize
+    /// Use whatever processing `SwiftClaude` deems appropriate
+    /// - Parameters:
+    ///   - quality:
+    ///       A number between 0 and 1.
+    ///       A quality of 0 will downsize images up to the minimum recommended size.
+    ///       A quality of 1 will downsize images up to the maximum recommended size.
+    public static func recommended(quality: Double = 1) -> Self {
+      Self(kind: .default(quality: 1))
     }
 
-    public typealias PreprocessingMode = ClaudeClient.Image.PreprocessingMode
+    /// Don't process the images at all
+    public static var disabled: Self {
+      Self(kind: .disabled)
+    }
 
-    public func messagesRequestMessageContent(
-      for model: Model,
-      preprocessingMode: PreprocessingMode
-    ) throws -> ClaudeClient.MessagesEndpoint.Request.Message.Content {
+    enum Kind {
+      case `default`(quality: Double)
+      case disabled
+    }
+    let kind: Kind
+  }
 
-      let preprocessedImage: PlatformImageBacking
-      let recommendedSize = try model.vision.recommendedSize(
-        forSourceImageOfSize: size,
-        preprocessingMode: preprocessingMode
+  public func block(
+    vision: Vision,
+    preprocessingMode: PreprocessingMode
+  ) throws -> ImageBlock {
+
+    let preprocessedImage: ImageBacking
+    let recommendedSize = try vision.recommendedSize(
+      forSourceImageOfSize: size,
+      preprocessingMode: preprocessingMode
+    )
+    if recommendedSize.widthInPixels != size.widthInPixels,
+      recommendedSize.heightInPixels != size.heightInPixels
+    {
+      preprocessedImage = try backing.resized(to: recommendedSize)
+    } else {
+      preprocessedImage = backing
+    }
+
+    return ImageBlock(
+      source: MediaSource.Base64(
+        mediaType: .image.png,
+        data: try preprocessedImage.pngRepresentation
       )
-      if recommendedSize.widthInPixels != size.widthInPixels,
-        recommendedSize.heightInPixels != size.heightInPixels
-      {
-        preprocessedImage = try backing.resized(to: recommendedSize)
-      } else {
-        preprocessedImage = backing
-      }
-
-      return [
-        .image(
-          .base64(
-            mediaType: .png,
-            data: try preprocessedImage.pngRepresentation
-          )
-        )
-      ]
-
-    }
-
-    private let backing: PlatformImageBacking
+    )
 
   }
 
-}
-
-extension Claude.Image {
+  private let backing: ImageBacking
 
 }
 
-private protocol PlatformImageBacking {
-  func resized(to newSize: ClaudeClient.Image.Size) throws -> PlatformImageBacking
+private protocol ImageBacking {
+  func resized(to newSize: Image.Size) throws -> ImageBacking
   var pngRepresentation: Data { get throws }
-  var claudeImageSize: Claude.Image.Size { get }
+  var imageSize: Image.Size { get }
 }
 
 #if canImport(UIKit)
 
-  extension UIImage: PlatformImageBacking {
+  extension UIImage: ImageBacking {
 
-    fileprivate var claudeImageSize: Claude.Image.Size {
+    fileprivate var imageSize: Claude.Image.Size {
       Claude.Image.Size(
         widthInPixels: Int(size.width),
         heightInPixels: Int(size.height)
       )
     }
 
-    fileprivate func resized(to newSize: ClaudeClient.Image.Size) throws -> PlatformImageBacking {
+    fileprivate func resized(to newSize: ClaudeClient.Image.Size) throws -> ImageBacking {
       let newSize = CGSize(
         width: newSize.widthInPixels,
         height: newSize.heightInPixels
@@ -145,16 +144,16 @@ private protocol PlatformImageBacking {
 
 #if canImport(AppKit)
 
-  extension NSImage: PlatformImageBacking {
+  extension NSImage: ImageBacking {
 
-    fileprivate var claudeImageSize: Claude.Image.Size {
-      Claude.Image.Size(
+    fileprivate var imageSize: Image.Size {
+      Image.Size(
         widthInPixels: Int(size.width),
         heightInPixels: Int(size.height)
       )
     }
 
-    fileprivate func resized(to newSize: ClaudeClient.Image.Size) throws -> PlatformImageBacking {
+    fileprivate func resized(to newSize: Image.Size) throws -> ImageBacking {
       /// Logic adapted from https://stackoverflow.com/questions/11949250/how-to-resize-nsimage/42915296#42915296
 
       guard isValid else { throw InvalidImage() }

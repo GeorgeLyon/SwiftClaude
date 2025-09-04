@@ -1,3 +1,5 @@
+public import ClaudeCommon
+
 /// https://docs.anthropic.com/en/docs/about-claude/models
 extension ClaudeClient.Model {
 
@@ -13,7 +15,7 @@ extension ClaudeClient.Model {
     Self(
       id: "claude-opus-4-1-20250805",
       maxOutputTokens: 8192,
-      vision: .standard
+      vision: .anthropicDefault
     )
   }
 
@@ -21,7 +23,7 @@ extension ClaudeClient.Model {
     Self(
       id: "claude-opus-4-20250514",
       maxOutputTokens: 8192,
-      vision: .standard
+      vision: .anthropicDefault
     )
   }
 
@@ -31,7 +33,7 @@ extension ClaudeClient.Model {
     Self(
       id: "claude-sonnet-4-20250514",
       maxOutputTokens: 8192,
-      vision: .standard
+      vision: .anthropicDefault
     )
   }
 
@@ -39,7 +41,7 @@ extension ClaudeClient.Model {
     Self(
       id: "claude-3-7-sonnet-20250219",
       maxOutputTokens: 8192,
-      vision: .standard
+      vision: .anthropicDefault
     )
   }
 
@@ -49,7 +51,7 @@ extension ClaudeClient.Model {
     Self(
       id: "claude-3-5-haiku-20241022",
       maxOutputTokens: 8192,
-      vision: .standard
+      vision: .anthropicDefault
     )
   }
 
@@ -57,7 +59,7 @@ extension ClaudeClient.Model {
     Self(
       id: "claude-3-haiku-20240307",
       maxOutputTokens: 4096,
-      vision: .standard
+      vision: .anthropicDefault
     )
   }
 
