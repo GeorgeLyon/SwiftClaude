@@ -17,6 +17,10 @@ let package = Package(
       name: "SwiftClaude",
       targets: ["ClaudeAPI"]
     ),
+    .library(
+      name: "MCPServer",
+      targets: ["MCPServer"]
+    ),
     .executable(
       name: "MCPServerExample",
       targets: ["MCPServerExample"]

@@ -78,7 +78,7 @@ extension Claude.Conversation where UserMessageImage == Never {
 
     public static func image(
       for userMessageImage: UserMessageImage
-    ) throws -> Claude.Image {
+    ) throws -> Image {
       Image(userMessageImage)
     }
 

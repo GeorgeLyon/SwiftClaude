@@ -106,14 +106,14 @@ private protocol ImageBacking {
 
   extension UIImage: ImageBacking {
 
-    fileprivate var imageSize: Claude.Image.Size {
-      Claude.Image.Size(
+    fileprivate var imageSize: Image.Size {
+      Image.Size(
         widthInPixels: Int(size.width),
         heightInPixels: Int(size.height)
       )
     }
 
-    fileprivate func resized(to newSize: ClaudeClient.Image.Size) throws -> ImageBacking {
+    fileprivate func resized(to newSize: Image.Size) throws -> ImageBacking {
       let newSize = CGSize(
         width: newSize.widthInPixels,
         height: newSize.heightInPixels
