@@ -48,9 +48,18 @@ extension MCPServer {
       return await tool.invoke(argumentsData: argumentsData, decoder: decoder)
     }
 
-    try await Task.sleep(for: .seconds(60 * 60 * 24))
+    do {
+      /// Sleep forever
+      while true {
+        try await Task.sleep(for: .seconds(60 * 60 * 24))
+      }
+    } catch is CancellationError {
+      /// ignore `CancellationError`
+    }
+    
+    await server.stop()
   }
-
+  
   private func mcpTools() throws -> [Tool] {
     let decoder = JSONDecoder()
     let encoder = JSONEncoder()
