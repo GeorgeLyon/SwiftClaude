@@ -13,7 +13,7 @@ public protocol Tool<Output> {
 
   func invoke(
     with input: Input,
-    isolation: isolated Actor
+    isolation: isolated Actor?
   ) async throws(Failure) -> Output
 
   func render(_ output: Output) -> ToolResultContent
@@ -24,7 +24,7 @@ extension Tool {
 
   public func invoke(
     with input: Input,
-    isolation: isolated Actor = #isolation
+    isolation: isolated Actor? = #isolation
   ) async throws(Failure) -> Output {
     try await self.invoke(with: input, isolation: isolation)
   }
@@ -106,7 +106,7 @@ extension ClientDefinedToolDefinition: Encodable {
 public struct ToolResultContent: ExpressibleByStringInterpolation {
 
   public init(_ text: String) {
-    self.blocks = [.text(TextBlock(text: text))]
+    self.components = [.text(text)]
   }
 
   public init(stringLiteral: String) {
@@ -114,17 +114,25 @@ public struct ToolResultContent: ExpressibleByStringInterpolation {
   }
 
   public init(stringInterpolation: StringInterpolation) {
-    self.blocks = stringInterpolation.blocks
+    self.components = stringInterpolation.components
   }
 
   public struct StringInterpolation: StringInterpolationProtocol {
 
     public init(literalCapacity: Int, interpolationCount: Int) {
-      blocks.reserveCapacity(literalCapacity + interpolationCount)
+      components.reserveCapacity(literalCapacity + interpolationCount)
     }
 
     public mutating func appendLiteral(_ literal: String) {
-      blocks.append(.text(TextBlock(text: literal)))
+      guard !literal.isEmpty else {
+        return
+      }
+      if case .text(let prefix) = components.last {
+        components.removeLast()
+        components.append(.text(prefix + literal))
+      } else {
+        components.append(.text(literal))
+      }
     }
 
     /// The following methods mirror those defined on `DefaultStringInterpolation`
@@ -163,18 +171,18 @@ public struct ToolResultContent: ExpressibleByStringInterpolation {
       appendLiteral("\(value)")
     }
 
-    fileprivate var blocks: [Block] = []
+    fileprivate var components: [Component] = []
 
   }
 
-  public init(blocks: [Block]) {
-    self.blocks = blocks
+  public init(components: [Component]) {
+    self.components = components
   }
 
-  public enum Block {
-    case text(TextBlock)
-    case image(ImageBlock)
+  public enum Component {
+    case text(String)
+    case image(Image)
   }
-  public let blocks: [Block]
+  public let components: [Component]
 
 }

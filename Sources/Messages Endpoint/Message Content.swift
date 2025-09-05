@@ -1,8 +1,6 @@
 public import ClaudeClient
 public import ClaudeCommon
 
-public import struct Foundation.Data
-
 extension ClaudeClient.MessagesEndpoint.Request.Message {
 
   /// - note:

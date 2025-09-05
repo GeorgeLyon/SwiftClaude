@@ -45,20 +45,22 @@ public enum MediaSource {
       data: Data
     ) {
       self.mediaType = mediaType
-      self.data = Base64EncodedData(rawData: data)
+      self.data = data
     }
 
-    private let type = "base64"
-    private let mediaType: MediaType
+    public let mediaType: MediaType
+    public let data: Data
 
-    private struct Base64EncodedData: Encodable {
-      let rawData: Data
-      func encode(to encoder: any Encoder) throws {
-        var container = encoder.singleValueContainer()
-        try container.encode(rawData.base64EncodedString())
-      }
+    public func encode(to encoder: any Encoder) throws {
+      var container = encoder.container(keyedBy: CodingKey.self)
+      try container.encode("base64", forKey: .type)
+      try container.encode(mediaType, forKey: .mediaType)
+      try container.encode(data.base64EncodedString(), forKey: .data)
     }
-    private let data: Base64EncodedData
+
+    private enum CodingKey: Swift.CodingKey {
+      case type, mediaType, data
+    }
 
   }
 

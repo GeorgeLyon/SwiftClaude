@@ -1,6 +1,8 @@
 import Foundation
 import MCP
 
+import struct Tool.ToolResultContent
+
 @MainActor
 public protocol MCPServer: SendableMetatype {
   init()
@@ -29,20 +31,19 @@ extension MCPServer {
       )
     }
 
-    await server.withMethodHandler(CallTool.self) { params in
-      switch params.name {
-      case "add":
-        if let a = params.arguments?["a"]?.intValue,
-          let b = params.arguments?["b"]?.intValue
-        {
-          return .init(content: [.text("\(a + b)")], isError: false)
-        } else {
-          return .init(content: [.text("Missing parameter")], isError: true)
-        }
-
-      default:
+    await server.withMethodHandler(CallTool.self) { @MainActor params in
+      guard let tool = tools.toolsByName[params.name] else {
         return .init(content: [.text("Unknown tool")], isError: true)
       }
+      guard let arguments = params.arguments else {
+        return .init(content: [.text("Missing arguments")], isError: true)
+      }
+
+      let decoder = JSONDecoder()
+      let encoder = JSONEncoder()
+      let argumentsData = try encoder.encode(arguments)
+
+      return try await tool.invoke(argumentsData: argumentsData, decoder: decoder)
     }
 
     try await Task.sleep(for: .seconds(60 * 60 * 24))
@@ -51,17 +52,9 @@ extension MCPServer {
   private func mcpTools() throws -> [Tool] {
     let decoder = JSONDecoder()
     let encoder = JSONEncoder()
-    let datas = try tools.tools.map { tool in
-      try encoder.encode(tool.definition)
-    }
-    let string =
-      datas
-      .map { data in
-        String(decoding: data, as: UTF8.self)
-      }
-      .joined(separator: "\n")
-    return try datas.map { data in
-      try decoder.decode(Tool.self, from: data)
+    return try tools.tools.map { tool in
+      let data = try encoder.encode(tool.definition)
+      return try decoder.decode(Tool.self, from: data)
     }
   }
 }

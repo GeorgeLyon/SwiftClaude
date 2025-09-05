@@ -65,7 +65,7 @@ extension DeclGroupSyntax {
             specifier: .keyword(SwiftSyntax.Keyword.isolated)
           )
         },
-        baseType: IdentifierTypeSyntax(name: "Actor")
+        baseType: OptionalTypeSyntax(wrappedType: IdentifierTypeSyntax(name: "Actor"))
       )
     )
 
