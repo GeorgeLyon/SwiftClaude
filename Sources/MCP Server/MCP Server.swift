@@ -6,6 +6,8 @@ import struct Tool.ToolResultContent
 @MainActor
 public protocol MCPServer: SendableMetatype {
   init()
+  var name: String { get }
+  var version: String { get }
   var tools: Tools { get }
 }
 
@@ -16,8 +18,8 @@ extension MCPServer {
 
   private func serve() async throws {
     let server = Server(
-      name: "SwiftClaudeExample",
-      version: "0.0.0",
+      name: name,
+      version: version,
       capabilities: .init(
         tools: .init()
       )
@@ -43,7 +45,7 @@ extension MCPServer {
       let encoder = JSONEncoder()
       let argumentsData = try encoder.encode(arguments)
 
-      return try await tool.invoke(argumentsData: argumentsData, decoder: decoder)
+      return await tool.invoke(argumentsData: argumentsData, decoder: decoder)
     }
 
     try await Task.sleep(for: .seconds(60 * 60 * 24))

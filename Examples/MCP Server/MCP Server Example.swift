@@ -4,9 +4,13 @@ import Tool
 @main
 struct MCPServerExample: MCPServer {
 
+  let name = "MCPServerExample"
+  let version = "0.0.0"
+
   let tools: Tools = [
     ExampleAddTool()
   ]
+
 }
 
 @Tool
