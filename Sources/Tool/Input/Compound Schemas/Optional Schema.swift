@@ -30,7 +30,8 @@ extension Optional: ToolInput.SchemaCodable where Wrapped: ToolInput.SchemaCodab
 extension KeyedEncodingContainer {
 
   mutating func encodeSchemaDefinition<
-    PropertyKey: CodingKey, each PropertySchema: ToolInput.Schema
+    PropertyKey: CodingKey,
+    each PropertySchema: ToolInput.Schema
   >(
     properties: repeat ObjectPropertySchema<PropertyKey, each PropertySchema>,
     propertiesKey: Key,

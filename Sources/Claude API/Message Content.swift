@@ -3,11 +3,11 @@ public import ClaudeCommon
 public import ClaudeMessagesEndpoint
 
 #if canImport(UIKit)
-  public import UIKit
+public import UIKit
 #endif
 
 #if canImport(AppKit)
-  public import AppKit
+public import AppKit
 #endif
 
 extension Claude {
@@ -82,19 +82,19 @@ extension Claude {
       }
 
       #if canImport(UIKit)
-        public static func image(
-          _ image: UIImage
-        ) -> Self {
-          Self(kind: .image(Image(image)))
-        }
+      public static func image(
+        _ image: UIImage
+      ) -> Self {
+        Self(kind: .image(Image(image)))
+      }
       #endif
 
       #if canImport(AppKit)
-        public static func image(
-          _ image: NSImage
-        ) -> Self {
-          Self(kind: .image(Image(image)))
-        }
+      public static func image(
+        _ image: NSImage
+      ) -> Self {
+        Self(kind: .image(Image(image)))
+      }
       #endif
 
       public static func cacheBreakpoint(_ cacheBreakpoint: Beta.CacheBreakpoint) -> Self {
@@ -139,7 +139,7 @@ extension Claude {
         switch component.kind {
         case .text(let text):
           content.append(text)
-        case let .toolUse(id, name, input):
+        case .toolUse(let id, let name, let input):
           content.append(
             .toolUse(
               id: id,
@@ -147,14 +147,15 @@ extension Claude {
               input: input
             )
           )
-        case let .toolResult(id, resultContent, isError):
+        case .toolResult(let id, let resultContent, let isError):
           content.append(
             .toolResult(
               id: id,
-              content: try resultContent?.messagesRequestMessageContent(
-                for: model,
-                imagePreprocessingMode: imagePreprocessingMode
-              ),
+              content: try resultContent?
+                .messagesRequestMessageContent(
+                  for: model,
+                  imagePreprocessingMode: imagePreprocessingMode
+                ),
               isError: isError
             )
           )
@@ -365,19 +366,19 @@ extension Claude {
 extension Claude.SupportsImagesInMessageContent {
 
   #if canImport(UIKit)
-    public init(
-      _ image: UIImage
-    ) {
-      self.init(Image(image))
-    }
+  public init(
+    _ image: UIImage
+  ) {
+    self.init(Image(image))
+  }
   #endif
 
   #if canImport(AppKit)
-    public init(
-      _ image: NSImage
-    ) {
-      self.init(Image(image))
-    }
+  public init(
+    _ image: NSImage
+  ) {
+    self.init(Image(image))
+  }
   #endif
 
   public init(
@@ -395,19 +396,19 @@ extension Claude.SupportsImagesInMessageContent {
 extension Claude.SupportsImagesInMessageContent where Self: Claude.MessageContentRepresentable {
 
   #if canImport(UIKit)
-    public mutating func append(
-      _ image: UIImage
-    ) {
-      append(Image(image))
-    }
+  public mutating func append(
+    _ image: UIImage
+  ) {
+    append(Image(image))
+  }
   #endif
 
   #if canImport(AppKit)
-    public mutating func append(
-      _ image: NSImage
-    ) {
-      append(Image(image))
-    }
+  public mutating func append(
+    _ image: NSImage
+  ) {
+    append(Image(image))
+  }
   #endif
 
   public mutating func append(
@@ -426,27 +427,27 @@ extension Claude.MessageContentStringInterpolation
 where Component: Claude.SupportsImagesInMessageContent {
 
   #if canImport(UIKit)
-    public mutating func appendInterpolation(
-      _ image: UIImage,
-      cacheBreakpoint: Claude.Beta.CacheBreakpoint? = nil
-    ) {
-      messageContent.components.append(.image(image))
-      if let cacheBreakpoint {
-        messageContent.components.append(.cacheBreakpoint(cacheBreakpoint))
-      }
+  public mutating func appendInterpolation(
+    _ image: UIImage,
+    cacheBreakpoint: Claude.Beta.CacheBreakpoint? = nil
+  ) {
+    messageContent.components.append(.image(image))
+    if let cacheBreakpoint {
+      messageContent.components.append(.cacheBreakpoint(cacheBreakpoint))
     }
+  }
   #endif
 
   #if canImport(AppKit)
-    public mutating func appendInterpolation(
-      _ image: NSImage,
-      cacheBreakpoint: Claude.Beta.CacheBreakpoint? = nil
-    ) {
-      messageContent.components.append(.image(image))
-      if let cacheBreakpoint {
-        messageContent.components.append(.cacheBreakpoint(cacheBreakpoint))
-      }
+  public mutating func appendInterpolation(
+    _ image: NSImage,
+    cacheBreakpoint: Claude.Beta.CacheBreakpoint? = nil
+  ) {
+    messageContent.components.append(.image(image))
+    if let cacheBreakpoint {
+      messageContent.components.append(.cacheBreakpoint(cacheBreakpoint))
     }
+  }
   #endif
 
   public mutating func appendInterpolation(
@@ -464,31 +465,31 @@ where Component: Claude.SupportsImagesInMessageContent {
 extension Claude.MessageContentBuilder where Result: Claude.SupportsImagesInMessageContent {
 
   #if canImport(UIKit)
-    public static func buildExpression(
-      _ image: UIImage
-    ) -> Component {
-      Component(
-        messageContent: Claude.MessageContent(
-          [
-            .image(image)
-          ]
-        )
+  public static func buildExpression(
+    _ image: UIImage
+  ) -> Component {
+    Component(
+      messageContent: Claude.MessageContent(
+        [
+          .image(image)
+        ]
       )
-    }
+    )
+  }
   #endif
 
   #if canImport(AppKit)
-    public static func buildExpression(
-      _ image: NSImage
-    ) -> Component {
-      Component(
-        messageContent: Claude.MessageContent(
-          [
-            .image(image)
-          ]
-        )
+  public static func buildExpression(
+    _ image: NSImage
+  ) -> Component {
+    Component(
+      messageContent: Claude.MessageContent(
+        [
+          .image(image)
+        ]
       )
-    }
+    )
+  }
   #endif
 
   public static func buildExpression(

@@ -13,7 +13,8 @@ private struct AnthropicEnumTests {
       try decoder.decode(
         AnthropicEnum<TestEnum>.self,
         from: Data(string.utf8)
-      ).wrappedValue
+      )
+      .wrappedValue
     }
 
     #expect(

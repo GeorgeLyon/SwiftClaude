@@ -33,7 +33,9 @@ struct TupleSchemaTests {
       for: schema1.value(
         fromJSON: """
           ["foo", 42]
-          """))
+          """
+      )
+    )
 
     #expect(
       value1 == """
@@ -49,7 +51,9 @@ struct TupleSchemaTests {
       for: schema2.value(
         fromJSON: """
           ["bar", 123, 3.14]
-          """))
+          """
+      )
+    )
 
     #expect(
       value2 == """
@@ -68,7 +72,8 @@ struct TupleSchemaTests {
     let tuple: (String, Int) = stringIntSchema.value(
       fromJSON: """
         ["hello", 42]
-        """)
+        """
+    )
 
     #expect(tuple.0 == "hello")
     #expect(tuple.1 == 42)
@@ -77,7 +82,8 @@ struct TupleSchemaTests {
     let tuple3: (String, Int, Double) = stringIntDoubleSchema.value(
       fromJSON: """
         ["world", 123, 3.14]
-        """)
+        """
+    )
 
     #expect(tuple3.0 == "world")
     #expect(tuple3.1 == 123)

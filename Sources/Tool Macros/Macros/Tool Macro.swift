@@ -79,7 +79,8 @@ extension DeclGroupSyntax {
           throw DiagnosticError(
             node: parameter,
             severity: .error,
-            message: "All parameters must be named")
+            message: "All parameters must be named"
+          )
         }
         guard !parameter.type.isIsolated else {
           /// Skip the isolation parameter
@@ -202,7 +203,8 @@ extension DeclGroupSyntax {
       try [
         [declName.trimmed],
         context.lexicalContext.map { try $0.declName.trimmed },
-      ].joined().reversed().makeIterator()
+      ]
+      .joined().reversed().makeIterator()
     var type: any TypeSyntaxProtocol = IdentifierTypeSyntax(name: path.next()!)
     while let next = path.next() {
       type = MemberTypeSyntax(
@@ -244,7 +246,8 @@ extension DeclGroupSyntax {
               CodeBlockItemListSyntax {
                 FunctionCallExprSyntax(
                   calledExpression: DeclReferenceExprSyntax(
-                    baseName: "ClientDefinedToolDefinition"),
+                    baseName: "ClientDefinedToolDefinition"
+                  ),
                   leftParen: .leftParenToken(trailingTrivia: .newline),
                   arguments: LabeledExprListSyntax {
                     LabeledExprSyntax(
@@ -433,7 +436,9 @@ extension FunctionDeclSyntax {
     case (true, false):
       ExprSyntax(
         AwaitExprSyntax(
-          expression: functionCall))
+          expression: functionCall
+        )
+      )
     case (false, true):
       ExprSyntax(TryExprSyntax(expression: functionCall))
     case (false, false):

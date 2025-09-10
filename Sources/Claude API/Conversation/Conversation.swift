@@ -4,11 +4,11 @@ import ClaudeMessagesEndpoint
 public import Tool
 
 #if canImport(UIKit)
-  public import UIKit
+public import UIKit
 #endif
 
 #if canImport(AppKit)
-  public import AppKit
+public import AppKit
 #endif
 
 extension Claude {
@@ -74,27 +74,27 @@ extension Claude.Conversation where UserMessageImage == Never {
 }
 
 #if canImport(UIKit)
-  extension Claude.Conversation where UserMessageImage == UIImage {
+extension Claude.Conversation where UserMessageImage == UIImage {
 
-    public static func image(
-      for userMessageImage: UserMessageImage
-    ) throws -> Image {
-      Image(userMessageImage)
-    }
-
+  public static func image(
+    for userMessageImage: UserMessageImage
+  ) throws -> Image {
+    Image(userMessageImage)
   }
+
+}
 #endif
 
 #if canImport(AppKit)
-  extension Claude.Conversation where UserMessageImage == NSImage {
+extension Claude.Conversation where UserMessageImage == NSImage {
 
-    public static func image(
-      for userMessageImage: UserMessageImage
-    ) throws -> Image {
-      Image(userMessageImage)
-    }
-
+  public static func image(
+    for userMessageImage: UserMessageImage
+  ) throws -> Image {
+    Image(userMessageImage)
   }
+
+}
 #endif
 
 extension Claude.Conversation {
@@ -225,13 +225,13 @@ extension Claude.Conversation {
 
     /// All assistant messages that are not the last messages should be complete
     #if DEBUG
-      while let notLastMessage = reversedMessages.next() {
-        guard case .assistant(let assistantMessage) = notLastMessage else {
-          continue
-        }
-        assert(assistantMessage.isStreamingCompleteOrFailed)
-        assert(assistantMessage.isToolInvocationCompleteOrFailed)
+    while let notLastMessage = reversedMessages.next() {
+      guard case .assistant(let assistantMessage) = notLastMessage else {
+        continue
       }
+      assert(assistantMessage.isStreamingCompleteOrFailed)
+      assert(assistantMessage.isToolInvocationCompleteOrFailed)
+    }
     #endif
 
     guard case .assistant(let lastMessage) = lastMessage else {

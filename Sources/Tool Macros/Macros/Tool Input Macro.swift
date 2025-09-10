@@ -39,6 +39,9 @@ extension ExtensionDeclSyntax {
             name: "SchemaCodable"
           )
         )
+        InheritedTypeSyntax(
+          type: IdentifierTypeSyntax(name: "Sendable")
+        )
       }
     ) {
       try declaration.toolInputMembers(in: context)
@@ -49,7 +52,9 @@ extension ExtensionDeclSyntax {
 
 extension DeclGroupSyntax {
 
-  fileprivate func toolInputMembers(in context: MacroExpansionContext) throws
+  fileprivate func toolInputMembers(
+    in context: MacroExpansionContext
+  ) throws
     -> MemberBlockItemListSyntax
   {
     if let structDecl = self.as(StructDeclSyntax.self) {
@@ -71,7 +76,9 @@ extension DeclGroupSyntax {
 
 extension StructDeclSyntax {
 
-  fileprivate func toolInputMembers(in context: MacroExpansionContext) throws
+  fileprivate func toolInputMembers(
+    in context: MacroExpansionContext
+  ) throws
     -> MemberBlockItemListSyntax
   {
     Self.toolInputMembers(
@@ -103,6 +110,9 @@ extension StructDeclSyntax {
             baseType: IdentifierTypeSyntax(name: "ToolInput"),
             name: "SchemaCodable"
           )
+        )
+        InheritedTypeSyntax(
+          type: IdentifierTypeSyntax(name: "Sendable")
         )
       },
       memberBlock: MemberBlockSyntax {
@@ -370,8 +380,10 @@ extension StructDeclSyntax {
 
           guard let name = binding.pattern.as(IdentifierPatternSyntax.self)?.identifier else {
             throw DiagnosticError(
-              node: binding, severity: .error,
-              message: "Binding pattern does not have an identifier")
+              node: binding,
+              severity: .error,
+              message: "Binding pattern does not have an identifier"
+            )
           }
 
           storedProperties.append(
@@ -391,7 +403,9 @@ extension StructDeclSyntax {
 
 extension StructDeclSyntax.StoredProperty {
 
-  fileprivate func structSchemaPropertyArgument(propertyKeyName: TokenSyntax)
+  fileprivate func structSchemaPropertyArgument(
+    propertyKeyName: TokenSyntax
+  )
     -> some ExprSyntaxProtocol
   {
     TupleExprSyntax(

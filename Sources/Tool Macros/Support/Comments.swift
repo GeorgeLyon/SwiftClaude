@@ -41,9 +41,9 @@ extension SyntaxProtocol {
       leadingTrivia
       .compactMap { trivia in
         switch trivia {
-        case let .docLineComment(comment):
+        case .docLineComment(let comment):
           return comment.trimmingPrefix("///")
-        case let .docBlockComment(comment):
+        case .docBlockComment(let comment):
           var body = comment.trimmingPrefix("/**")
           guard body.hasSuffix("*/") else {
             assertionFailure()
@@ -51,9 +51,9 @@ extension SyntaxProtocol {
           }
           body.removeLast("*/".count)
           return body
-        case let .lineComment(comment):
+        case .lineComment(let comment):
           return comment.trimmingPrefix("//")
-        case let .blockComment(comment):
+        case .blockComment(let comment):
           var body = comment.trimmingPrefix("/*")
           guard body.hasSuffix("*/") else {
             assertionFailure()

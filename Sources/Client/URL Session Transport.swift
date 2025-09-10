@@ -3,7 +3,7 @@ import HTTPTypes
 private import HTTPTypesFoundation
 
 #if canImport(FoundationNetworking)
-  private import FoundationNetworking
+private import FoundationNetworking
 #endif
 
 extension ClaudeClient {

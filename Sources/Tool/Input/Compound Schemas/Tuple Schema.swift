@@ -62,16 +62,18 @@ struct TupleSchema<each ElementSchema: ToolInput.Schema>: InternalSchema {
 
   func encode(_ value: Value, to encoder: ToolInput.Encoder<Self>) throws {
     var container = encoder.wrapped.unkeyedContainer()
-    repeat try (each elements).schema.encode(
-      each value,
-      to: ToolInput.Encoder(wrapped: container.superEncoder())
-    )
+    repeat try (each elements).schema
+      .encode(
+        each value,
+        to: ToolInput.Encoder(wrapped: container.superEncoder())
+      )
   }
 
   func decodeValue(from decoder: ToolInput.Decoder<Self>) throws -> Value {
     var container = try decoder.wrapped.unkeyedContainer()
     return try
-      (repeat (each elements).schema.decodeValue(
+      (repeat (each elements).schema
+      .decodeValue(
         from: ToolInput.Decoder(wrapped: container.superDecoder())
       ))
   }

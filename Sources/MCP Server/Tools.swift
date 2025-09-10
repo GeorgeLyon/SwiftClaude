@@ -56,7 +56,8 @@ extension Tool {
               return .text("Error processing image: \(error)\n")
             }
           }
-        })
+        }
+      )
     } catch {
       return .init(content: [.text("\(error)")], isError: true)
     }

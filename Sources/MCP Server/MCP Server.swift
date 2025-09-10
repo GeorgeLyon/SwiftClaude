@@ -56,10 +56,10 @@ extension MCPServer {
     } catch is CancellationError {
       /// ignore `CancellationError`
     }
-    
+
     await server.stop()
   }
-  
+
   private func mcpTools() throws -> [Tool] {
     let decoder = JSONDecoder()
     let encoder = JSONEncoder()

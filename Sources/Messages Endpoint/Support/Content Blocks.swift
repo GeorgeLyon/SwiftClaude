@@ -56,17 +56,18 @@ extension ClaudeClient.MessagesEndpoint {
 
     public var allStopped: Bool {
       get throws {
-        try elements.enumerated().allSatisfy { offset, element in
-          switch element {
-          case .started:
-            return false
-          case .mutating:
-            assertionFailure()
-            throw ContentBlocksError.ConcurrentMutation(index: offset)
-          case .stopped:
-            return true
+        try elements.enumerated()
+          .allSatisfy { offset, element in
+            switch element {
+            case .started:
+              return false
+            case .mutating:
+              assertionFailure()
+              throw ContentBlocksError.ConcurrentMutation(index: offset)
+            case .stopped:
+              return true
+            }
           }
-        }
       }
     }
 

@@ -206,7 +206,8 @@ extension Claude {
             inputDecodingResult == nil,
             invocationTask == nil,
             invocationResult == nil,
-          ].allSatisfy(\.self)
+          ]
+          .allSatisfy(\.self)
         )
       }
     }
@@ -221,7 +222,8 @@ extension Claude {
             inputDecodingResult != nil,
             invocationTask == nil,
             invocationResult == nil,
-          ].allSatisfy(\.self)
+          ]
+          .allSatisfy(\.self)
         )
       }
     }
@@ -236,7 +238,8 @@ extension Claude {
             inputDecodingResult != nil,
             invocationTask != nil,
             invocationResult == nil,
-          ].allSatisfy(\.self)
+          ]
+          .allSatisfy(\.self)
         )
       }
     }
@@ -251,7 +254,8 @@ extension Claude {
             inputDecodingResult != nil,
             invocationTask != nil,
             invocationResult != nil,
-          ].allSatisfy(\.self)
+          ]
+          .allSatisfy(\.self)
         )
         if case .success = invocationResult {
           /// If the result is `success`, `currentOutput` must have been set

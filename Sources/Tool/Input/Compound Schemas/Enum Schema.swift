@@ -20,10 +20,11 @@ extension ToolInput {
         initializer: @Sendable ((each AssociatedValuesSchema).Value) -> Value
       )
     ),
-    encodeValue: @escaping @Sendable (
-      Value,
-      repeat ((each AssociatedValuesSchema).Value) throws -> Void
-    ) throws -> Void
+    encodeValue:
+      @escaping @Sendable (
+        Value,
+        repeat ((each AssociatedValuesSchema).Value) throws -> Void
+      ) throws -> Void
   ) -> some Schema<Value>
   where Value.RawValue == String {
     /// Fall back to case iterable conformance if an enum is case iterable
@@ -47,10 +48,11 @@ extension ToolInput {
         initializer: @Sendable ((each AssociatedValuesSchema).Value) -> Value
       )
     ),
-    encodeValue: @escaping @Sendable (
-      Value,
-      repeat ((each AssociatedValuesSchema).Value) throws -> Void
-    ) throws -> Void
+    encodeValue:
+      @escaping @Sendable (
+        Value,
+        repeat ((each AssociatedValuesSchema).Value) throws -> Void
+      ) throws -> Void
   ) -> some Schema<Value>
   where Value.RawValue: BinaryInteger & Codable & Sendable {
     /// Fall back to case iterable conformance if an enum is case iterable
@@ -74,10 +76,11 @@ extension ToolInput {
         initializer: @Sendable ((each AssociatedValuesSchema).Value) -> Value
       )
     ),
-    encodeValue: @escaping @Sendable (
-      Value,
-      repeat ((each AssociatedValuesSchema).Value) throws -> Void
-    ) throws -> Void
+    encodeValue:
+      @escaping @Sendable (
+        Value,
+        repeat ((each AssociatedValuesSchema).Value) throws -> Void
+      ) throws -> Void
   ) -> some Schema<Value> {
     StandardEnumSchema(
       description: description,
@@ -281,15 +284,16 @@ private struct StandardEnumSchema<
     to encoder: ToolInput.SchemaEncoder<Self>
   ) throws {
     /// There should only be a single case
-    repeat try (each cases).schema.encodeSchemaDefinition(
-      to: ToolInput.SchemaEncoder(
-        wrapped: encoder.wrapped,
-        descriptionPrefix: combineDescriptions(
-          encoder.contextualDescription(description),
-          (each cases).description
+    repeat try (each cases).schema
+      .encodeSchemaDefinition(
+        to: ToolInput.SchemaEncoder(
+          wrapped: encoder.wrapped,
+          descriptionPrefix: combineDescriptions(
+            encoder.contextualDescription(description),
+            (each cases).description
+          )
         )
       )
-    )
   }
 
   private func encodeNoAssociatedValuesSchemaDefinition(
@@ -369,12 +373,13 @@ private struct StandardEnumSchema<
           try container.encode((each cases).key.stringValue)
         case .objectProperties:
           var container = encoder.wrapped.container(keyedBy: CaseKey.self)
-          try (each cases).schema.encode(
-            value,
-            to: ToolInput.Encoder(
-              wrapped: container.superEncoder(forKey: (each cases).key)
+          try (each cases).schema
+            .encode(
+              value,
+              to: ToolInput.Encoder(
+                wrapped: container.superEncoder(forKey: (each cases).key)
+              )
             )
-          )
         }
       }
     )

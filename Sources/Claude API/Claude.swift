@@ -27,7 +27,7 @@ public struct Claude {
   public typealias ToolChoice = ClaudeClient.MessagesEndpoint.Request.ToolChoice
 
   #if canImport(Security)
-    public typealias KeychainAuthenticator = ClaudeClient.KeychainAuthenticator
+  public typealias KeychainAuthenticator = ClaudeClient.KeychainAuthenticator
   #endif
 
   let client: ClaudeClient

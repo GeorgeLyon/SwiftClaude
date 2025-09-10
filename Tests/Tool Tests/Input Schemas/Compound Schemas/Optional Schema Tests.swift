@@ -63,7 +63,8 @@ struct OptionalSchemaTests {
             }
           ]
         }
-        """)
+        """
+    )
 
     // Test with wrapped schema that can accept null (Optional of Optional)
     let nestedOptionalSchema = ToolInput.schema(representing: String??.self)
@@ -87,7 +88,8 @@ struct OptionalSchemaTests {
             }
           ]
         }
-        """)
+        """
+    )
   }
 
   @Test
@@ -98,13 +100,15 @@ struct OptionalSchemaTests {
     #expect(
       stringSchema.encodedJSON(for: "hello") == """
         "hello"
-        """)
+        """
+    )
 
     // Test with nil value
     #expect(
       stringSchema.encodedJSON(for: nil) == """
         null
-        """)
+        """
+    )
   }
 
   @Test

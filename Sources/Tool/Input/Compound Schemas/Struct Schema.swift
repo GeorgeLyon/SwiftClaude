@@ -16,9 +16,10 @@ extension ToolInput {
         schema: (each PropertySchema)
       )
     ),
-    initializer: @escaping @Sendable (
-      StructSchemaDecoder<repeat (each PropertySchema).Value>
-    ) -> Value
+    initializer:
+      @escaping @Sendable (
+        StructSchemaDecoder<repeat (each PropertySchema).Value>
+      ) -> Value
   ) -> some Schema<Value> {
     StructSchema(
       keyPaths: (repeat (each properties).keyPath),

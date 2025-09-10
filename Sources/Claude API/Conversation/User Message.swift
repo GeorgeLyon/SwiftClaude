@@ -4,11 +4,11 @@ import ClaudeMessagesEndpoint
 public import Observation
 
 #if canImport(UIKit)
-  public import UIKit
+public import UIKit
 #endif
 
 #if canImport(AppKit)
-  public import AppKit
+public import AppKit
 #endif
 
 extension Claude {
@@ -159,27 +159,27 @@ extension Claude.ConversationUserMessage: ExpressibleByStringInterpolation {
 
 #if canImport(UIKit)
 
-  extension Claude.ConversationUserMessage.StringInterpolation
-  where Conversation.UserMessageImage == UIImage {
+extension Claude.ConversationUserMessage.StringInterpolation
+where Conversation.UserMessageImage == UIImage {
 
-    public mutating func appendInterpolation(_ value: UIImage) {
-      contentBlocks.append(.image(value))
-    }
-
+  public mutating func appendInterpolation(_ value: UIImage) {
+    contentBlocks.append(.image(value))
   }
+
+}
 
 #endif
 
 #if canImport(AppKit)
 
-  extension Claude.ConversationUserMessage.StringInterpolation
-  where Conversation.UserMessageImage == NSImage {
+extension Claude.ConversationUserMessage.StringInterpolation
+where Conversation.UserMessageImage == NSImage {
 
-    public mutating func appendInterpolation(_ value: NSImage) {
-      contentBlocks.append(.image(value))
-    }
-
+  public mutating func appendInterpolation(_ value: NSImage) {
+    contentBlocks.append(.image(value))
   }
+
+}
 
 #endif
 
@@ -203,7 +203,8 @@ extension Claude.ConversationUserMessage {
             try renderImage(imageBlock.image)
               .block(
                 vision: model.vision,
-                preprocessingMode: imagePreprocessingMode)
+                preprocessingMode: imagePreprocessingMode
+              )
           )
         )
       }

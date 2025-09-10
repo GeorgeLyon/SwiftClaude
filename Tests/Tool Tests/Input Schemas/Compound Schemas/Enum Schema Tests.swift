@@ -104,7 +104,7 @@ struct EnumSchemaTests {
           case .first(let first): try encodeFirst((first))
           case .second(let second): try encodeSecond((second))
           case .third(let third_0, let third_x): try encodeThird((third_0, third_x))
-          case let .fourth(x, y): try encodeFourth((x, y))
+          case .fourth(let x, let y): try encodeFourth((x, y))
           case .fifth: try encodeFifth(())
           }
         }
@@ -327,7 +327,8 @@ struct EnumSchemaTests {
           {
             "first" : "a"
           }
-          """) == .first("a")
+          """
+      ) == .first("a")
     )
   }
 
@@ -365,7 +366,8 @@ struct EnumSchemaTests {
       schema.value(
         fromJSON: """
           "three"
-          """) == .three
+          """
+      ) == .three
     )
   }
 
@@ -403,7 +405,8 @@ struct EnumSchemaTests {
       schema.value(
         fromJSON: """
           2
-          """) == .two
+          """
+      ) == .two
     )
   }
 
@@ -437,7 +440,8 @@ struct EnumSchemaTests {
       schema.value(
         fromJSON: """
           "value"
-          """) == .only("value")
+          """
+      ) == .only("value")
     )
   }
 
@@ -475,7 +479,8 @@ struct EnumSchemaTests {
       schema.value(
         fromJSON: """
           "three"
-          """) == .three
+          """
+      ) == .three
     )
   }
 }

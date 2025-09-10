@@ -14,7 +14,9 @@ extension ClaudeClient.MessagesEndpoint {
     mutating func recoverFromUnknownEvent(_ error: Error) throws
 
     mutating func recoverFromEventAfterMessageStop(
-      _ event: MessagesEndpoint.Response.Event, _ error: Error) throws
+      _ event: MessagesEndpoint.Response.Event,
+      _ error: Error
+    ) throws
 
     func stop(dueTo error: Error?)
 

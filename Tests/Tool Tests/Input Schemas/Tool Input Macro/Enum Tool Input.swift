@@ -136,7 +136,8 @@ struct EnumToolInputTests {
           {
             "first" : "a"
           }
-          """) == .first("a")
+          """
+      ) == .first("a")
     )
   }
 
@@ -174,7 +175,8 @@ struct EnumToolInputTests {
       schema.value(
         fromJSON: """
           "three"
-          """) == .three
+          """
+      ) == .three
     )
   }
 
@@ -212,7 +214,8 @@ struct EnumToolInputTests {
       schema.value(
         fromJSON: """
           2
-          """) == .two
+          """
+      ) == .two
     )
   }
 
@@ -246,7 +249,8 @@ struct EnumToolInputTests {
       schema.value(
         fromJSON: """
           "value"
-          """) == .only("value")
+          """
+      ) == .only("value")
     )
   }
 
@@ -284,7 +288,8 @@ struct EnumToolInputTests {
       schema.value(
         fromJSON: """
           "three"
-          """) == .three
+          """
+      ) == .three
     )
   }
 }

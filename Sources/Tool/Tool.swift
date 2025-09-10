@@ -1,5 +1,13 @@
 public import ClaudeCommon
 
+#if canImport(UIKit)
+public import UIKit
+#endif
+
+#if canImport(AppKit)
+public import AppKit
+#endif
+
 // MARK: - Tool
 
 public protocol Tool<Output> {
@@ -135,6 +143,18 @@ public struct ToolResultContent: ExpressibleByStringInterpolation {
       }
     }
 
+    #if canImport(UIKit)
+    public mutating func appendInterpolation(_ image: UIImage) {
+      components.append(.image(Image(image)))
+    }
+    #endif
+
+    #if canImport(AppKit)
+    public mutating func appendInterpolation(_ image: NSImage) {
+      components.append(.image(Image(image)))
+    }
+    #endif
+
     /// The following methods mirror those defined on `DefaultStringInterpolation`
     public mutating func appendInterpolation<T>(_ value: T)
     where T: CustomStringConvertible, T: TextOutputStreamable {
@@ -184,5 +204,56 @@ public struct ToolResultContent: ExpressibleByStringInterpolation {
     case image(Image)
   }
   public let components: [Component]
+
+  public func render(
+    vision: Vision,
+    imagePreprocessingMode: Image.PreprocessingMode
+  ) throws -> Rendered {
+    try Rendered(
+      components: components,
+      vision: vision,
+      imagePreprocessingMode: imagePreprocessingMode
+    )
+  }
+  public struct Rendered: Encodable {
+
+    public init(
+      components: [ToolResultContent.Component],
+      vision: Vision,
+      imagePreprocessingMode: Image.PreprocessingMode
+    ) throws {
+      self.components = try components.map { component in
+        switch component {
+        case .text(let text):
+          .text(.init(text: text))
+        case .image(let image):
+          try .image(
+            image.block(
+              vision: vision,
+              preprocessingMode: imagePreprocessingMode
+            )
+          )
+        }
+      }
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+      var container = encoder.unkeyedContainer()
+      for component in components {
+        switch component {
+        case .text(let text):
+          try container.encode(text)
+        case .image(let image):
+          try container.encode(image)
+        }
+      }
+    }
+
+    private enum Component {
+      case text(TextBlock)
+      case image(ImageBlock)
+    }
+    private let components: [Component]
+  }
 
 }

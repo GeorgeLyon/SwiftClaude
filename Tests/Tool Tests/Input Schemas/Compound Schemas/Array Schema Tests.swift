@@ -61,7 +61,8 @@ struct ArraySchemaTests {
             "bar",
             "baz"
           ]
-          """) == ["foo", "bar", "baz"]
+          """
+      ) == ["foo", "bar", "baz"]
     )
 
     let intSchema = ToolInput.schema(representing: [Int].self)
@@ -73,7 +74,8 @@ struct ArraySchemaTests {
             2,
             3
           ]
-          """) == [1, 2, 3]
+          """
+      ) == [1, 2, 3]
     )
 
     let doubleSchema = ToolInput.schema(representing: [Double].self)
@@ -83,7 +85,8 @@ struct ArraySchemaTests {
           [
 
           ]
-          """) == []
+          """
+      ) == []
     )
 
     #expect(
@@ -94,7 +97,8 @@ struct ArraySchemaTests {
             2.25,
             3.75
           ]
-          """) == [1.5, 2.25, 3.75]
+          """
+      ) == [1.5, 2.25, 3.75]
     )
   }
 
