@@ -215,7 +215,7 @@ public struct ToolResultContent: ExpressibleByStringInterpolation {
       imagePreprocessingMode: imagePreprocessingMode
     )
   }
-  public struct Rendered: Encodable {
+  public struct Rendered: Codable, Sendable {
 
     public init(
       components: [ToolResultContent.Component],
@@ -236,6 +236,21 @@ public struct ToolResultContent: ExpressibleByStringInterpolation {
         }
       }
     }
+    
+    public init(from decoder: Decoder) throws {
+      var container = try decoder.unkeyedContainer()
+      var components: [Component] = []
+      while !container.isAtEnd {
+        let container = try container.superDecoder().singleValueContainer()
+        switch try container.decode(AnyComponent.self).type {
+        case .text:
+          components.append(.text(try container.decode(TextBlock.self)))
+        case .image:
+          components.append(.image(try container.decode(ImageBlock.self)))
+        }
+      }
+      self.components = components
+    }
 
     public func encode(to encoder: any Encoder) throws {
       var container = encoder.unkeyedContainer()
@@ -254,6 +269,13 @@ public struct ToolResultContent: ExpressibleByStringInterpolation {
       case image(ImageBlock)
     }
     private let components: [Component]
+    
+    private enum ComponentType: String, Decodable {
+      case text, image
+    }
+    private struct AnyComponent: Decodable {
+      let type: ComponentType
+    }
   }
 
 }

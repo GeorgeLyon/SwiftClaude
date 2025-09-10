@@ -1,4 +1,4 @@
-public struct TextBlock: Encodable, Sendable {
+public struct TextBlock: Codable, Sendable {
 
   public init(text: String) {
     self.text = text

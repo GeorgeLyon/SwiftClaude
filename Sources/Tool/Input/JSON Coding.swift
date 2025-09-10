@@ -15,19 +15,31 @@ extension JSONDecoder {
 
 extension JSONEncoder {
 
-  func encode<Schema: ToolInput.Schema>(
+  public func x_encode<Schema: ToolInput.Schema>(
     _ value: Schema.Value,
     using schema: Schema
   ) throws -> Data {
     try encode(SchemaValueEncodingContainer(schema: schema, value: value))
   }
 
-  func encode<Schema: ToolInput.Schema>(
+  public func encode<Schema: ToolInput.Schema>(
     _ schema: Schema
   ) throws -> Data {
     try encode(
       SchemaEncodingContainer(schema: schema)
     )
+  }
+
+}
+
+extension KeyedEncodingContainer {
+
+  public mutating func encode<Schema: ToolInput.Schema>(
+    _ value: Schema.Value,
+    forKey key: Key,
+    using schema: Schema
+  ) throws {
+    try encode(SchemaValueEncodingContainer(schema: schema, value: value), forKey: key)
   }
 
 }

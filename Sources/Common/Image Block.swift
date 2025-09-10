@@ -1,6 +1,6 @@
 public import struct Foundation.Data
 
-public struct ImageBlock: Encodable, Sendable {
+public struct ImageBlock: Codable, Sendable {
 
   public init(source: MediaSource.Base64) {
     self.source = source
@@ -12,7 +12,7 @@ public struct ImageBlock: Encodable, Sendable {
 
 }
 
-public struct MediaType: ExpressibleByStringLiteral, RawRepresentable, Encodable, Sendable {
+public struct MediaType: ExpressibleByStringLiteral, RawRepresentable, Codable, Sendable {
 
   public enum image {
     public static var jpeg: MediaType { "image/jpeg" }
@@ -38,7 +38,7 @@ public struct MediaType: ExpressibleByStringLiteral, RawRepresentable, Encodable
 
 public enum MediaSource {
 
-  public struct Base64: Encodable, Sendable {
+  public struct Base64: Codable, Sendable {
 
     public init(
       mediaType: MediaType,
