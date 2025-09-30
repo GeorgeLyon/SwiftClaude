@@ -107,43 +107,100 @@ struct MutableStackTests {
 
   @Test
   func largeValues() {
-    struct LargeStruct {
-      let data: [Int]
+    struct LargeInlineStruct {
+      var values:
+        (
+          Int, Int, Int, Int, Int, Int, Int, Int, Int, Int,
+          Int, Int, Int, Int, Int, Int, Int, Int, Int, Int,
+          Int, Int, Int, Int, Int, Int, Int, Int, Int, Int,
+          Int, Int, Int, Int, Int, Int, Int, Int, Int, Int,
+          Int, Int, Int, Int, Int, Int, Int, Int, Int, Int
+        )
 
-      init(size: Int) {
-        self.data = Array(0..<size)
+      init(value: Int) {
+        values = (
+          value, value, value, value, value, value, value, value, value, value,
+          value, value, value, value, value, value, value, value, value, value,
+          value, value, value, value, value, value, value, value, value, value,
+          value, value, value, value, value, value, value, value, value, value,
+          value, value, value, value, value, value, value, value, value, value
+        )
       }
     }
 
     var stack = MutableStack()
 
-    let ref = stack.push(LargeStruct(size: 1000))
+    let ref = stack.push(LargeInlineStruct(value: 42))
 
     stack.withValue(for: ref) { value in
-      #expect(value.data.count == 1000)
-      #expect(value.data[500] == 500)
+      #expect(value.values.0 == 42)
+      #expect(value.values.25 == 42)
+      #expect(value.values.49 == 42)
     }
 
     let popped = stack.pop(ref)
-    #expect(popped.data.count == 1000)
+    #expect(popped.values.0 == 42)
+    #expect(popped.values.49 == 42)
   }
 
   @Test
   func multipleBlocks() {
-    var stack = MutableStack()
-    var references: [MutableStack.Reference<[UInt8]>] = []
+    struct LargeInlineStruct {
+      var bytes:
+        (
+          UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8,
+          UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8,
+          UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8,
+          UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8,
+          UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8,
+          UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8,
+          UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8,
+          UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8,
+          UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8,
+          UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8,
+          UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8,
+          UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8,
+          UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8,
+          UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8,
+          UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8,
+          UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8
+        )
 
-    // Push many large values to force multiple blocks
+      init(value: UInt8) {
+        bytes = (
+          value, value, value, value, value, value, value, value,
+          value, value, value, value, value, value, value, value,
+          value, value, value, value, value, value, value, value,
+          value, value, value, value, value, value, value, value,
+          value, value, value, value, value, value, value, value,
+          value, value, value, value, value, value, value, value,
+          value, value, value, value, value, value, value, value,
+          value, value, value, value, value, value, value, value,
+          value, value, value, value, value, value, value, value,
+          value, value, value, value, value, value, value, value,
+          value, value, value, value, value, value, value, value,
+          value, value, value, value, value, value, value, value,
+          value, value, value, value, value, value, value, value,
+          value, value, value, value, value, value, value, value,
+          value, value, value, value, value, value, value, value,
+          value, value, value, value, value, value, value, value
+        )
+      }
+    }
+
+    var stack = MutableStack()
+    var references: [MutableStack.Reference<LargeInlineStruct>] = []
+
+    // Push many large inline values to force multiple blocks
     for i in 0..<10 {
-      let data = Array(repeating: UInt8(i), count: 1024)
-      references.append(stack.push(data))
+      references.append(stack.push(LargeInlineStruct(value: UInt8(i))))
     }
 
     // Pop them all in reverse order
     for i in (0..<10).reversed() {
       let value = stack.pop(references[i])
-      #expect(value.count == 1024)
-      #expect(value[0] == UInt8(i))
+      #expect(value.bytes.0 == UInt8(i))
+      #expect(value.bytes.127 == UInt8(i))
     }
   }
 
@@ -379,6 +436,129 @@ struct MutableStackTests {
     #expect(stack.pop(ref3) == 30)
     #expect(stack.pop(ref2) == 25)
     #expect(stack.pop(ref1) == 15)
+  }
+
+  @Test
+  func resetBasic() {
+    var stack = MutableStack()
+
+    let ref1 = stack.push(10)
+    let ref2 = stack.push(20)
+    let ref3 = stack.push(30)
+
+    #expect(stack.pop(ref3) == 30)
+    #expect(stack.pop(ref2) == 20)
+    #expect(stack.pop(ref1) == 10)
+
+    // Reset the stack
+    stack.reset()
+
+    // Should be able to push new values after reset
+    let newRef1 = stack.push(100)
+    let newRef2 = stack.push(200)
+
+    #expect(stack.pop(newRef2) == 200)
+    #expect(stack.pop(newRef1) == 100)
+  }
+
+  @Test
+  func resetAfterPartialPop() {
+    var stack = MutableStack()
+
+    let ref1 = stack.push("First")
+    let ref2 = stack.push("Second")
+    let ref3 = stack.push("Third")
+
+    #expect(stack.pop(ref3) == "Third")
+    #expect(stack.pop(ref2) == "Second")
+    #expect(stack.pop(ref1) == "First")
+
+    // Reset after clearing stack
+    stack.reset()
+
+    // Should be able to use stack normally after reset
+    let newRef = stack.push("New")
+    #expect(stack.pop(newRef) == "New")
+  }
+
+  @Test
+  func resetWithLargeValues() {
+    struct LargeInlineStruct {
+      var data:
+        (
+          UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64,
+          UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64,
+          UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64,
+          UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64,
+          UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64,
+          UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64,
+          UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64,
+          UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64, UInt64
+        )
+
+      init(value: UInt64) {
+        data = (
+          value, value, value, value, value, value, value, value,
+          value, value, value, value, value, value, value, value,
+          value, value, value, value, value, value, value, value,
+          value, value, value, value, value, value, value, value,
+          value, value, value, value, value, value, value, value,
+          value, value, value, value, value, value, value, value,
+          value, value, value, value, value, value, value, value,
+          value, value, value, value, value, value, value, value
+        )
+      }
+    }
+
+    var stack = MutableStack()
+    var refs: [MutableStack.Reference<LargeInlineStruct>] = []
+
+    // Push large inline values to potentially create multiple blocks
+    for i in 0..<5 {
+      let large = LargeInlineStruct(value: UInt64(i))
+      refs.append(stack.push(large))
+    }
+
+    for (i, ref) in zip(0..<5, refs).reversed() {
+      let popped = stack.pop(ref)
+      #expect(popped.data.0 == UInt64(i))
+    }
+
+    stack.reset()
+
+    // Verify stack works after reset with large values
+    let large = LargeInlineStruct(value: 99)
+    let ref = stack.push(large)
+    let result = stack.pop(ref)
+    #expect(result.data.0 == 99)
+    #expect(result.data.63 == 99)
+  }
+
+  @Test
+  func resetEmptyStack() {
+    var stack = MutableStack()
+
+    // Reset an empty stack
+    stack.reset()
+
+    // Should still work normally
+    let ref = stack.push(42)
+    #expect(stack.pop(ref) == 42)
+  }
+
+  @Test
+  func resetMultipleTimes() {
+    var stack = MutableStack()
+
+    for iteration in 0..<3 {
+      let ref = stack.push(iteration * 100)
+      #expect(stack.pop(ref) == iteration * 100)
+      stack.reset()
+    }
+
+    // Final verification
+    let ref = stack.push(999)
+    #expect(stack.pop(ref) == 999)
   }
 
 }

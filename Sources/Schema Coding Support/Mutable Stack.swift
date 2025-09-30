@@ -7,6 +7,7 @@ public struct MutableStack: ~Copyable {
   }
 
   public mutating func reset() {
+    let emptyBlocks = (consume self).emptyBlocks
     self = MutableStack(emptyBlocks: emptyBlocks)
   }
 
@@ -14,6 +15,19 @@ public struct MutableStack: ~Copyable {
     emptyBlocks: consuming UniqueArray<Block>
   ) {
     self.emptyBlocks = emptyBlocks
+  }
+
+  deinit {
+    guard !blocks.isEmpty else {
+      return
+    }
+    /// Blocks should have exactly one empty block
+    guard blocks.count == 1 else {
+      fatalError()
+    }
+    guard blocks[0].cursor == blocks[0].buffer.baseAddress else {
+      fatalError()
+    }
   }
 
   public struct Reference<Value: ~Copyable> {
@@ -94,8 +108,7 @@ public struct MutableStack: ~Copyable {
     state = .popping
     let index: Int
     let lastIndex: Int = blocks.indices.last!
-    if blocks[lastIndex].cursor == blocks[lastIndex].buffer.baseAddress {
-      /// Pop the last block
+    if blocks[lastIndex].isEmpty {
       emptyBlocks.append(blocks.removeLast())
       index = blocks.indices.last!
     } else {
@@ -184,6 +197,10 @@ public struct MutableStack: ~Copyable {
       pointer.initialize(to: .init(value: value))
       cursor = reference.endPointer
       return reference
+    }
+
+    fileprivate var isEmpty: Bool {
+      cursor == buffer.baseAddress
     }
 
     fileprivate init(
