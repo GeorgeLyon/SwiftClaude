@@ -21,18 +21,14 @@ let package = Package(
     /// Temporary
     .library(
       name: "Temporary",
-      targets: ["SchemaCoding"]
+      targets: ["SchemaCodingSupport"]
     )
   ],
   dependencies: [
     .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
     .package(url: "https://github.com/swiftlang/swift-syntax.git", from: "600.0.1"),
     .package(url: "https://github.com/apple/swift-async-algorithms", from: "1.0.0"),
-    .package(url: "https://github.com/apple/swift-collections.git", from: "1.1.0"),
-    .package(
-      url: "https://github.com/apple/swift-atomics.git",
-      .upToNextMajor(from: "1.3.0")
-    ),
+    .package(url: "https://github.com/apple/swift-collections.git", from: "1.3.0"),
   ],
   targets: [
     // .target(
@@ -97,14 +93,14 @@ let package = Package(
 
     // MARK: - Tool
 
-    .target(
-      name: "Tools",
-      dependencies: [
-        "Macros",
-        "SchemaCoding",
-      ],
-      swiftSettings: .projectDefaults,
-    ),
+    // .target(
+    //   name: "Tools",
+    //   dependencies: [
+    //     "Macros",
+    //     "SchemaCoding",
+    //   ],
+    //   swiftSettings: .projectDefaults,
+    // ),
     //  .testTarget(
     //    name: "ToolsTests",
     //    dependencies: [
@@ -116,33 +112,46 @@ let package = Package(
 
     // MARK: - Schema Coding
 
-    .target(
-      name: "SchemaCoding",
-      dependencies: [
-        "JSONSupport",
-        "Macros",
-        .product(name: "Atomics", package: "swift-atomics"),
-      ],
-      path: "Sources/Schema Coding",
-      swiftSettings: .projectDefaults + [
-        .define("ENABLE_META_SCHEMA")
-      ]
-    ),
+    // .target(
+    //   name: "SchemaCoding",
+    //   dependencies: [
+    //     "JSONSupport",
+    //     "Macros",
+    //   ],
+    //   path: "Sources/Schema Coding",
+    //   swiftSettings: .projectDefaults + [
+    //     .define("ENABLE_META_SCHEMA")
+    //   ]
+    // ),
+
+    // .target(
+    //   name: "SchemaCodingTestSupport",
+    //   dependencies: [
+    //     "SchemaCoding"
+    //   ],
+    //   path: "Sources/Schema Coding Test Support",
+    //   swiftSettings: .projectDefaults
+    // ),
+    // .testTarget(
+    //   name: "SchemaCodingTests",
+    //   dependencies: [
+    //     "SchemaCodingTestSupport"
+    //   ],
+    //   path: "Tests/Schema Coding Tests"
+    // ),
 
     .target(
-      name: "SchemaCodingTestSupport",
+      name: "SchemaCodingSupport",
       dependencies: [
-        "SchemaCoding"
+        .product(name: "BasicContainers", package: "swift-collections")
       ],
-      path: "Sources/Schema Coding Test Support",
+      path: "Sources/Schema Coding Support",
       swiftSettings: .projectDefaults
     ),
     .testTarget(
-      name: "SchemaCodingTests",
-      dependencies: [
-        "SchemaCodingTestSupport"
-      ],
-      path: "Tests/Schema Coding Tests"
+      name: "SchemaCodingSupportTests",
+      path: "Tests/Schema Coding Support",
+      swiftSettings: .projectDefaults
     ),
 
     // MARK: - Macros Support
@@ -193,6 +202,7 @@ let package = Package(
 extension Array where Element == SwiftSetting {
   fileprivate static let projectDefaults: [SwiftSetting] = {
     var settings: [SwiftSetting] = [
+      .enableExperimentalFeature("CoroutineAccessors"),
       .enableUpcomingFeature("InternalImportsByDefault"),
       .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
     ]
