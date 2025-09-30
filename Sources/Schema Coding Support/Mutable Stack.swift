@@ -2,6 +2,20 @@ private import BasicContainers
 
 public struct MutableStack: ~Copyable {
 
+  public init() {
+    emptyBlocks = UniqueArray()
+  }
+
+  public mutating func reset() {
+    self = MutableStack(emptyBlocks: emptyBlocks)
+  }
+
+  private init(
+    emptyBlocks: consuming UniqueArray<Block>
+  ) {
+    self.emptyBlocks = emptyBlocks
+  }
+
   public struct Reference<Value: ~Copyable> {
     fileprivate let stackID: MutableStack.ID
 
@@ -54,9 +68,12 @@ public struct MutableStack: ~Copyable {
   private mutating func pushToEmptyBlock<Value: ~Copyable>(
     _ value: consuming Value
   ) -> Reference<Value> {
-    let index = emptyBlocks.indices.first { index in
-      emptyBlocks[index].canPush(Value.self)
-    }
+    let index = emptyBlocks
+      .indices
+      .reversed()
+      .first { index in
+        emptyBlocks[index].canPush(Value.self)
+      }
     var block: Block
     if let index {
       block = emptyBlocks.remove(at: index)
@@ -144,7 +161,7 @@ public struct MutableStack: ~Copyable {
   }
   private var state: State = .active
 
-  private struct Block: ~Copyable {
+  internal struct Block: ~Copyable {
 
     fileprivate func canPush<Value: ~Copyable>(_ type: Value.Type) -> Bool {
       let candidate = Reference<Value>(

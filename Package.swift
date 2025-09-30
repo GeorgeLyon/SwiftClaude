@@ -150,6 +150,9 @@ let package = Package(
     ),
     .testTarget(
       name: "SchemaCodingSupportTests",
+      dependencies: [
+        "SchemaCodingSupport"
+      ],
       path: "Tests/Schema Coding Support",
       swiftSettings: .projectDefaults
     ),
@@ -202,9 +205,7 @@ let package = Package(
 extension Array where Element == SwiftSetting {
   fileprivate static let projectDefaults: [SwiftSetting] = {
     var settings: [SwiftSetting] = [
-      .enableExperimentalFeature("CoroutineAccessors"),
-      .enableUpcomingFeature("InternalImportsByDefault"),
-      .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
+      .enableUpcomingFeature("NonisolatedNonsendingByDefault")
     ]
     #if true
       /// Allow testing release builds
