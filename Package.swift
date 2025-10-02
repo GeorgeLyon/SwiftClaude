@@ -112,17 +112,16 @@ let package = Package(
 
     // MARK: - Schema Coding
 
-    // .target(
-    //   name: "SchemaCoding",
-    //   dependencies: [
-    //     "JSONSupport",
-    //     "Macros",
-    //   ],
-    //   path: "Sources/Schema Coding",
-    //   swiftSettings: .projectDefaults + [
-    //     .define("ENABLE_META_SCHEMA")
-    //   ]
-    // ),
+    .target(
+      name: "SchemaCoding",
+      dependencies: [
+        "JSONSupport",
+        "Macros",
+        "SchemaCodingSupport",
+      ],
+      path: "Sources/Schema Coding",
+      swiftSettings: .projectDefaults
+    ),
 
     // .target(
     //   name: "SchemaCodingTestSupport",
@@ -206,6 +205,9 @@ extension Array where Element == SwiftSetting {
   fileprivate static let projectDefaults: [SwiftSetting] = {
     var settings: [SwiftSetting] = [
       .enableUpcomingFeature("NonisolatedNonsendingByDefault")
+
+      /// Disabled for now because this causes compiler crashes if certain types have too limited visibility
+      // .enableUpcomingFeature("InternalImportsByDefault"),
     ]
     #if true
       /// Allow testing release builds

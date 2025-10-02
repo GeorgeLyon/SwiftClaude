@@ -1,12 +1,16 @@
 import JSONSupport
+import SchemaCodingSupport
 
 // MARK: - Decoder
 
 extension SchemaCoding.Support {
 
   public struct Decoder: ~Copyable {
-    var stack: MutableStack
-    var stream: JSON.DecodingStream
+
+    public struct Context: ~Copyable {
+      var mutableStack: MutableStack
+    }
+
   }
 
 }

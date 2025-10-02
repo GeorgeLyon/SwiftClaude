@@ -18,14 +18,26 @@ extension SchemaCoding.Support {
 
     associatedtype ValueDecodingState: Sendable
 
-    func beginDecodingValue(
-      from decoder: inout Decoder
+    func beginDecoding(
+      in context: inout Decoder.Context
     ) -> ValueDecodingState
 
-    func decodeValue(
+    func decodeInitialValue(
       from decoder: inout Decoder,
       state: inout ValueDecodingState
-    ) throws -> Value
+    ) -> DecodingResult<Value>
+
+    func decodeStreamingValue<Root>(
+      from decoder: inout Decoder,
+      root: Root,
+      keyPath: WritableKeyPath<Root, Value>,
+      state: inout ValueDecodingState
+    ) async throws
+
+    func finishDecoding(
+      in context: inout Decoder.Context,
+      state: ValueDecodingState
+    )
 
   }
 
