@@ -51,6 +51,21 @@ public struct Arena: ~Copyable {
 
 extension Arena {
 
+  public subscript<Value>(reference: Reference<Value>) -> Value {
+    get { withValue(for: reference) { $0 } }
+    set { withValue(for: reference) { $0 = newValue } }
+  }
+
+  public func withValue<Value: ~Copyable, T, Failure>(
+    for reference: Reference<Value>,
+    _ operation: (inout Value) throws(Failure) -> T
+  ) throws(Failure) -> T {
+    guard reference.arenaID == id else {
+      fatalError()
+    }
+    return try operation(&reference.pointer.pointee)
+  }
+
   public struct Reference<Value: ~Copyable> {
     fileprivate let arenaID: Arena.ID
     fileprivate let pointer: UnsafeMutablePointer<Value>
