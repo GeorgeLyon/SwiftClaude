@@ -115,10 +115,10 @@ extension Arena {
     ) -> Bool {
       buffer.validCursorRange.contains(
         buffer.cursor
-          .alignedUp(for: Header.self)
-          .advanced(by: MemoryLayout<Header>.size)
           .alignedUp(for: Value.self)
           .advanced(by: MemoryLayout<Value>.size)
+          .alignedUp(for: ValueMetadata.self)
+          .advanced(by: MemoryLayout<ValueMetadata>.size)
       )
     }
 
@@ -129,22 +129,23 @@ extension Arena {
       guard canAllocate(Value.self) else {
         fatalError()
       }
-      let headerPointer =
-        buffer.cursor
-        .alignedUp(for: Header.self)
-        .bindMemory(to: Header.self, capacity: 1)
-      headerPointer.initialize(to: Header(type: Value.self))
       let valuePointer =
-        UnsafeMutableRawPointer(headerPointer)
-        .advanced(by: MemoryLayout<Header>.size)
+        buffer.cursor
         .alignedUp(for: Value.self)
         .bindMemory(to: Value.self, capacity: 1)
       valuePointer.initialize(to: value)
-      buffer.cursor = UnsafeMutableRawPointer(valuePointer)
+      let metadataPointer =
+        UnsafeMutableRawPointer(valuePointer)
         .advanced(by: MemoryLayout<Value>.size)
+        .alignedUp(for: ValueMetadata.self)
+        .bindMemory(to: ValueMetadata.self, capacity: 1)
+      metadataPointer.initialize(to: ValueMetadata(type: Value.self))
+      buffer.cursor = UnsafeMutableRawPointer(valuePointer)
+        .advanced(by: MemoryLayout<ValueMetadata>.size)
       return Reference(arenaID: arenaID, pointer: valuePointer)
     }
 
+    /// This must only be called when resetting an `Arena` ensuring the old `Arena.ID` is no longer availble to allow access to data in this block.
     public mutating func reset() {
       deinitializeContents()
       buffer.cursor = buffer.storage.baseAddress!
@@ -158,45 +159,55 @@ extension Arena {
       buffer = .init(
         byteCount: max(
           minimumByteCount,
-          MemoryLayout<Header>.stride(to: Value.self) + MemoryLayout<Value>.size,
+          MemoryLayout<Value>.stride(to: ValueMetadata.self) + MemoryLayout<ValueMetadata>.size,
         ),
         alignment: max(
           minimumAlignment,
-          MemoryLayout<Header>.alignment,
           MemoryLayout<Value>.alignment,
+          MemoryLayout<ValueMetadata>.alignment,
         )
       )
     }
     deinit {
+      /// This should only happen when an `Arena` is deinitialized, which means that no other `Arena` should exist with an ID that would allow references to access data in this block.
       deinitializeContents()
     }
 
+    /// All references to data in this block have been invalidated when this is called.
     private func deinitializeContents() {
-      var deallocationCursor = buffer.storage.baseAddress!
-      func deinitalize<Value>(_ value: Value) {
+      var deallocationCursor = buffer.cursor
+      func pop<Value>(_ value: Value) {
         deallocationCursor =
           deallocationCursor
-          .advanced(by: MemoryLayout<Header>.size)
-          .alignedUp(for: Value.self)
+          /// We assume advancing by a negative size and aligning down is the reverse operation of aligning up and advancing by size.
+          .advanced(by: -MemoryLayout<Value>.size)
+          .alignedDown(for: Value.self)
           .assumingMemoryBound(to: Value.self)
           .deinitialize(count: 1)
           .advanced(by: MemoryLayout<Value>.size)
       }
-      while deallocationCursor < buffer.cursor {
-        let header =
+      while deallocationCursor > buffer.storage.baseAddress! {
+        /// The cursor should always be pointing to the end of a metadata segment.
+        /// First, we rewind it to point to the start of the metadata segment.
+        deallocationCursor =
           deallocationCursor
-          .alignedUp(for: Header.self)
-          .assumingMemoryBound(to: Header.self)
-        deinitalize(header)
+          .advanced(by: -MemoryLayout<ValueMetadata>.size)
+        /// Then, we get the type from the metadata
+        let type =
+          deallocationCursor
+          .assumingMemoryBound(to: ValueMetadata.self)
+          .pointee.type
+        /// Finally, we pop a value of that type
+        pop(type)
       }
-      guard deallocationCursor == buffer.cursor else {
+      guard deallocationCursor == buffer.storage.baseAddress! else {
         fatalError()
       }
     }
 
     private var buffer: CursedBuffer
 
-    private struct Header {
+    private struct ValueMetadata {
       let type: any (~Copyable).Type
     }
 
@@ -264,6 +275,7 @@ extension Arena {
       return Reference(arenaID: arenaID, pointer: pointer)
     }
 
+    /// This must only be called when resetting an `Arena` ensuring the old `Arena.ID` is no longer availble to allow access to data in this block.
     public mutating func reset() {
       buffer.cursor = buffer.storage.baseAddress!
     }
@@ -279,6 +291,7 @@ extension Arena {
       )
     }
     deinit {
+      /// This should only happen when an `Arena` is deinitialized, which means that no other `Arena` should exist with an ID that would allow references to access data in this block.
       buffer.storage.deallocate()
     }
 
