@@ -8,7 +8,7 @@ extension SchemaCoding.Support {
   public struct Decoder: ~Copyable {
 
     public struct Context: ~Copyable {
-      var mutableStack: MutableStack
+      var arena: Arena
     }
 
   }

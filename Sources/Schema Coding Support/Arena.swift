@@ -4,13 +4,21 @@ private import BasicContainers
 
 public struct Arena: ~Copyable {
 
-  public init() {
-    self.init(emptyBlocks: .init(), emptyBitwiseCopyableBlocks: .init())
+  public init(
+    minimumBlockSize: Int = 4096
+  ) {
+    self.init(
+      minimumBlockSize: minimumBlockSize,
+      emptyBlocks: .init(),
+      emptyBitwiseCopyableBlocks: .init()
+    )
   }
   private init(
+    minimumBlockSize: Int,
     emptyBlocks: consuming UniqueArray<Block>,
     emptyBitwiseCopyableBlocks: consuming UniqueArray<BitwiseCopyableBlock>
   ) {
+    self.minimumBlockSize = minimumBlockSize
     self.emptyBlocks = emptyBlocks
     self.emptyBitwiseCopyableBlocks = emptyBitwiseCopyableBlocks
   }
@@ -29,15 +37,17 @@ public struct Arena: ~Copyable {
     }
 
     self = Arena(
+      minimumBlockSize: minimumBlockSize,
       emptyBlocks: emptyBlocks,
       emptyBitwiseCopyableBlocks: emptyBitwiseCopyableBlocks
     )
 
   }
 
-  fileprivate typealias ID = UniqueID<Arena>
+  typealias ID = UniqueID<Arena>
 
   private let id = ID()
+  private let minimumBlockSize: Int
 
   private var blocks: UniqueArray<Block> = .init()
   private var emptyBlocks: UniqueArray<Block>
@@ -96,7 +106,7 @@ extension Arena {
       } else {
         /// Create a new block
         block = Block(
-          minimumByteCount: 4096,
+          minimumByteCount: minimumBlockSize,
           minimumAlignment: MemoryLayout<Int>.alignment,
           nextValue: Value.self
         )
@@ -108,7 +118,7 @@ extension Arena {
     }
   }
 
-  private struct Block: ~Copyable {
+  struct Block: ~Copyable {
 
     public func canAllocate<Value: ~Copyable>(
       _ value: Value.Type
@@ -139,8 +149,16 @@ extension Arena {
         .advanced(by: MemoryLayout<Value>.size)
         .alignedUp(for: ValueMetadata.self)
         .bindMemory(to: ValueMetadata.self, capacity: 1)
+      print(
+        """
+        ---
+        Value: \(valuePointer)
+        Metadata: \(metadataPointer)
+        Cursor range: \(buffer.validCursorRange)
+        ---
+        """)
       metadataPointer.initialize(to: ValueMetadata(type: Value.self))
-      buffer.cursor = UnsafeMutableRawPointer(valuePointer)
+      buffer.cursor = UnsafeMutableRawPointer(metadataPointer)
         .advanced(by: MemoryLayout<ValueMetadata>.size)
       return Reference(arenaID: arenaID, pointer: valuePointer)
     }
@@ -242,7 +260,7 @@ extension Arena {
       } else {
         /// Create a new block
         block = BitwiseCopyableBlock(
-          minimumByteCount: 4096,
+          minimumByteCount: minimumBlockSize,
           minimumAlignment: MemoryLayout<Int>.alignment,
           nextValue: Value.self
         )
@@ -254,7 +272,7 @@ extension Arena {
     }
   }
 
-  private struct BitwiseCopyableBlock: ~Copyable {
+  struct BitwiseCopyableBlock: ~Copyable {
 
     public func canAllocate<Value: BitwiseCopyable>(
       _ value: Value.Type
@@ -294,10 +312,6 @@ extension Arena {
         alignment: max(minimumAlignment, MemoryLayout<Value>.alignment)
       )
     }
-    deinit {
-      /// This should only happen when an `Arena` is deinitialized, which means that no other `Arena` should exist with an ID that would allow references to access data in this block.
-      buffer.storage.deallocate()
-    }
 
     private var buffer: CursedBuffer
 
@@ -311,7 +325,7 @@ extension Arena {
 
   private struct CursedBuffer: ~Copyable {
 
-    fileprivate init(
+    init(
       byteCount: Int,
       alignment: Int
     ) {
@@ -319,13 +333,16 @@ extension Arena {
       cursor = storage.baseAddress!
     }
     deinit {
+      /// This should only happen when an `Arena` is deinitialized, which means that no other `Arena` should exist with an ID that would allow references to access data in this block.
       storage.deallocate()
     }
-    fileprivate let storage: UnsafeMutableRawBufferPointer
 
-    fileprivate var cursor: UnsafeMutableRawPointer {
+    let storage: UnsafeMutableRawBufferPointer
+
+    var cursor: UnsafeMutableRawPointer {
       didSet {
-        guard oldValue < cursor else {
+        guard cursor == storage.baseAddress! || oldValue < cursor else {
+          /// The only valid operations are moving the cursor forward or resetting it to the start
           fatalError()
         }
         guard validCursorRange.contains(cursor) else {
@@ -334,9 +351,14 @@ extension Arena {
       }
     }
 
-    fileprivate var validCursorRange: ClosedRange<UnsafeMutableRawPointer> {
+    var validCursorRange: ClosedRange<UnsafeMutableRawPointer> {
       let baseAddress = storage.baseAddress!
       return baseAddress...baseAddress.advanced(by: storage.count)
+    }
+
+    private init(storage: UnsafeMutableRawBufferPointer) {
+      self.storage = storage
+      self.cursor = storage.baseAddress!
     }
 
   }
@@ -350,7 +372,7 @@ extension MemoryLayout {
   ///     T must be aligned to the greater of the alignment of T and U.
   fileprivate static func stride<U>(to type: U.Type) -> Int {
     let alignment = MemoryLayout<U>.alignment
-    return (size + alignment - 1) & (alignment - 1)
+    return (size + alignment - 1) & ~(alignment - 1)
   }
 
 }

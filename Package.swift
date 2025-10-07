@@ -112,16 +112,16 @@ let package = Package(
 
     // MARK: - Schema Coding
 
-    .target(
-      name: "SchemaCoding",
-      dependencies: [
-        "JSONSupport",
-        "Macros",
-        "SchemaCodingSupport",
-      ],
-      path: "Sources/Schema Coding",
-      swiftSettings: .projectDefaults
-    ),
+    // .target(
+    //   name: "SchemaCoding",
+    //   dependencies: [
+    //     "JSONSupport",
+    //     "Macros",
+    //     "SchemaCodingSupport",
+    //   ],
+    //   path: "Sources/Schema Coding",
+    //   swiftSettings: .projectDefaults
+    // ),
 
     // .target(
     //   name: "SchemaCodingTestSupport",
