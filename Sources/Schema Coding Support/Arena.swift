@@ -174,6 +174,8 @@ extension Arena {
     }
 
     /// All references to data in this block have been invalidated when this is called.
+    ///
+    /// This deinitializes the contents in LIFO order, similar to how exiting a scope works.
     private func deinitializeContents() {
       var deallocationCursor = buffer.cursor
       func pop<Value>(_ value: Value) {
@@ -205,6 +207,8 @@ extension Arena {
       }
     }
 
+    /// `Block` stores each value followed by an aligned `ValueMetadata`.
+    /// The cursor always points to either the end of `ValueMetadata` or to the start of the buffer.
     private var buffer: CursedBuffer
 
     private struct ValueMetadata {
