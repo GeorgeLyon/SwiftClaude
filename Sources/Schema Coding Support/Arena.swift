@@ -149,14 +149,6 @@ extension Arena {
         .advanced(by: MemoryLayout<Value>.size)
         .alignedUp(for: ValueMetadata.self)
         .bindMemory(to: ValueMetadata.self, capacity: 1)
-      print(
-        """
-        ---
-        Value: \(valuePointer)
-        Metadata: \(metadataPointer)
-        Cursor range: \(buffer.validCursorRange)
-        ---
-        """)
       metadataPointer.initialize(to: ValueMetadata(type: Value.self))
       buffer.cursor = UnsafeMutableRawPointer(metadataPointer)
         .advanced(by: MemoryLayout<ValueMetadata>.size)

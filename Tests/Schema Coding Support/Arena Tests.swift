@@ -165,65 +165,73 @@ struct ArenaTests {
 
   }
 
-  // // MARK: - Mutation Tests
+  @Suite("Mutation Tests")
+  struct MutationTests {
 
-  // @Test("Mutate struct through reference")
-  // func mutateStructThroughReference() throws {
-  //   struct Counter {
-  //     var count: Int
-  //   }
+    @Test("Mutate struct through reference")
+    func mutateStructThroughReference() {
+      struct Counter {
+        var count: Int
+      }
 
-  //   var arena = Arena()
-  //   let ref = arena.allocate(Counter(count: 0))
+      var arena = Arena()
+      let ref = arena.allocate(Counter(count: 0))
 
-  //   arena.withValue(for: ref) { counter in
-  //     counter.count += 1
-  //   }
-  //   #expect(arena[ref].count == 1)
+      arena.withValue(for: ref) { counter in
+        counter.count += 1
+      }
+      #expect(arena[ref].count == 1)
 
-  //   arena.withValue(for: ref) { counter in
-  //     counter.count += 1
-  //   }
-  //   #expect(arena[ref].count == 2)
-  // }
+      arena.withValue(for: ref) { counter in
+        counter.count += 1
+      }
+      #expect(arena[ref].count == 2)
+    }
 
-  // @Test("Mutate array through reference")
-  // func mutateArrayThroughReference() throws {
-  //   var arena = Arena()
-  //   let ref = arena.allocate([1, 2, 3])
+    @Test("Mutate array through reference")
+    func mutateArrayThroughReference() {
+      var arena = Arena()
+      let ref = arena.allocate([1, 2, 3])
 
-  //   try arena.withValue(for: ref) { array in
-  //     array.append(4)
-  //   }
+      arena.withValue(for: ref) { array in
+        array.append(4)
+      }
 
-  //   #expect(arena[ref] == [1, 2, 3, 4])
-  // }
+      #expect(arena[ref] == [1, 2, 3, 4])
+    }
 
-  // // MARK: - Alignment Tests
+  }
 
-  // @Test("Allocate types with different alignment requirements")
-  // func allocateDifferentAlignments() {
-  //   struct Aligned1: BitwiseCopyable {
-  //     let a: UInt8
-  //   }
+  @Suite("Alignment Tests")
+  struct AlignmentTests {
 
-  //   struct Aligned8: BitwiseCopyable {
-  //     let a: UInt64
-  //   }
+    @Test("Allocate types with different alignment requirements")
+    func allocateDifferentAlignments() {
+      struct Aligned1: BitwiseCopyable {
+        let a: UInt8
+      }
+      #expect(MemoryLayout<Aligned1>.alignment == 1)
 
-  //   var arena = Arena()
+      struct Aligned8: BitwiseCopyable {
+        let a: UInt64
+      }
+      #expect(MemoryLayout<Aligned8>.alignment == 8)
 
-  //   // Allocate in alternating pattern to test alignment handling
-  //   let ref1 = arena.allocate(Aligned1(a: 1))
-  //   let ref2 = arena.allocate(Aligned8(a: 100))
-  //   let ref3 = arena.allocate(Aligned1(a: 2))
-  //   let ref4 = arena.allocate(Aligned8(a: 200))
+      var arena = Arena()
 
-  //   #expect(arena[ref1].a == 1)
-  //   #expect(arena[ref2].a == 100)
-  //   #expect(arena[ref3].a == 2)
-  //   #expect(arena[ref4].a == 200)
-  // }
+      // Allocate in alternating pattern to test alignment handling
+      let ref1 = arena.allocate(Aligned1(a: 1))
+      let ref2 = arena.allocate(Aligned8(a: 100))
+      let ref3 = arena.allocate(Aligned1(a: 2))
+      let ref4 = arena.allocate(Aligned8(a: 200))
+
+      #expect(arena[ref1].a == 1)
+      #expect(arena[ref2].a == 100)
+      #expect(arena[ref3].a == 2)
+      #expect(arena[ref4].a == 200)
+    }
+
+  }
 
 }
 
