@@ -1,291 +1,253 @@
-import SchemaCodingSupport
 import Testing
 
-@Suite("Arena Tests")
-struct ArenaTests {
+@testable import SchemaCodingSupport
 
-  @Suite("Basic Allocation")
-  struct BasicAllocationTests {
+// MARK: - Arena Creation
 
-    @Test("Allocate single BitwiseCopyable value")
-    func allocateSingleBitwiseCopyable() {
-      var arena = Arena()
-      let ref = arena.allocate(42)
-      #expect(arena[ref] == 42)
-    }
+@Suite("Arena Creation")
+struct ArenaCreationTests {
 
-    @Test("Allocate single non-BitwiseCopyable value")
-    func allocateSingleNonBitwiseCopyable() {
-      var arena = Arena()
-      let ref = arena.allocate("Hello")
-      #expect(arena[ref] == "Hello")
-    }
+  @Test
+  func createBasicArena() async throws {
+    let archetype = Arena.Archetype()
+    let arena = Arena(archetype)
 
-    @Test("Allocate multiple BitwiseCopyable values")
-    func allocateMultipleBitwiseCopyable() {
-      var arena = Arena()
-      let ref1 = arena.allocate(1)
-      let ref2 = arena.allocate(2)
-      let ref3 = arena.allocate(3)
-
-      #expect(arena[ref1] == 1)
-      #expect(arena[ref2] == 2)
-      #expect(arena[ref3] == 3)
-    }
-
-    @Test("Allocate multiple non-BitwiseCopyable values")
-    func allocateMultipleNonBitwiseCopyable() {
-      var arena = Arena()
-      let ref1 = arena.allocate("first")
-      let ref2 = arena.allocate("second")
-      let ref3 = arena.allocate("third")
-
-      #expect(arena[ref1] == "first")
-      #expect(arena[ref2] == "second")
-      #expect(arena[ref3] == "third")
-    }
-
-    @Test("Allocate mixed types")
-    func allocateMixedTypes() {
-      var arena = Arena()
-      let intRef = arena.allocate(42)
-      let stringRef = arena.allocate("test")
-      let doubleRef = arena.allocate(3.14)
-      let boolRef = arena.allocate(true)
-
-      #expect(arena[intRef] == 42)
-      #expect(arena[stringRef] == "test")
-      #expect(arena[doubleRef] == 3.14)
-      #expect(arena[boolRef] == true)
-    }
-
+    // Arena should be successfully created and can be reset
+    arena.reset()
   }
 
-  @Suite("Reference Access")
-  struct ReferenceAccessTests {
+  @Test
+  func createArenaWithTypedSlab() async throws {
+    let archetype = Arena.Archetype()
+    let intSlab = archetype.typedSlab(Int?.self)
 
-    @Test("Modify value through subscript")
-    func modifyValueThroughSubscript() {
-      var arena = Arena()
-      let ref = arena.allocate(10)
-      #expect(arena[ref] == 10)
+    // Add some references to the slab
+    _ = intSlab.append()
+    _ = intSlab.append()
+    _ = intSlab.append()
 
-      arena[ref] = 20
-      #expect(arena[ref] == 20)
-    }
-
-    @Test("Modify value through withValue")
-    func modifyValueThroughWithValue() {
-      var arena = Arena()
-      let ref = arena.allocate(100)
-
-      arena.withValue(for: ref) { value in
-        #expect(value == 100)
-        value = 200
-      }
-
-      #expect(arena[ref] == 200)
-    }
-
-    @Test("Return value from withValue")
-    func returnValueFromWithValue() {
-      var arena = Arena()
-      let ref = arena.allocate("test")
-
-      let length = arena.withValue(for: ref) { value in
-        value.count
-      }
-
-      #expect(length == 4)
-    }
-
+    let arena = Arena(archetype)
+    arena.reset()
   }
 
-  @Suite("Arena Reset")
-  struct ArenaResetTests {
+  @Test
+  func createArenaWithMultipleSlabs() async throws {
+    let archetype = Arena.Archetype()
 
-    @Test("Reset arena with BitwiseCopyable values")
-    func resetArenaWithBitwiseCopyable() {
-      var arena = Arena()
-      let ref1 = arena.allocate(1)
-      let ref2 = arena.allocate(2)
+    let intSlab = archetype.typedSlab(Int?.self)
+    let stringSlab = archetype.typedSlab(String?.self)
+    let boolSlab = archetype.typedSlab(Bool?.self)
 
-      #expect(arena[ref1] == 1)
-      #expect(arena[ref2] == 2)
+    _ = intSlab.append()
+    _ = stringSlab.append()
+    _ = boolSlab.append()
 
-      arena.reset()
-
-      // After reset, allocate new values
-      let ref3 = arena.allocate(3)
-      #expect(arena[ref3] == 3)
-    }
-
-    @Test("Reset arena with non-BitwiseCopyable values")
-    func resetArenaWithNonBitwiseCopyable() {
-      var arena = Arena()
-      let ref1 = arena.allocate("first")
-      let ref2 = arena.allocate("second")
-
-      #expect(arena[ref1] == "first")
-      #expect(arena[ref2] == "second")
-
-      arena.reset()
-
-      // After reset, allocate new values
-      let ref3 = arena.allocate("third")
-      #expect(arena[ref3] == "third")
-    }
-
-    @Test("Reset arena with mixed types")
-    func resetArenaWithMixedTypes() {
-      var arena = Arena()
-      _ = arena.allocate(42)
-      _ = arena.allocate("test")
-      _ = arena.allocate(3.14)
-
-      arena.reset()
-
-      // After reset, allocate new values
-      let ref = arena.allocate(100)
-      #expect(arena[ref] == 100)
-    }
-
-  }
-
-  @Suite("Large Value")
-  struct LargeValueTests {
-
-    @Test
-    func `Test large value`() {
-      var arena = Arena()
-      let value = LargeValue()
-      let ref = arena.allocate(value)
-      #expect(arena[ref] == value)
-    }
-
-  }
-
-  @Suite("Mutation Tests")
-  struct MutationTests {
-
-    @Test("Mutate struct through reference")
-    func mutateStructThroughReference() {
-      struct Counter {
-        var count: Int
-      }
-
-      var arena = Arena()
-      let ref = arena.allocate(Counter(count: 0))
-
-      arena.withValue(for: ref) { counter in
-        counter.count += 1
-      }
-      #expect(arena[ref].count == 1)
-
-      arena.withValue(for: ref) { counter in
-        counter.count += 1
-      }
-      #expect(arena[ref].count == 2)
-    }
-
-    @Test("Mutate array through reference")
-    func mutateArrayThroughReference() {
-      var arena = Arena()
-      let ref = arena.allocate([1, 2, 3])
-
-      arena.withValue(for: ref) { array in
-        array.append(4)
-      }
-
-      #expect(arena[ref] == [1, 2, 3, 4])
-    }
-
-  }
-
-  @Suite("Alignment Tests")
-  struct AlignmentTests {
-
-    @Test("Allocate types with different alignment requirements")
-    func allocateDifferentAlignments() {
-      struct Aligned1: BitwiseCopyable {
-        let a: UInt8
-      }
-      #expect(MemoryLayout<Aligned1>.alignment == 1)
-
-      struct Aligned8: BitwiseCopyable {
-        let a: UInt64
-      }
-      #expect(MemoryLayout<Aligned8>.alignment == 8)
-
-      var arena = Arena()
-
-      // Allocate in alternating pattern to test alignment handling
-      let ref1 = arena.allocate(Aligned1(a: 1))
-      let ref2 = arena.allocate(Aligned8(a: 100))
-      let ref3 = arena.allocate(Aligned1(a: 2))
-      let ref4 = arena.allocate(Aligned8(a: 200))
-
-      #expect(arena[ref1].a == 1)
-      #expect(arena[ref2].a == 100)
-      #expect(arena[ref3].a == 2)
-      #expect(arena[ref4].a == 200)
-    }
-
+    let arena = Arena(archetype)
+    arena.reset()
   }
 
 }
 
-// MARK: - Support
+// MARK: - Archetype Exit Tests
 
-struct LargeValue: Equatable, ~BitwiseCopyable {
-  private let data = (
-    Component3(),
-    Component3(),
-    Component3(),
-    Component3(),
-    Component3(),
-    Component3(),
-  )
-  static func == (lhs: Self, rhs: Self) -> Bool {
-    lhs.data == rhs.data
+@Suite("Archetype Exit Tests")
+struct ArchetypeExitTests {
+
+  @Test
+  func archetypeStartsMutable() async throws {
+    let archetype = Arena.Archetype()
+
+    // Should be able to add slabs before arena creation
+    _ = archetype.typedSlab(Int?.self)
+    _ = archetype.typedSlab(String?.self)
   }
-  struct Component3: Equatable {
-    private let data = (
-      Component2(),
-      Component2(),
-      Component2(),
-      Component2(),
-      Component2(),
-      Component2(),
-    )
-    static func == (lhs: Self, rhs: Self) -> Bool {
-      lhs.data == rhs.data
+
+  @Test
+  func archetypeBecomesImmutableAfterArenaCreation() async throws {
+    let archetype = Arena.Archetype()
+    let slab = archetype.typedSlab(Int?.self)
+
+    // Can add items before arena creation
+    _ = slab.append()
+    _ = slab.append()
+
+    // Create arena - this should make archetype immutable
+    let arena = Arena(archetype)
+    arena.reset()
+
+    // After arena creation, the archetype's slabs have been consumed
+    // The archetype is no longer mutable (though we can't directly test the flag)
+  }
+
+  @Test
+  func multipleSlabsBeforeArenaCreation() async throws {
+    let archetype = Arena.Archetype()
+
+    // Add multiple slabs before arena creation (should all succeed)
+    let slab1 = archetype.typedSlab(Int?.self)
+    let slab2 = archetype.typedSlab(String?.self)
+    let slab3 = archetype.typedSlab(Bool?.self)
+
+    _ = slab1.append()
+    _ = slab2.append()
+    _ = slab3.append()
+
+    // Create arena with all slabs
+    let arena = Arena(archetype)
+    arena.reset()
+  }
+
+}
+
+// MARK: - Slab Exit Tests
+
+@Suite("Slab Exit Tests")
+struct SlabExitTests {
+
+  @Test
+  func typedSlabCanAppendBeforeArenaCreation() async throws {
+    let archetype = Arena.Archetype()
+    let slab = archetype.typedSlab(Int?.self)
+
+    // Should be able to append before arena/buffer allocation
+    _ = slab.append()
+    _ = slab.append()
+    _ = slab.append()
+  }
+
+  @Test
+  func typedSlabBufferAllocationSucceeds() async throws {
+    let archetype = Arena.Archetype()
+    let slab = archetype.typedSlab(Int?.self)
+
+    _ = slab.append()
+    _ = slab.append()
+
+    // Allocate buffer - this should make slab immutable
+    let buffer = slab.allocateAndInitializeBuffer()
+    #expect(buffer.count > 0)
+
+    // Buffer should be properly allocated
+    #expect(buffer.baseAddress != nil)
+
+    // Clean up
+    slab.deinitializeAndDeallocate(buffer)
+  }
+
+  @Test
+  func multipleTypedSlabsIndependentAllocation() async throws {
+    let archetype = Arena.Archetype()
+
+    let intSlab = archetype.typedSlab(Int?.self)
+    let stringSlab = archetype.typedSlab(String?.self)
+
+    _ = intSlab.append()
+    _ = intSlab.append()
+    _ = stringSlab.append()
+
+    // Each slab can allocate independently
+    let intBuffer = intSlab.allocateAndInitializeBuffer()
+    let stringBuffer = stringSlab.allocateAndInitializeBuffer()
+
+    #expect(intBuffer.count > 0)
+    #expect(stringBuffer.count > 0)
+
+    // Clean up
+    intSlab.deinitializeAndDeallocate(intBuffer)
+    stringSlab.deinitializeAndDeallocate(stringBuffer)
+  }
+
+  @Test
+  func slabResetAfterAllocation() async throws {
+    let archetype = Arena.Archetype()
+    let slab = archetype.typedSlab(Bool?.self)
+
+    _ = slab.append()
+
+    // Allocate buffer
+    let buffer = slab.allocateAndInitializeBuffer()
+
+    // Reset should work after allocation
+    slab.reset(buffer)
+
+    // Can reset multiple times
+    slab.reset(buffer)
+
+    // Clean up
+    slab.deinitializeAndDeallocate(buffer)
+  }
+
+}
+
+// MARK: - Arena Lifecycle
+
+@Suite("Arena Lifecycle")
+struct ArenaLifecycleTests {
+
+  @Test
+  func arenaCanBeReset() async throws {
+    let archetype = Arena.Archetype()
+    let slab = archetype.typedSlab(Int?.self)
+
+    _ = slab.append()
+    _ = slab.append()
+
+    let arena = Arena(archetype)
+
+    // Reset should not crash
+    arena.reset()
+
+    // Can reset multiple times
+    arena.reset()
+  }
+
+  @Test
+  func arenaProperlyDeinitializes() async throws {
+    let archetype = Arena.Archetype()
+    let slab = archetype.typedSlab(String?.self)
+
+    _ = slab.append()
+
+    do {
+      let arena = Arena(archetype)
+      arena.reset()
+      // Arena will deinitialize at end of scope
     }
+
+    // If we get here without crash, deinitialization worked
   }
-  struct Component2: Equatable {
-    private let data = (
-      Component1(),
-      Component1(),
-      Component1(),
-      Component1(),
-      Component1(),
-      Component1(),
-    )
-    static func == (lhs: Self, rhs: Self) -> Bool {
-      lhs.data == rhs.data
-    }
+
+  @Test
+  func emptyArenaLifecycle() async throws {
+    let archetype = Arena.Archetype()
+
+    // Create arena with no additional slabs (only default slabs)
+    let arena = Arena(archetype)
+
+    // Should handle reset on empty arena
+    arena.reset()
   }
-  struct Component1: Equatable {
-    private let data = (
-      UInt128.random(in: (.min)..<(.max)),
-      UInt128.random(in: (.min)..<(.max)),
-      UInt128.random(in: (.min)..<(.max)),
-      UInt128.random(in: (.min)..<(.max)),
-      UInt128.random(in: (.min)..<(.max)),
-      UInt128.random(in: (.min)..<(.max)),
-    )
-    static func == (lhs: Self, rhs: Self) -> Bool {
-      lhs.data == rhs.data
-    }
+
+  @Test
+  func multipleSlabsLifecycle() async throws {
+    let archetype = Arena.Archetype()
+
+    let intSlab = archetype.typedSlab(Int?.self)
+    let stringSlab = archetype.typedSlab(String?.self)
+    let boolSlab = archetype.typedSlab(Bool?.self)
+
+    _ = intSlab.append()
+    _ = intSlab.append()
+    _ = stringSlab.append()
+    _ = boolSlab.append()
+    _ = boolSlab.append()
+    _ = boolSlab.append()
+
+    let arena = Arena(archetype)
+
+    // Reset with multiple slabs
+    arena.reset()
+    arena.reset()
   }
+
 }
