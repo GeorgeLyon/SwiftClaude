@@ -34,7 +34,7 @@ public final class Arena {
 
 extension Arena {
 
-  public struct Reference<Value: ~Copyable> {
+  public struct Reference<Value: ~Copyable>: Sendable {
     init(
       archetypeID: Arena.Archetype.ID,
       buffer: BufferReference,
@@ -62,6 +62,7 @@ extension Arena {
 
   public func withValue<Value: ~Copyable, T: ~Copyable>(
     _ reference: Reference<Value>,
+    isolation: isolated Actor? = #isolation,
     body: (inout Value) async throws -> T
   ) async rethrows -> T {
     try await body(&pointerToValue(reference).pointee)
