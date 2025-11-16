@@ -49,6 +49,34 @@ extension Arena {
     fileprivate let offset: Int
   }
 
+  public subscript<Value>(reference: Reference<Value>) -> Value {
+    get { withValue(reference) { $0 } }
+  }
+
+  public func withValue<Value: ~Copyable, T: ~Copyable>(
+    _ reference: Reference<Value>,
+    body: (inout Value) throws -> T
+  ) rethrows -> T {
+    try body(&pointerToValue(reference).pointee)
+  }
+
+  public func withValue<Value: ~Copyable, T: ~Copyable>(
+    _ reference: Reference<Value>,
+    body: (inout Value) async throws -> T
+  ) async rethrows -> T {
+    try await body(&pointerToValue(reference).pointee)
+  }
+
+  private func pointerToValue<Value: ~Copyable>(
+    _ reference: Reference<Value>
+  ) -> UnsafeMutablePointer<Value> {
+    guard reference.archetypeID == archetypeID else { fatalError() }
+    return buffers[reference.buffer.index]
+      .baseAddress!
+      .advanced(by: reference.offset)
+      .assumingMemoryBound(to: Value.self)
+  }
+
   struct BufferReference {
     fileprivate let index: Int
   }
