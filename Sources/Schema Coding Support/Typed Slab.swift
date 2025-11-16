@@ -57,15 +57,15 @@ extension Arena {
     private var isMutable: Bool = true
 
     func append(
-      _ type: Component?.Type = Component?.self
-    ) -> Arena.Reference<Component?> {
+      _ type: Component.Type = Component.self
+    ) -> Arena.Reference<Component> {
       guard isMutable else {
         fatalError()
       }
-      let reference = Arena.Reference<Component?>(
+      let reference = Arena.Reference<Component>(
         archetypeID: archetypeID,
         buffer: buffer,
-        offset: MemoryLayout<Component?>.stride * count
+        offset: MemoryLayout<Component>.stride * count
       )
       count += 1
       return reference

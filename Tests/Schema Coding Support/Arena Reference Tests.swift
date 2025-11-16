@@ -232,7 +232,7 @@ struct WritingThroughReferencesTests {
     arena.withValue(ref) { $0 = 42 }
 
     let result = arena.withValue(ref) { value -> Int in
-      return (value ?? 0) ?? 0
+      return value ?? 0
     }
 
     #expect(result == 42)
@@ -833,7 +833,7 @@ struct AsyncOperationsTests {
     arena.withValue(ref) { $0 = 42 }
 
     let result = await arena.withValueAsync(ref) { value -> Int in
-      return (value ?? 0) ?? 0
+      return value ?? 0
     }
 
     #expect(result == 42)
