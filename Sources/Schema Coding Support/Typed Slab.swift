@@ -1,6 +1,6 @@
 extension Arena {
 
-  public final class TypedSlab<Component: ~Copyable>: Arena.Slab {
+  final class TypedSlab<Component: ~Copyable>: Arena.Slab {
 
     convenience init<T>(
       archetypeID: Arena.Archetype.ID,
@@ -91,6 +91,7 @@ extension Arena {
       let buffer =
         buffer
         .assumingMemoryBound(to: Component.self)
+      buffer.deinitialize()
       buffer.deallocate()
     }
 

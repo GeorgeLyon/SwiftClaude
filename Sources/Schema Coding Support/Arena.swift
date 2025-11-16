@@ -1,6 +1,6 @@
 public final class Arena {
 
-  init(_ archetype: Archetype) {
+  public init(_ archetype: Archetype) {
     archetypeID = archetype.id
 
     /// Once an arena has been created from an archetype, we can no longer mutate the archetype
@@ -12,7 +12,7 @@ public final class Arena {
     }
   }
 
-  func reset() {
+  public func reset() {
     for (buffer, slab) in zip(buffers, slabs) {
       slab.reset(buffer)
     }
@@ -49,6 +49,10 @@ extension Arena {
     fileprivate let offset: Int
   }
 
+  struct BufferReference {
+    fileprivate let index: Int
+  }
+
   public subscript<Value>(reference: Reference<Value>) -> Value {
     get { withValue(reference) { $0 } }
   }
@@ -78,10 +82,6 @@ extension Arena {
       .assumingMemoryBound(to: Value.self)
   }
 
-  struct BufferReference {
-    fileprivate let index: Int
-  }
-
 }
 
 // MARK: - Archetype
@@ -92,26 +92,42 @@ extension Arena {
 
     public init() {
       heterogenousSlab = .init(archetypeID: id, buffer: .init(index: 0))
-      bitwiseCopyableSlap = .init(archetypeID: id, buffer: .init(index: 1))
-      slabs = [heterogenousSlab, bitwiseCopyableSlap]
+      bitwiseCopyableSlab = .init(archetypeID: id, buffer: .init(index: 1))
+      typedSlabs = []
     }
 
-    public func typedSlab<Component: ~Copyable>(
-      _ type: Component?.Type
-    ) -> TypedSlab<Component?> {
-      let slab = TypedSlab<Component?>(
+    public func addSlab<T: ~Copyable>(
+      of type: T?.Type
+    ) {
+      let slab = TypedSlab<T?>(
         archetypeID: id,
         buffer: .init(index: slabs.count)
       )
-      slabs.append(slab)
-      return slab
+      assert(!typedSlabs.contains(where: { $0 is TypedSlab<T?> }))
+      typedSlabs.append(slab)
+    }
+
+    public func allocate<Value: ~Copyable>(_ type: Value?.Type) -> Reference<Value?> {
+      if let slab = typedSlabs.compactMap({ $0 as? TypedSlab<Value?> }).first {
+        return slab.append(type)
+      } else {
+        return heterogenousSlab.append(type)
+      }
+    }
+
+    public func allocate<Value: BitwiseCopyable>(_ type: Value?.Type) -> Reference<Value?> {
+      bitwiseCopyableSlab.append(type)
     }
 
     fileprivate let id: Arena.Archetype.ID = .makeUnique()
-    fileprivate let heterogenousSlab: HeterogenousSlab
-    fileprivate let bitwiseCopyableSlap: HeterogenousSlab
-    fileprivate var slabs: [Slab] = []
+    fileprivate var slabs: [Slab] {
+      [heterogenousSlab, bitwiseCopyableSlab] + typedSlabs
+    }
     fileprivate var isMutable: Bool = true
+
+    private let heterogenousSlab: HeterogenousSlab
+    private let bitwiseCopyableSlab: HeterogenousSlab
+    private var typedSlabs: [Slab] = []
 
   }
 
