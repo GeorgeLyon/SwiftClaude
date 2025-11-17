@@ -88,7 +88,7 @@ struct ArenaTests {
       let ref = archetype.allocate(String?.self)
       let arena = Arena(archetype)
 
-      await arena.withValue(ref) { value in
+      await arena.withValueAsync(ref) { value in
         value = "Async value"
       }
 
@@ -102,23 +102,23 @@ struct ArenaTests {
       let ref = archetype.allocate(String?.self)
       let arena = Arena(archetype)
 
-      await arena.withValue(ref) { value in
+      await arena.withValueAsync(ref) { value in
         value = "Async value"
       }
 
       #expect(arena[ref] == "Async value")
     }
 
-    @Test(
-      "Archetype becomes immutable after arena creation",
-      .disabled("Exit test not yet supported in Swift Testing"))
-    func archetypeImmutabilityAfterArenaCreation() {
-      let archetype = Arena.Archetype()
-      let _ = Arena(archetype)
+    @Test("Archetype becomes immutable after arena creation")
+    func archetypeImmutabilityAfterArenaCreation() async throws {
+      await #expect(processExitsWith: .failure) {
+        let archetype = Arena.Archetype()
+        let _ = Arena(archetype)
 
-      // Attempting to allocate after arena creation should fail
-      // This would be an exit test - the program should trap/exit
-      // let _ = archetype.allocate(Int?.self)  // Should trap
+        // Attempting to allocate after arena creation should fail
+        // This would be an exit test - the program should trap/exit
+        let _ = archetype.allocate(Int?.self)  // Should trap
+      }
     }
 
     @Test("Multiple allocations of same type")
@@ -617,7 +617,7 @@ struct ArenaTests {
       do {
         let archetype = Arena.Archetype()
         let ref1 = archetype.allocate(DeinitTracker?.self)
-        let ref2 = archetype.allocate(DeinitTracker?.self)
+        let _ = archetype.allocate(DeinitTracker?.self)
         let ref3 = archetype.allocate(DeinitTracker?.self)
         let arena = Arena(archetype)
 
@@ -638,57 +638,39 @@ struct ArenaTests {
   @Suite("Type Safety")
   struct TypeSafety {
 
-    @Test(
-      "Reference from different arena fails",
-      .disabled("Exit test not yet supported in Swift Testing"))
-    func referenceFromDifferentArenaFails() {
-      let archetype1 = Arena.Archetype()
-      let ref1 = archetype1.allocate(String?.self)
-      let arena1 = Arena(archetype1)
+    @Test("Reference from different arena fails")
+    func referenceFromDifferentArenaFails() async throws {
+      await #expect(processExitsWith: .failure) {
+        let archetype1 = Arena.Archetype()
+        let ref1 = archetype1.allocate(String?.self)
+        let arena1 = Arena(archetype1)
 
-      let archetype2 = Arena.Archetype()
-      let arena2 = Arena(archetype2)
+        let archetype2 = Arena.Archetype()
+        let arena2 = Arena(archetype2)
 
-      arena1.withValue(ref1) { $0 = "test" }
+        arena1.withValue(ref1) { $0 = "test" }
 
-      // Accessing ref1 from arena2 should trap (different archetype IDs)
-      // let _ = arena2[ref1]  // Should trap
+        // Accessing ref1 from arena2 should trap (different archetype IDs)
+        let _ = arena2[ref1]  // Should trap
+      }
     }
 
-    @Test("Strongly typed references prevent confusion")
-    func stronglyTypedReferences() {
-      let archetype = Arena.Archetype()
-      let stringRef = archetype.allocate(String?.self)
-      let intRef = archetype.allocate(Int?.self)
-      let arena = Arena(archetype)
+    @Test("Archetype ID validation prevents cross-arena access")
+    func archetypeIDValidation() async throws {
+      await #expect(processExitsWith: .failure) {
+        let archetype1 = Arena.Archetype()
+        let ref = archetype1.allocate(Int?.self)
+        let arena1 = Arena(archetype1)
+        arena1.withValue(ref) { $0 = 100 }
 
-      arena.withValue(stringRef) { $0 = "text" }
-      arena.withValue(intRef) { $0 = 42 }
+        // Create a second arena from a different archetype
+        let archetype2 = Arena.Archetype()
+        let _ = archetype2.allocate(Int?.self)
+        let arena2 = Arena(archetype2)
 
-      // Type system prevents using wrong reference type
-      #expect(arena[stringRef] == "text")
-      #expect(arena[intRef] == 42)
-
-      // This would not compile:
-      // let wrongValue: Int? = arena[stringRef]
-    }
-
-    @Test(
-      "Archetype ID validation prevents cross-arena access",
-      .disabled("Exit test not yet supported in Swift Testing"))
-    func archetypeIDValidation() {
-      let archetype1 = Arena.Archetype()
-      let ref = archetype1.allocate(Int?.self)
-      let arena1 = Arena(archetype1)
-      arena1.withValue(ref) { $0 = 100 }
-
-      // Create a second arena from a different archetype
-      let archetype2 = Arena.Archetype()
-      let _ = archetype2.allocate(Int?.self)
-      let arena2 = Arena(archetype2)
-
-      // Using ref (from archetype1) with arena2 should trap
-      // let _ = arena2[ref]  // Should trap due to archetype ID mismatch
+        // Using ref (from archetype1) with arena2 should trap
+        let _ = arena2[ref]  // Should trap due to archetype ID mismatch
+      }
     }
   }
 
@@ -946,25 +928,25 @@ struct ArenaTests {
       let arena = Arena(archetype)
 
       // Set values asynchronously
-      await arena.withValue(ref1) { value in value = "async" }
-      await arena.withValue(ref2) { value in value = 999 }
-      await arena.withValue(ref3) { value in value = 2.71828 }
-      await arena.withValue(ref4) { value in value = false }
+      await arena.withValueAsync(ref1) { value in value = "async" }
+      await arena.withValueAsync(ref2) { value in value = 999 }
+      await arena.withValueAsync(ref3) { value in value = 2.71828 }
+      await arena.withValueAsync(ref4) { value in value = false }
 
       // Access out of order: 4, 1, 3, 2
-      await arena.withValue(ref4) { value in
+      await arena.withValueAsync(ref4) { value in
         #expect(value == false)
       }
 
-      await arena.withValue(ref1) { value in
+      await arena.withValueAsync(ref1) { value in
         #expect(value == "async")
       }
 
-      await arena.withValue(ref3) { value in
+      await arena.withValueAsync(ref3) { value in
         #expect(value == 2.71828)
       }
 
-      await arena.withValue(ref2) { value in
+      await arena.withValueAsync(ref2) { value in
         #expect(value == 999)
       }
     }
@@ -1055,4 +1037,15 @@ struct ArenaTests {
       #expect(arena[intRef2] == 20)
     }
   }
+}
+
+extension Arena {
+
+  fileprivate func withValueAsync<Value, T>(
+    _ reference: Reference<Value>,
+    body: (inout Value) async throws -> T
+  ) async rethrows -> T {
+    try await withValue(reference, body: body)
+  }
+
 }
