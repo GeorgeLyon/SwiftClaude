@@ -107,6 +107,14 @@ extension Arena {
       typedSlabs.append(slab)
     }
 
+    public func allocate<Value>(_ type: Value?.Type) -> Reference<Value?> {
+      if let slab = typedSlabs.compactMap({ $0 as? TypedSlab<Value?> }).first {
+        return slab.append(type)
+      } else {
+        return heterogenousSlab.append(type)
+      }
+    }
+
     public func allocate<Value: ~Copyable>(_ type: Value?.Type) -> Reference<Value?> {
       if let slab = typedSlabs.compactMap({ $0 as? TypedSlab<Value?> }).first {
         return slab.append(type)
@@ -126,7 +134,7 @@ extension Arena {
     fileprivate var isMutable: Bool = true
 
     private let heterogenousSlab: HeterogenousSlab
-    private let bitwiseCopyableSlab: HeterogenousSlab
+    private let bitwiseCopyableSlab: BitwiseCopyableSlab
     private var typedSlabs: [Slab] = []
 
   }

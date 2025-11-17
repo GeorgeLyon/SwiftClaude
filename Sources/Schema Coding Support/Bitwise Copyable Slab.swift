@@ -14,7 +14,7 @@ extension Arena {
     private var components: [Component] = []
     private var alignment: Int = MemoryLayout<Int>.alignment
     private var byteCount: Int = 0
-    private var isMutable: Bool = false
+    private var isMutable: Bool = true
 
     func append<Value: BitwiseCopyable>(
       _ type: Value?.Type
