@@ -118,6 +118,13 @@ extension Arena {
       typedSlabs.append(slab)
     }
 
+    public func addSlab<T: BitwiseCopyable>(
+      of type: T?.Type
+    ) {
+      /// Bitwise-copyable types should not need a separate slab
+      assertionFailure()
+    }
+
     public func allocate<Value: ~Copyable>(_ type: Value?.Type) -> Reference<Value?> {
       if let slab = typedSlabs.compactMap({ $0 as? TypedSlab<Value?> }).first {
         return slab.append(type)

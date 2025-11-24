@@ -1,3 +1,5 @@
+import SchemaCodingSupport
+
 // MARK: - Namespaces
 
 public enum SchemaCoding {
@@ -10,35 +12,32 @@ public enum SchemaCoding {
 
 // MARK: - Schema
 
+extension SchemaCoding {
+
+  public typealias Schema = Support.Schema
+
+}
+
 extension SchemaCoding.Support {
 
-  public protocol Schema<Value>: Sendable {
+  public protocol Schema: Sendable {
 
-    associatedtype Value: Sendable
+    associatedtype Value
 
-    associatedtype ValueDecodingState: Sendable
+    func encode(_ value: Value, to encoder: inout Encoder)
 
-    func beginDecoding(
-      in context: inout Decoder.Context
-    ) -> ValueDecodingState
+    associatedtype ValueDecodingState
 
-    func decodeInitialValue(
+    var initialValueDecodingState: ValueDecodingState { get }
+
+    func decodeValue(
       from decoder: inout Decoder,
       state: inout ValueDecodingState
-    ) -> DecodingResult<Value>
-
-    func decodeStreamingValue<Root>(
-      from decoder: inout Decoder,
-      root: Root,
-      keyPath: WritableKeyPath<Root, Value>,
-      state: inout ValueDecodingState
-    ) async throws
-
-    func finishDecoding(
-      in context: inout Decoder.Context,
-      state: ValueDecodingState
-    )
+    ) throws -> DecodingResult<Value>
 
   }
 
+  public struct SchemaContext: ~Copyable {
+    var arenaArchetype: Arena.Archetype
+  }
 }

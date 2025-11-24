@@ -6,11 +6,8 @@ import SchemaCodingSupport
 extension SchemaCoding.Support {
 
   public struct Decoder: ~Copyable {
-
-    public struct Context: ~Copyable {
-      var arena: Arena
-    }
-
+    let arena: Arena
+    var stream: JSON.DecodingStream
   }
 
 }

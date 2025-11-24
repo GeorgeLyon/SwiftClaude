@@ -21,7 +21,7 @@ let package = Package(
     /// Temporary
     .library(
       name: "Temporary",
-      targets: ["SchemaCodingSupport"]
+      targets: ["SchemaCoding"]
     )
   ],
   dependencies: [
@@ -112,16 +112,16 @@ let package = Package(
 
     // MARK: - Schema Coding
 
-    // .target(
-    //   name: "SchemaCoding",
-    //   dependencies: [
-    //     "JSONSupport",
-    //     "Macros",
-    //     "SchemaCodingSupport",
-    //   ],
-    //   path: "Sources/Schema Coding",
-    //   swiftSettings: .projectDefaults
-    // ),
+    .target(
+      name: "SchemaCoding",
+      dependencies: [
+        "JSONSupport",
+        "Macros",
+        "SchemaCodingSupport",
+      ],
+      path: "Sources/Schema Coding",
+      swiftSettings: .projectDefaults
+    ),
 
     // .target(
     //   name: "SchemaCodingTestSupport",
@@ -204,10 +204,20 @@ let package = Package(
 extension Array where Element == SwiftSetting {
   fileprivate static let projectDefaults: [SwiftSetting] = {
     var settings: [SwiftSetting] = [
-      .enableUpcomingFeature("NonisolatedNonsendingByDefault")
+      /// https://github.com/swiftlang/swift-evolution/blob/main/proposals/0461-async-function-isolation.md
+      .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
 
-      /// Disabled for now because this causes compiler crashes if certain types have too limited visibility
-      // .enableUpcomingFeature("InternalImportsByDefault"),
+      /// https://github.com/swiftlang/swift-evolution/blob/main/proposals/0409-access-level-on-imports.md
+      .enableUpcomingFeature("InternalImportsByDefault"),
+
+      /// https://github.com/swiftlang/swift-evolution/blob/main/proposals/0444-member-import-visibility.md
+      .enableUpcomingFeature("MemberImportVisibility"),
+
+      /// https://github.com/swiftlang/swift-evolution/blob/main/proposals/0481-weak-let.md
+      .enableUpcomingFeature("ImmutableWeakCaptures"),
+
+      /// https://github.com/swiftlang/swift-evolution/blob/main/proposals/0470-isolated-conformances.md
+      .enableUpcomingFeature("InferIsolatedConformances"),
     ]
     #if true
       /// Allow testing release builds
