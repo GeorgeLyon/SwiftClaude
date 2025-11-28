@@ -625,6 +625,220 @@ struct ArenaTests {
     }
   }
 
+  // MARK: - Stats Suite
+
+  @Suite("Stats")
+  struct StatsTests {
+
+    @Test("BitwiseCopyable values tracked in bitwiseCopyableSegment")
+    func bitwiseCopyableValuesTracked() {
+      let arena = Arena()
+
+      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 0)
+      #expect(arena.stats.heterogenousSegmentElementCount == 0)
+      #expect(arena.stats.typedSegmentsElementCount == 0)
+
+      _ = arena.push(42)
+      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 1)
+      #expect(arena.stats.heterogenousSegmentElementCount == 0)
+      #expect(arena.stats.typedSegmentsElementCount == 0)
+
+      _ = arena.push(3.14)
+      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 2)
+      #expect(arena.stats.heterogenousSegmentElementCount == 0)
+      #expect(arena.stats.typedSegmentsElementCount == 0)
+
+      _ = arena.push(true)
+      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 3)
+      #expect(arena.stats.heterogenousSegmentElementCount == 0)
+      #expect(arena.stats.typedSegmentsElementCount == 0)
+    }
+
+    @Test("Non-BitwiseCopyable values tracked in heterogenousSegment")
+    func nonBitwiseCopyableValuesTracked() {
+      let arena = Arena()
+
+      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 0)
+      #expect(arena.stats.heterogenousSegmentElementCount == 0)
+      #expect(arena.stats.typedSegmentsElementCount == 0)
+
+      _ = arena.push("hello")
+      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 0)
+      #expect(arena.stats.heterogenousSegmentElementCount == 1)
+      #expect(arena.stats.typedSegmentsElementCount == 0)
+
+      _ = arena.push(TestStruct(value: 42, name: "test"))
+      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 0)
+      #expect(arena.stats.heterogenousSegmentElementCount == 2)
+      #expect(arena.stats.typedSegmentsElementCount == 0)
+    }
+
+    @Test("Typed segment values tracked in typedSegments")
+    func typedSegmentValuesTracked() {
+      let arena = Arena()
+      arena.addSegment(for: String.self)
+
+      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 0)
+      #expect(arena.stats.heterogenousSegmentElementCount == 0)
+      #expect(arena.stats.typedSegmentsElementCount == 0)
+
+      _ = arena.push("typed")
+      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 0)
+      #expect(arena.stats.heterogenousSegmentElementCount == 0)
+      #expect(arena.stats.typedSegmentsElementCount == 1)
+
+      _ = arena.push("another")
+      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 0)
+      #expect(arena.stats.heterogenousSegmentElementCount == 0)
+      #expect(arena.stats.typedSegmentsElementCount == 2)
+    }
+
+    @Test("Mixed types tracked in correct slabs")
+    func mixedTypesTrackedCorrectly() {
+      let arena = Arena()
+      arena.addSegment(for: String.self)
+
+      // BitwiseCopyable -> bitwiseCopyableSegment
+      _ = arena.push(42)
+      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 1)
+      #expect(arena.stats.heterogenousSegmentElementCount == 0)
+      #expect(arena.stats.typedSegmentsElementCount == 0)
+
+      // String with typed segment -> typedSegments
+      _ = arena.push("typed")
+      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 1)
+      #expect(arena.stats.heterogenousSegmentElementCount == 0)
+      #expect(arena.stats.typedSegmentsElementCount == 1)
+
+      // TestStruct without typed segment -> heterogenousSegment
+      _ = arena.push(TestStruct(value: 1, name: "test"))
+      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 1)
+      #expect(arena.stats.heterogenousSegmentElementCount == 1)
+      #expect(arena.stats.typedSegmentsElementCount == 1)
+
+      // More BitwiseCopyable
+      _ = arena.push(true)
+      _ = arena.push(3.14)
+      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 3)
+      #expect(arena.stats.heterogenousSegmentElementCount == 1)
+      #expect(arena.stats.typedSegmentsElementCount == 1)
+
+      // More typed String
+      _ = arena.push("another")
+      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 3)
+      #expect(arena.stats.heterogenousSegmentElementCount == 1)
+      #expect(arena.stats.typedSegmentsElementCount == 2)
+    }
+
+    @Test("Stats reset on arena reset")
+    func statsResetOnArenaReset() {
+      let arena = Arena()
+      arena.addSegment(for: String.self)
+
+      _ = arena.push(42)
+      _ = arena.push("typed")
+      _ = arena.push(TestStruct(value: 1, name: "test"))
+
+      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 1)
+      #expect(arena.stats.heterogenousSegmentElementCount == 1)
+      #expect(arena.stats.typedSegmentsElementCount == 1)
+
+      arena.reset()
+
+      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 0)
+      #expect(arena.stats.heterogenousSegmentElementCount == 0)
+      #expect(arena.stats.typedSegmentsElementCount == 0)
+    }
+
+    @Test("Multiple typed segments tracked together")
+    func multipleTypedSegmentsTracked() {
+      let arena = Arena()
+      arena.addSegment(for: String.self)
+      arena.addSegment(for: TestStruct.self)
+
+      _ = arena.push("string1")
+      #expect(arena.stats.typedSegmentsElementCount == 1)
+
+      _ = arena.push(TestStruct(value: 1, name: "one"))
+      #expect(arena.stats.typedSegmentsElementCount == 2)
+
+      _ = arena.push("string2")
+      #expect(arena.stats.typedSegmentsElementCount == 3)
+
+      _ = arena.push(TestStruct(value: 2, name: "two"))
+      #expect(arena.stats.typedSegmentsElementCount == 4)
+
+      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 0)
+      #expect(arena.stats.heterogenousSegmentElementCount == 0)
+    }
+
+    @Test("Noncopyable values tracked in heterogenousSegment")
+    func noncopyableValuesTrackedInHeterogenousSegment() {
+      let arena = Arena()
+      let onDeinit: @Sendable (Int) -> Void = { _ in }
+
+      _ = arena.push(NoncopyableValue(id: 1, onDeinit: onDeinit))
+      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 0)
+      #expect(arena.stats.heterogenousSegmentElementCount == 1)
+      #expect(arena.stats.typedSegmentsElementCount == 0)
+
+      _ = arena.push(NoncopyableValue(id: 2, onDeinit: onDeinit))
+      #expect(arena.stats.heterogenousSegmentElementCount == 2)
+    }
+
+    @Test("Noncopyable values tracked in typed segment when available")
+    func noncopyableValuesTrackedInTypedSegment() {
+      let arena = Arena()
+      let onDeinit: @Sendable (Int) -> Void = { _ in }
+
+      arena.addSegment(for: NoncopyableValue.self)
+
+      _ = arena.push(NoncopyableValue(id: 1, onDeinit: onDeinit))
+      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 0)
+      #expect(arena.stats.heterogenousSegmentElementCount == 0)
+      #expect(arena.stats.typedSegmentsElementCount == 1)
+
+      _ = arena.push(NoncopyableValue(id: 2, onDeinit: onDeinit))
+      #expect(arena.stats.typedSegmentsElementCount == 2)
+    }
+
+    @Test("Class references tracked in heterogenousSegment")
+    func classReferencesTrackedInHeterogenousSegment() {
+      let arena = Arena()
+      let onDeinit: @Sendable (Int) -> Void = { _ in }
+
+      _ = arena.push(DeinitTracker(id: 1, onDeinit: onDeinit))
+      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 0)
+      #expect(arena.stats.heterogenousSegmentElementCount == 1)
+      #expect(arena.stats.typedSegmentsElementCount == 0)
+    }
+
+    @Test("Many values accumulate correctly in stats")
+    func manyValuesAccumulateCorrectly() {
+      let arena = Arena()
+      arena.addSegment(for: String.self)
+
+      for i in 0..<50 {
+        _ = arena.push(i)  // BitwiseCopyable
+      }
+      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 50)
+
+      for i in 0..<30 {
+        _ = arena.push("string\(i)")  // Typed segment
+      }
+      #expect(arena.stats.typedSegmentsElementCount == 30)
+
+      for i in 0..<20 {
+        _ = arena.push(TestStruct(value: i, name: "test"))  // Heterogenous
+      }
+      #expect(arena.stats.heterogenousSegmentElementCount == 20)
+
+      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 50)
+      #expect(arena.stats.typedSegmentsElementCount == 30)
+      #expect(arena.stats.heterogenousSegmentElementCount == 20)
+    }
+  }
+
   // MARK: - Variadic Generics Suite
 
   @Suite("Variadic Generics")
