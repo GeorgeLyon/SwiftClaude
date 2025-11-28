@@ -1,9 +1,9 @@
 private import Synchronization
 
-extension Arena {
+extension Arena.Archetype {
 
   struct ID: Equatable {
-    static func unique() -> Self {
+    static func makeUnique() -> Self {
       Self()
     }
     private init() {

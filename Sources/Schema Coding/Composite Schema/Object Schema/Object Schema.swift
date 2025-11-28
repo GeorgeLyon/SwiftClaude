@@ -92,6 +92,10 @@ extension SchemaCoding.Support {
 
 // MARK: - Implementation Details
 
+private enum MetaSchemaCodingKey: CodingKey {
+  case description, properties
+}
+
 private enum Error: Swift.Error {
   case unknownProperty(name: String)
 }

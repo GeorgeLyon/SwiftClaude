@@ -21,7 +21,7 @@ let package = Package(
     /// Temporary
     .library(
       name: "Temporary",
-      targets: ["SchemaCoding"]
+      targets: ["SchemaCodingSupport"]
     )
   ],
   dependencies: [
@@ -112,16 +112,16 @@ let package = Package(
 
     // MARK: - Schema Coding
 
-    .target(
-      name: "SchemaCoding",
-      dependencies: [
-        "JSONSupport",
-        "Macros",
-        "SchemaCodingSupport",
-      ],
-      path: "Sources/Schema Coding",
-      swiftSettings: .projectDefaults
-    ),
+    // .target(
+    //   name: "SchemaCoding",
+    //   dependencies: [
+    //     "JSONSupport",
+    //     "Macros",
+    //     "SchemaCodingSupport",
+    //   ],
+    //   path: "Sources/Schema Coding",
+    //   swiftSettings: .projectDefaults
+    // ),
 
     // .target(
     //   name: "SchemaCodingTestSupport",
@@ -159,21 +159,21 @@ let package = Package(
     // MARK: - Macros Support
 
     /// Splitting macros into libraries causes a linker issue on macOS, so we put everything in one target
-    .macro(
-      name: "Macros",
-      dependencies: [
-        .product(name: "SwiftDiagnostics", package: "swift-syntax"),
-        .product(name: "SwiftSyntax", package: "swift-syntax"),
-        .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
-        .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
-        .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
-      ],
-      path: "Sources/Macros",
-      exclude: [
-        "Support/Convert To Snake Case/LICENSE.md"
-      ],
-      swiftSettings: .projectDefaults
-    ),
+    // .macro(
+    //   name: "Macros",
+    //   dependencies: [
+    //     .product(name: "SwiftDiagnostics", package: "swift-syntax"),
+    //     .product(name: "SwiftSyntax", package: "swift-syntax"),
+    //     .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
+    //     .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+    //     .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
+    //   ],
+    //   path: "Sources/Macros",
+    //   exclude: [
+    //     "Support/Convert To Snake Case/LICENSE.md"
+    //   ],
+    //   swiftSettings: .projectDefaults
+    // ),
     // .testTarget(
     //   name: "MacrosTests",
     //   dependencies: [

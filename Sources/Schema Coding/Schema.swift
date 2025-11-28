@@ -20,7 +20,7 @@ extension SchemaCoding {
 
 extension SchemaCoding.Support {
 
-  public protocol Schema: Sendable {
+  public protocol Schema<Value>: Sendable {
 
     associatedtype Value
 
@@ -34,6 +34,9 @@ extension SchemaCoding.Support {
       from decoder: inout Decoder,
       state: inout ValueDecodingState
     ) throws -> DecodingResult<Value>
+
+    associatedtype MetaSchema: Schema where MetaSchema.Value == Self
+    func metaSchema(in context: inout SchemaContext) -> MetaSchema
 
   }
 
