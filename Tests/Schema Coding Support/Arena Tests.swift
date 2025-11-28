@@ -259,9 +259,9 @@ struct ArenaTests {
   struct TypedSegments {
 
     @Test("Add typed segment and push values")
-    func addTypedSegmentAndPush() {
+    func addSegmentAndPush() {
       let arena = Arena()
-      arena.addTypedSegment(for: String.self)
+      arena.addSegment(for: String.self)
 
       let ref1 = arena.push("first")
       let ref2 = arena.push("second")
@@ -273,7 +273,7 @@ struct ArenaTests {
     @Test("Typed segment for TestStruct")
     func typedSegmentForTestStruct() {
       let arena = Arena()
-      arena.addTypedSegment(for: TestStruct.self)
+      arena.addSegment(for: TestStruct.self)
 
       let ref = arena.push(TestStruct(value: 42, name: "typed"))
 
@@ -283,8 +283,8 @@ struct ArenaTests {
     @Test("Multiple typed segments")
     func multipleTypedSegments() {
       let arena = Arena()
-      arena.addTypedSegment(for: String.self)
-      arena.addTypedSegment(for: TestStruct.self)
+      arena.addSegment(for: String.self)
+      arena.addSegment(for: TestStruct.self)
 
       let stringRef = arena.push("hello")
       let structRef = arena.push(TestStruct(value: 1, name: "one"))
@@ -296,7 +296,7 @@ struct ArenaTests {
     @Test("Mix typed segment with heterogenous fallback")
     func mixTypedAndHeterogenous() {
       let arena = Arena()
-      arena.addTypedSegment(for: String.self)
+      arena.addSegment(for: String.self)
 
       // String goes to typed segment
       let stringRef = arena.push("typed segment")
@@ -315,7 +315,7 @@ struct ArenaTests {
       let arena = Arena()
       let onDeinit: @Sendable (Int) -> Void = { _ in }
 
-      arena.addTypedSegment(for: NoncopyableValue.self)
+      arena.addSegment(for: NoncopyableValue.self)
 
       let ref = arena.push(NoncopyableValue(id: 123, onDeinit: onDeinit))
 
@@ -327,7 +327,7 @@ struct ArenaTests {
     @Test("Many values in typed segment")
     func manyValuesInTypedSegment() {
       let arena = Arena()
-      arena.addTypedSegment(for: Int.self)
+      arena.addSegment(for: Int.self)
 
       var refs: [Arena.Reference<Int>] = []
       for i in 0..<100 {
@@ -377,7 +377,7 @@ struct ArenaTests {
     @Test("Reset with mixed types")
     func resetWithMixedTypes() {
       let arena = Arena()
-      arena.addTypedSegment(for: String.self)
+      arena.addSegment(for: String.self)
 
       let intRef = arena.push(42)
       let stringRef = arena.push("hello")
@@ -432,7 +432,7 @@ struct ArenaTests {
       }
 
       let arena = Arena()
-      arena.addTypedSegment(for: NoncopyableValue.self)
+      arena.addSegment(for: NoncopyableValue.self)
 
       _ = arena.push(NoncopyableValue(id: 1, onDeinit: onDeinit))
       _ = arena.push(NoncopyableValue(id: 2, onDeinit: onDeinit))
@@ -507,7 +507,7 @@ struct ArenaTests {
 
       do {
         let arena = Arena()
-        arena.addTypedSegment(for: NoncopyableValue.self)
+        arena.addSegment(for: NoncopyableValue.self)
 
         _ = arena.push(DeinitTracker(id: 1, onDeinit: onDeinit))
         _ = arena.push(NoncopyableValue(id: 2, onDeinit: onDeinit))
@@ -531,7 +531,7 @@ struct ArenaTests {
 
       do {
         let arena = Arena()
-        arena.addTypedSegment(for: DeinitTracker.self)
+        arena.addSegment(for: DeinitTracker.self)
 
         _ = arena.push(DeinitTracker(id: 1, onDeinit: onDeinit))
         _ = arena.push(DeinitTracker(id: 2, onDeinit: onDeinit))
@@ -693,8 +693,8 @@ struct ArenaTests {
     @Test("Parameter pack with typed segments")
     func parameterPackWithTypedSegments() {
       let arena = Arena()
-      arena.addTypedSegment(for: String.self)
-      arena.addTypedSegment(for: Int.self)
+      arena.addSegment(for: String.self)
+      arena.addSegment(for: Int.self)
 
       let pack = ReferencePack(arena: arena, 42, "typed", 100, "segment")
 

@@ -81,6 +81,7 @@ struct HeterogenousSlab: ~Copyable {
     }
     elementMetadata.append(ElementMetadata<Value>.self)
     cursor = nextCursor
+    assert(cursor == computedCursor())
     let pointer =
       candidate
       .bindMemory(to: Value.self, capacity: 1)
@@ -130,7 +131,7 @@ struct HeterogenousSlab: ~Copyable {
       let pointer =
         cursor
         .alignedUp(for: Value.self)
-      onElement(cursor)
+      onElement(pointer)
       cursor = pointer.advanced(by: MemoryLayout<Value>.size)
     }
     static func deinitializeElement(at pointer: UnsafeMutableRawPointer) {
