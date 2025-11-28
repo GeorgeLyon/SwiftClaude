@@ -2,6 +2,7 @@ private import BasicContainers
 
 protocol TypedArenaSegmentProtocol {
   func reset()
+  var stats: Arena.SegmentStats { get }
 }
 
 final class TypedArenaSegment<Value: ~Copyable>: TypedArenaSegmentProtocol {
@@ -28,6 +29,18 @@ final class TypedArenaSegment<Value: ~Copyable>: TypedArenaSegmentProtocol {
       slab.reset()
       emptySlabs.append(slab)
     }
+  }
+
+  var stats: Arena.SegmentStats {
+    var count = 0
+    for index in slabs.indices {
+      count += slabs[index].count
+    }
+    return Arena.SegmentStats(
+      elementCount: count,
+      slabCount: slabs.count,
+      emptySlabCount: emptySlabs.count
+    )
   }
 
   private func pushToEmptySlab(
@@ -89,7 +102,7 @@ private struct TypedArenaSlab<Value: ~Copyable>: ~Copyable {
   }
 
   private let buffer: UnsafeMutableBufferPointer<Value>
-  private var count = 0
+  private(set) var count = 0
 
   private func deinitializeElements() {
     buffer.baseAddress!.deinitialize(count: count)

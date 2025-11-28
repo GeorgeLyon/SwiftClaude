@@ -2,7 +2,11 @@ private import BasicContainers
 
 public final class Arena {
 
-  public init(
+  public convenience init() {
+    self.init(heterogenousSegmentSlabMinimumAlignment: MemoryLayout<Int>.alignment)
+  }
+
+  init(
     heterogenousSegmentSlabMinimumByteCount: Int = 4096,
     heterogenousSegmentSlabMinimumAlignment: Int = MemoryLayout<Int>.alignment,
     bitwiseCopyableSegmentSlabMinimumByteCount: Int = 4096,
@@ -19,7 +23,6 @@ public final class Arena {
   }
 
   public func push<Value: BitwiseCopyable>(_ value: Value) -> Reference<Value> {
-    stats.bitwiseCopyableSegmentElementCount += 1
     return Reference(
       arenaID: id,
       pointer: bitwiseCopyableSegment.push(value)
@@ -33,11 +36,9 @@ public final class Arena {
       let typedSegment = segment as? TypedArenaSegment<Value>
     {
       pointer = typedSegment.push(value)
-      stats.typedSegmentsElementCount += 1
     } else {
       assert(!typedSegments.keys.contains(typedSegmentKey))
       pointer = heterogenousSegment.push(value)
-      stats.heterogenousSegmentElementCount += 1
     }
     return Reference(
       arenaID: id,
@@ -59,7 +60,6 @@ public final class Arena {
 
   public func reset() {
     id = .unique()
-    stats = Stats()
     heterogenousSegment.reset()
     bitwiseCopyableSegment.reset()
     for segment in typedSegments.values {
@@ -67,12 +67,30 @@ public final class Arena {
     }
   }
 
-  struct Stats {
-    fileprivate(set) var heterogenousSegmentElementCount = 0
-    fileprivate(set) var bitwiseCopyableSegmentElementCount = 0
-    fileprivate(set) var typedSegmentsElementCount = 0
+  struct SegmentStats {
+    let elementCount: Int
+    let slabCount: Int
+    let emptySlabCount: Int
   }
-  private(set) var stats = Stats()
+  struct TypedSegmentStats {
+    subscript<Value: ~Copyable>(_ type: Value.Type) -> SegmentStats? {
+      stats[ObjectIdentifier(type)]
+    }
+    fileprivate let stats: [ObjectIdentifier: SegmentStats]
+  }
+  struct Stats {
+    let heterogenousSegment: SegmentStats
+    let bitwiseCopyableSegment: SegmentStats
+    let typedSegments: TypedSegmentStats
+  }
+
+  var stats: Stats {
+    Stats(
+      heterogenousSegment: heterogenousSegment.stats,
+      bitwiseCopyableSegment: bitwiseCopyableSegment.stats,
+      typedSegments: TypedSegmentStats(stats: typedSegments.mapValues(\.stats))
+    )
+  }
 
   private var id: Arena.ID = .unique()
   private var heterogenousSegment: HeterogenousArenaSegment

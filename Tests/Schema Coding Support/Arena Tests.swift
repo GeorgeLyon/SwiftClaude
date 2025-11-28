@@ -634,43 +634,36 @@ struct ArenaTests {
     func bitwiseCopyableValuesTracked() {
       let arena = Arena()
 
-      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 0)
-      #expect(arena.stats.heterogenousSegmentElementCount == 0)
-      #expect(arena.stats.typedSegmentsElementCount == 0)
+      #expect(arena.stats.bitwiseCopyableSegment.elementCount == 0)
+      #expect(arena.stats.heterogenousSegment.elementCount == 0)
 
       _ = arena.push(42)
-      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 1)
-      #expect(arena.stats.heterogenousSegmentElementCount == 0)
-      #expect(arena.stats.typedSegmentsElementCount == 0)
+      #expect(arena.stats.bitwiseCopyableSegment.elementCount == 1)
+      #expect(arena.stats.heterogenousSegment.elementCount == 0)
 
       _ = arena.push(3.14)
-      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 2)
-      #expect(arena.stats.heterogenousSegmentElementCount == 0)
-      #expect(arena.stats.typedSegmentsElementCount == 0)
+      #expect(arena.stats.bitwiseCopyableSegment.elementCount == 2)
+      #expect(arena.stats.heterogenousSegment.elementCount == 0)
 
       _ = arena.push(true)
-      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 3)
-      #expect(arena.stats.heterogenousSegmentElementCount == 0)
-      #expect(arena.stats.typedSegmentsElementCount == 0)
+      #expect(arena.stats.bitwiseCopyableSegment.elementCount == 3)
+      #expect(arena.stats.heterogenousSegment.elementCount == 0)
     }
 
     @Test("Non-BitwiseCopyable values tracked in heterogenousSegment")
     func nonBitwiseCopyableValuesTracked() {
       let arena = Arena()
 
-      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 0)
-      #expect(arena.stats.heterogenousSegmentElementCount == 0)
-      #expect(arena.stats.typedSegmentsElementCount == 0)
+      #expect(arena.stats.bitwiseCopyableSegment.elementCount == 0)
+      #expect(arena.stats.heterogenousSegment.elementCount == 0)
 
       _ = arena.push("hello")
-      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 0)
-      #expect(arena.stats.heterogenousSegmentElementCount == 1)
-      #expect(arena.stats.typedSegmentsElementCount == 0)
+      #expect(arena.stats.bitwiseCopyableSegment.elementCount == 0)
+      #expect(arena.stats.heterogenousSegment.elementCount == 1)
 
       _ = arena.push(TestStruct(value: 42, name: "test"))
-      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 0)
-      #expect(arena.stats.heterogenousSegmentElementCount == 2)
-      #expect(arena.stats.typedSegmentsElementCount == 0)
+      #expect(arena.stats.bitwiseCopyableSegment.elementCount == 0)
+      #expect(arena.stats.heterogenousSegment.elementCount == 2)
     }
 
     @Test("Typed segment values tracked in typedSegments")
@@ -678,19 +671,19 @@ struct ArenaTests {
       let arena = Arena()
       arena.addSegment(for: String.self)
 
-      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 0)
-      #expect(arena.stats.heterogenousSegmentElementCount == 0)
-      #expect(arena.stats.typedSegmentsElementCount == 0)
+      #expect(arena.stats.bitwiseCopyableSegment.elementCount == 0)
+      #expect(arena.stats.heterogenousSegment.elementCount == 0)
+      #expect(arena.stats.typedSegments[String.self]?.elementCount == 0)
 
       _ = arena.push("typed")
-      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 0)
-      #expect(arena.stats.heterogenousSegmentElementCount == 0)
-      #expect(arena.stats.typedSegmentsElementCount == 1)
+      #expect(arena.stats.bitwiseCopyableSegment.elementCount == 0)
+      #expect(arena.stats.heterogenousSegment.elementCount == 0)
+      #expect(arena.stats.typedSegments[String.self]?.elementCount == 1)
 
       _ = arena.push("another")
-      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 0)
-      #expect(arena.stats.heterogenousSegmentElementCount == 0)
-      #expect(arena.stats.typedSegmentsElementCount == 2)
+      #expect(arena.stats.bitwiseCopyableSegment.elementCount == 0)
+      #expect(arena.stats.heterogenousSegment.elementCount == 0)
+      #expect(arena.stats.typedSegments[String.self]?.elementCount == 2)
     }
 
     @Test("Mixed types tracked in correct slabs")
@@ -700,34 +693,34 @@ struct ArenaTests {
 
       // BitwiseCopyable -> bitwiseCopyableSegment
       _ = arena.push(42)
-      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 1)
-      #expect(arena.stats.heterogenousSegmentElementCount == 0)
-      #expect(arena.stats.typedSegmentsElementCount == 0)
+      #expect(arena.stats.bitwiseCopyableSegment.elementCount == 1)
+      #expect(arena.stats.heterogenousSegment.elementCount == 0)
+      #expect(arena.stats.typedSegments[String.self]?.elementCount == 0)
 
       // String with typed segment -> typedSegments
       _ = arena.push("typed")
-      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 1)
-      #expect(arena.stats.heterogenousSegmentElementCount == 0)
-      #expect(arena.stats.typedSegmentsElementCount == 1)
+      #expect(arena.stats.bitwiseCopyableSegment.elementCount == 1)
+      #expect(arena.stats.heterogenousSegment.elementCount == 0)
+      #expect(arena.stats.typedSegments[String.self]?.elementCount == 1)
 
       // TestStruct without typed segment -> heterogenousSegment
       _ = arena.push(TestStruct(value: 1, name: "test"))
-      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 1)
-      #expect(arena.stats.heterogenousSegmentElementCount == 1)
-      #expect(arena.stats.typedSegmentsElementCount == 1)
+      #expect(arena.stats.bitwiseCopyableSegment.elementCount == 1)
+      #expect(arena.stats.heterogenousSegment.elementCount == 1)
+      #expect(arena.stats.typedSegments[String.self]?.elementCount == 1)
 
       // More BitwiseCopyable
       _ = arena.push(true)
       _ = arena.push(3.14)
-      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 3)
-      #expect(arena.stats.heterogenousSegmentElementCount == 1)
-      #expect(arena.stats.typedSegmentsElementCount == 1)
+      #expect(arena.stats.bitwiseCopyableSegment.elementCount == 3)
+      #expect(arena.stats.heterogenousSegment.elementCount == 1)
+      #expect(arena.stats.typedSegments[String.self]?.elementCount == 1)
 
       // More typed String
       _ = arena.push("another")
-      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 3)
-      #expect(arena.stats.heterogenousSegmentElementCount == 1)
-      #expect(arena.stats.typedSegmentsElementCount == 2)
+      #expect(arena.stats.bitwiseCopyableSegment.elementCount == 3)
+      #expect(arena.stats.heterogenousSegment.elementCount == 1)
+      #expect(arena.stats.typedSegments[String.self]?.elementCount == 2)
     }
 
     @Test("Stats reset on arena reset")
@@ -739,37 +732,41 @@ struct ArenaTests {
       _ = arena.push("typed")
       _ = arena.push(TestStruct(value: 1, name: "test"))
 
-      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 1)
-      #expect(arena.stats.heterogenousSegmentElementCount == 1)
-      #expect(arena.stats.typedSegmentsElementCount == 1)
+      #expect(arena.stats.bitwiseCopyableSegment.elementCount == 1)
+      #expect(arena.stats.heterogenousSegment.elementCount == 1)
+      #expect(arena.stats.typedSegments[String.self]?.elementCount == 1)
 
       arena.reset()
 
-      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 0)
-      #expect(arena.stats.heterogenousSegmentElementCount == 0)
-      #expect(arena.stats.typedSegmentsElementCount == 0)
+      #expect(arena.stats.bitwiseCopyableSegment.elementCount == 0)
+      #expect(arena.stats.heterogenousSegment.elementCount == 0)
+      #expect(arena.stats.typedSegments[String.self]?.elementCount == 0)
     }
 
-    @Test("Multiple typed segments tracked together")
-    func multipleTypedSegmentsTracked() {
+    @Test("Multiple typed segments tracked separately")
+    func multipleTypedSegmentsTrackedSeparately() {
       let arena = Arena()
       arena.addSegment(for: String.self)
       arena.addSegment(for: TestStruct.self)
 
       _ = arena.push("string1")
-      #expect(arena.stats.typedSegmentsElementCount == 1)
+      #expect(arena.stats.typedSegments[String.self]?.elementCount == 1)
+      #expect(arena.stats.typedSegments[TestStruct.self]?.elementCount == 0)
 
       _ = arena.push(TestStruct(value: 1, name: "one"))
-      #expect(arena.stats.typedSegmentsElementCount == 2)
+      #expect(arena.stats.typedSegments[String.self]?.elementCount == 1)
+      #expect(arena.stats.typedSegments[TestStruct.self]?.elementCount == 1)
 
       _ = arena.push("string2")
-      #expect(arena.stats.typedSegmentsElementCount == 3)
+      #expect(arena.stats.typedSegments[String.self]?.elementCount == 2)
+      #expect(arena.stats.typedSegments[TestStruct.self]?.elementCount == 1)
 
       _ = arena.push(TestStruct(value: 2, name: "two"))
-      #expect(arena.stats.typedSegmentsElementCount == 4)
+      #expect(arena.stats.typedSegments[String.self]?.elementCount == 2)
+      #expect(arena.stats.typedSegments[TestStruct.self]?.elementCount == 2)
 
-      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 0)
-      #expect(arena.stats.heterogenousSegmentElementCount == 0)
+      #expect(arena.stats.bitwiseCopyableSegment.elementCount == 0)
+      #expect(arena.stats.heterogenousSegment.elementCount == 0)
     }
 
     @Test("Noncopyable values tracked in heterogenousSegment")
@@ -778,12 +775,11 @@ struct ArenaTests {
       let onDeinit: @Sendable (Int) -> Void = { _ in }
 
       _ = arena.push(NoncopyableValue(id: 1, onDeinit: onDeinit))
-      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 0)
-      #expect(arena.stats.heterogenousSegmentElementCount == 1)
-      #expect(arena.stats.typedSegmentsElementCount == 0)
+      #expect(arena.stats.bitwiseCopyableSegment.elementCount == 0)
+      #expect(arena.stats.heterogenousSegment.elementCount == 1)
 
       _ = arena.push(NoncopyableValue(id: 2, onDeinit: onDeinit))
-      #expect(arena.stats.heterogenousSegmentElementCount == 2)
+      #expect(arena.stats.heterogenousSegment.elementCount == 2)
     }
 
     @Test("Noncopyable values tracked in typed segment when available")
@@ -794,12 +790,12 @@ struct ArenaTests {
       arena.addSegment(for: NoncopyableValue.self)
 
       _ = arena.push(NoncopyableValue(id: 1, onDeinit: onDeinit))
-      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 0)
-      #expect(arena.stats.heterogenousSegmentElementCount == 0)
-      #expect(arena.stats.typedSegmentsElementCount == 1)
+      #expect(arena.stats.bitwiseCopyableSegment.elementCount == 0)
+      #expect(arena.stats.heterogenousSegment.elementCount == 0)
+      #expect(arena.stats.typedSegments[NoncopyableValue.self]?.elementCount == 1)
 
       _ = arena.push(NoncopyableValue(id: 2, onDeinit: onDeinit))
-      #expect(arena.stats.typedSegmentsElementCount == 2)
+      #expect(arena.stats.typedSegments[NoncopyableValue.self]?.elementCount == 2)
     }
 
     @Test("Class references tracked in heterogenousSegment")
@@ -808,34 +804,272 @@ struct ArenaTests {
       let onDeinit: @Sendable (Int) -> Void = { _ in }
 
       _ = arena.push(DeinitTracker(id: 1, onDeinit: onDeinit))
-      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 0)
-      #expect(arena.stats.heterogenousSegmentElementCount == 1)
-      #expect(arena.stats.typedSegmentsElementCount == 0)
+      #expect(arena.stats.bitwiseCopyableSegment.elementCount == 0)
+      #expect(arena.stats.heterogenousSegment.elementCount == 1)
     }
 
-    @Test("Many values accumulate correctly in stats")
-    func manyValuesAccumulateCorrectly() {
+    @Test("Unregistered typed segment returns nil")
+    func unregisteredTypedSegmentReturnsNil() {
       let arena = Arena()
+
+      #expect(arena.stats.typedSegments[String.self] == nil)
+      #expect(arena.stats.typedSegments[TestStruct.self] == nil)
+
       arena.addSegment(for: String.self)
 
-      for i in 0..<50 {
-        _ = arena.push(i)  // BitwiseCopyable
-      }
-      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 50)
+      #expect(arena.stats.typedSegments[String.self] != nil)
+      #expect(arena.stats.typedSegments[TestStruct.self] == nil)
+    }
 
-      for i in 0..<30 {
-        _ = arena.push("string\(i)")  // Typed segment
-      }
-      #expect(arena.stats.typedSegmentsElementCount == 30)
+    // MARK: - Slab Allocation Tests
 
-      for i in 0..<20 {
-        _ = arena.push(TestStruct(value: i, name: "test"))  // Heterogenous
-      }
-      #expect(arena.stats.heterogenousSegmentElementCount == 20)
+    @Test("BitwiseCopyable segment allocates new slabs when full")
+    func bitwiseCopyableSegmentAllocatesNewSlabs() {
+      // Create arena with small slab size (16 bytes) to force multiple slabs
+      let arena = Arena(
+        bitwiseCopyableSegmentSlabMinimumByteCount: 16,
+        bitwiseCopyableSegmentSlabMinimumAlignment: MemoryLayout<Int>.alignment
+      )
 
-      #expect(arena.stats.bitwiseCopyableSegmentElementCount == 50)
-      #expect(arena.stats.typedSegmentsElementCount == 30)
-      #expect(arena.stats.heterogenousSegmentElementCount == 20)
+      #expect(arena.stats.bitwiseCopyableSegment.slabCount == 0)
+      #expect(arena.stats.bitwiseCopyableSegment.emptySlabCount == 0)
+
+      // First Int (8 bytes) should create first slab
+      _ = arena.push(1)
+      #expect(arena.stats.bitwiseCopyableSegment.slabCount == 1)
+      #expect(arena.stats.bitwiseCopyableSegment.elementCount == 1)
+
+      // Second Int should still fit in first slab (16 bytes total capacity)
+      _ = arena.push(2)
+      #expect(arena.stats.bitwiseCopyableSegment.slabCount == 1)
+      #expect(arena.stats.bitwiseCopyableSegment.elementCount == 2)
+
+      // Third Int should trigger new slab
+      _ = arena.push(3)
+      #expect(arena.stats.bitwiseCopyableSegment.slabCount == 2)
+      #expect(arena.stats.bitwiseCopyableSegment.elementCount == 3)
+
+      // Fourth Int should still fit in second slab
+      _ = arena.push(4)
+      #expect(arena.stats.bitwiseCopyableSegment.slabCount == 2)
+      #expect(arena.stats.bitwiseCopyableSegment.elementCount == 4)
+
+      // Fifth Int should trigger third slab
+      _ = arena.push(5)
+      #expect(arena.stats.bitwiseCopyableSegment.slabCount == 3)
+      #expect(arena.stats.bitwiseCopyableSegment.elementCount == 5)
+    }
+
+    @Test("Heterogenous segment allocates new slabs when full")
+    func heterogenousSegmentAllocatesNewSlabs() {
+      // Create arena with small slab size to force multiple slabs
+      let arena = Arena(
+        heterogenousSegmentSlabMinimumByteCount: 64,
+        heterogenousSegmentSlabMinimumAlignment: MemoryLayout<Int>.alignment
+      )
+
+      #expect(arena.stats.heterogenousSegment.slabCount == 0)
+      #expect(arena.stats.heterogenousSegment.emptySlabCount == 0)
+
+      // Push strings to fill up slabs
+      _ = arena.push("short")
+      #expect(arena.stats.heterogenousSegment.slabCount == 1)
+      #expect(arena.stats.heterogenousSegment.elementCount == 1)
+
+      // Push more strings to trigger new slabs
+      for i in 2...5 {
+        _ = arena.push("string\(i)")
+      }
+      #expect(arena.stats.heterogenousSegment.elementCount == 5)
+      // Should have multiple slabs due to small slab size
+      #expect(arena.stats.heterogenousSegment.slabCount >= 1)
+    }
+
+    @Test("Typed segment allocates new slabs when full")
+    func typedSegmentAllocatesNewSlabs() {
+      let arena = Arena()
+      // Create typed segment with capacity of 2 elements per slab
+      arena.addSegment(for: String.self, slabCapacity: 2)
+
+      #expect(arena.stats.typedSegments[String.self]?.slabCount == 0)
+      #expect(arena.stats.typedSegments[String.self]?.emptySlabCount == 0)
+
+      // First element creates first slab
+      _ = arena.push("one")
+      #expect(arena.stats.typedSegments[String.self]?.slabCount == 1)
+      #expect(arena.stats.typedSegments[String.self]?.elementCount == 1)
+
+      // Second element fits in first slab
+      _ = arena.push("two")
+      #expect(arena.stats.typedSegments[String.self]?.slabCount == 1)
+      #expect(arena.stats.typedSegments[String.self]?.elementCount == 2)
+
+      // Third element triggers new slab
+      _ = arena.push("three")
+      #expect(arena.stats.typedSegments[String.self]?.slabCount == 2)
+      #expect(arena.stats.typedSegments[String.self]?.elementCount == 3)
+
+      // Fourth element fits in second slab
+      _ = arena.push("four")
+      #expect(arena.stats.typedSegments[String.self]?.slabCount == 2)
+      #expect(arena.stats.typedSegments[String.self]?.elementCount == 4)
+
+      // Fifth element triggers third slab
+      _ = arena.push("five")
+      #expect(arena.stats.typedSegments[String.self]?.slabCount == 3)
+      #expect(arena.stats.typedSegments[String.self]?.elementCount == 5)
+    }
+
+    // MARK: - Empty Slab Reuse Tests
+
+    @Test("BitwiseCopyable segment reuses empty slabs after reset")
+    func bitwiseCopyableSegmentReusesEmptySlabs() {
+      let arena = Arena(
+        bitwiseCopyableSegmentSlabMinimumByteCount: 16,
+        bitwiseCopyableSegmentSlabMinimumAlignment: MemoryLayout<Int>.alignment
+      )
+
+      // Push enough values to create multiple slabs
+      for i in 0..<5 {
+        _ = arena.push(i)
+      }
+      let slabCountBeforeReset = arena.stats.bitwiseCopyableSegment.slabCount
+      #expect(slabCountBeforeReset >= 2)
+      #expect(arena.stats.bitwiseCopyableSegment.emptySlabCount == 0)
+
+      // Reset moves slabs to empty
+      arena.reset()
+      #expect(arena.stats.bitwiseCopyableSegment.slabCount == 0)
+      #expect(arena.stats.bitwiseCopyableSegment.emptySlabCount == slabCountBeforeReset)
+      #expect(arena.stats.bitwiseCopyableSegment.elementCount == 0)
+
+      // Push new values - should reuse empty slabs
+      for i in 0..<3 {
+        _ = arena.push(i)
+      }
+      #expect(arena.stats.bitwiseCopyableSegment.elementCount == 3)
+      // Should have reused empty slabs, not created new ones
+      let totalSlabs =
+        arena.stats.bitwiseCopyableSegment.slabCount
+        + arena.stats.bitwiseCopyableSegment.emptySlabCount
+      #expect(totalSlabs == slabCountBeforeReset)
+    }
+
+    @Test("Heterogenous segment reuses empty slabs after reset")
+    func heterogenousSegmentReusesEmptySlabs() {
+      let arena = Arena(
+        heterogenousSegmentSlabMinimumByteCount: 64,
+        heterogenousSegmentSlabMinimumAlignment: MemoryLayout<Int>.alignment
+      )
+
+      // Push values to create slabs
+      for i in 0..<10 {
+        _ = arena.push("string\(i)")
+      }
+      let slabCountBeforeReset = arena.stats.heterogenousSegment.slabCount
+      #expect(slabCountBeforeReset >= 1)
+      #expect(arena.stats.heterogenousSegment.emptySlabCount == 0)
+
+      // Reset moves slabs to empty
+      arena.reset()
+      #expect(arena.stats.heterogenousSegment.slabCount == 0)
+      #expect(arena.stats.heterogenousSegment.emptySlabCount == slabCountBeforeReset)
+      #expect(arena.stats.heterogenousSegment.elementCount == 0)
+
+      // Push new values - should reuse empty slabs
+      for i in 0..<5 {
+        _ = arena.push("new\(i)")
+      }
+      #expect(arena.stats.heterogenousSegment.elementCount == 5)
+      // Should have reused empty slabs
+      let totalSlabs =
+        arena.stats.heterogenousSegment.slabCount + arena.stats.heterogenousSegment.emptySlabCount
+      #expect(totalSlabs == slabCountBeforeReset)
+    }
+
+    @Test("Typed segment reuses empty slabs after reset")
+    func typedSegmentReusesEmptySlabs() {
+      let arena = Arena()
+      arena.addSegment(for: String.self, slabCapacity: 2)
+
+      // Push enough values to create multiple slabs
+      for i in 0..<6 {
+        _ = arena.push("string\(i)")
+      }
+      let slabCountBeforeReset = arena.stats.typedSegments[String.self]!.slabCount
+      #expect(slabCountBeforeReset == 3)  // 6 elements / 2 per slab = 3 slabs
+      #expect(arena.stats.typedSegments[String.self]?.emptySlabCount == 0)
+
+      // Reset moves slabs to empty
+      arena.reset()
+      #expect(arena.stats.typedSegments[String.self]?.slabCount == 0)
+      #expect(arena.stats.typedSegments[String.self]?.emptySlabCount == slabCountBeforeReset)
+      #expect(arena.stats.typedSegments[String.self]?.elementCount == 0)
+
+      // Push new values - should reuse empty slabs
+      for i in 0..<4 {
+        _ = arena.push("new\(i)")
+      }
+      #expect(arena.stats.typedSegments[String.self]?.elementCount == 4)
+      #expect(arena.stats.typedSegments[String.self]?.slabCount == 2)  // 4 elements / 2 per slab
+      #expect(arena.stats.typedSegments[String.self]?.emptySlabCount == 1)  // 1 slab still empty
+    }
+
+    @Test("Multiple reset cycles reuse slabs correctly")
+    func multipleResetCyclesReuseSlabs() {
+      let arena = Arena(
+        bitwiseCopyableSegmentSlabMinimumByteCount: 16,
+        bitwiseCopyableSegmentSlabMinimumAlignment: MemoryLayout<Int>.alignment
+      )
+
+      // First cycle: create slabs
+      for i in 0..<5 {
+        _ = arena.push(i)
+      }
+      let initialSlabCount = arena.stats.bitwiseCopyableSegment.slabCount
+      #expect(initialSlabCount >= 2)
+
+      // Multiple reset cycles
+      for cycle in 1...3 {
+        arena.reset()
+        #expect(
+          arena.stats.bitwiseCopyableSegment.emptySlabCount == initialSlabCount,
+          "Cycle \(cycle): empty slabs should equal initial"
+        )
+
+        // Push fewer values than before
+        for i in 0..<3 {
+          _ = arena.push(i * cycle)
+        }
+
+        let totalSlabs =
+          arena.stats.bitwiseCopyableSegment.slabCount
+          + arena.stats.bitwiseCopyableSegment.emptySlabCount
+        #expect(totalSlabs == initialSlabCount, "Cycle \(cycle): total slabs should stay constant")
+      }
+    }
+
+    @Test("Exceeding previous capacity creates new slabs")
+    func exceedingPreviousCapacityCreatesNewSlabs() {
+      let arena = Arena()
+      arena.addSegment(for: String.self, slabCapacity: 2)
+
+      // First cycle: create 2 slabs
+      for i in 0..<4 {
+        _ = arena.push("first\(i)")
+      }
+      #expect(arena.stats.typedSegments[String.self]?.slabCount == 2)
+
+      arena.reset()
+      #expect(arena.stats.typedSegments[String.self]?.emptySlabCount == 2)
+
+      // Second cycle: exceed previous capacity
+      for i in 0..<6 {
+        _ = arena.push("second\(i)")
+      }
+      #expect(arena.stats.typedSegments[String.self]?.slabCount == 3)
+      #expect(arena.stats.typedSegments[String.self]?.emptySlabCount == 0)
+      // One new slab was created beyond the 2 reused
     }
   }
 

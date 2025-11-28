@@ -28,7 +28,9 @@ extension SchemaCoding.Support {
 
     associatedtype ValueDecodingState
 
-    var initialValueDecodingState: ValueDecodingState { get }
+    func beginDecodingValue(
+      from decoder: borrowing Decoder
+    ) -> ValueDecodingState
 
     func decodeValue(
       from decoder: inout Decoder,
@@ -41,6 +43,6 @@ extension SchemaCoding.Support {
   }
 
   public struct SchemaContext: ~Copyable {
-    var arenaArchetype: Arena.Archetype
+
   }
 }

@@ -3,6 +3,7 @@ private import BasicContainers
 struct HeterogenousArenaSegment: ~Copyable {
 
   mutating func push<Value: ~Copyable>(_ value: consuming Value) -> UnsafeMutablePointer<Value> {
+    elementCount += 1
     guard let index = slabs.indices.last else {
       return pushToEmptySlab(value)
     }
@@ -20,6 +21,7 @@ struct HeterogenousArenaSegment: ~Copyable {
       slab.reset()
       emptySlabs.append(slab)
     }
+    elementCount = 0
   }
 
   init(
@@ -56,6 +58,15 @@ struct HeterogenousArenaSegment: ~Copyable {
     return pointer
   }
 
+  var stats: Arena.SegmentStats {
+    Arena.SegmentStats(
+      elementCount: elementCount,
+      slabCount: slabs.count,
+      emptySlabCount: emptySlabs.count
+    )
+  }
+
+  private var elementCount = 0
   private var slabs: UniqueArray<HeterogenousSlab> = .init()
   private var emptySlabs: UniqueArray<HeterogenousSlab> = .init()
   private let slabMinimumByteCount: Int
@@ -76,7 +87,7 @@ struct HeterogenousSlab: ~Copyable {
     let nextCursor =
       candidate
       .advanced(by: MemoryLayout<Value>.size)
-    guard nextCursor < (buffer.baseAddress! + buffer.count) else {
+    guard nextCursor <= (buffer.baseAddress! + buffer.count) else {
       return .value(value)
     }
     elementMetadata.append(ElementMetadata<Value>.self)

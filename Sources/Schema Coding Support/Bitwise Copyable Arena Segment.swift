@@ -3,6 +3,7 @@ private import BasicContainers
 struct BitwiseCopyableArenaSegment: ~Copyable {
 
   mutating func push<Value: BitwiseCopyable>(_ value: Value) -> UnsafeMutablePointer<Value> {
+    elementCount += 1
     guard let index = slabs.indices.last else {
       return pushToEmptySlab(value)
     }
@@ -19,6 +20,7 @@ struct BitwiseCopyableArenaSegment: ~Copyable {
       slab.reset()
       emptySlabs.append(slab)
     }
+    elementCount = 0
   }
 
   init(
@@ -49,6 +51,15 @@ struct BitwiseCopyableArenaSegment: ~Copyable {
     return pointer
   }
 
+  var stats: Arena.SegmentStats {
+    Arena.SegmentStats(
+      elementCount: elementCount,
+      slabCount: slabs.count,
+      emptySlabCount: emptySlabs.count
+    )
+  }
+
+  private var elementCount = 0
   private var slabs: UniqueArray<BitwiseCopyableSlab> = .init()
   private var emptySlabs: UniqueArray<BitwiseCopyableSlab> = .init()
   private let slabMinimumByteCount: Int
@@ -64,7 +75,7 @@ struct BitwiseCopyableSlab: ~Copyable {
   >? {
     let candidate = cursor.alignedUp(for: Value.self)
     let nextCursor = candidate + MemoryLayout<Value>.size
-    guard nextCursor < (buffer.baseAddress! + buffer.count) else {
+    guard nextCursor <= (buffer.baseAddress! + buffer.count) else {
       return nil
     }
     cursor = nextCursor
