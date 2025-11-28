@@ -73,6 +73,7 @@ struct HeterogenousSlab: ~Copyable {
     guard nextCursor < (buffer.baseAddress! + buffer.count) else {
       return .value(value)
     }
+    cursor = nextCursor
     metadataCandidate
       .bindMemory(to: (any ElementMetadataProtocol).self, capacity: 1)
       .initialize(to: ElementMetadata<Value>())
@@ -119,8 +120,11 @@ struct HeterogenousSlab: ~Copyable {
     while cursor < endCursor {
       let metadataPointer =
         cursor
+        .alignedUp(for: (any ElementMetadataProtocol).self)
         .assumingMemoryBound(to: (any ElementMetadataProtocol).self)
+      cursor = cursor.advanced(by: MemoryLayout<any ElementMetadataProtocol>.size)
       metadataPointer.pointee.deinitializeElement(advancing: &cursor)
+      metadataPointer.deinitialize(count: 1)
     }
     assert(cursor == endCursor)
   }

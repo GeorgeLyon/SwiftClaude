@@ -2,14 +2,16 @@ private import BasicContainers
 
 public final class Arena {
 
-  func push<Value: BitwiseCopyable>(_ value: Value) -> Reference<Value> {
+  public init() {}
+
+  public func push<Value: BitwiseCopyable>(_ value: Value) -> Reference<Value> {
     Reference(
       arenaID: id,
       pointer: bitwiseCopyableSegment.push(value)
     )
   }
 
-  func push<Value: ~Copyable>(_ value: consuming Value) -> Reference<Value> {
+  public func push<Value: ~Copyable>(_ value: consuming Value) -> Reference<Value> {
     let pointer: UnsafeMutablePointer<Value>
     if let segment = typedSegments[ObjectIdentifier(Value.self)] {
       if let typedSegment = segment as? TypedArenaSegment<Value> {
@@ -27,7 +29,7 @@ public final class Arena {
     )
   }
 
-  func addTypedSegment<Value: ~Copyable>(for type: Value.Type) {
+  public func addTypedSegment<Value: ~Copyable>(for type: Value.Type) {
     let key = ObjectIdentifier(type)
     guard !typedSegments.keys.contains(key) else {
       assertionFailure()
@@ -36,7 +38,7 @@ public final class Arena {
     typedSegments[key] = TypedArenaSegment<Value>(slabCapacity: 10)
   }
 
-  func reset() {
+  public func reset() {
     id = .unique()
     heterogenousSegment.reset()
     bitwiseCopyableSegment.reset()

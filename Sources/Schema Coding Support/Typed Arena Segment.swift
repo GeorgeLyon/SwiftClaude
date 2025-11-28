@@ -93,10 +93,10 @@ private struct TypedArenaSlab<Value: ~Copyable>: ~Copyable {
 
   private func deinitializeElements() {
     buffer.baseAddress!.deinitialize(count: count)
-    buffer.deallocate()
   }
 
   deinit {
     deinitializeElements()
+    buffer.deallocate()
   }
 }

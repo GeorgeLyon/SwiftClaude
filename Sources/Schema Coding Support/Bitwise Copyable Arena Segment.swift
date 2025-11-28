@@ -57,6 +57,7 @@ struct BitwiseCopyableSlab: ~Copyable {
     guard nextCursor < (buffer.baseAddress! + buffer.count) else {
       return nil
     }
+    cursor = nextCursor
     let pointer =
       candidate
       .bindMemory(to: Value.self, capacity: 1)
