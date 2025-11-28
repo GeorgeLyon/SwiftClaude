@@ -2,26 +2,42 @@ private import BasicContainers
 
 public final class Arena {
 
-  public init() {}
+  public init(
+    heterogenousSegmentSlabMinimumByteCount: Int = 4096,
+    heterogenousSegmentSlabMinimumAlignment: Int = MemoryLayout<Int>.alignment,
+    bitwiseCopyableSegmentSlabMinimumByteCount: Int = 4096,
+    bitwiseCopyableSegmentSlabMinimumAlignment: Int = MemoryLayout<Int>.alignment,
+  ) {
+    heterogenousSegment = HeterogenousArenaSegment(
+      slabMinimumByteCount: heterogenousSegmentSlabMinimumByteCount,
+      slabMinimumAlignment: heterogenousSegmentSlabMinimumAlignment
+    )
+    bitwiseCopyableSegment = BitwiseCopyableArenaSegment(
+      slabMinimumByteCount: bitwiseCopyableSegmentSlabMinimumByteCount,
+      slabMinimumAlignment: bitwiseCopyableSegmentSlabMinimumAlignment
+    )
+  }
 
   public func push<Value: BitwiseCopyable>(_ value: Value) -> Reference<Value> {
-    Reference(
+    stats.bitwiseCopyableSegmentElementCount += 1
+    return Reference(
       arenaID: id,
       pointer: bitwiseCopyableSegment.push(value)
     )
   }
 
   public func push<Value: ~Copyable>(_ value: consuming Value) -> Reference<Value> {
+    let typedSegmentKey = ObjectIdentifier(Value.self)
     let pointer: UnsafeMutablePointer<Value>
-    if let segment = typedSegments[ObjectIdentifier(Value.self)] {
-      if let typedSegment = segment as? TypedArenaSegment<Value> {
-        pointer = typedSegment.push(value)
-      } else {
-        assertionFailure()
-        pointer = heterogenousSegment.push(value)
-      }
+    if let segment = typedSegments[typedSegmentKey],
+      let typedSegment = segment as? TypedArenaSegment<Value>
+    {
+      pointer = typedSegment.push(value)
+      stats.typedSegmentsElementCount += 1
     } else {
+      assert(!typedSegments.keys.contains(typedSegmentKey))
       pointer = heterogenousSegment.push(value)
+      stats.heterogenousSegmentElementCount += 1
     }
     return Reference(
       arenaID: id,
@@ -29,17 +45,21 @@ public final class Arena {
     )
   }
 
-  public func addTypedSegment<Value: ~Copyable>(for type: Value.Type) {
+  public func addSegment<Value: ~Copyable>(
+    for type: Value.Type,
+    slabCapacity: Int = 10
+  ) {
     let key = ObjectIdentifier(type)
     guard !typedSegments.keys.contains(key) else {
       assertionFailure()
       return
     }
-    typedSegments[key] = TypedArenaSegment<Value>(slabCapacity: 10)
+    typedSegments[key] = TypedArenaSegment<Value>(slabCapacity: slabCapacity)
   }
 
   public func reset() {
     id = .unique()
+    stats = Stats()
     heterogenousSegment.reset()
     bitwiseCopyableSegment.reset()
     for segment in typedSegments.values {
@@ -47,9 +67,16 @@ public final class Arena {
     }
   }
 
+  struct Stats {
+    fileprivate(set) var heterogenousSegmentElementCount = 0
+    fileprivate(set) var bitwiseCopyableSegmentElementCount = 0
+    fileprivate(set) var typedSegmentsElementCount = 0
+  }
+  private(set) var stats = Stats()
+
   private var id: Arena.ID = .unique()
-  private var heterogenousSegment: HeterogenousArenaSegment = .init()
-  private var bitwiseCopyableSegment: BitwiseCopyableArenaSegment = .init()
+  private var heterogenousSegment: HeterogenousArenaSegment
+  private var bitwiseCopyableSegment: BitwiseCopyableArenaSegment
   private var typedSegments: [ObjectIdentifier: TypedArenaSegmentProtocol] = [:]
 
 }

@@ -21,6 +21,14 @@ struct BitwiseCopyableArenaSegment: ~Copyable {
     }
   }
 
+  init(
+    slabMinimumByteCount: Int,
+    slabMinimumAlignment: Int
+  ) {
+    self.slabMinimumByteCount = slabMinimumByteCount
+    self.slabMinimumAlignment = slabMinimumAlignment
+  }
+
   private mutating func pushToEmptySlab<Value: BitwiseCopyable>(
     _ value: Value
   ) -> UnsafeMutablePointer<Value> {
@@ -33,8 +41,8 @@ struct BitwiseCopyableArenaSegment: ~Copyable {
     }
     /// We don't have an empty slab that can hold this value, so we create a new one
     var slab = BitwiseCopyableSlab(
-      byteCount: max(MemoryLayout<Value>.size, 4096),
-      alignment: max(MemoryLayout<Value>.alignment, MemoryLayout<Int>.alignment)
+      byteCount: max(MemoryLayout<Value>.size, slabMinimumByteCount),
+      alignment: max(MemoryLayout<Value>.alignment, slabMinimumAlignment)
     )
     let pointer = slab.push(value)!
     slabs.append(slab)
@@ -43,6 +51,8 @@ struct BitwiseCopyableArenaSegment: ~Copyable {
 
   private var slabs: UniqueArray<BitwiseCopyableSlab> = .init()
   private var emptySlabs: UniqueArray<BitwiseCopyableSlab> = .init()
+  private let slabMinimumByteCount: Int
+  private let slabMinimumAlignment: Int
 
 }
 

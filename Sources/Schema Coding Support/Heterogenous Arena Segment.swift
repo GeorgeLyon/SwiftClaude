@@ -22,6 +22,14 @@ struct HeterogenousArenaSegment: ~Copyable {
     }
   }
 
+  init(
+    slabMinimumByteCount: Int,
+    slabMinimumAlignment: Int
+  ) {
+    self.slabMinimumByteCount = slabMinimumByteCount
+    self.slabMinimumAlignment = slabMinimumAlignment
+  }
+
   private mutating func pushToEmptySlab<Value: ~Copyable>(
     _ value: consuming Value
   ) -> UnsafeMutablePointer<Value> {
@@ -38,8 +46,8 @@ struct HeterogenousArenaSegment: ~Copyable {
     }
     /// We don't have an empty slab that can hold this value, so we create a new one
     var slab = HeterogenousSlab(
-      byteCount: max(MemoryLayout<Value>.size, 4096),
-      alignment: max(MemoryLayout<Value>.alignment, MemoryLayout<Int>.alignment)
+      byteCount: max(MemoryLayout<Value>.size, slabMinimumByteCount),
+      alignment: max(MemoryLayout<Value>.alignment, slabMinimumAlignment)
     )
     guard case .pointer(let pointer) = slab.push(value) else {
       fatalError()
@@ -50,6 +58,8 @@ struct HeterogenousArenaSegment: ~Copyable {
 
   private var slabs: UniqueArray<HeterogenousSlab> = .init()
   private var emptySlabs: UniqueArray<HeterogenousSlab> = .init()
+  private let slabMinimumByteCount: Int
+  private let slabMinimumAlignment: Int
 
 }
 
@@ -60,25 +70,19 @@ struct HeterogenousSlab: ~Copyable {
     case value(Value)
   }
   fileprivate mutating func push<Value: ~Copyable>(_ value: consuming Value) -> PushResult<Value> {
-    let metadataCandidate =
+    let candidate =
       cursor
-      .alignedUp(for: (any ElementMetadataProtocol).self)
-    let valueCandidate =
-      metadataCandidate
-      .advanced(by: MemoryLayout<any ElementMetadataProtocol>.size)
       .alignedUp(for: Value.self)
     let nextCursor =
-      valueCandidate
+      candidate
       .advanced(by: MemoryLayout<Value>.size)
     guard nextCursor < (buffer.baseAddress! + buffer.count) else {
       return .value(value)
     }
+    elementMetadata.append(ElementMetadata<Value>.self)
     cursor = nextCursor
-    metadataCandidate
-      .bindMemory(to: (any ElementMetadataProtocol).self, capacity: 1)
-      .initialize(to: ElementMetadata<Value>())
     let pointer =
-      valueCandidate
+      candidate
       .bindMemory(to: Value.self, capacity: 1)
     pointer.initialize(to: value)
     return .pointer(pointer)
@@ -86,6 +90,7 @@ struct HeterogenousSlab: ~Copyable {
 
   fileprivate mutating func reset() {
     deinitializeElements()
+    elementMetadata.removeAll(keepingCapacity: true)
     cursor = buffer.baseAddress!
   }
 
@@ -97,19 +102,39 @@ struct HeterogenousSlab: ~Copyable {
     cursor = buffer.baseAddress!
   }
 
+  /// The cursor we expect given `elementMetadata`, mostly used for validation.
+  private func computedCursor() -> UnsafeMutableRawPointer {
+    var cursor = buffer.baseAddress!
+    for metadata in elementMetadata {
+      metadata.incrementCursor(&cursor, onElement: { _ in })
+    }
+    return cursor
+  }
+
   private let buffer: UnsafeMutableRawBufferPointer
   private var cursor: UnsafeMutableRawPointer
+  private var elementMetadata: [ElementMetadataProtocol.Type] = []
 
   private protocol ElementMetadataProtocol {
-    func deinitializeElement(advancing cursor: inout UnsafeMutableRawPointer)
+    static func incrementCursor(
+      _ cursor: inout UnsafeMutableRawPointer,
+      onElement: (UnsafeMutableRawPointer) -> Void
+    )
+    static func deinitializeElement(at pointer: UnsafeMutableRawPointer)
   }
-  private struct ElementMetadata<Value: ~Copyable>: ElementMetadataProtocol {
-    func deinitializeElement(advancing cursor: inout UnsafeMutableRawPointer) {
+  private enum ElementMetadata<Value: ~Copyable>: ElementMetadataProtocol {
+    static func incrementCursor(
+      _ cursor: inout UnsafeMutableRawPointer,
+      onElement: (UnsafeMutableRawPointer) -> Void
+    ) {
       let pointer =
         cursor
         .alignedUp(for: Value.self)
-      pointer.assumingMemoryBound(to: Value.self).deinitialize(count: 1)
+      onElement(cursor)
       cursor = pointer.advanced(by: MemoryLayout<Value>.size)
+    }
+    static func deinitializeElement(at pointer: UnsafeMutableRawPointer) {
+      pointer.assumingMemoryBound(to: Value.self).deinitialize(count: 1)
     }
   }
 
@@ -117,14 +142,10 @@ struct HeterogenousSlab: ~Copyable {
   private func deinitializeElements() {
     var cursor = buffer.baseAddress!
     let endCursor = self.cursor
-    while cursor < endCursor {
-      let metadataPointer =
-        cursor
-        .alignedUp(for: (any ElementMetadataProtocol).self)
-        .assumingMemoryBound(to: (any ElementMetadataProtocol).self)
-      cursor = cursor.advanced(by: MemoryLayout<any ElementMetadataProtocol>.size)
-      metadataPointer.pointee.deinitializeElement(advancing: &cursor)
-      metadataPointer.deinitialize(count: 1)
+    for metadata in elementMetadata {
+      metadata.incrementCursor(&cursor) { pointer in
+        metadata.deinitializeElement(at: pointer)
+      }
     }
     assert(cursor == endCursor)
   }
