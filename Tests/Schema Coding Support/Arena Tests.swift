@@ -1,5 +1,6 @@
-import SchemaCodingSupport
 import Testing
+
+@testable import SchemaCodingSupport
 
 @Suite("Arena Tests")
 struct ArenaTests {
