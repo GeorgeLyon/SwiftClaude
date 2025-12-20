@@ -7,8 +7,7 @@ extension SchemaCoding.Schema {
 }
 
 extension SchemaCoding.Support {
-  
-  @_semantics("optimize.no.specialize")
+
   public struct TypeErasedSchema<Value>: Schema {
 
     public func encode(_ value: Value, to encoder: inout Encoder) {

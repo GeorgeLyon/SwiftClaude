@@ -17,7 +17,6 @@ extension SchemaCoding.Schema {
 
 extension SchemaCoding.Support {
 
-  @_semantics("optimize.no.specialize")
   struct WrapperSchema<Value: Sendable, WrappedSchema: Schema>: Schema {
 
     public func encode(_ value: Value, to encoder: inout Encoder) {

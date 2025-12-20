@@ -7,8 +7,7 @@ extension Optional: SchemaCoding.Support.SchemaCodable where Wrapped: SchemaCodi
 }
 
 extension SchemaCoding.Support {
-  
-  @_semantics("optimize.no.specialize")
+
   public struct OptionalSchema<Wrapped: Schema>: Schema {
 
     let wrapped: Wrapped
@@ -40,8 +39,7 @@ extension SchemaCoding.Support {
     }
 
   }
-  
-  @_semantics("optimize.no.specialize")
+
   private enum NeverSchema<Value>: Schema {
     init() {
       fatalError()
