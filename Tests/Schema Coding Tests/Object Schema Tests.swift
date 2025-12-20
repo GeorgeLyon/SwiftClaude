@@ -8,11 +8,9 @@ struct ObjectSchemaTests {
 
   @Test
   func objectWithStringPropertyCoding() throws {
-    let schema = SchemaCoding.Support.objectSchema(
-      propertyName: CodingKeys.self
-    ) {
+    let schema = SchemaCoding.Support.objectSchema {
       SchemaCoding.Support.objectProperty(
-        name: CodingKeys.name,
+        name: "name",
         schema: SchemaCoding.Support.schema(representing: String.self)
       )
     }
@@ -21,11 +19,9 @@ struct ObjectSchemaTests {
 
   @Test
   func metaMetaMetaSchemaEncoding() throws {
-    let schema = SchemaCoding.Support.objectSchema(
-      propertyName: CodingKeys.self
-    ) {
+    let schema = SchemaCoding.Support.objectSchema {
       SchemaCoding.Support.objectProperty(
-        name: CodingKeys.name,
+        name: "name",
         schema: SchemaCoding.Support.schema(representing: String.self)
       )
     }
@@ -195,19 +191,15 @@ struct CompositeObjectSchemaTests {
 
   @Test
   func compositeObjectWithTwoStringPropertiesCoding() throws {
-    let schema1 = SchemaCoding.Support.objectSchema(
-      propertyName: CodingKeys.self
-    ) {
+    let schema1 = SchemaCoding.Support.objectSchema {
       SchemaCoding.Support.objectProperty(
-        name: CodingKeys.name,
+        name: "name",
         schema: SchemaCoding.Support.schema(representing: String.self)
       )
     }
-    let schema2 = SchemaCoding.Support.objectSchema(
-      propertyName: AgeCodingKeys.self
-    ) {
+    let schema2 = SchemaCoding.Support.objectSchema {
       SchemaCoding.Support.objectProperty(
-        name: AgeCodingKeys.age,
+        name: "age",
         schema: SchemaCoding.Support.schema(representing: String.self)
       )
     }
@@ -220,19 +212,15 @@ struct CompositeObjectSchemaTests {
 
   @Test
   func compositeObjectEncodingPropertyOrder() throws {
-    let schema1 = SchemaCoding.Support.objectSchema(
-      propertyName: CodingKeys.self
-    ) {
+    let schema1 = SchemaCoding.Support.objectSchema {
       SchemaCoding.Support.objectProperty(
-        name: CodingKeys.name,
+        name: "name",
         schema: SchemaCoding.Support.schema(representing: String.self)
       )
     }
-    let schema2 = SchemaCoding.Support.objectSchema(
-      propertyName: AgeCodingKeys.self
-    ) {
+    let schema2 = SchemaCoding.Support.objectSchema {
       SchemaCoding.Support.objectProperty(
-        name: AgeCodingKeys.age,
+        name: "age",
         schema: SchemaCoding.Support.schema(representing: String.self)
       )
     }
@@ -245,19 +233,15 @@ struct CompositeObjectSchemaTests {
 
   @Test
   func compositeObjectDecodingDifferentPropertyOrder() throws {
-    let schema1 = SchemaCoding.Support.objectSchema(
-      propertyName: CodingKeys.self
-    ) {
+    let schema1 = SchemaCoding.Support.objectSchema {
       SchemaCoding.Support.objectProperty(
-        name: CodingKeys.name,
+        name: "name",
         schema: SchemaCoding.Support.schema(representing: String.self)
       )
     }
-    let schema2 = SchemaCoding.Support.objectSchema(
-      propertyName: AgeCodingKeys.self
-    ) {
+    let schema2 = SchemaCoding.Support.objectSchema {
       SchemaCoding.Support.objectProperty(
-        name: AgeCodingKeys.age,
+        name: "age",
         schema: SchemaCoding.Support.schema(representing: String.self)
       )
     }
@@ -270,19 +254,15 @@ struct CompositeObjectSchemaTests {
 
   @Test
   func compositeObjectMetaMetaMetaSchemaEncoding() throws {
-    let schema1 = SchemaCoding.Support.objectSchema(
-      propertyName: CodingKeys.self
-    ) {
+    let schema1 = SchemaCoding.Support.objectSchema {
       SchemaCoding.Support.objectProperty(
-        name: CodingKeys.name,
+        name: "name",
         schema: SchemaCoding.Support.schema(representing: String.self)
       )
     }
-    let schema2 = SchemaCoding.Support.objectSchema(
-      propertyName: AgeCodingKeys.self
-    ) {
+    let schema2 = SchemaCoding.Support.objectSchema {
       SchemaCoding.Support.objectProperty(
-        name: AgeCodingKeys.age,
+        name: "age",
         schema: SchemaCoding.Support.schema(representing: String.self)
       )
     }
@@ -508,12 +488,4 @@ struct CompositeObjectSchemaTests {
     )
   }
 
-}
-
-private enum CodingKeys: String, CodingKey {
-  case name
-}
-
-private enum AgeCodingKeys: String, CodingKey {
-  case age
 }
