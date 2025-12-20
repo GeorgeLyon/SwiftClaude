@@ -21,7 +21,7 @@ extension Bool: SchemaCoding.SchemaCodable {
 
 extension SchemaCoding.Support {
 
-  fileprivate struct BooleanSchema: Schema {
+  struct BooleanSchema: Schema {
 
     typealias Value = Bool
 

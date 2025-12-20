@@ -21,7 +21,7 @@ extension String: SchemaCoding.SchemaCodable {
 
 extension SchemaCoding.Support {
 
-  fileprivate struct StringSchema: Schema {
+  struct StringSchema: Schema {
 
     typealias Value = String
 

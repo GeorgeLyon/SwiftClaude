@@ -8,7 +8,7 @@ extension SchemaCoding.Support {
 
 extension SchemaCoding.Support {
 
-  fileprivate struct NullSchema: Schema {
+  struct NullSchema: Schema {
 
     typealias Value = Void
 

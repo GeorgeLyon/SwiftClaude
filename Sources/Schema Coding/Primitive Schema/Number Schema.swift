@@ -74,7 +74,7 @@ extension Float16: SchemaCoding.SchemaCodable {
 
 extension SchemaCoding.Support {
 
-  fileprivate struct DoubleSchema: Schema {
+  struct DoubleSchema: Schema {
 
     typealias Value = Double
 
@@ -129,7 +129,7 @@ extension SchemaCoding.Support {
 
   }
 
-  fileprivate struct FloatSchema: Schema {
+  struct FloatSchema: Schema {
 
     typealias Value = Float
 
@@ -184,7 +184,7 @@ extension SchemaCoding.Support {
 
   }
 
-  fileprivate struct Float16Schema: Schema {
+  struct Float16Schema: Schema {
 
     typealias Value = Float16
 
@@ -240,7 +240,7 @@ extension SchemaCoding.Support {
   }
 
   #if canImport(Foundation)
-    fileprivate struct DecimalSchema: Schema {
+    struct DecimalSchema: Schema {
 
       typealias Value = Decimal
 

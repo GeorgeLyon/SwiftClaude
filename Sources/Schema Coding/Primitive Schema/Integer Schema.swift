@@ -36,7 +36,7 @@ extension FixedWidthInteger where Self: SendableMetatype {
 
 extension SchemaCoding.Support {
 
-  fileprivate struct IntegerSchema<T: FixedWidthInteger & SendableMetatype>: Schema {
+  struct IntegerSchema<T: FixedWidthInteger & SendableMetatype>: Schema {
 
     typealias Value = T
 
