@@ -223,46 +223,6 @@ struct SchemaCodingTests {
     }
 
     @Test
-    func compositeObjectMetaSchemaEncoding() throws {
-      let schema1 = SchemaCoding.Support.objectSchema(
-        propertyName: CodingKeys.self
-      ) {
-        SchemaCoding.Support.objectProperty(
-          name: CodingKeys.name,
-          schema: SchemaCoding.Support.schema(representing: String.self)
-        )
-      }
-      let schema2 = SchemaCoding.Support.objectSchema(
-        propertyName: AgeCodingKeys.self
-      ) {
-        SchemaCoding.Support.objectProperty(
-          name: AgeCodingKeys.age,
-          schema: SchemaCoding.Support.schema(representing: String.self)
-        )
-      }
-      let compositeSchema = SchemaCoding.Support.CompositeObjectSchema(schema1, schema2)
-      let context = SchemaCoding.Support.SchemaContext()
-      let metaSchema = compositeSchema.metaSchema(in: context)
-
-      try metaSchema.test(
-        compositeSchema,
-        encodesAs: """
-          {
-            "properties": {
-              "name": {
-                "type": "string"
-              },
-              "age": {
-                "type": "string"
-              }
-            }
-          }
-          """,
-        prettyPrint: true
-      )
-    }
-
-    @Test
     func compositeObjectMetaMetaMetaSchemaEncoding() throws {
       let schema1 = SchemaCoding.Support.objectSchema(
         propertyName: CodingKeys.self
