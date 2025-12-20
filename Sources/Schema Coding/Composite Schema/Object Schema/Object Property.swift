@@ -1,101 +1,205 @@
 import JSONSupport
 import SchemaCodingSupport
 
+// MARK: - Object Property
+
 extension SchemaCoding.Support {
 
-  public struct ObjectProperty<Name: CodingKey, Schema: SchemaCoding.Schema>:
-    ObjectPropertyProtocol
+  public static func objectProperty<Name: CodingKey, Wrapped>(
+    name: Name,
+    schema: OptionalSchema<Wrapped>
+  ) -> some ObjectProperty<Name, Wrapped.Value?> {
+    OptionalObjectProperty(
+      name: name,
+      schema: schema
+    )
+  }
+
+  public static func objectProperty<Name: CodingKey, Schema: SchemaCoding.Schema>(
+    name: Name,
+    schema: Schema
+  ) -> some ObjectProperty<Name, Schema.Value> {
+    RequiredObjectProperty(
+      name: name,
+      schema: schema
+    )
+  }
+
+  public protocol ObjectProperty<Name, Value>: Sendable {
+    associatedtype Name: CodingKey
+    var name: Name { get }
+
+    var isRequired: Bool { get }
+
+    associatedtype Value
+    func encode(_ value: Value, to encoder: inout ObjectPropertiesEncoder)
+    associatedtype Decoder: ObjectPropertyDecoder<Schema.Value>
+    func beginDecoding(from decoder: borrowing SchemaCoding.Support.Decoder) -> Decoder
+
+    associatedtype Schema: SchemaCoding.Schema where Schema.Value == Value
+    var schema: Schema { get }
+
+    associatedtype MetaProperty: ObjectProperty where MetaProperty.Schema.Value == Self
+    var metaProperty: MetaProperty { get }
+  }
+
+  public protocol ObjectPropertyDecoder<Value> {
+    var propertyName: String { get }
+
+    func decode(from decoder: inout Decoder) throws -> DecodingResult<Void>
+
+    associatedtype Value
+    func finishDecoding(from decoder: borrowing Decoder) throws -> Value
+  }
+
+  private struct RequiredObjectProperty<Name: CodingKey, Schema: SchemaCoding.Schema>:
+    PrivateObjectProperty
   {
 
-    public init<Wrapped>(
-      context: inout SchemaContext,
-      name: Name,
-      schema: OptionalSchema<Wrapped>
-    )
-    where
-      Schema.Value: BitwiseCopyable,
-      Schema.ValueDecodingState: BitwiseCopyable,
-      Schema == OptionalPropertySchema<Wrapped>
-    {
-      self._name = name
-      self.optionalMetadata = OptionalMetadata()
-      self.schema = OptionalPropertySchema(wrapped: schema.wrapped)
-      self.decodingStateReference = context.arenaArchetype.allocate(DecodingState?.self)
+    var isRequired: Bool {
+      true
     }
 
-    public init(
-      context: inout SchemaContext,
-      name: Name,
-      schema: Schema
-    )
-    where
-      Schema.Value: BitwiseCopyable,
-      Schema.ValueDecodingState: BitwiseCopyable
-    {
-      self._name = name
-      self.optionalMetadata = nil
-      self.schema = schema
-      self.decodingStateReference = context.arenaArchetype.allocate(DecodingState?.self)
-    }
-
-    public init<Wrapped>(
-      context: inout SchemaContext,
-      name: Name,
-      schema: OptionalSchema<Wrapped>
-    ) where Schema == OptionalPropertySchema<Wrapped> {
-      self._name = name
-      self.optionalMetadata = OptionalMetadata()
-      self.schema = OptionalPropertySchema(wrapped: schema.wrapped)
-      self.decodingStateReference = context.arenaArchetype.allocate(DecodingState?.self)
-    }
-
-    public init(
-      context: inout SchemaContext,
-      name: Name,
-      schema: Schema
-    ) {
-      self._name = name
-      self.optionalMetadata = nil
-      self.schema = schema
-      self.decodingStateReference = context.arenaArchetype.allocate(DecodingState?.self)
-    }
-
-    var name: String { _name.stringValue }
-
-    func encode(_ value: Schema.Value, to encoder: inout JSON.ObjectEncoder) {
-      if let optionalMetadata,
-        optionalMetadata.shouldOmit(value)
-      {
-        return
-      } else {
-        encoder.encodeProperty(name: name) { stream in
-          var encoder = Encoder(stream: stream)
-          schema.encode(value, to: &encoder)
-          stream = encoder.stream
-        }
+    func encode(_ value: Schema.Value, to encoder: inout ObjectPropertiesEncoder) {
+      encoder.encoder.encodeProperty(name: name.stringValue) { stream in
+        stream.encode(value, using: schema)
       }
     }
 
-    func decodeValue(
-      from decoder: inout Decoder
-    ) throws -> DecodingResult<Void> {
-      try decoder.arena.withValue(decodingStateReference) { decodingState in
-        var state: Schema.ValueDecodingState
-        do {
-          switch decodingState {
-          case .none:
-            state = schema.initialValueDecodingState
-          case .decoded:
-            throw Error.propertyAlreadyDecoded
-          case .decoding(let partialState):
-            state = partialState
-          case .uninitialized:
-            throw Error.invalidState
-          }
-          decodingState = .uninitialized
+    func beginDecoding(from decoder: borrowing Decoder) -> ConcreteObjectPropertyDecoder<Self> {
+      ConcreteObjectPropertyDecoder(
+        property: self,
+        reference: decoder.arena.push(.notFound)
+      )
+    }
+
+    var metaProperty: some ObjectProperty<Name, Self> {
+      RequiredObjectProperty<Name, _>(
+        name: name,
+        schema: schema.metaSchema(in: SchemaContext()).wrap { wrapped in
+          Self(name: name, schema: wrapped)
+        } unwrap: { property in
+          property.schema
+        }
+      )
+    }
+
+    func notFoundValue() throws -> Schema.Value {
+      throw Error.missingProperty(name.stringValue)
+    }
+
+    let name: Name
+    let schema: Schema
+
+  }
+
+  private struct OptionalObjectProperty<Name: CodingKey, Wrapped: SchemaCoding.Schema>:
+    PrivateObjectProperty
+  {
+
+    typealias Schema = OptionalSchema<Wrapped>
+
+    var isRequired: Bool {
+      true
+    }
+
+    func encode(_ value: Schema.Value, to encoder: inout ObjectPropertiesEncoder) {
+      guard let value else {
+        return
+      }
+      encoder.encoder.encodeProperty(name: name.stringValue) { stream in
+        stream.encode(value, using: schema)
+      }
+    }
+
+    func beginDecoding(from decoder: borrowing Decoder) -> ConcreteObjectPropertyDecoder<Self> {
+      ConcreteObjectPropertyDecoder(
+        property: self,
+        reference: decoder.arena.push(.notFound)
+      )
+    }
+
+    var metaProperty: some ObjectProperty<Name, Self> {
+      /// Use the wrapped schema in the meta-property since `.none` is represented by omission
+      RequiredObjectProperty<Name, _>(
+        name: name,
+        schema: schema.wrapped.metaSchema(in: SchemaContext()).wrap { wrapped in
+          Self(name: name, schema: OptionalSchema(wrapped: wrapped))
+        } unwrap: { property in
+          property.schema.wrapped
+        }
+      )
+    }
+
+    func notFoundValue() throws -> Schema.Value {
+      nil
+    }
+
+    let name: Name
+    let schema: Schema
+
+  }
+
+}
+
+// MARK: - Object Properties Builder
+
+extension SchemaCoding.Support {
+
+  @resultBuilder
+  public enum ObjectPropertiesBuilder<Name: CodingKey> {
+
+    public static func buildPartialBlock<First: ObjectProperty>(
+      first: First
+    ) -> ObjectProperties<Name, First> {
+      ObjectProperties(properties: first)
+    }
+
+    public static func buildPartialBlock<each Property, Next: ObjectProperty>(
+      accumulated: ObjectProperties<Name, repeat each Property>,
+      next: Next
+    ) -> ObjectProperties<Name, repeat each Property, Next> {
+      ObjectProperties(properties: (repeat each accumulated.properties, next))
+    }
+
+  }
+
+  public struct ObjectProperties<Name: CodingKey, each Property: ObjectProperty>: Sendable {
+    let properties: (repeat each Property)
+  }
+
+}
+
+// MARK: - Decoding
+
+extension SchemaCoding.Support {
+
+  fileprivate protocol PrivateObjectProperty: ObjectProperty {
+    func notFoundValue() throws -> Value
+  }
+
+  fileprivate struct ConcreteObjectPropertyDecoder<
+    Property: PrivateObjectProperty
+  >: ObjectPropertyDecoder {
+
+    func decode(
+      from decoder: inout SchemaCoding.Support.Decoder
+    ) throws -> SchemaCoding.Support.DecodingResult<Void> {
+      try decoder.arena.withValue(reference) { decodingState in
+        var state: Property.Schema.ValueDecodingState
+        switch decodingState {
+        case .decoded:
+          throw Error.propertyAlreadyDecoded
+        case .invalid:
+          throw Error.invalidState
+        case .notFound:
+          state = property.schema.beginDecodingValue(from: decoder)
+        case .decoding(let s):
+          state = s
         }
 
-        switch try schema.decodeValue(from: &decoder, state: &state).kind {
+        decodingState = .invalid
+        switch try property.schema.decodeValue(from: &decoder, state: &state).kind {
         case .decoded(let value):
           decodingState = .decoded(value)
           return .decoded
@@ -107,92 +211,43 @@ extension SchemaCoding.Support {
     }
 
     func finishDecoding(
-      _ decoder: borrowing Decoder
-    ) throws -> Schema.Value {
-      switch decoder.arena[decodingStateReference] {
-      case .uninitialized:
-        throw Error.invalidState
-      case .decoding:
-        throw Error.partiallyDecoded
-      case .decoded(let value):
-        return value
-      case .none:
-        guard let optionalMetadata else {
-          throw Error.missingProperty
+      from decoder: borrowing SchemaCoding.Support.Decoder
+    ) throws -> Property.Schema.Value {
+      try decoder.arena.withValue(reference) { decodingState in
+        switch decodingState {
+        case .invalid:
+          throw Error.invalidState
+        case .decoding:
+          throw Error.partiallyDecoded
+        case .notFound:
+          return try property.notFoundValue()
+        case .decoded(let value):
+          return value
         }
-        return optionalMetadata.valueWhenOmitted()
       }
     }
 
-    var isOptional: Bool {
-      optionalMetadata != nil
+    var propertyName: String {
+      property.name.stringValue
     }
 
-    fileprivate enum DecodingState {
-      case decoding(Schema.ValueDecodingState)
-      case decoded(Schema.Value)
-      case uninitialized
+    enum DecodingState {
+      case notFound
+      case decoding(Property.Schema.ValueDecodingState)
+      case decoded(Property.Schema.Value)
+      case invalid
     }
 
-    private struct OptionalMetadata {
-      init<Wrapped>() where Schema == OptionalPropertySchema<Wrapped> {
-        self.valueWhenOmitted = { nil }
-        self.shouldOmit = { $0 == nil }
-      }
-      let valueWhenOmitted: @Sendable () -> Schema.Value
-      let shouldOmit: @Sendable (Schema.Value) -> Bool
-    }
-
-    private let _name: Name
-    private let schema: Schema
-    private let optionalMetadata: OptionalMetadata?
-    private let decodingStateReference: Arena.Reference<DecodingState?>
-
-  }
-
-  protocol ObjectPropertyProtocol: Sendable {
-    var name: String { get }
-
-    func decodeValue(
-      from decoder: inout Decoder
-    ) throws -> DecodingResult<Void>
-  }
-
-  public struct OptionalPropertySchema<Wrapped: Schema>: Schema {
-    public typealias Value = Wrapped.Value?
-
-    public typealias ValueDecodingState = Wrapped.ValueDecodingState
-
-    public var initialValueDecodingState: ValueDecodingState {
-      wrapped.initialValueDecodingState
-    }
-
-    public func encode(
-      _ value: Wrapped.Value?,
-      to encoder: inout SchemaCoding.Support.Encoder
+    init(
+      property: Property,
+      reference: Arena.Reference<DecodingState>
     ) {
-      guard let value else {
-        /// Null values should be omitted when a property is optional
-        assertionFailure()
-        encoder.stream.encodeNull()
-        return
-      }
-      wrapped.encode(value, to: &encoder)
+      self.property = property
+      self.reference = reference
     }
 
-    public func decodeValue(
-      from decoder: inout Decoder,
-      state: inout ValueDecodingState
-    ) throws -> DecodingResult<Wrapped.Value?> {
-      switch try wrapped.decodeValue(from: &decoder, state: &state).kind {
-      case .incomplete:
-        .incomplete
-      case .decoded(let value):
-        .decoded(value)
-      }
-    }
-
-    let wrapped: Wrapped
+    private let property: Property
+    private let reference: Arena.Reference<DecodingState>
 
   }
 
@@ -204,10 +259,10 @@ private enum Error: Swift.Error {
   case invalidState
   case propertyAlreadyDecoded
   case partiallyDecoded
-  case missingProperty
+  case missingProperty(String)
 }
 
-extension SchemaCoding.Support.ObjectProperty.DecodingState: BitwiseCopyable
-where Schema.ValueDecodingState: BitwiseCopyable, Schema.Value: BitwiseCopyable {
+extension SchemaCoding.Support.ConcreteObjectPropertyDecoder.DecodingState: BitwiseCopyable
+where Property.Schema.ValueDecodingState: BitwiseCopyable, Property.Schema.Value: BitwiseCopyable {
 
 }

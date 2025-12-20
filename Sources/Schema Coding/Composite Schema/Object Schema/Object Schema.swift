@@ -1,91 +1,246 @@
 import JSONSupport
 
+// MARK: - Creating Object Schemas
+
 extension SchemaCoding.Support {
 
-  public struct ObjectSchema<Value>: Schema {
+  public static func objectSchema<PropertyName: CodingKey, each Property>(
+    description: String? = nil,
+    propertyName: PropertyName.Type = PropertyName.self,
+    @ObjectPropertiesBuilder<PropertyName> properties:
+      () -> ObjectProperties<PropertyName, repeat each Property>
+  ) -> some ObjectSchema<(repeat (each Property).Value)> {
+    TupleObjectSchema(
+      description: description,
+      propertyName: propertyName,
+      properties: properties
+    )
+  }
 
-    public init<Name: CodingKey, each PropertySchema: Schema>(
-      context: inout SchemaContext,
-      properties: repeat ObjectProperty<Name, each PropertySchema>,
-      compose: @escaping @Sendable (repeat (each PropertySchema).Value) throws -> Value,
-      decompose: @escaping @Sendable (Value) -> (repeat (each PropertySchema).Value)
+}
+
+// MARK: - Object Schema Protocol
+
+extension SchemaCoding.Support {
+
+  public protocol ObjectSchema<Value>: Schema {
+
+    associatedtype Properties: ObjectSchemaProperties where Properties.Value == Value
+    var properties: Properties { get }
+
+    var objectSchemaMetadata: ObjectSchemaMetadata { get }
+
+  }
+
+  public struct ObjectSchemaMetadata {
+    fileprivate let description: String?
+  }
+
+}
+
+// MARK: - Tuple Object Schema
+
+extension SchemaCoding.Support {
+
+  struct TupleObjectSchema<PropertyName: CodingKey, each Property: ObjectProperty>:
+    PrivateObjectSchema
+  {
+
+    init(
+      description: String? = nil,
+      propertyName: PropertyName.Type = PropertyName.self,
+      @ObjectPropertiesBuilder<PropertyName> properties: () -> ObjectProperties<
+        PropertyName, repeat each Property
+      >
     ) {
-
-      do {
-        var propertiesByName: [Substring: ObjectPropertyProtocol] = [:]
-        for property in repeat each properties {
-          let key = Substring(property.name)
-          /// Multiple properties with the same name are not allowed.
-          /// With assertions disabled, the last property takes precedence.
-          assert(!propertiesByName.keys.contains(key))
-          propertiesByName[key] = property
-        }
-        self.properties = propertiesByName
-      }
-
-      self.encode = { value, encoder in
-        encoder.stream.encodeObject { encoder in
-          for (value, property) in repeat (each decompose(value), each properties) {
-            property.encode(value, to: &encoder)
-          }
-        }
-      }
-
-      self.finishDecoding = { decoder in
-        try compose(repeat (each properties).finishDecoding(decoder))
-      }
+      self.init(
+        description: description,
+        propertyName: propertyName,
+        properties: repeat each properties().properties
+      )
     }
 
-    public func encode(
-      _ value: Value,
-      to encoder: inout Encoder
+    init(
+      description: String? = nil,
+      propertyName: PropertyName.Type = PropertyName.self,
+      properties: repeat each Property
     ) {
-      encode(value, &encoder)
+      self.init(
+        description: description,
+        propertyName: propertyName,
+        properties: Properties(repeat each properties))
     }
 
-    public struct ValueDecodingState {
-      fileprivate var objectState = JSON.ObjectDecodingState()
-      fileprivate var decodingProperty: ObjectPropertyProtocol?
+    private init(
+      description: String? = nil,
+      propertyName: PropertyName.Type = PropertyName.self,
+      properties: Properties
+    ) {
+      self.description = description
+      self.properties = properties
     }
 
-    public var initialValueDecodingState: ValueDecodingState {
-      ValueDecodingState()
-    }
+    typealias Value = Properties.Value
+    typealias Properties = TupleObjectSchemaProperties<PropertyName, repeat each Property>
 
-    public func decodeValue(
-      from decoder: inout Decoder,
-      state: inout ValueDecodingState
-    ) throws -> DecodingResult<Value> {
-      while true {
-        if let decodingProperty = state.decodingProperty {
-          switch try decodingProperty.decodeValue(from: &decoder).kind {
-          case .incomplete:
-            return .incomplete
-          case .decoded:
-            break
-          }
+    let description: String?
+    let properties: Properties
+
+    func metaSchema(in context: SchemaContext) -> TypeErasedSchema<Self> {
+      let properties = self.properties
+      let tupleSchema = TupleObjectSchema<
+        MetaSchemaCodingKey,
+        _,
+        _
+      >(
+        propertyName: MetaSchemaCodingKey.self,
+        properties: {
+          objectProperty(
+            name: MetaSchemaCodingKey.description,
+            schema: String?.schema
+          )
+          objectProperty(
+            name: MetaSchemaCodingKey.properties,
+            schema: properties.schema.metaSchema(in: SchemaContext())
+          )
+          // objectProperty(
+          //   name: MetaSchemaCodingKey.required,
+          //   schema: SchemaCoding.Support.schema(
+          //     constantValue: propertiesSchema.metadata.requiredPropertyNames
+          //   )
+          // )
         }
-
-        switch try decoder.stream.decodeObjectComponent(state: &state.objectState) {
-        case .incomplete:
-          return .incomplete
-        case .decoded(.propertyValueStart(let name)):
-          guard let property = properties[name] else {
-            throw Error.unknownProperty(name: String(name))
-          }
-          state.decodingProperty = property
-          continue
-        case .decoded(.end):
-          return try .decoded(finishDecoding(decoder))
+      )
+      let wrappedSchema =
+        tupleSchema.wrap { (description, propertiesSchema) in
+          Self(
+            description: description,
+            propertyName: PropertyName.self,
+            properties: propertiesSchema.properties
+          )
+        } unwrap: { schema in
+          (schema.description, schema.properties.schema)
         }
+      return wrappedSchema.typeErased()
+    }
 
+  }
+
+}
+
+// MARK: - Composite Object Schema
+
+extension SchemaCoding.Support {
+
+  struct CompositeObjectSchema<each Component: ObjectSchema>: PrivateObjectSchema {
+
+    typealias Value = (repeat (each Component).Value)
+    typealias Properties = CompositeObjectSchemaProperties<repeat (each Component).Properties>
+
+    init(
+      _ components: repeat each Component
+    ) {
+      var componentDescriptions: [String?] = []
+      for component in repeat each components {
+        componentDescriptions.append(component.objectSchemaMetadata.description)
       }
+      self.init(
+        description: combineDescriptions(componentDescriptions),
+        properties: Properties(repeat (each components).properties)
+      )
     }
 
-    private let properties: [Substring: ObjectPropertyProtocol]
-    private let encode: @Sendable (Value, inout Encoder) -> Void
-    private let finishDecoding: @Sendable (borrowing Decoder) throws -> Value
+    init(
+      description: String? = nil,
+      properties: Properties
+    ) {
+      self.description = description
+      self.properties = properties
+    }
 
+    let description: String?
+    let properties: Properties
+
+    func metaSchema(in context: SchemaContext) -> TypeErasedSchema<Self> {
+      let properties = self.properties
+      let tupleSchema = TupleObjectSchema<
+        MetaSchemaCodingKey,
+        _,
+        _
+      >(
+        description: nil,
+        propertyName: MetaSchemaCodingKey.self,
+        properties: {
+          objectProperty(
+            name: MetaSchemaCodingKey.description,
+            schema: String?.schema
+          )
+          objectProperty(
+            name: MetaSchemaCodingKey.properties,
+            schema: properties.schema.metaSchema(in: SchemaContext())
+          )
+          // objectProperty(
+          //   name: MetaSchemaCodingKey.required,
+          //   schema: SchemaCoding.Support.schema(
+          //     constantValue: properties.requiredPropertyNames
+          //   )
+          // )
+        }
+      )
+      let wrapperSchema = tupleSchema.wrap { (description, propertiesSchema) in
+        Self(description: description, properties: propertiesSchema.properties)
+      } unwrap: { schema in
+        (schema.description, schema.properties.schema)
+      }
+      return wrapperSchema.typeErased()
+    }
+
+  }
+
+}
+
+// MARK: - Shared Logic
+
+extension SchemaCoding.Support {
+
+  fileprivate protocol PrivateObjectSchema: ObjectSchema
+  where
+    ValueDecodingState == ObjectSchemaPropertiesSchema<Properties>.ValueDecodingState
+  {
+    associatedtype ValueDecodingState = ObjectSchemaPropertiesSchema<Properties>.ValueDecodingState
+
+    var description: String? { get }
+  }
+
+}
+
+extension SchemaCoding.Support.PrivateObjectSchema {
+
+  func encode(_ value: Value, to encoder: inout SchemaCoding.Support.Encoder) {
+    encoder.stream.encodeObject { encoder in
+      var objectEncoder = SchemaCoding.Support.ObjectPropertiesEncoder(encoder: encoder)
+      properties.encodeProperties(of: value, to: &objectEncoder)
+      encoder = objectEncoder.encoder
+    }
+  }
+
+  func beginDecodingValue(from decoder: borrowing SchemaCoding.Support.Decoder)
+    -> ValueDecodingState
+  {
+    ValueDecodingState(
+      propertiesState: properties.beginDecodingProperties(from: decoder)
+    )
+  }
+
+  func decodeValue(
+    from decoder: inout SchemaCoding.Support.Decoder,
+    state: inout ValueDecodingState
+  ) throws -> SchemaCoding.Support.DecodingResult<Value> {
+    try state.decode(from: &decoder)
+  }
+
+  var objectSchemaMetadata: SchemaCoding.Support.ObjectSchemaMetadata {
+    SchemaCoding.Support.ObjectSchemaMetadata(description: description)
   }
 
 }
@@ -93,9 +248,5 @@ extension SchemaCoding.Support {
 // MARK: - Implementation Details
 
 private enum MetaSchemaCodingKey: CodingKey {
-  case description, properties
-}
-
-private enum Error: Swift.Error {
-  case unknownProperty(name: String)
+  case description, properties, required
 }

@@ -111,7 +111,10 @@ extension Arena {
     _ reference: Reference<Value>,
     body: (inout Value) throws -> T
   ) rethrows -> T {
-    try body(&reference.pointer.pointee)
+    guard id == reference.arenaID else {
+      fatalError()
+    }
+    return try body(&reference.pointer.pointee)
   }
 
   public func withValue<Value: ~Copyable, T: ~Copyable>(
@@ -119,7 +122,10 @@ extension Arena {
     isolation: isolated Actor? = #isolation,
     body: (inout Value) async throws -> T
   ) async rethrows -> T {
-    try await body(&reference.pointer.pointee)
+    guard id == reference.arenaID else {
+      fatalError()
+    }
+    return try await body(&reference.pointer.pointee)
   }
 
   public struct Reference<Value: ~Copyable> {

@@ -1,6 +1,17 @@
-extension SchemaCoding.Support {
+extension Optional: SchemaCoding.Support.SchemaCodable where Wrapped: SchemaCoding.SchemaCodable {
 
+  public static var schema: SchemaCoding.Support.OptionalSchema<Wrapped.Schema> {
+    SchemaCoding.Support.OptionalSchema(wrapped: Wrapped.schema)
+  }
+
+}
+
+extension SchemaCoding.Support {
+  
+  @_semantics("optimize.no.specialize")
   public struct OptionalSchema<Wrapped: Schema>: Schema {
+
+    let wrapped: Wrapped
 
     public typealias Value = Wrapped.Value?
 
@@ -9,11 +20,12 @@ extension SchemaCoding.Support {
     }
 
     public struct ValueDecodingState {
-
     }
 
-    public var initialValueDecodingState: ValueDecodingState {
-      ValueDecodingState()
+    public func beginDecodingValue(
+      from decoder: borrowing Decoder
+    ) -> ValueDecodingState {
+      fatalError()
     }
 
     public func decodeValue(
@@ -23,8 +35,42 @@ extension SchemaCoding.Support {
       fatalError()
     }
 
-    let wrapped: Wrapped
+    public func metaSchema(in context: SchemaContext) -> some Schema<Self> {
+      NeverSchema<Self>()
+    }
 
+  }
+  
+  @_semantics("optimize.no.specialize")
+  private enum NeverSchema<Value>: Schema {
+    init() {
+      fatalError()
+    }
+    func encode(_ value: Value, to encoder: inout SchemaCoding.Support.Encoder) {
+
+    }
+    struct ValueDecodingState {
+
+    }
+    func beginDecodingValue(from decoder: borrowing SchemaCoding.Support.Decoder)
+      -> ValueDecodingState
+    {
+      switch self {
+
+      }
+    }
+    func decodeValue(
+      from decoder: inout SchemaCoding.Support.Decoder, state: inout ValueDecodingState
+    ) throws -> SchemaCoding.Support.DecodingResult<Value> {
+      switch self {
+
+      }
+    }
+    func metaSchema(in context: SchemaCoding.Support.SchemaContext) -> some SchemaCoding.Support
+      .Schema<Self>
+    {
+      NeverSchema<Self>()
+    }
   }
 
 }

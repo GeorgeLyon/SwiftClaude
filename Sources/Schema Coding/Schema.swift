@@ -38,11 +38,30 @@ extension SchemaCoding.Support {
     ) throws -> DecodingResult<Value>
 
     associatedtype MetaSchema: Schema where MetaSchema.Value == Self
-    func metaSchema(in context: inout SchemaContext) -> MetaSchema
+    func metaSchema(in context: SchemaContext) -> MetaSchema
 
   }
 
-  public struct SchemaContext: ~Copyable {
-
+  public struct SchemaContext {
+    var description: String {
+      fatalError()
+    }
   }
+}
+
+// MARK: - Schema Codable
+
+extension SchemaCoding {
+
+  public typealias SchemaCodable = Support.SchemaCodable
+
+}
+
+extension SchemaCoding.Support {
+
+  public protocol SchemaCodable {
+    associatedtype Schema: SchemaCoding.Schema<Self>
+    static var schema: Schema { get }
+  }
+
 }

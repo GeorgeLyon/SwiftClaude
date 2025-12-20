@@ -6,6 +6,10 @@ import SchemaCodingSupport
 extension SchemaCoding.Support {
 
   public struct Decoder: ~Copyable {
+    public init() {
+      self.arena = Arena()
+      self.stream = JSON.DecodingStream()
+    }
     let arena: Arena
     var stream: JSON.DecodingStream
   }
@@ -34,6 +38,18 @@ extension SchemaCoding.Support {
 
     private init(kind: Kind) {
       self.kind = kind
+    }
+
+    func map<NewValue>(
+      _ transform: (Value) throws -> NewValue
+    ) rethrows -> DecodingResult<NewValue> {
+      switch kind {
+      case .incomplete:
+        return .incomplete
+      case .decoded(let value):
+        let transformed = try transform(value)
+        return DecodingResult<NewValue>(kind: .decoded(transformed))
+      }
     }
 
   }

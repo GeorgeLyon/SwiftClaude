@@ -1,6 +1,7 @@
 // swift-tools-version: 6.0
 
 import CompilerPluginSupport
+import Foundation
 import PackageDescription
 
 let package = Package(
@@ -20,8 +21,8 @@ let package = Package(
 
     /// Temporary
     .library(
-      name: "Temporary",
-      targets: ["SchemaCodingSupport"]
+      name: "SwiftClaude",
+      targets: ["SchemaCoding"]
     )
   ],
   dependencies: [
@@ -112,32 +113,32 @@ let package = Package(
 
     // MARK: - Schema Coding
 
-    // .target(
-    //   name: "SchemaCoding",
-    //   dependencies: [
-    //     "JSONSupport",
-    //     "Macros",
-    //     "SchemaCodingSupport",
-    //   ],
-    //   path: "Sources/Schema Coding",
-    //   swiftSettings: .projectDefaults
-    // ),
+    .target(
+      name: "SchemaCoding",
+      dependencies: [
+        "JSONSupport",
+        // "Macros",
+        "SchemaCodingSupport",
+      ],
+      path: "Sources/Schema Coding",
+      swiftSettings: .projectDefaults
+    ),
 
-    // .target(
-    //   name: "SchemaCodingTestSupport",
-    //   dependencies: [
-    //     "SchemaCoding"
-    //   ],
-    //   path: "Sources/Schema Coding Test Support",
-    //   swiftSettings: .projectDefaults
-    // ),
-    // .testTarget(
-    //   name: "SchemaCodingTests",
-    //   dependencies: [
-    //     "SchemaCodingTestSupport"
-    //   ],
-    //   path: "Tests/Schema Coding Tests"
-    // ),
+    .target(
+      name: "SchemaCodingTestSupport",
+      dependencies: [
+        "SchemaCoding"
+      ],
+      path: "Sources/Schema Coding Test Support",
+      swiftSettings: .projectDefaults
+    ),
+    .testTarget(
+      name: "SchemaCodingTests",
+      dependencies: [
+        "SchemaCodingTestSupport"
+      ],
+      path: "Tests/Schema Coding Tests"
+    ),
 
     .target(
       name: "SchemaCodingSupport",
@@ -152,7 +153,7 @@ let package = Package(
       dependencies: [
         "SchemaCodingSupport"
       ],
-      path: "Tests/Schema Coding Support",
+      path: "Tests/Schema Coding Support Tests",
       swiftSettings: .projectDefaults
     ),
 
@@ -219,10 +220,13 @@ extension Array where Element == SwiftSetting {
       /// https://github.com/swiftlang/swift-evolution/blob/main/proposals/0470-isolated-conformances.md
       .enableUpcomingFeature("InferIsolatedConformances"),
     ]
-    #if true
+    if enableTestingInRelease {
       /// Allow testing release builds
       settings.append(.unsafeFlags(["-enable-testing"], .when(configuration: .release)))
-    #endif
+    }
     return settings
   }()
+
+  private static let enableTestingInRelease =
+    ProcessInfo.processInfo.environment["SWIFTCLAUDE_ENABLE_TESTING_IN_RELEASE"] == "true"
 }

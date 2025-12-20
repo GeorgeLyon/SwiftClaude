@@ -106,7 +106,7 @@ extension SchemaCoding.Schema {
     prettyPrint: Bool = false,
     sourceLocation: SourceLocation = #_sourceLocation
   ) throws {
-    try metaSchema.test(
+    try metaSchema(in: SchemaCoding.Support.SchemaContext()).test(
       self,
       encodesAs: json,
       prettyPrint: prettyPrint,
@@ -171,8 +171,8 @@ extension SchemaCoding.Schema {
 
       /// Test all-at-once decoding
       do {
-        var decoder = SchemaCoding.Support.Decoder(stream: JSON.DecodingStream())
-        var decodingState = initialValueDecodingState
+        var decoder = SchemaCoding.Support.Decoder()
+        var decodingState = beginDecodingValue(from: decoder)
         decoder.stream.push(jsonFragments.joined())
         decoder.stream.finish()
         let decodedValue = try decodeValue(from: &decoder, state: &decodingState).value
@@ -183,8 +183,8 @@ extension SchemaCoding.Schema {
 
       /// Test explicitly chunked decoding
       do {
-        var decoder = SchemaCoding.Support.Decoder(stream: JSON.DecodingStream())
-        var decodingState = initialValueDecodingState
+        var decoder = SchemaCoding.Support.Decoder()
+        var decodingState = beginDecodingValue(from: decoder)
         for fragment in jsonFragments.dropLast() {
           decoder.stream.push(fragment)
           let result = try decodeValue(from: &decoder, state: &decodingState)
@@ -204,8 +204,8 @@ extension SchemaCoding.Schema {
 
       /// Test character-at-a-time decoding
       do {
-        var decoder = SchemaCoding.Support.Decoder(stream: JSON.DecodingStream())
-        var decodingState = initialValueDecodingState
+        var decoder = SchemaCoding.Support.Decoder()
+        var decodingState = beginDecodingValue(from: decoder)
         for character in json.dropLast() {
           decoder.stream.push(String(character))
           let result = try decodeValue(from: &decoder, state: &decodingState)
@@ -267,4 +267,35 @@ public struct JSONFragments: ExpressibleByStringInterpolation, ExpressibleByArra
     fragments = [value]
   }
   let fragments: [String]
+}
+
+// MARK: - Internal API
+
+extension SchemaCoding.Support.DecodingResult {
+
+  fileprivate var isComplete: Bool {
+    if case .decoded = kind {
+      return true
+    } else {
+      return false
+    }
+  }
+
+  fileprivate var value: Value {
+    get throws {
+      switch kind {
+      case .incomplete:
+        throw Error.decodingIncomplete
+      case .decoded(let value):
+        return value
+      }
+    }
+  }
+
+}
+
+// MARK: - Errors
+
+private enum Error: Swift.Error {
+  case decodingIncomplete
 }

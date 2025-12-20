@@ -1,27 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "1620"
+   LastUpgradeVersion = "2620"
    version = "1.7">
    <BuildAction
       parallelizeBuildables = "YES"
       buildImplicitDependencies = "YES"
       buildArchitectures = "Automatic">
-      <BuildActionEntries>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "SwiftClaudeAppPackage"
-               BuildableName = "SwiftClaudeAppPackage"
-               BlueprintName = "SwiftClaudeAppPackage"
-               ReferencedContainer = "container:">
-            </BuildableReference>
-         </BuildActionEntry>
-      </BuildActionEntries>
    </BuildAction>
    <TestAction
       buildConfiguration = "Debug"
@@ -34,9 +18,9 @@
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "SwiftClaudeAppPackageTests"
-               BuildableName = "SwiftClaudeAppPackageTests"
-               BlueprintName = "SwiftClaudeAppPackageTests"
+               BlueprintIdentifier = "SchemaCodingTests"
+               BuildableName = "SchemaCodingTests"
+               BlueprintName = "SchemaCodingTests"
                ReferencedContainer = "container:">
             </BuildableReference>
          </TestableReference>
@@ -59,15 +43,6 @@
       savedToolIdentifier = ""
       useCustomWorkingDirectory = "NO"
       debugDocumentVersioning = "YES">
-      <MacroExpansion>
-         <BuildableReference
-            BuildableIdentifier = "primary"
-            BlueprintIdentifier = "SwiftClaudeAppPackage"
-            BuildableName = "SwiftClaudeAppPackage"
-            BlueprintName = "SwiftClaudeAppPackage"
-            ReferencedContainer = "container:">
-         </BuildableReference>
-      </MacroExpansion>
    </ProfileAction>
    <AnalyzeAction
       buildConfiguration = "Debug">
