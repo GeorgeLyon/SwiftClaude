@@ -66,7 +66,7 @@ extension SchemaCoding.Support {
       )
     }
 
-    private init(
+    fileprivate init(
       description: String? = nil,
       properties: Properties
     ) {
@@ -79,42 +79,6 @@ extension SchemaCoding.Support {
 
     let description: String?
     let properties: Properties
-
-    func metaSchema(in context: SchemaContext) -> TypeErasedSchema<Self> {
-      let properties = self.properties
-      let tupleSchema = TupleObjectSchema<
-        _,
-        _,
-        _
-      >(
-        properties: {
-          objectProperty(
-            name: .description,
-            schema: String?.schema
-          )
-          objectProperty(
-            name: .properties,
-            schema: properties.schema.metaSchema(in: SchemaContext())
-          )
-          objectProperty(
-            name: .required,
-            schema: SchemaCoding.Support.schema(
-              constantValue: properties.metadata.requiredPropertyNames
-            )
-          )
-        }
-      )
-      let wrappedSchema =
-        tupleSchema.wrap { (description, propertiesSchema, _) in
-          Self(
-            description: description,
-            properties: propertiesSchema.properties
-          )
-        } unwrap: { schema in
-          (schema.description, schema.properties.schema, ())
-        }
-      return wrappedSchema.typeErased()
-    }
 
   }
 
@@ -153,39 +117,6 @@ extension SchemaCoding.Support {
     let description: String?
     let properties: Properties
 
-    func metaSchema(in context: SchemaContext) -> TypeErasedSchema<Self> {
-      let properties = self.properties
-      let tupleSchema = TupleObjectSchema<
-        _,
-        _,
-        _
-      >(
-        description: nil,
-        properties: {
-          objectProperty(
-            name: .description,
-            schema: String?.schema
-          )
-          objectProperty(
-            name: .properties,
-            schema: properties.schema.metaSchema(in: SchemaContext())
-          )
-          objectProperty(
-            name: .required,
-            schema: SchemaCoding.Support.schema(
-              constantValue: properties.metadata.requiredPropertyNames
-            )
-          )
-        }
-      )
-      let wrapperSchema = tupleSchema.wrap { (description, propertiesSchema, _) in
-        Self(description: description, properties: propertiesSchema.properties)
-      } unwrap: { schema in
-        (schema.description, schema.properties.schema, ())
-      }
-      return wrapperSchema.typeErased()
-    }
-
   }
 
 }
@@ -201,6 +132,8 @@ extension SchemaCoding.Support {
     associatedtype ValueDecodingState = ObjectSchemaPropertiesSchema<Properties>.ValueDecodingState
 
     var description: String? { get }
+
+    init(description: String?, properties: Properties)
   }
 
 }
@@ -228,6 +161,60 @@ extension SchemaCoding.Support.PrivateObjectSchema {
     state: inout ValueDecodingState
   ) throws -> SchemaCoding.Support.DecodingResult<Value> {
     try state.decode(from: &decoder)
+  }
+
+  func metaSchema(
+    in context: SchemaCoding.Support.SchemaContext
+  ) -> SchemaCoding.Support.TypeErasedSchema<Self> {
+    let properties = self.properties
+    let requiredPropertyNames = properties.metadata.requiredPropertyNames
+    if requiredPropertyNames.isEmpty {
+      return SchemaCoding.Support.TupleObjectSchema<_, _>(
+        description: nil,
+        properties: {
+          SchemaCoding.Support.objectProperty(
+            name: .description,
+            schema: String?.schema
+          )
+          SchemaCoding.Support.objectProperty(
+            name: .properties,
+            schema: properties.schema.metaSchema(in: SchemaCoding.Support.SchemaContext())
+          )
+        }
+      )
+      .wrap { (description, propertiesSchema) in
+        Self(description: description, properties: propertiesSchema.properties)
+      } unwrap: { schema in
+        (schema.description, schema.properties.schema)
+      }
+      .typeErased()
+    } else {
+      return SchemaCoding.Support.TupleObjectSchema<_, _, _>(
+        description: nil,
+        properties: {
+          SchemaCoding.Support.objectProperty(
+            name: .description,
+            schema: String?.schema
+          )
+          SchemaCoding.Support.objectProperty(
+            name: .properties,
+            schema: properties.schema.metaSchema(in: SchemaCoding.Support.SchemaContext())
+          )
+          SchemaCoding.Support.objectProperty(
+            name: .required,
+            schema: SchemaCoding.Support.schema(
+              constantValue: properties.metadata.requiredPropertyNames
+            )
+          )
+        }
+      )
+      .wrap { (description, propertiesSchema, _) in
+        Self(description: description, properties: propertiesSchema.properties)
+      } unwrap: { schema in
+        (schema.description, schema.properties.schema, ())
+      }
+      .typeErased()
+    }
   }
 
   var objectSchemaMetadata: SchemaCoding.Support.ObjectSchemaMetadata {

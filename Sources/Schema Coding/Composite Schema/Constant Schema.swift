@@ -98,10 +98,8 @@ extension SchemaCoding.Support {
 
   }
 
-}
+  private enum Error: Swift.Error {
+    case constantValueMismatch(decoded: Sendable, expected: Sendable)
+  }
 
-// MARK: - Errors
-
-private enum Error: Swift.Error {
-  case constantValueMismatch(decoded: Sendable, expected: Sendable)
 }
