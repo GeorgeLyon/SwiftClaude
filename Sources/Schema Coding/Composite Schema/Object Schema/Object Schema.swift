@@ -91,6 +91,7 @@ extension SchemaCoding.Support {
       let tupleSchema = TupleObjectSchema<
         MetaSchemaCodingKey,
         _,
+        _,
         _
       >(
         propertyName: MetaSchemaCodingKey.self,
@@ -103,23 +104,23 @@ extension SchemaCoding.Support {
             name: MetaSchemaCodingKey.properties,
             schema: properties.schema.metaSchema(in: SchemaContext())
           )
-          // objectProperty(
-          //   name: MetaSchemaCodingKey.required,
-          //   schema: SchemaCoding.Support.schema(
-          //     constantValue: propertiesSchema.metadata.requiredPropertyNames
-          //   )
-          // )
+          objectProperty(
+            name: MetaSchemaCodingKey.required,
+            schema: SchemaCoding.Support.schema(
+              constantValue: properties.metadata.requiredPropertyNames
+            )
+          )
         }
       )
       let wrappedSchema =
-        tupleSchema.wrap { (description, propertiesSchema) in
+        tupleSchema.wrap { (description, propertiesSchema, _) in
           Self(
             description: description,
             propertyName: PropertyName.self,
             properties: propertiesSchema.properties
           )
         } unwrap: { schema in
-          (schema.description, schema.properties.schema)
+          (schema.description, schema.properties.schema, ())
         }
       return wrappedSchema.typeErased()
     }
@@ -166,6 +167,7 @@ extension SchemaCoding.Support {
       let tupleSchema = TupleObjectSchema<
         MetaSchemaCodingKey,
         _,
+        _,
         _
       >(
         description: nil,
@@ -179,18 +181,18 @@ extension SchemaCoding.Support {
             name: MetaSchemaCodingKey.properties,
             schema: properties.schema.metaSchema(in: SchemaContext())
           )
-          // objectProperty(
-          //   name: MetaSchemaCodingKey.required,
-          //   schema: SchemaCoding.Support.schema(
-          //     constantValue: properties.requiredPropertyNames
-          //   )
-          // )
+          objectProperty(
+            name: MetaSchemaCodingKey.required,
+            schema: SchemaCoding.Support.schema(
+              constantValue: properties.metadata.requiredPropertyNames
+            )
+          )
         }
       )
-      let wrapperSchema = tupleSchema.wrap { (description, propertiesSchema) in
+      let wrapperSchema = tupleSchema.wrap { (description, propertiesSchema, _) in
         Self(description: description, properties: propertiesSchema.properties)
       } unwrap: { schema in
-        (schema.description, schema.properties.schema)
+        (schema.description, schema.properties.schema, ())
       }
       return wrapperSchema.typeErased()
     }

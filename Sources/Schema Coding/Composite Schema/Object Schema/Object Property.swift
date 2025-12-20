@@ -100,7 +100,7 @@ extension SchemaCoding.Support {
     typealias Schema = OptionalSchema<Wrapped>
 
     var isRequired: Bool {
-      true
+      false
     }
 
     func encode(_ value: Schema.Value, to encoder: inout ObjectPropertiesEncoder) {
