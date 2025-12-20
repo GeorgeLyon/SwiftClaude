@@ -60,14 +60,13 @@ extension SchemaCoding.Support {
     public func metaSchema(in context: SchemaContext) -> some Schema<Self> {
       TupleObjectSchema(
         description: nil,
-        propertyName: ConstantSchemaCodingKey.self,
         properties: {
           objectProperty(
-            name: ConstantSchemaCodingKey.description,
+            name: .description,
             schema: String?.schema
           )
           objectProperty(
-            name: ConstantSchemaCodingKey.const,
+            name: .const,
             schema: wrappedSchema
           )
         }
@@ -99,9 +98,6 @@ extension SchemaCoding.Support {
 
   }
 
-  private enum ConstantSchemaCodingKey: CodingKey {
-    case description, const
-  }
 }
 
 // MARK: - Errors

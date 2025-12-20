@@ -100,20 +100,16 @@ extension SchemaCoding.Support {
     }
 
     func metaSchema(in context: SchemaContext) -> some Schema<Self> {
-      let objectSchema = objectSchema(
-        description: nil,
-        propertyName: SchemaPropertyName.self,
-        properties: {
-          objectProperty(
-            name: SchemaPropertyName.description,
-            schema: String?.schema
-          )
-          objectProperty(
-            name: SchemaPropertyName.type,
-            schema: schema(constantValue: type)
-          )
-        }
-      )
+      let objectSchema = objectSchema {
+        objectProperty(
+          name: .description,
+          schema: String?.schema
+        )
+        objectProperty(
+          name: .type,
+          schema: schema(constantValue: type)
+        )
+      }
       let wrapperSchema =
         objectSchema
         .wrap { (description, _) in
@@ -155,20 +151,16 @@ extension SchemaCoding.Support {
     }
 
     func metaSchema(in context: SchemaContext) -> some Schema<Self> {
-      let objectSchema = objectSchema(
-        description: nil,
-        propertyName: SchemaPropertyName.self,
-        properties: {
-          objectProperty(
-            name: SchemaPropertyName.description,
-            schema: String?.schema
-          )
-          objectProperty(
-            name: SchemaPropertyName.type,
-            schema: schema(constantValue: type)
-          )
-        }
-      )
+      let objectSchema = objectSchema {
+        objectProperty(
+          name: .description,
+          schema: String?.schema
+        )
+        objectProperty(
+          name: .type,
+          schema: schema(constantValue: type)
+        )
+      }
       let wrapperSchema =
         objectSchema
         .wrap { (description, _) in
@@ -210,20 +202,16 @@ extension SchemaCoding.Support {
     }
 
     func metaSchema(in context: SchemaContext) -> some Schema<Self> {
-      let objectSchema = objectSchema(
-        description: nil,
-        propertyName: SchemaPropertyName.self,
-        properties: {
-          objectProperty(
-            name: SchemaPropertyName.description,
-            schema: String?.schema
-          )
-          objectProperty(
-            name: SchemaPropertyName.type,
-            schema: schema(constantValue: type)
-          )
-        }
-      )
+      let objectSchema = objectSchema {
+        objectProperty(
+          name: .description,
+          schema: String?.schema
+        )
+        objectProperty(
+          name: .type,
+          schema: schema(constantValue: type)
+        )
+      }
       let wrapperSchema =
         objectSchema
         .wrap { (description, _) in
@@ -266,20 +254,16 @@ extension SchemaCoding.Support {
       }
 
       func metaSchema(in context: SchemaContext) -> some Schema<Self> {
-        let objectSchema = objectSchema(
-          description: nil,
-          propertyName: SchemaPropertyName.self,
-          properties: {
-            objectProperty(
-              name: SchemaPropertyName.description,
-              schema: String?.schema
-            )
-            objectProperty(
-              name: SchemaPropertyName.type,
-              schema: schema(constantValue: type)
-            )
-          }
-        )
+        let objectSchema = objectSchema {
+          objectProperty(
+            name: .description,
+            schema: String?.schema
+          )
+          objectProperty(
+            name: .type,
+            schema: schema(constantValue: type)
+          )
+        }
         let wrapperSchema =
           objectSchema
           .wrap { (description, _) in
@@ -296,8 +280,4 @@ extension SchemaCoding.Support {
     }
   #endif
 
-}
-
-private enum SchemaPropertyName: CodingKey {
-  case description, type
 }

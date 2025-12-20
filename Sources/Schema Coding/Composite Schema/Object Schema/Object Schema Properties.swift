@@ -176,7 +176,7 @@ extension SchemaCoding.Support {
 
 extension SchemaCoding.Support {
 
-  struct TupleObjectSchemaProperties<PropertyName, each Property: ObjectProperty>:
+  struct TupleObjectSchemaProperties<each Property: ObjectProperty>:
     ObjectSchemaProperties
   {
 
@@ -205,12 +205,12 @@ extension SchemaCoding.Support {
 
     typealias MetaProperties = WrapperObjectSchemaProperties<
       Self,
-      TupleObjectSchemaProperties<PropertyName, repeat (each Property).MetaProperty>
+      TupleObjectSchemaProperties<repeat (each Property).MetaProperty>
     >
     var metaProperties: MetaProperties {
       WrapperObjectSchemaProperties(
         wrappedProperties: TupleObjectSchemaProperties<
-          PropertyName, repeat (each Property).MetaProperty
+          repeat (each Property).MetaProperty
         >(repeat (each properties).metaProperty),
         wrap: { properties in
           Self(repeat each properties)
@@ -238,7 +238,7 @@ extension SchemaCoding.Support {
     ) {
       self.properties = (repeat each properties)
     }
-    private let properties: (repeat each Property)
+    let properties: (repeat each Property)
 
   }
 

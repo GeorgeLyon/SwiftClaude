@@ -4,15 +4,13 @@ import JSONSupport
 
 extension SchemaCoding.Support {
 
-  public static func objectSchema<PropertyName: CodingKey, each Property>(
+  static func objectSchema<each Property>(
     description: String? = nil,
-    propertyName: PropertyName.Type = PropertyName.self,
-    @ObjectPropertiesBuilder<PropertyName> properties:
-      () -> ObjectProperties<PropertyName, repeat each Property>
+    @ObjectPropertiesBuilder properties:
+      () -> ObjectProperties<repeat each Property>
   ) -> some ObjectSchema<(repeat (each Property).Value)> {
     TupleObjectSchema(
       description: description,
-      propertyName: propertyName,
       properties: properties
     )
   }
@@ -42,38 +40,34 @@ extension SchemaCoding.Support {
 
 extension SchemaCoding.Support {
 
-  struct TupleObjectSchema<PropertyName: CodingKey, each Property: ObjectProperty>:
+  struct TupleObjectSchema<each Property: ObjectProperty>:
     PrivateObjectSchema
   {
 
     init(
       description: String? = nil,
-      propertyName: PropertyName.Type = PropertyName.self,
-      @ObjectPropertiesBuilder<PropertyName> properties: () -> ObjectProperties<
-        PropertyName, repeat each Property
+      @ObjectPropertiesBuilder properties: () -> ObjectProperties<
+        repeat each Property
       >
     ) {
       self.init(
         description: description,
-        propertyName: propertyName,
         properties: repeat each properties().properties
       )
     }
 
     init(
       description: String? = nil,
-      propertyName: PropertyName.Type = PropertyName.self,
       properties: repeat each Property
     ) {
       self.init(
         description: description,
-        propertyName: propertyName,
-        properties: Properties(repeat each properties))
+        properties: Properties(repeat each properties)
+      )
     }
 
     private init(
       description: String? = nil,
-      propertyName: PropertyName.Type = PropertyName.self,
       properties: Properties
     ) {
       self.description = description
@@ -81,7 +75,7 @@ extension SchemaCoding.Support {
     }
 
     typealias Value = Properties.Value
-    typealias Properties = TupleObjectSchemaProperties<PropertyName, repeat each Property>
+    typealias Properties = TupleObjectSchemaProperties<repeat each Property>
 
     let description: String?
     let properties: Properties
@@ -89,23 +83,21 @@ extension SchemaCoding.Support {
     func metaSchema(in context: SchemaContext) -> TypeErasedSchema<Self> {
       let properties = self.properties
       let tupleSchema = TupleObjectSchema<
-        MetaSchemaCodingKey,
         _,
         _,
         _
       >(
-        propertyName: MetaSchemaCodingKey.self,
         properties: {
           objectProperty(
-            name: MetaSchemaCodingKey.description,
+            name: .description,
             schema: String?.schema
           )
           objectProperty(
-            name: MetaSchemaCodingKey.properties,
+            name: .properties,
             schema: properties.schema.metaSchema(in: SchemaContext())
           )
           objectProperty(
-            name: MetaSchemaCodingKey.required,
+            name: .required,
             schema: SchemaCoding.Support.schema(
               constantValue: properties.metadata.requiredPropertyNames
             )
@@ -116,7 +108,6 @@ extension SchemaCoding.Support {
         tupleSchema.wrap { (description, propertiesSchema, _) in
           Self(
             description: description,
-            propertyName: PropertyName.self,
             properties: propertiesSchema.properties
           )
         } unwrap: { schema in
@@ -165,24 +156,22 @@ extension SchemaCoding.Support {
     func metaSchema(in context: SchemaContext) -> TypeErasedSchema<Self> {
       let properties = self.properties
       let tupleSchema = TupleObjectSchema<
-        MetaSchemaCodingKey,
         _,
         _,
         _
       >(
         description: nil,
-        propertyName: MetaSchemaCodingKey.self,
         properties: {
           objectProperty(
-            name: MetaSchemaCodingKey.description,
+            name: .description,
             schema: String?.schema
           )
           objectProperty(
-            name: MetaSchemaCodingKey.properties,
+            name: .properties,
             schema: properties.schema.metaSchema(in: SchemaContext())
           )
           objectProperty(
-            name: MetaSchemaCodingKey.required,
+            name: .required,
             schema: SchemaCoding.Support.schema(
               constantValue: properties.metadata.requiredPropertyNames
             )
@@ -245,10 +234,4 @@ extension SchemaCoding.Support.PrivateObjectSchema {
     SchemaCoding.Support.ObjectSchemaMetadata(description: description)
   }
 
-}
-
-// MARK: - Implementation Details
-
-private enum MetaSchemaCodingKey: CodingKey {
-  case description, properties, required
 }

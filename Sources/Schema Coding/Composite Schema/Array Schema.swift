@@ -94,14 +94,13 @@ extension SchemaCoding.Support {
 
     func metaSchema(in context: SchemaContext) -> some Schema<Self> {
       let schema = objectSchema(
-        propertyName: SchemaCodingKey.self,
         properties: {
           objectProperty(
-            name: SchemaCodingKey.description,
+            name: .description,
             schema: String?.schema
           )
           objectProperty(
-            name: SchemaCodingKey.items,
+            name: .items,
             schema: elementSchema.metaSchema(in: context)
           )
         }
@@ -126,10 +125,4 @@ extension SchemaCoding.Support {
 
   }
 
-}
-
-// MARK: - Coding Keys
-
-private enum SchemaCodingKey: CodingKey {
-  case description, items
 }
