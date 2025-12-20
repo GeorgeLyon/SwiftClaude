@@ -8,7 +8,7 @@ extension JSON.EncodingStream {
   }
 }
 
-extension JSON.DecodingResult where Value: Sendable {
+extension JSON.DecodingResult {
   var schemaDecodingResult: SchemaCoding.Support.DecodingResult<Value> {
     switch self {
     case .incomplete:

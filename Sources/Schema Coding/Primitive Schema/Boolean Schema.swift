@@ -3,48 +3,45 @@ import JSONSupport
 extension SchemaCoding.Support {
 
   public static func schema(
-    representing: String.Type = String.self,
+    representing: Bool.Type = Bool.self,
     description: String? = nil
-  ) -> some Schema<String> {
-    StringSchema(description: description)
+  ) -> some Schema<Bool> {
+    BooleanSchema(description: description)
   }
 
 }
 
-extension String: SchemaCoding.SchemaCodable {
+extension Bool: SchemaCoding.SchemaCodable {
 
-  public static var schema: some SchemaCoding.Schema<String> {
-    SchemaCoding.Support.StringSchema(description: nil)
+  public static var schema: some SchemaCoding.Schema<Bool> {
+    SchemaCoding.Support.BooleanSchema(description: nil)
   }
 
 }
 
 extension SchemaCoding.Support {
 
-  fileprivate struct StringSchema: Schema {
+  fileprivate struct BooleanSchema: Schema {
 
-    typealias Value = String
+    typealias Value = Bool
 
-    func encode(_ value: String, to encoder: inout Encoder) {
+    func encode(_ value: Bool, to encoder: inout Encoder) {
       encoder.stream.encode(value)
     }
 
-    struct ValueDecodingState: Sendable {
-      var stringState = JSON.StringDecodingState()
-    }
+    typealias ValueDecodingState = Void
 
     func beginDecodingValue(
       from decoder: borrowing Decoder
     ) -> ValueDecodingState {
-      ValueDecodingState()
+      ()
     }
 
     func decodeValue(
       from decoder: inout Decoder,
       state: inout ValueDecodingState
-    ) throws -> DecodingResult<String> {
-      try decoder.stream.decodeString(state: &state.stringState)
-        .map(String.init)
+    ) throws -> DecodingResult<Bool> {
+      try decoder.stream.decodeBoolean()
         .schemaDecodingResult
     }
 
@@ -74,7 +71,7 @@ extension SchemaCoding.Support {
     }
 
     let description: String?
-    let type = "string"
+    let type = "boolean"
 
   }
 
