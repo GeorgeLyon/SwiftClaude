@@ -2,7 +2,7 @@ private import BasicContainers
 
 protocol TypedArenaSegmentProtocol {
   func reset()
-  var stats: Arena.SegmentStats { get }
+  var stats: Arena.HeterogenousSegmentStats { get }
 }
 
 final class TypedArenaSegment<Value: ~Copyable>: TypedArenaSegmentProtocol {
@@ -31,12 +31,12 @@ final class TypedArenaSegment<Value: ~Copyable>: TypedArenaSegmentProtocol {
     }
   }
 
-  var stats: Arena.SegmentStats {
+  var stats: Arena.HeterogenousSegmentStats {
     var count = 0
     for index in slabs.indices {
       count += slabs[index].count
     }
-    return Arena.SegmentStats(
+    return Arena.HeterogenousSegmentStats(
       elementCount: count,
       slabCount: slabs.count,
       emptySlabCount: emptySlabs.count

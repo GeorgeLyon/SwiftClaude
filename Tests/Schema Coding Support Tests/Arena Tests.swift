@@ -821,6 +821,34 @@ struct ArenaTests {
       #expect(arena.stats.typedSegments[TestStruct.self] == nil)
     }
 
+    @Test("POD type ends up in bitwise copyable segment even without BitwiseCopyable conformance")
+    func podTypeRoutesBitwiseCopyableSegment() {
+      let arena = Arena()
+
+      #expect(arena.stats.bitwiseCopyableSegment.podElementCount == 0)
+      #expect(arena.stats.bitwiseCopyableSegment.bitwiseCopyableElementCount == 0)
+      #expect(arena.stats.heterogenousSegment.elementCount == 0)
+
+      // Push a POD struct that doesn't conform to BitwiseCopyable
+      let ref = arena.push(PODStruct(x: 42, y: 3.14, z: true))
+
+      // Should be routed to bitwiseCopyableSegment via POD detection
+      #expect(arena.stats.bitwiseCopyableSegment.podElementCount == 1)
+      #expect(arena.stats.bitwiseCopyableSegment.bitwiseCopyableElementCount == 0)
+      #expect(arena.stats.heterogenousSegment.elementCount == 0)
+      #expect(arena.stats.bitwiseCopyableSegment.elementCount == 1)
+
+      // Verify the value is correctly stored and retrievable
+      #expect(arena[ref] == PODStruct(x: 42, y: 3.14, z: true))
+
+      // Push an explicitly BitwiseCopyable type
+      _ = arena.push(123)
+
+      #expect(arena.stats.bitwiseCopyableSegment.podElementCount == 1)
+      #expect(arena.stats.bitwiseCopyableSegment.bitwiseCopyableElementCount == 1)
+      #expect(arena.stats.bitwiseCopyableSegment.elementCount == 2)
+    }
+
     // MARK: - Slab Allocation Tests
 
     @Test("BitwiseCopyable segment allocates new slabs when full")
@@ -1253,4 +1281,12 @@ private struct NoncopyableValue: ~Copyable {
 private struct TestStruct: Equatable {
   let value: Int
   let name: String
+}
+
+/// POD struct that explicitly opts out of BitwiseCopyable conformance
+/// but only contains BitwiseCopyable fields
+private struct PODStruct: ~BitwiseCopyable, Equatable {
+  let x: Int
+  let y: Double
+  let z: Bool
 }

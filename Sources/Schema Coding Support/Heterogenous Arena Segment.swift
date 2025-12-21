@@ -58,8 +58,8 @@ struct HeterogenousArenaSegment: ~Copyable {
     return pointer
   }
 
-  var stats: Arena.SegmentStats {
-    Arena.SegmentStats(
+  var stats: Arena.HeterogenousSegmentStats {
+    Arena.HeterogenousSegmentStats(
       elementCount: elementCount,
       slabCount: slabs.count,
       emptySlabCount: emptySlabs.count

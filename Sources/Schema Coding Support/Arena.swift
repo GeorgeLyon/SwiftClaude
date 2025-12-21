@@ -29,7 +29,18 @@ public final class Arena {
     )
   }
 
+  public func push<Value>(_ value: Value) -> Reference<Value> {
+    guard !_isPOD(Value.self) else {
+      return Reference(arenaID: id, pointer: bitwiseCopyableSegment.pushPOD(value))
+    }
+    return _push(value)
+  }
+
   public func push<Value: ~Copyable>(_ value: consuming Value) -> Reference<Value> {
+    _push(value)
+  }
+
+  private func _push<Value: ~Copyable>(_ value: consuming Value) -> Reference<Value> {
     let typedSegmentKey = ObjectIdentifier(Value.self)
     let pointer: UnsafeMutablePointer<Value>
     if let segment = typedSegments[typedSegmentKey],
@@ -67,20 +78,28 @@ public final class Arena {
     }
   }
 
-  struct SegmentStats {
+  struct HeterogenousSegmentStats {
     let elementCount: Int
     let slabCount: Int
     let emptySlabCount: Int
   }
+  struct BitwiseCopyableSegmentStats {
+    let bitwiseCopyableElementCount: Int
+    let podElementCount: Int
+    let slabCount: Int
+    let emptySlabCount: Int
+
+    var elementCount: Int { bitwiseCopyableElementCount + podElementCount }
+  }
   struct TypedSegmentStats {
-    subscript<Value: ~Copyable>(_ type: Value.Type) -> SegmentStats? {
+    subscript<Value: ~Copyable>(_ type: Value.Type) -> HeterogenousSegmentStats? {
       stats[ObjectIdentifier(type)]
     }
-    fileprivate let stats: [ObjectIdentifier: SegmentStats]
+    fileprivate let stats: [ObjectIdentifier: HeterogenousSegmentStats]
   }
   struct Stats {
-    let heterogenousSegment: SegmentStats
-    let bitwiseCopyableSegment: SegmentStats
+    let heterogenousSegment: HeterogenousSegmentStats
+    let bitwiseCopyableSegment: BitwiseCopyableSegmentStats
     let typedSegments: TypedSegmentStats
   }
 
