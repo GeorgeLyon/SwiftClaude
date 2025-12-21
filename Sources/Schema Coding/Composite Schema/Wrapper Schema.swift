@@ -1,6 +1,6 @@
 extension SchemaCoding.Schema {
 
-  func wrap<NewValue: Sendable>(
+  func wrap<NewValue>(
     _ wrap: @escaping @Sendable (Value) throws -> NewValue,
     unwrap: @escaping @Sendable (NewValue) -> Value
   ) -> SchemaCoding.Support.WrapperSchema<NewValue, Self> {
@@ -17,7 +17,7 @@ extension SchemaCoding.Schema {
 
 extension SchemaCoding.Support {
 
-  struct WrapperSchema<Value: Sendable, WrappedSchema: Schema>: Schema {
+  struct WrapperSchema<Value, WrappedSchema: Schema>: Schema {
 
     public func encode(_ value: Value, to encoder: inout Encoder) {
       wrappedSchema.encode(unwrap(value), to: &encoder)

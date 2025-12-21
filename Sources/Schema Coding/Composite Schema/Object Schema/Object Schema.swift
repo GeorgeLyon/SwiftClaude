@@ -15,6 +15,16 @@ extension SchemaCoding.Support {
     )
   }
 
+  static func objectSchema<each Property: ObjectProperty>(
+    description: String? = nil,
+    properties: repeat each Property
+  ) -> some ObjectSchema<(repeat (each Property).Value)> {
+    TupleObjectSchema(
+      description: description,
+      properties: repeat each properties
+    )
+  }
+
 }
 
 // MARK: - Object Schema Protocol
