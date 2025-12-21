@@ -134,9 +134,11 @@ extension SchemaCoding.Support {
     typealias MetaProperty = RequiredObjectProperty<WrapperSchema<Self, Schema.MetaSchema>>
     var metaProperty: MetaProperty {
       /// Use the wrapped schema in the meta-property since `.none` is represented by omission
-      RequiredObjectProperty<_>(
+      MetaProperty(
         name: name,
-        schema: schema.metaSchema(in: SchemaContext()).wrap { wrapped in
+        schema: schema.metaSchema(
+          in: SchemaContext()
+        ).wrap { wrapped in
           Self(name: name, schema: wrapped)
         } unwrap: { property in
           property.schema
