@@ -9,15 +9,16 @@ extension SchemaCoding.Support {
     initializer: @escaping @Sendable (repeat (each Property).Value) -> Root
   ) -> some ObjectSchema<Root> {
     let properties = (repeat each properties().properties)
-    let objectSchema = objectSchema(
+    let objectSchema = TupleObjectSchema(
       description: description,
       properties: repeat (each properties).property
     )
-    return objectSchema.wrap { propertyValues in
+    let x = objectSchema.wrap { propertyValues in
       initializer(repeat each propertyValues)
     } unwrap: { root in
-      (repeat root[keyPath: (each properties).keyPath])
+      (repeat (each properties).accessValue(from: root))
     }
+    return x
   }
 
 }
@@ -32,11 +33,11 @@ extension SchemaCoding.Support {
     schema: Schema
   ) -> StructProperty<Root, some ObjectProperty<Schema.Value>> {
     StructProperty(
-      keyPath: keyPath,
       property: objectProperty(
         name: name,
         schema: schema
-      )
+      ),
+      keyPath: keyPath
     )
   }
 
@@ -46,17 +47,27 @@ extension SchemaCoding.Support {
     schema: OptionalSchema<Schema>
   ) -> StructProperty<Root, some ObjectProperty<Schema.Value?>> {
     StructProperty(
-      keyPath: keyPath,
       property: objectProperty(
         name: name,
         schema: schema
-      )
+      ),
+      keyPath: keyPath
     )
   }
 
   public struct StructProperty<Root, Property: ObjectProperty>: Sendable {
-    fileprivate let keyPath: KeyPath<Root, Property.Value> & Sendable
+    fileprivate init(
+      property: Property,
+      keyPath: KeyPath<Root, Property.Value> & Sendable
+    ) {
+      self.property = property
+      self.keyPath = keyPath
+    }
+    fileprivate func accessValue(from root: Root) -> Property.Value {
+      root[keyPath: keyPath]
+    }
     fileprivate let property: Property
+    private let keyPath: KeyPath<Root, Property.Value> & Sendable
   }
 
 }
