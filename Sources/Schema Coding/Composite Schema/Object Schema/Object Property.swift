@@ -5,16 +5,6 @@ import SchemaCodingSupport
 
 extension SchemaCoding.Support {
 
-  public static func objectProperty<WrappedSchema>(
-    name: ObjectPropertyName,
-    schema: OptionalSchema<WrappedSchema>
-  ) -> some ObjectProperty<WrappedSchema.Value?> {
-    OptionalObjectProperty<WrappedSchema>(
-      name: name,
-      schema: schema.wrappedSchema
-    )
-  }
-
   public static func objectProperty<Schema: SchemaCoding.Schema>(
     name: ObjectPropertyName,
     schema: Schema
@@ -22,6 +12,16 @@ extension SchemaCoding.Support {
     RequiredObjectProperty<Schema>(
       name: name,
       schema: schema
+    )
+  }
+
+  public static func objectProperty<WrappedSchema>(
+    name: ObjectPropertyName,
+    schema: OptionalSchema<WrappedSchema>
+  ) -> some ObjectProperty<WrappedSchema.Value?> {
+    OptionalObjectProperty<WrappedSchema>(
+      name: name,
+      schema: schema.wrappedSchema
     )
   }
 
