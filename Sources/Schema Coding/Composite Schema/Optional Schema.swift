@@ -52,7 +52,7 @@ extension SchemaCoding.Support {
     init(
       wrappedSchema: WrappedSchema
     ) {
-      effectiveSchema = TupleObjectSchema {
+      effectiveSchema = ConcreteObjectSchema {
         OptionalObjectProperty(name: .value, schema: wrappedSchema)
       }
     }
@@ -61,8 +61,10 @@ extension SchemaCoding.Support {
     ) {
       self.effectiveSchema = effectiveSchema
     }
-    fileprivate typealias EffectiveSchema = TupleObjectSchema<
-      OptionalObjectProperty<WrappedSchema>
+    fileprivate typealias EffectiveSchema = ConcreteObjectSchema<
+      TupleObjectSchemaProperties<
+        OptionalObjectProperty<WrappedSchema>
+      >
     >
     private let effectiveSchema: EffectiveSchema
 

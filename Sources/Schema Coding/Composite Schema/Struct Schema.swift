@@ -9,16 +9,15 @@ extension SchemaCoding.Support {
     initializer: @escaping @Sendable (repeat (each Property).Value) -> Root
   ) -> some ObjectSchema<Root> {
     let properties = (repeat each properties().properties)
-    let objectSchema = TupleObjectSchema(
+    let objectSchema = ConcreteObjectSchema(
       description: description,
       properties: repeat (each properties).property
     )
-    let x = objectSchema.wrap { propertyValues in
+    return objectSchema.wrap { propertyValues in
       initializer(repeat each propertyValues)
     } unwrap: { root in
       (repeat (each properties).accessValue(from: root))
     }
-    return x
   }
 
 }

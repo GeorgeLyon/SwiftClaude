@@ -8,7 +8,7 @@ struct ObjectSchemaTests {
 
   @Test
   func objectWithStringPropertyCoding() throws {
-    let schema = SchemaCoding.Support.objectSchema {
+    let schema = SchemaCoding.Support.ConcreteObjectSchema {
       SchemaCoding.Support.objectProperty(
         name: "name",
         schema: SchemaCoding.Support.schema(representing: String.self)
@@ -19,7 +19,7 @@ struct ObjectSchemaTests {
 
   @Test
   func metaMetaMetaSchemaEncoding() throws {
-    let schema = SchemaCoding.Support.objectSchema {
+    let schema = SchemaCoding.Support.ConcreteObjectSchema {
       SchemaCoding.Support.objectProperty(
         name: "name",
         schema: SchemaCoding.Support.schema(representing: String.self)
@@ -230,7 +230,7 @@ struct OptionalObjectPropertyTests {
 
   @Test
   func optionalPropertyWithValue() throws {
-    let schema = SchemaCoding.Support.objectSchema {
+    let schema = SchemaCoding.Support.ConcreteObjectSchema {
       SchemaCoding.Support.objectProperty(
         name: "nickname",
         schema: String?.schema
@@ -241,7 +241,7 @@ struct OptionalObjectPropertyTests {
 
   @Test
   func optionalPropertyWithNil() throws {
-    let schema = SchemaCoding.Support.objectSchema {
+    let schema = SchemaCoding.Support.ConcreteObjectSchema {
       SchemaCoding.Support.objectProperty(
         name: "nickname",
         schema: String?.schema
@@ -252,7 +252,7 @@ struct OptionalObjectPropertyTests {
 
   @Test
   func optionalPropertyDecoding() throws {
-    let schema = SchemaCoding.Support.objectSchema {
+    let schema = SchemaCoding.Support.ConcreteObjectSchema {
       SchemaCoding.Support.objectProperty(
         name: "nickname",
         schema: String?.schema
@@ -263,7 +263,7 @@ struct OptionalObjectPropertyTests {
 
   @Test
   func optionalPropertyMissing() throws {
-    let schema = SchemaCoding.Support.objectSchema {
+    let schema = SchemaCoding.Support.ConcreteObjectSchema {
       SchemaCoding.Support.objectProperty(
         name: "nickname",
         schema: String?.schema
@@ -274,7 +274,7 @@ struct OptionalObjectPropertyTests {
 
   @Test
   func mixedRequiredAndOptionalProperties() throws {
-    let schema = SchemaCoding.Support.objectSchema {
+    let schema = SchemaCoding.Support.ConcreteObjectSchema {
       SchemaCoding.Support.objectProperty(
         name: "name",
         schema: SchemaCoding.Support.schema(representing: String.self)
@@ -290,7 +290,7 @@ struct OptionalObjectPropertyTests {
 
   @Test
   func mixedRequiredAndOptionalPropertiesDecoding() throws {
-    let schema = SchemaCoding.Support.objectSchema {
+    let schema = SchemaCoding.Support.ConcreteObjectSchema {
       SchemaCoding.Support.objectProperty(
         name: "name",
         schema: SchemaCoding.Support.schema(representing: String.self)
@@ -307,7 +307,7 @@ struct OptionalObjectPropertyTests {
 
   @Test
   func optionalPropertyMetaSchema() throws {
-    let schema = SchemaCoding.Support.objectSchema {
+    let schema = SchemaCoding.Support.ConcreteObjectSchema {
       SchemaCoding.Support.objectProperty(
         name: "name",
         schema: SchemaCoding.Support.schema(representing: String.self)

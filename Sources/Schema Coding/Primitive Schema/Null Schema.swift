@@ -32,7 +32,7 @@ extension SchemaCoding.Support {
     }
 
     func metaSchema(in context: SchemaContext) -> some Schema<Self> {
-      let objectSchema = objectSchema {
+      let objectSchema = ConcreteObjectSchema {
         objectProperty(
           name: .description,
           schema: String?.schema

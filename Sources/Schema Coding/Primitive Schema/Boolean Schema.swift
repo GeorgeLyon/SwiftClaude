@@ -46,19 +46,16 @@ extension SchemaCoding.Support {
     }
 
     func metaSchema(in context: SchemaContext) -> some Schema<Self> {
-      let objectSchema = objectSchema(
-        description: nil,
-        properties: {
-          objectProperty(
-            name: .description,
-            schema: String?.schema
-          )
-          objectProperty(
-            name: .type,
-            schema: schema(constantValue: type)
-          )
-        }
-      )
+      let objectSchema = ConcreteObjectSchema {
+        objectProperty(
+          name: .description,
+          schema: String?.schema
+        )
+        objectProperty(
+          name: .type,
+          schema: schema(constantValue: type)
+        )
+      }
       let wrapperSchema =
         objectSchema
         .wrap { (description, _) in

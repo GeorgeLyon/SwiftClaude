@@ -20,7 +20,7 @@ extension SchemaCoding.Support {
 
 extension SchemaCoding.Support {
 
-  private struct ConstantSchema<
+  struct ConstantSchema<
     WrappedSchema: SchemaCoding.Schema
   >: Schema where WrappedSchema.Value: Equatable & Sendable {
 
@@ -58,32 +58,32 @@ extension SchemaCoding.Support {
     }
 
     public func metaSchema(in context: SchemaContext) -> some Schema<Self> {
-      TupleObjectSchema(
+      structSchema(
         description: nil,
         properties: {
-          objectProperty(
+          structProperty(
             name: .description,
+            keyPath: \Self.description,
             schema: String?.schema
           )
-          objectProperty(
+          structProperty(
             name: .const,
+            keyPath: \Self.constantValue,
             schema: wrappedSchema
+          )
+        },
+        initializer: { (description, constantValue) in
+          Self(
+            description: description,
+            wrappedSchema: wrappedSchema,
+            constantValue: constantValue
           )
         }
       )
-      .wrap { (description, constantValue) in
-        Self(
-          description: description,
-          wrappedSchema: wrappedSchema,
-          constantValue: constantValue
-        )
-      } unwrap: { schema in
-        (schema.description, schema.constantValue)
-      }
     }
 
     init(
-      description: String?,
+      description: String? = nil,
       wrappedSchema: WrappedSchema,
       constantValue: WrappedSchema.Value
     ) {
