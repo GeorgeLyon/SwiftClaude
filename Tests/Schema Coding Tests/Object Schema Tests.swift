@@ -25,10 +25,9 @@ struct ObjectSchemaTests {
         schema: String.schema
       )
     }
-    let context = SchemaCoding.Support.SchemaContext()
-    let metaSchema = schema.metaSchema(in: context)
-    let metaMetaSchema = metaSchema.metaSchema(in: context)
-    let metaMetaMetaSchema = metaMetaSchema.metaSchema(in: context)
+    let metaSchema = schema.metaSchema
+    let metaMetaSchema = metaSchema.metaSchema
+    let metaMetaMetaSchema = metaMetaSchema.metaSchema
 
     try metaSchema.test(
       schema,
@@ -317,8 +316,7 @@ struct OptionalObjectPropertyTests {
         schema: String.schema
       )
     }
-    let context = SchemaCoding.Support.SchemaContext()
-    let metaSchema = schema.metaSchema(in: context)
+    let metaSchema = schema.metaSchema
 
     try metaSchema.test(
       schema,

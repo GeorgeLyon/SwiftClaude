@@ -85,7 +85,7 @@ extension SchemaCoding.Support {
         >
       >
     >
-    func metaSchema(in context: SchemaContext) -> MetaSchema {
+    var metaSchema: MetaSchema {
       let propertiesMetadata = properties.metadata
       let objectSchema = ConcreteObjectSchema<_> {
         OptionalObjectProperty(
@@ -149,10 +149,10 @@ extension SchemaCoding.Support {
       description: String? = nil,
       properties: Properties
     ) {
-      self.description = description
+      self.metadata = SchemaMetadata(description: description)
       self.properties = properties
     }
-    var description: String?
+    var metadata: SchemaMetadata
     let properties: Properties
 
   }

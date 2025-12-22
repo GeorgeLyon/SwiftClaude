@@ -83,7 +83,7 @@ extension SchemaCoding.Support {
         >
       >
     >
-    func metaSchema(in context: SchemaContext) -> MetaSchema {
+    var metaSchema: MetaSchema {
       let schema = ConcreteObjectSchema {
         OptionalObjectProperty(
           name: .description,
@@ -91,7 +91,7 @@ extension SchemaCoding.Support {
         )
         RequiredObjectProperty(
           name: .items,
-          schema: elementSchema.metaSchema(in: context)
+          schema: elementSchema.metaSchema
         )
       }
       return schema.wrap { (description, elementSchema: ElementSchema) -> Self in
@@ -105,11 +105,11 @@ extension SchemaCoding.Support {
       description: String? = nil,
       elementSchema: ElementSchema
     ) {
-      self.description = description
+      self.metadata = SchemaMetadata(description: description)
       self.elementSchema = elementSchema
     }
 
-    fileprivate let description: String?
+    var metadata: SchemaMetadata
     fileprivate let elementSchema: ElementSchema
 
   }

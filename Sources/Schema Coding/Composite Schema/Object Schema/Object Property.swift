@@ -62,7 +62,7 @@ extension SchemaCoding.Support {
     var metaProperty: MetaProperty {
       RequiredObjectProperty<_>(
         name: name,
-        schema: schema.metaSchema(in: SchemaContext()).wrap { wrapped in
+        schema: schema.metaSchema.wrap { wrapped in
           Self(name: name, schema: wrapped)
         } unwrap: { property in
           property.schema
@@ -116,9 +116,7 @@ extension SchemaCoding.Support {
       /// Use the wrapped schema in the meta-property since `.none` is represented by omission
       MetaProperty(
         name: name,
-        schema: schema.metaSchema(
-          in: SchemaContext()
-        ).wrap { wrapped in
+        schema: schema.metaSchema.wrap { wrapped in
           Self(name: name, schema: wrapped)
         } unwrap: { property in
           property.schema

@@ -37,8 +37,8 @@ extension SchemaCoding.Support {
     }
 
     typealias MetaSchema = WrapperSchema<Self, WrappedSchema.MetaSchema>
-    public func metaSchema(in context: SchemaContext) -> MetaSchema {
-      wrappedSchema.metaSchema(in: context)
+    public var metaSchema: MetaSchema {
+      wrappedSchema.metaSchema
         .wrap { wrappedSchema in
           Self(
             wrappedSchema: wrappedSchema,
@@ -50,7 +50,12 @@ extension SchemaCoding.Support {
         }
     }
 
-    fileprivate let wrappedSchema: WrappedSchema
+    public var metadata: SchemaMetadata {
+      get { wrappedSchema.metadata }
+      set { wrappedSchema.metadata = newValue }
+    }
+
+    fileprivate var wrappedSchema: WrappedSchema
     fileprivate let wrap: @Sendable (WrappedSchema.Value) throws -> Value
     fileprivate let unwrap: @Sendable (Value) -> WrappedSchema.Value
 

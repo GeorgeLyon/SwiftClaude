@@ -38,15 +38,49 @@ extension SchemaCoding.Support {
     ) throws -> DecodingResult<Value>
 
     associatedtype MetaSchema: Schema where MetaSchema.Value == Self
-    func metaSchema(in context: SchemaContext) -> MetaSchema
+    var metaSchema: MetaSchema { get }
+
+    var metadata: SchemaMetadata { get set }
 
   }
 
-  public struct SchemaContext {
-    var description: String {
-      fatalError()
+  public struct SchemaMetadata: Sendable {
+    init(description: String? = nil) {
+      self.description = description
     }
+    mutating func prependDescription(_ prefix: String?) {
+      guard let prefix else { return }
+      if let description {
+        self.description = [
+          prefix,
+          description,
+        ].joined(separator: "\n")
+      } else {
+        self.description = prefix
+      }
+    }
+    mutating func appendDescription(_ suffix: String?) {
+      guard let suffix else { return }
+      if let description {
+        self.description = [
+          description,
+          suffix,
+        ].joined(separator: "\n")
+      } else {
+        self.description = suffix
+      }
+    }
+    private(set) var description: String?
   }
+
+}
+
+extension SchemaCoding.Support.Schema {
+
+  var description: String? {
+    metadata.description
+  }
+
 }
 
 // MARK: - Schema Codable

@@ -143,8 +143,7 @@ struct OptionalSchemaMetaTests {
   @Test
   func optionalStringMetaSchema() throws {
     let schema = String?.schema
-    let context = SchemaCoding.Support.SchemaContext()
-    let metaSchema = schema.metaSchema(in: context)
+    let metaSchema = schema.metaSchema
 
     try metaSchema.test(
       schema,
@@ -167,8 +166,7 @@ struct OptionalSchemaMetaTests {
   @Test
   func optionalIntMetaSchema() throws {
     let schema = Int?.schema
-    let context = SchemaCoding.Support.SchemaContext()
-    let metaSchema = schema.metaSchema(in: context)
+    let metaSchema = schema.metaSchema
 
     try metaSchema.test(
       schema,
@@ -191,8 +189,7 @@ struct OptionalSchemaMetaTests {
   @Test
   func optionalArrayMetaSchema() throws {
     let schema = [String]?.schema
-    let context = SchemaCoding.Support.SchemaContext()
-    let metaSchema = schema.metaSchema(in: context)
+    let metaSchema = schema.metaSchema
 
     try metaSchema.test(
       schema,

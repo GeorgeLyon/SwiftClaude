@@ -106,7 +106,7 @@ extension SchemaCoding.Schema {
     prettyPrint: Bool = false,
     sourceLocation: SourceLocation = #_sourceLocation
   ) throws {
-    try metaSchema(in: SchemaCoding.Support.SchemaContext()).test(
+    try metaSchema.test(
       self,
       encodesAs: json,
       prettyPrint: prettyPrint,

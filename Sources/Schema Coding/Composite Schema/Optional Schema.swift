@@ -41,12 +41,17 @@ extension SchemaCoding.Support {
       try effectiveSchema.decodeValue(from: &decoder, state: &state.effectiveState)
     }
 
-    public func metaSchema(in context: SchemaContext) -> some Schema<Self> {
-      effectiveSchema.metaSchema(in: context).wrap { effectiveSchema in
+    public var metaSchema: some Schema<Self> {
+      effectiveSchema.metaSchema.wrap { effectiveSchema in
         Self(effectiveSchema: effectiveSchema)
       } unwrap: { schema in
         schema.effectiveSchema
       }
+    }
+
+    public var metadata: SchemaMetadata {
+      get { effectiveSchema.metadata }
+      set { effectiveSchema.metadata = newValue }
     }
 
     init(
@@ -66,7 +71,7 @@ extension SchemaCoding.Support {
         OptionalObjectProperty<WrappedSchema>
       >
     >
-    private let effectiveSchema: EffectiveSchema
+    private var effectiveSchema: EffectiveSchema
 
   }
 

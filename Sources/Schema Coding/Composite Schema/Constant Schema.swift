@@ -46,7 +46,7 @@ extension SchemaCoding.Support {
         >
       >
     >
-    public func metaSchema(in context: SchemaContext) -> MetaSchema {
+    public var metaSchema: MetaSchema {
       let objectSchema = ConcreteObjectSchema {
         OptionalObjectProperty(
           name: .description,
@@ -73,12 +73,12 @@ extension SchemaCoding.Support {
       wrappedSchema: WrappedSchema,
       constantValue: WrappedSchema.Value
     ) {
-      self.description = description
+      self.metadata = SchemaMetadata(description: description)
       self.wrappedSchema = wrappedSchema
       self.constantValue = constantValue
     }
 
-    private let description: String?
+    var metadata: SchemaMetadata
     private let wrappedSchema: WrappedSchema
     private let constantValue: WrappedSchema.Value
 

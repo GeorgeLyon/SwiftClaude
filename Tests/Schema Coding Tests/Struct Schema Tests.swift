@@ -355,8 +355,7 @@ struct StructSchemaMetaTests {
       Person(name: name, age: age)
     }
 
-    let context = SchemaCoding.Support.SchemaContext()
-    let metaSchema = schema.metaSchema(in: context)
+    let metaSchema = schema.metaSchema
 
     try metaSchema.test(
       schema,
@@ -402,8 +401,7 @@ struct StructSchemaMetaTests {
       User(name: name, nickname: nickname)
     }
 
-    let context = SchemaCoding.Support.SchemaContext()
-    let metaSchema = schema.metaSchema(in: context)
+    let metaSchema = schema.metaSchema
 
     try metaSchema.test(
       schema,
@@ -451,8 +449,7 @@ struct StructSchemaMetaTests {
       Point(x: x, y: y)
     }
 
-    let context = SchemaCoding.Support.SchemaContext()
-    let metaSchema = schema.metaSchema(in: context)
+    let metaSchema = schema.metaSchema
 
     try metaSchema.test(
       schema,
