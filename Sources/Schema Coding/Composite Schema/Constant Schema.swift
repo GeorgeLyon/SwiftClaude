@@ -61,7 +61,7 @@ extension SchemaCoding.Support {
       Self,
       ConcreteObjectSchema<
         TupleObjectSchemaProperties<
-          OptionalObjectProperty<String.Schema>,
+          OptionalObjectProperty<StringSchema>,
           RequiredObjectProperty<WrappedSchema>
         >
       >
@@ -70,7 +70,7 @@ extension SchemaCoding.Support {
       let objectSchema = ConcreteObjectSchema {
         OptionalObjectProperty(
           name: .description,
-          schema: String.schema
+          schema: StringSchema()
         )
         RequiredObjectProperty(
           name: .const,

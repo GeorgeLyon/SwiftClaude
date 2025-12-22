@@ -1,26 +1,5 @@
 import JSONSupport
 
-// MARK: - Creating Object Schemas
-
-extension SchemaCoding.Support {
-
-  // static func objectSchema<each Property>(
-  //   description: String? = nil,
-  //   @ObjectPropertiesBuilder properties:
-  //     () -> ObjectProperties<repeat each Property>
-  // ) -> ConcreteObjectSchema<
-  //   TupleObjectSchemaProperties<repeat each Property>
-  // > {
-  //   ConcreteObjectSchema(
-  //     description: description,
-  //     properties: TupleObjectSchemaProperties(
-  //       repeat each properties().properties
-  //     )
-  //   )
-  // }
-
-}
-
 // MARK: - Object Schema Protocol
 
 extension SchemaCoding.Support {
@@ -100,9 +79,9 @@ extension SchemaCoding.Support {
       Self,
       ConcreteObjectSchema<
         TupleObjectSchemaProperties<
-          OptionalObjectProperty<String.Schema>,
+          OptionalObjectProperty<StringSchema>,
           RequiredObjectProperty<ConcreteObjectSchema<Properties.MetaProperties>>,
-          RequiredObjectProperty<ConstantSchema<[String].Schema>>
+          RequiredObjectProperty<ConstantSchema<ArraySchema<StringSchema>>>
         >
       >
     >
@@ -111,7 +90,7 @@ extension SchemaCoding.Support {
       let objectSchema = ConcreteObjectSchema<_> {
         OptionalObjectProperty(
           name: .description,
-          schema: String.schema
+          schema: StringSchema()
         )
         RequiredObjectProperty(
           name: .properties,
@@ -120,7 +99,7 @@ extension SchemaCoding.Support {
         RequiredObjectProperty(
           name: .required,
           schema: ConstantSchema(
-            wrappedSchema: [String].schema,
+            wrappedSchema: ArraySchema(elementSchema: StringSchema()),
             constantValue: propertiesMetadata.requiredPropertyNames
           )
         )

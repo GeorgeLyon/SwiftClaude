@@ -154,7 +154,10 @@ struct OptionalSchemaMetaTests {
             "value": {
               "type": "string"
             }
-          }
+          },
+          "required": [
+
+          ]
         }
         """,
       prettyPrint: true
@@ -175,7 +178,10 @@ struct OptionalSchemaMetaTests {
             "value": {
               "type": "integer"
             }
-          }
+          },
+          "required": [
+
+          ]
         }
         """,
       prettyPrint: true
@@ -198,7 +204,10 @@ struct OptionalSchemaMetaTests {
                 "type": "string"
               }
             }
-          }
+          },
+          "required": [
+
+          ]
         }
         """,
       prettyPrint: true

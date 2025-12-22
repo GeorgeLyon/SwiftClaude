@@ -9,9 +9,9 @@ struct ObjectSchemaTests {
   @Test
   func objectWithStringPropertyCoding() throws {
     let schema = SchemaCoding.Support.ConcreteObjectSchema {
-      SchemaCoding.Support.objectProperty(
+      SchemaCoding.Support.RequiredObjectProperty(
         name: "name",
-        schema: SchemaCoding.Support.schema(representing: String.self)
+        schema: String.schema
       )
     }
     try schema.test(("Alice"), isCodedAs: "{\"name\":\"Alice\"}")
@@ -20,9 +20,9 @@ struct ObjectSchemaTests {
   @Test
   func metaMetaMetaSchemaEncoding() throws {
     let schema = SchemaCoding.Support.ConcreteObjectSchema {
-      SchemaCoding.Support.objectProperty(
+      SchemaCoding.Support.RequiredObjectProperty(
         name: "name",
-        schema: SchemaCoding.Support.schema(representing: String.self)
+        schema: String.schema
       )
     }
     let context = SchemaCoding.Support.SchemaContext()
@@ -231,9 +231,9 @@ struct OptionalObjectPropertyTests {
   @Test
   func optionalPropertyWithValue() throws {
     let schema = SchemaCoding.Support.ConcreteObjectSchema {
-      SchemaCoding.Support.objectProperty(
+      SchemaCoding.Support.OptionalObjectProperty(
         name: "nickname",
-        schema: String?.schema
+        schema: String.schema
       )
     }
     try schema.test(("Bob"), isCodedAs: "{\"nickname\":\"Bob\"}")
@@ -242,9 +242,9 @@ struct OptionalObjectPropertyTests {
   @Test
   func optionalPropertyWithNil() throws {
     let schema = SchemaCoding.Support.ConcreteObjectSchema {
-      SchemaCoding.Support.objectProperty(
+      SchemaCoding.Support.OptionalObjectProperty(
         name: "nickname",
-        schema: String?.schema
+        schema: String.schema
       )
     }
     try schema.test((nil as String?), isCodedAs: "{}")
@@ -253,9 +253,9 @@ struct OptionalObjectPropertyTests {
   @Test
   func optionalPropertyDecoding() throws {
     let schema = SchemaCoding.Support.ConcreteObjectSchema {
-      SchemaCoding.Support.objectProperty(
+      SchemaCoding.Support.OptionalObjectProperty(
         name: "nickname",
-        schema: String?.schema
+        schema: String.schema
       )
     }
     try schema.test("{\"nickname\":\"Alice\"}", decodesAs: ("Alice" as String?))
@@ -264,9 +264,9 @@ struct OptionalObjectPropertyTests {
   @Test
   func optionalPropertyMissing() throws {
     let schema = SchemaCoding.Support.ConcreteObjectSchema {
-      SchemaCoding.Support.objectProperty(
+      SchemaCoding.Support.OptionalObjectProperty(
         name: "nickname",
-        schema: String?.schema
+        schema: String.schema
       )
     }
     try schema.test("{}", decodesAs: (nil as String?))
@@ -275,13 +275,13 @@ struct OptionalObjectPropertyTests {
   @Test
   func mixedRequiredAndOptionalProperties() throws {
     let schema = SchemaCoding.Support.ConcreteObjectSchema {
-      SchemaCoding.Support.objectProperty(
+      SchemaCoding.Support.RequiredObjectProperty(
         name: "name",
-        schema: SchemaCoding.Support.schema(representing: String.self)
+        schema: String.schema
       )
-      SchemaCoding.Support.objectProperty(
+      SchemaCoding.Support.OptionalObjectProperty(
         name: "nickname",
-        schema: String?.schema
+        schema: String.schema
       )
     }
     try schema.test(("Alice", "Ali"), isCodedAs: "{\"name\":\"Alice\",\"nickname\":\"Ali\"}")
@@ -291,13 +291,13 @@ struct OptionalObjectPropertyTests {
   @Test
   func mixedRequiredAndOptionalPropertiesDecoding() throws {
     let schema = SchemaCoding.Support.ConcreteObjectSchema {
-      SchemaCoding.Support.objectProperty(
+      SchemaCoding.Support.RequiredObjectProperty(
         name: "name",
-        schema: SchemaCoding.Support.schema(representing: String.self)
+        schema: String.schema
       )
-      SchemaCoding.Support.objectProperty(
+      SchemaCoding.Support.OptionalObjectProperty(
         name: "nickname",
-        schema: String?.schema
+        schema: String.schema
       )
     }
     try schema.test(
@@ -308,13 +308,13 @@ struct OptionalObjectPropertyTests {
   @Test
   func optionalPropertyMetaSchema() throws {
     let schema = SchemaCoding.Support.ConcreteObjectSchema {
-      SchemaCoding.Support.objectProperty(
+      SchemaCoding.Support.RequiredObjectProperty(
         name: "name",
-        schema: SchemaCoding.Support.schema(representing: String.self)
+        schema: String.schema
       )
-      SchemaCoding.Support.objectProperty(
+      SchemaCoding.Support.OptionalObjectProperty(
         name: "nickname",
-        schema: String?.schema
+        schema: String.schema
       )
     }
     let context = SchemaCoding.Support.SchemaContext()

@@ -33,7 +33,7 @@ extension Array: SchemaCoding.SchemaCodable where Element: SchemaCoding.SchemaCo
 
 extension SchemaCoding.Support {
 
-  fileprivate struct ArraySchema<ElementSchema: Schema>: Schema {
+  struct ArraySchema<ElementSchema: Schema>: Schema {
 
     typealias Value = [ElementSchema.Value]
 
@@ -96,7 +96,7 @@ extension SchemaCoding.Support {
       Self,
       ConcreteObjectSchema<
         TupleObjectSchemaProperties<
-          OptionalObjectProperty<String.Schema>,
+          OptionalObjectProperty<StringSchema>,
           RequiredObjectProperty<ElementSchema.MetaSchema>
         >
       >
@@ -105,7 +105,7 @@ extension SchemaCoding.Support {
       let schema = ConcreteObjectSchema {
         OptionalObjectProperty(
           name: .description,
-          schema: String.schema
+          schema: StringSchema()
         )
         RequiredObjectProperty(
           name: .items,
@@ -120,7 +120,7 @@ extension SchemaCoding.Support {
     }
 
     init(
-      description: String?,
+      description: String? = nil,
       elementSchema: ElementSchema
     ) {
       self.description = description
