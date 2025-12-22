@@ -72,8 +72,12 @@ extension SchemaCoding.Support {
       }
     }
 
+    typealias MetaSchema = EitherSchema<
+      WrapperSchema<Self, First.MetaSchema>,
+      WrapperSchema<Self, Second.MetaSchema>
+    >
     @SchemaBuilder
-    public func metaSchema(in context: SchemaContext) -> some SchemaCoding.Schema<Self> {
+    public func metaSchema(in context: SchemaContext) -> MetaSchema {
       switch self {
       case .first(let schema):
         let metaSchema = schema.metaSchema(in: context)

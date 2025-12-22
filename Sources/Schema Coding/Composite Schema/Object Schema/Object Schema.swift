@@ -96,7 +96,17 @@ extension SchemaCoding.Support {
       }
     }
 
-    func metaSchema(in context: SchemaContext) -> some Schema<Self> {
+    typealias MetaSchema = WrapperSchema<
+      Self,
+      ConcreteObjectSchema<
+        TupleObjectSchemaProperties<
+          OptionalObjectProperty<String.Schema>,
+          RequiredObjectProperty<ConcreteObjectSchema<Properties.MetaProperties>>,
+          RequiredObjectProperty<ConstantSchema<[String].Schema>>
+        >
+      >
+    >
+    func metaSchema(in context: SchemaContext) -> MetaSchema {
       let propertiesMetadata = properties.metadata
       let objectSchema = ConcreteObjectSchema<_> {
         OptionalObjectProperty(
@@ -109,7 +119,8 @@ extension SchemaCoding.Support {
         )
         RequiredObjectProperty(
           name: .required,
-          schema: schema(
+          schema: ConstantSchema(
+            wrappedSchema: [String].schema,
             constantValue: propertiesMetadata.requiredPropertyNames
           )
         )

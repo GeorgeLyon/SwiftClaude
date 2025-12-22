@@ -61,25 +61,34 @@ extension SchemaCoding.Support {
         .schemaDecodingResult
     }
 
-    func metaSchema(in context: SchemaContext) -> some Schema<Self> {
+    typealias MetaSchema = WrapperSchema<
+      Self,
+      ConcreteObjectSchema<
+        TupleObjectSchemaProperties<
+          OptionalObjectProperty<String.Schema>,
+          RequiredObjectProperty<ConstantSchema<String.Schema>>
+        >
+      >
+    >
+    func metaSchema(in context: SchemaContext) -> MetaSchema {
       let objectSchema = ConcreteObjectSchema {
-        objectProperty(
+        OptionalObjectProperty(
           name: .description,
-          schema: String?.schema
+          schema: String.schema
         )
-        objectProperty(
+        RequiredObjectProperty(
           name: .type,
-          schema: schema(constantValue: type)
+          schema: ConstantSchema(
+            wrappedSchema: String.schema,
+            constantValue: type
+          )
         )
       }
-      let wrapperSchema =
-        objectSchema
-        .wrap { (description, _) in
-          Self(description: description)
-        } unwrap: { schema in
-          (schema.description, ())
-        }
-      return wrapperSchema
+      return objectSchema.wrap { (description, _) in
+        Self(description: description)
+      } unwrap: { schema in
+        (schema.description, ())
+      }
     }
 
     let description: String?

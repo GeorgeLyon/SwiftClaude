@@ -32,7 +32,7 @@ extension SchemaCoding.Support {
     schema: Schema
   ) -> StructProperty<Root, some ObjectProperty<Schema.Value>> {
     StructProperty(
-      property: objectProperty(
+      property: RequiredObjectProperty(
         name: name,
         schema: schema
       ),
@@ -46,9 +46,9 @@ extension SchemaCoding.Support {
     schema: OptionalSchema<Schema>
   ) -> StructProperty<Root, some ObjectProperty<Schema.Value?>> {
     StructProperty(
-      property: objectProperty(
+      property: OptionalObjectProperty(
         name: name,
-        schema: schema
+        schema: schema.wrappedSchema
       ),
       keyPath: keyPath
     )

@@ -36,7 +36,8 @@ extension SchemaCoding.Support {
         .map(wrap)
     }
 
-    public func metaSchema(in context: SchemaContext) -> some Schema<Self> {
+    typealias MetaSchema = WrapperSchema<Self, WrappedSchema.MetaSchema>
+    public func metaSchema(in context: SchemaContext) -> MetaSchema {
       wrappedSchema.metaSchema(in: context)
         .wrap { wrappedSchema in
           Self(

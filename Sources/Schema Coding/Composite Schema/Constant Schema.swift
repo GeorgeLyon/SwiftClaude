@@ -57,29 +57,35 @@ extension SchemaCoding.Support {
       }
     }
 
-    public func metaSchema(in context: SchemaContext) -> some Schema<Self> {
-      structSchema(
-        description: nil,
-        properties: {
-          structProperty(
-            name: .description,
-            keyPath: \Self.description,
-            schema: String?.schema
-          )
-          structProperty(
-            name: .const,
-            keyPath: \Self.constantValue,
-            schema: wrappedSchema
-          )
-        },
-        initializer: { (description, constantValue) in
-          Self(
-            description: description,
-            wrappedSchema: wrappedSchema,
-            constantValue: constantValue
-          )
-        }
-      )
+    typealias MetaSchema = WrapperSchema<
+      Self,
+      ConcreteObjectSchema<
+        TupleObjectSchemaProperties<
+          OptionalObjectProperty<String.Schema>,
+          RequiredObjectProperty<WrappedSchema>
+        >
+      >
+    >
+    public func metaSchema(in context: SchemaContext) -> MetaSchema {
+      let objectSchema = ConcreteObjectSchema {
+        OptionalObjectProperty(
+          name: .description,
+          schema: String.schema
+        )
+        RequiredObjectProperty(
+          name: .const,
+          schema: wrappedSchema
+        )
+      }
+      return objectSchema.wrap { (description, constantValue) in
+        Self(
+          description: description,
+          wrappedSchema: wrappedSchema,
+          constantValue: constantValue
+        )
+      } unwrap: { schema in
+        (schema.description, schema.constantValue)
+      }
     }
 
     init(
