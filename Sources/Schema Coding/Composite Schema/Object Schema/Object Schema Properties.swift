@@ -27,15 +27,15 @@ extension SchemaCoding.Support {
   }
 
   public struct ObjectPropertiesDecodingState<Value> {
-    fileprivate let decoders: ObjectPropertyDecoders
-    fileprivate let finishDecoding: (borrowing Decoder) throws -> Value
+    let decoders: ObjectPropertyDecoders
+    let finishDecoding: (borrowing Decoder) throws -> Value
   }
 
   public struct ObjectPropertiesMetadata {
     let requiredPropertyNames: [String]
   }
 
-  fileprivate struct ObjectPropertyDecoders {
+  struct ObjectPropertyDecoders {
     subscript(_ name: Substring) -> (any ObjectPropertyDecoder)? {
       decoders[name]
     }

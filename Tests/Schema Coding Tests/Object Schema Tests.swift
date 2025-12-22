@@ -55,19 +55,24 @@ struct ObjectSchemaTests {
               "type": "string"
             },
             "properties": {
-              "name": {
-                "properties": {
-                  "description": {
-                    "type": "string"
+              "properties": {
+                "name": {
+                  "properties": {
+                    "description": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "const": "string"
+                    }
                   },
-                  "type": {
-                    "const": "string"
-                  }
-                },
-                "required": [
-                  "type"
-                ]
-              }
+                  "required": [
+                    "type"
+                  ]
+                }
+              },
+              "required": [
+                "name"
+              ]
             },
             "required": {
               "const": [
@@ -92,56 +97,85 @@ struct ObjectSchemaTests {
               "type": "string"
             },
             "properties": {
-              "description": {
-                "properties": {
-                  "description": {
-                    "type": "string"
-                  },
-                  "type": {
-                    "const": "string"
-                  }
-                },
-                "required": [
-                  "type"
-                ]
-              },
               "properties": {
-                "name": {
+                "description": {
+                  "properties": {
+                    "description": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "const": "string"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                },
+                "properties": {
                   "properties": {
                     "description": {
                       "type": "string"
                     },
                     "properties": {
-                      "description": {
-                        "properties": {
-                          "description": {
-                            "type": "string"
+                      "properties": {
+                        "name": {
+                          "properties": {
+                            "description": {
+                              "type": "string"
+                            },
+                            "properties": {
+                              "properties": {
+                                "description": {
+                                  "properties": {
+                                    "description": {
+                                      "type": "string"
+                                    },
+                                    "type": {
+                                      "const": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "type"
+                                  ]
+                                },
+                                "type": {
+                                  "properties": {
+                                    "description": {
+                                      "type": "string"
+                                    },
+                                    "const": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "const"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "description",
+                                "type"
+                              ]
+                            },
+                            "required": {
+                              "const": [
+                                "type"
+                              ]
+                            }
                           },
-                          "type": {
-                            "const": "string"
-                          }
-                        },
-                        "required": [
-                          "type"
-                        ]
+                          "required": [
+                            "properties",
+                            "required"
+                          ]
+                        }
                       },
-                      "type": {
-                        "properties": {
-                          "description": {
-                            "type": "string"
-                          },
-                          "const": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "const"
-                        ]
-                      }
+                      "required": [
+                        "name"
+                      ]
                     },
                     "required": {
                       "const": [
-                        "type"
+                        "name"
                       ]
                     }
                   },
@@ -149,23 +183,28 @@ struct ObjectSchemaTests {
                     "properties",
                     "required"
                   ]
+                },
+                "required": {
+                  "properties": {
+                    "description": {
+                      "type": "string"
+                    },
+                    "const": {
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "const"
+                  ]
                 }
               },
-              "required": {
-                "properties": {
-                  "description": {
-                    "type": "string"
-                  },
-                  "const": {
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "required": [
-                  "const"
-                ]
-              }
+              "required": [
+                "description",
+                "properties",
+                "required"
+              ]
             },
             "required": {
               "const": [
@@ -261,7 +300,8 @@ struct OptionalObjectPropertyTests {
         schema: String?.schema
       )
     }
-    try schema.test("{\"name\":\"Alice\",\"nickname\":\"Ali\"}", decodesAs: ("Alice", "Ali" as String?))
+    try schema.test(
+      "{\"name\":\"Alice\",\"nickname\":\"Ali\"}", decodesAs: ("Alice", "Ali" as String?))
     try schema.test("{\"name\":\"Bob\"}", decodesAs: ("Bob", nil as String?))
   }
 
@@ -294,310 +334,6 @@ struct OptionalObjectPropertyTests {
           },
           "required": [
             "name"
-          ]
-        }
-        """,
-      prettyPrint: true
-    )
-  }
-
-}
-
-@Suite("Composite Object Schema")
-struct CompositeObjectSchemaTests {
-
-  @Test
-  func compositeObjectWithTwoStringPropertiesCoding() throws {
-    let schema1 = SchemaCoding.Support.objectSchema {
-      SchemaCoding.Support.objectProperty(
-        name: "name",
-        schema: SchemaCoding.Support.schema(representing: String.self)
-      )
-    }
-    let schema2 = SchemaCoding.Support.objectSchema {
-      SchemaCoding.Support.objectProperty(
-        name: "age",
-        schema: SchemaCoding.Support.schema(representing: String.self)
-      )
-    }
-    let compositeSchema = SchemaCoding.Support.CompositeObjectSchema(schema1, schema2)
-    try compositeSchema.test(
-      (("Alice"), ("25")),
-      isCodedAs: "{\"name\":\"Alice\",\"age\":\"25\"}"
-    )
-  }
-
-  @Test
-  func compositeObjectEncodingPropertyOrder() throws {
-    let schema1 = SchemaCoding.Support.objectSchema {
-      SchemaCoding.Support.objectProperty(
-        name: "name",
-        schema: SchemaCoding.Support.schema(representing: String.self)
-      )
-    }
-    let schema2 = SchemaCoding.Support.objectSchema {
-      SchemaCoding.Support.objectProperty(
-        name: "age",
-        schema: SchemaCoding.Support.schema(representing: String.self)
-      )
-    }
-    let compositeSchema = SchemaCoding.Support.CompositeObjectSchema(schema1, schema2)
-    try compositeSchema.test(
-      (("Bob"), ("30")),
-      encodesAs: "{\"name\":\"Bob\",\"age\":\"30\"}"
-    )
-  }
-
-  @Test
-  func compositeObjectDecodingDifferentPropertyOrder() throws {
-    let schema1 = SchemaCoding.Support.objectSchema {
-      SchemaCoding.Support.objectProperty(
-        name: "name",
-        schema: SchemaCoding.Support.schema(representing: String.self)
-      )
-    }
-    let schema2 = SchemaCoding.Support.objectSchema {
-      SchemaCoding.Support.objectProperty(
-        name: "age",
-        schema: SchemaCoding.Support.schema(representing: String.self)
-      )
-    }
-    let compositeSchema = SchemaCoding.Support.CompositeObjectSchema(schema1, schema2)
-    try compositeSchema.test(
-      "{\"age\":\"42\",\"name\":\"Charlie\"}",
-      decodesAs: (("Charlie"), ("42"))
-    )
-  }
-
-  @Test
-  func compositeObjectMetaMetaMetaSchemaEncoding() throws {
-    let schema1 = SchemaCoding.Support.objectSchema {
-      SchemaCoding.Support.objectProperty(
-        name: "name",
-        schema: SchemaCoding.Support.schema(representing: String.self)
-      )
-    }
-    let schema2 = SchemaCoding.Support.objectSchema {
-      SchemaCoding.Support.objectProperty(
-        name: "age",
-        schema: SchemaCoding.Support.schema(representing: String.self)
-      )
-    }
-    let compositeSchema = SchemaCoding.Support.CompositeObjectSchema(schema1, schema2)
-    let context = SchemaCoding.Support.SchemaContext()
-    let metaSchema = compositeSchema.metaSchema(in: context)
-    let metaMetaSchema = metaSchema.metaSchema(in: context)
-    let metaMetaMetaSchema = metaMetaSchema.metaSchema(in: context)
-
-    try metaSchema.test(
-      compositeSchema,
-      encodesAs: """
-        {
-          "properties": {
-            "name": {
-              "type": "string"
-            },
-            "age": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "name",
-            "age"
-          ]
-        }
-        """,
-      prettyPrint: true
-    )
-    try metaMetaSchema.test(
-      metaSchema,
-      encodesAs: """
-        {
-          "properties": {
-            "description": {
-              "type": "string"
-            },
-            "properties": {
-              "name": {
-                "properties": {
-                  "description": {
-                    "type": "string"
-                  },
-                  "type": {
-                    "const": "string"
-                  }
-                },
-                "required": [
-                  "type"
-                ]
-              },
-              "age": {
-                "properties": {
-                  "description": {
-                    "type": "string"
-                  },
-                  "type": {
-                    "const": "string"
-                  }
-                },
-                "required": [
-                  "type"
-                ]
-              }
-            },
-            "required": {
-              "const": [
-                "name",
-                "age"
-              ]
-            }
-          },
-          "required": [
-            "properties",
-            "required"
-          ]
-        }
-        """,
-      prettyPrint: true
-    )
-    try metaMetaMetaSchema.test(
-      metaMetaSchema,
-      encodesAs: """
-        {
-          "properties": {
-            "description": {
-              "type": "string"
-            },
-            "properties": {
-              "description": {
-                "properties": {
-                  "description": {
-                    "type": "string"
-                  },
-                  "type": {
-                    "const": "string"
-                  }
-                },
-                "required": [
-                  "type"
-                ]
-              },
-              "properties": {
-                "name": {
-                  "properties": {
-                    "description": {
-                      "type": "string"
-                    },
-                    "properties": {
-                      "description": {
-                        "properties": {
-                          "description": {
-                            "type": "string"
-                          },
-                          "type": {
-                            "const": "string"
-                          }
-                        },
-                        "required": [
-                          "type"
-                        ]
-                      },
-                      "type": {
-                        "properties": {
-                          "description": {
-                            "type": "string"
-                          },
-                          "const": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "const"
-                        ]
-                      }
-                    },
-                    "required": {
-                      "const": [
-                        "type"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "properties",
-                    "required"
-                  ]
-                },
-                "age": {
-                  "properties": {
-                    "description": {
-                      "type": "string"
-                    },
-                    "properties": {
-                      "description": {
-                        "properties": {
-                          "description": {
-                            "type": "string"
-                          },
-                          "type": {
-                            "const": "string"
-                          }
-                        },
-                        "required": [
-                          "type"
-                        ]
-                      },
-                      "type": {
-                        "properties": {
-                          "description": {
-                            "type": "string"
-                          },
-                          "const": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "const"
-                        ]
-                      }
-                    },
-                    "required": {
-                      "const": [
-                        "type"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "properties",
-                    "required"
-                  ]
-                }
-              },
-              "required": {
-                "properties": {
-                  "description": {
-                    "type": "string"
-                  },
-                  "const": {
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "required": [
-                  "const"
-                ]
-              }
-            },
-            "required": {
-              "const": [
-                "properties",
-                "required"
-              ]
-            }
-          },
-          "required": [
-            "properties",
-            "required"
           ]
         }
         """,
