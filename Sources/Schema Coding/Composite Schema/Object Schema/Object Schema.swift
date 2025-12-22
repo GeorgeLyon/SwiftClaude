@@ -9,12 +9,6 @@ extension SchemaCoding.Support {
     associatedtype Properties: ObjectSchemaProperties where Properties.Value == Value
     var properties: Properties { get }
 
-    var objectSchemaMetadata: ObjectSchemaMetadata { get }
-
-  }
-
-  public struct ObjectSchemaMetadata {
-    fileprivate let description: String?
   }
 
 }
@@ -81,7 +75,13 @@ extension SchemaCoding.Support {
         TupleObjectSchemaProperties<
           OptionalObjectProperty<StringSchema>,
           RequiredObjectProperty<ConcreteObjectSchema<Properties.MetaProperties>>,
-          RequiredObjectProperty<ConstantSchema<ArraySchema<StringSchema>>>
+          ConstantOptionalObjectProperty<
+            ConstantSchema<
+              OmissibleOptionalSchema<
+                ArraySchema<StringSchema>
+              >
+            >
+          >
         >
       >
     >
@@ -96,12 +96,10 @@ extension SchemaCoding.Support {
           name: .properties,
           schema: ConcreteObjectSchema<_>(properties: properties.metaProperties)
         )
-        RequiredObjectProperty(
+        ConstantOptionalObjectProperty(
           name: .required,
-          schema: ConstantSchema(
-            wrappedSchema: ArraySchema(elementSchema: StringSchema()),
-            constantValue: propertiesMetadata.requiredPropertyNames
-          )
+          schema: ArraySchema(elementSchema: StringSchema()),
+          constantValue: propertiesMetadata.requiredPropertyNames
         )
       }
       return objectSchema.wrap { (description, properties, _) in
@@ -109,10 +107,6 @@ extension SchemaCoding.Support {
       } unwrap: { schema in
         (schema.description, schema.properties, ())
       }
-    }
-
-    var objectSchemaMetadata: ObjectSchemaMetadata {
-      ObjectSchemaMetadata(description: description)
     }
 
     init<each Component>(

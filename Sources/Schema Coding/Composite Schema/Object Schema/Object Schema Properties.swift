@@ -32,7 +32,12 @@ extension SchemaCoding.Support {
   }
 
   public struct ObjectPropertiesMetadata {
-    let requiredPropertyNames: [String]
+    init(
+      requiredPropertyNames names: [String]
+    ) {
+      requiredPropertyNames = names.isEmpty ? nil : names
+    }
+    let requiredPropertyNames: [String]?
   }
 
   struct ObjectPropertyDecoders {
@@ -271,7 +276,9 @@ extension SchemaCoding.Support {
     var metadata: ObjectPropertiesMetadata {
       var requiredPropertyNames: [String] = []
       for component in repeat each components {
-        requiredPropertyNames.append(contentsOf: component.metadata.requiredPropertyNames)
+        if let names = component.metadata.requiredPropertyNames {
+          requiredPropertyNames.append(contentsOf: names)
+        }
       }
       return ObjectPropertiesMetadata(requiredPropertyNames: requiredPropertyNames)
     }

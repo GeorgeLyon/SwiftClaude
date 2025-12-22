@@ -82,8 +82,4 @@ where WrappedSchema: SchemaCoding.Support.ObjectSchema {
     )
   }
 
-  var objectSchemaMetadata: SchemaCoding.Support.ObjectSchemaMetadata {
-    wrappedSchema.objectSchemaMetadata
-  }
-
 }
