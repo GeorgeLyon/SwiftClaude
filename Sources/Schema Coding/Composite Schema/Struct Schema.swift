@@ -54,19 +54,48 @@ extension SchemaCoding.Support {
     )
   }
 
+  public static func structProperty<Root, Value: SchemaCodable & Equatable & Sendable>(
+    name: ObjectPropertyName,
+    constantValue: Value
+  ) -> StructProperty<Root, some ObjectProperty<Void>> {
+    StructProperty(
+      property: ConstantOptionalObjectProperty(
+        name: name,
+        schema: Value.schema,
+        constantValue: constantValue
+      )
+    )
+  }
+
   public struct StructProperty<Root, Property: ObjectProperty>: Sendable {
+    fileprivate init(
+      property: Property
+    ) where Property.Value == Void {
+      self.property = property
+      self.accessor = .constantValue({ () })
+    }
     fileprivate init(
       property: Property,
       keyPath: KeyPath<Root, Property.Value> & Sendable
     ) {
       self.property = property
-      self.keyPath = keyPath
+      self.accessor = .keyPath(keyPath)
     }
     fileprivate func accessValue(from root: Root) -> Property.Value {
-      root[keyPath: keyPath]
+      switch accessor {
+      case .keyPath(let keyPath):
+        root[keyPath: keyPath]
+      case .constantValue(let value):
+        value()
+      }
     }
     fileprivate let property: Property
-    private let keyPath: KeyPath<Root, Property.Value> & Sendable
+
+    private enum Accessor {
+      case keyPath(KeyPath<Root, Property.Value> & Sendable)
+      case constantValue(@Sendable () -> Property.Value)
+    }
+    private let accessor: Accessor
   }
 
 }

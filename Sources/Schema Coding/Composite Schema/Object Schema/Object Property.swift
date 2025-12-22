@@ -380,15 +380,15 @@ extension SchemaCoding.Support {
 extension SchemaCoding.Support {
 
   @resultBuilder
-  public enum ObjectPropertiesBuilder {
+  enum ObjectPropertiesBuilder {
 
-    public static func buildPartialBlock<First: ObjectProperty>(
+    static func buildPartialBlock<First: ObjectProperty>(
       first: First
     ) -> ObjectProperties<First> {
       ObjectProperties(properties: first)
     }
 
-    public static func buildPartialBlock<each Property, Next: ObjectProperty>(
+    static func buildPartialBlock<each Property, Next: ObjectProperty>(
       accumulated: ObjectProperties<repeat each Property>,
       next: Next
     ) -> ObjectProperties<repeat each Property, Next> {
@@ -397,7 +397,7 @@ extension SchemaCoding.Support {
 
   }
 
-  public struct ObjectProperties<each Property: ObjectProperty>: Sendable {
+  struct ObjectProperties<each Property: ObjectProperty>: Sendable {
     let properties: (repeat each Property)
   }
 
