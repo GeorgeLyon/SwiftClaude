@@ -13,23 +13,10 @@ extension UInt32: SchemaCoding.SchemaCodable {}
 extension UInt64: SchemaCoding.SchemaCodable {}
 extension UInt128: SchemaCoding.SchemaCodable {}
 
-extension SchemaCoding.Support {
-
-  public static func schema<T: FixedWidthInteger & SendableMetatype>(
-    representing: T.Type = T.self,
-    description: String? = nil
-  ) -> some Schema<T> {
-    IntegerSchema(description: description)
-  }
-
-}
-
 extension FixedWidthInteger where Self: SendableMetatype {
 
   public static var schema: some SchemaCoding.Schema<Self> {
-    SchemaCoding.Support.schema(
-      representing: Self.self
-    )
+    SchemaCoding.Support.IntegerSchema<Self>(description: nil)
   }
 
 }
@@ -80,7 +67,7 @@ extension SchemaCoding.Support {
           name: .type,
           schema: ConstantSchema(
             wrappedSchema: StringSchema(),
-            constantValue: type
+            constantValue: "integer"
           )
         )
       }
@@ -92,7 +79,6 @@ extension SchemaCoding.Support {
     }
 
     let description: String?
-    let type = "integer"
 
   }
 

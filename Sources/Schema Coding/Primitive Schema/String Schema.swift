@@ -1,16 +1,5 @@
 import JSONSupport
 
-extension SchemaCoding.Support {
-
-  public static func schema(
-    representing: String.Type = String.self,
-    description: String? = nil
-  ) -> some Schema<String> {
-    StringSchema(description: description)
-  }
-
-}
-
 extension String: SchemaCoding.SchemaCodable {
 
   public static var schema: some SchemaCoding.Schema<String> {

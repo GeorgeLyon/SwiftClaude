@@ -1,16 +1,5 @@
 import JSONSupport
 
-extension SchemaCoding.Support {
-
-  public static func schema(
-    representing: Bool.Type = Bool.self,
-    description: String? = nil
-  ) -> some Schema<Bool> {
-    BooleanSchema(description: description)
-  }
-
-}
-
 extension Bool: SchemaCoding.SchemaCodable {
 
   public static var schema: some SchemaCoding.Schema<Bool> {
@@ -64,7 +53,7 @@ extension SchemaCoding.Support {
           name: .type,
           schema: ConstantSchema(
             wrappedSchema: StringSchema(),
-            constantValue: type
+            constantValue: "boolean"
           )
         )
       }
@@ -76,7 +65,6 @@ extension SchemaCoding.Support {
     }
 
     let description: String?
-    let type = "boolean"
 
   }
 

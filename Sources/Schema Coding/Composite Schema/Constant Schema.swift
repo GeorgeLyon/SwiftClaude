@@ -1,23 +1,3 @@
-// MARK: - API
-
-extension SchemaCoding.Support {
-
-  public static func schema<Value: SchemaCodable & Equatable & Sendable>(
-    representing: Value.Type = Value.self,
-    description: String? = nil,
-    constantValue: Value,
-  ) -> some SchemaCoding.Schema<Void> {
-    ConstantSchema(
-      description: description,
-      wrappedSchema: Value.schema,
-      constantValue: constantValue
-    )
-  }
-
-}
-
-// MARK: - Schema
-
 extension SchemaCoding.Support {
 
   struct ConstantSchema<

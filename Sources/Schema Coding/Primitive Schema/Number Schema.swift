@@ -4,40 +4,6 @@ import JSONSupport
   public import struct Foundation.Decimal
 #endif
 
-extension SchemaCoding.Support {
-
-  public static func schema(
-    representing: Double.Type = Double.self,
-    description: String? = nil
-  ) -> some Schema<Double> {
-    DoubleSchema(description: description)
-  }
-
-  public static func schema(
-    representing: Float.Type = Float.self,
-    description: String? = nil
-  ) -> some Schema<Float> {
-    FloatSchema(description: description)
-  }
-
-  public static func schema(
-    representing: Float16.Type = Float16.self,
-    description: String? = nil
-  ) -> some Schema<Float16> {
-    Float16Schema(description: description)
-  }
-
-  #if canImport(Foundation)
-    public static func schema(
-      representing: Decimal.Type = Decimal.self,
-      description: String? = nil
-    ) -> some Schema<Decimal> {
-      DecimalSchema(description: description)
-    }
-  #endif
-
-}
-
 extension Double: SchemaCoding.SchemaCodable {
 
   public static var schema: some SchemaCoding.Schema<Self> {
@@ -130,7 +96,6 @@ extension SchemaCoding.Support {
     }
 
     let description: String?
-    let type = "number"
 
   }
 
@@ -190,7 +155,6 @@ extension SchemaCoding.Support {
     }
 
     let description: String?
-    let type = "number"
 
   }
 
@@ -250,7 +214,6 @@ extension SchemaCoding.Support {
     }
 
     let description: String?
-    let type = "number"
 
   }
 
@@ -311,9 +274,10 @@ extension SchemaCoding.Support {
       }
 
       let description: String?
-      let type = "number"
 
     }
   #endif
 
 }
+
+private let type = "number"

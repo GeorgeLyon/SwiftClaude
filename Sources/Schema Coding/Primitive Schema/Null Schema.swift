@@ -50,7 +50,7 @@ extension SchemaCoding.Support {
           name: .type,
           schema: ConstantSchema(
             wrappedSchema: StringSchema(),
-            constantValue: type
+            constantValue: "null"
           )
         )
       }
@@ -62,7 +62,6 @@ extension SchemaCoding.Support {
     }
 
     let description: String?
-    let type = "null"
 
   }
 

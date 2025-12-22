@@ -59,6 +59,12 @@ extension SchemaCoding {
 
 extension SchemaCoding.Support {
 
+  public static func schema<Value: SchemaCodable>(
+    representing: Value.Type = Value.self
+  ) -> Value.Schema {
+    Value.schema
+  }
+
   public protocol SchemaCodable {
     associatedtype Schema: SchemaCoding.Schema<Self>
     static var schema: Schema { get }

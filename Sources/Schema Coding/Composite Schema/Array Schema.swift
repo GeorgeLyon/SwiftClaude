@@ -1,23 +1,5 @@
 import JSONSupport
 
-// MARK: - API
-
-extension SchemaCoding.Support {
-
-  public static func schema<Element: SchemaCodable>(
-    representing _: [Element].Type,
-    description: String? = nil
-  ) -> some SchemaCoding.Schema<[Element]> {
-    ArraySchema(
-      description: description,
-      elementSchema: Element.schema
-    )
-  }
-
-}
-
-// MARK: - Schema Codable Conformance
-
 extension Array: SchemaCoding.SchemaCodable where Element: SchemaCoding.SchemaCodable {
 
   public static var schema: some SchemaCoding.Schema<[Element]> {
