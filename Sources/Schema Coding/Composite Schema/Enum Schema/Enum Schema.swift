@@ -1,6 +1,33 @@
 private import JSONSupport
 private import SchemaCodingSupport
 
+// MARK: - Public API
+
+extension SchemaCoding.Support {
+
+  public static func enumSchema<
+    Value,
+    each AssociatedValuesSchema
+  >(
+    representing: Value.Type = Value.self,
+    @EnumSchemaCasesBuilder<Value>
+    cases: () -> EnumSchemaCases<Value, repeat each AssociatedValuesSchema>,
+    encodeValue:
+      @escaping (
+        Value,
+        inout EnumSchemaEncoder<repeat each AssociatedValuesSchema>,
+      ) -> Void
+  ) -> some Schema<Value> {
+    EnumSchema(
+      cases: repeat each cases().cases,
+      encodeValue: encodeValue
+    )
+  }
+
+}
+
+// MARK: - Schema
+
 extension SchemaCoding.Support {
 
   struct EnumSchema<

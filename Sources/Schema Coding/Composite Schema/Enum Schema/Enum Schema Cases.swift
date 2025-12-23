@@ -39,7 +39,7 @@ extension SchemaCoding.Support {
     finishDecoding: @escaping (EnumDecoder<repeat (each Property).Value>) -> Value
   ) -> EnumSchemaCase<
     Value,
-    some ObjectSchema
+    some ObjectSchema<(repeat (each Property).Value)>
   > {
     let associatedValues = associatedValues()
     let associatedValuesSchema = ConcreteObjectSchema(
@@ -63,7 +63,7 @@ extension SchemaCoding.Support {
     finishDecoding: @escaping (EnumDecoder<repeat (each ElementSchema).Value>) -> Value
   ) -> EnumSchemaCase<
     Value,
-    some Schema
+    some Schema<(repeat (each ElementSchema).Value)>
   > {
     let associatedValues = associatedValues()
     let associatedValuesSchema = TupleSchema(
@@ -108,10 +108,10 @@ extension SchemaCoding.Support {
   }
 
   public struct EnumDecoder<each AssociatedValue> {
+    public let associatedValues: (repeat each AssociatedValue)
     init(_ associatedValues: repeat each AssociatedValue) {
       self.associatedValues = (repeat each associatedValues)
     }
-    let associatedValues: (repeat each AssociatedValue)
   }
 
 }
