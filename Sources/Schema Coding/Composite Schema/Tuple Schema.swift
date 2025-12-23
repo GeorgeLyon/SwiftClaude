@@ -130,11 +130,6 @@ extension SchemaCoding.Support {
 
   fileprivate struct ElementDecoder<Schema: SchemaCoding.Schema>: ElementDecoderProtocol {
 
-    enum State {
-      case decoding(Schema.ValueDecodingState)
-      case decoded(Schema.Value)
-    }
-
     init(
       schema: Schema,
       decoder: borrowing Decoder
@@ -175,7 +170,13 @@ extension SchemaCoding.Support {
     }
 
     private let schema: Schema
+
+    private enum State {
+      case decoding(Schema.ValueDecodingState)
+      case decoded(Schema.Value)
+    }
     private let reference: Arena.Reference<State>
+
   }
 
   fileprivate protocol ElementDecoderProtocol {

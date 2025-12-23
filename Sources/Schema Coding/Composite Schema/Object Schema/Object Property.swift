@@ -382,6 +382,10 @@ extension SchemaCoding.Support {
   @resultBuilder
   enum ObjectPropertiesBuilder {
 
+    static func buildBlock() -> ObjectProperties<> {
+      ObjectProperties(properties: ())
+    }
+
     static func buildPartialBlock<First: ObjectProperty>(
       first: First
     ) -> ObjectProperties<First> {
