@@ -63,7 +63,7 @@ struct StructSchemaTests {
         schema: SchemaCoding.Support.schema(representing: Bool.self)
       )
     } initializer: { decoder in
-      Settings(enabled: decoder.propertyValues)
+      Settings(enabled: decoder.propertyValues.0)
     }
 
     try schema.test(Settings(enabled: true), isCodedAs: "{\"enabled\":true}")
@@ -111,7 +111,8 @@ struct StructSchemaTests {
       User(name: decoder.propertyValues.0, nickname: decoder.propertyValues.1)
     }
 
-    try schema.test(User(name: "Alice", nickname: "Ali"), isCodedAs: "{\"name\":\"Alice\",\"nickname\":\"Ali\"}")
+    try schema.test(
+      User(name: "Alice", nickname: "Ali"), isCodedAs: "{\"name\":\"Alice\",\"nickname\":\"Ali\"}")
     try schema.test(User(name: "Bob", nickname: nil), isCodedAs: "{\"name\":\"Bob\"}")
   }
 
@@ -131,7 +132,8 @@ struct StructSchemaTests {
       Container(items: decoder.propertyValues)
     }
 
-    try schema.test(Container(items: ["a", "b", "c"]), isCodedAs: "{\"items\":[\"a\",\"b\",\"c\"]}")
+    try schema.test(
+      Container(items: ["a", "b", "c"]), isCodedAs: "{\"items\":[\"a\",\"b\",\"c\"]}")
     try schema.test(Container(items: []), isCodedAs: "{\"items\":[]}")
   }
 
@@ -259,7 +261,8 @@ struct StructSchemaDecodingTests {
       User(name: decoder.propertyValues.0, nickname: decoder.propertyValues.1)
     }
 
-    try schema.test("{\"name\":\"Alice\",\"nickname\":\"Ali\"}", decodesAs: User(name: "Alice", nickname: "Ali"))
+    try schema.test(
+      "{\"name\":\"Alice\",\"nickname\":\"Ali\"}", decodesAs: User(name: "Alice", nickname: "Ali"))
   }
 
   @Test

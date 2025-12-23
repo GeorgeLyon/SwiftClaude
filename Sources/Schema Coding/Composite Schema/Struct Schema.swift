@@ -2,6 +2,7 @@
 
 extension SchemaCoding.Support {
 
+  @_disfavoredOverload
   public static func structSchema<Root, each Property>(
     representing: Root.Type = Root.self,
     description: String? = nil,
@@ -20,6 +21,24 @@ extension SchemaCoding.Support {
     }
   }
 
+  public static func structSchema<Root, Property>(
+    representing: Root.Type = Root.self,
+    description: String? = nil,
+    @StructPropertiesBuilder<Root> properties: () -> StructProperties<Root, Property>,
+    initializer: @escaping (StructSinglePropertyDecoder<Property.Value>) -> Root
+  ) -> some ObjectSchema<Root> {
+    let properties = properties().properties
+    let objectSchema = ConcreteObjectSchema(
+      description: description,
+      properties: properties.property
+    )
+    return objectSchema.wrap { propertyValues in
+      initializer(StructSinglePropertyDecoder(propertyValues: (propertyValues, ())))
+    } unwrap: { root in
+      properties.accessValue(from: root)
+    }
+  }
+
 }
 
 // MARK: - Decoder
@@ -35,6 +54,21 @@ extension SchemaCoding.Support {
   public struct StructDecoder<each PropertyValue> {
 
     public let propertyValues: (repeat each PropertyValue)
+
+    public func verifyInitializedConstantPropertyValue<Value: Equatable>(
+      initialized: Value,
+      decoded: Value,
+    ) throws {
+      guard initialized == decoded else {
+        throw Error.constantPropertyValueMismatch
+      }
+    }
+
+  }
+
+  public struct StructSinglePropertyDecoder<PropertyValue> {
+
+    public let propertyValues: (PropertyValue, ())
 
     public func verifyInitializedConstantPropertyValue<Value: Equatable>(
       initialized: Value,
