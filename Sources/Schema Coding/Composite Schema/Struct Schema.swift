@@ -6,7 +6,7 @@ extension SchemaCoding.Support {
     representing: Root.Type = Root.self,
     description: String? = nil,
     @StructPropertiesBuilder<Root> properties: () -> StructProperties<Root, repeat each Property>,
-    initializer: @escaping @Sendable (repeat (each Property).Value) -> Root
+    initializer: @escaping @Sendable (StructDecoder<repeat (each Property).Value>) -> Root
   ) -> some ObjectSchema<Root> {
     let properties = (repeat each properties().properties)
     let objectSchema = ConcreteObjectSchema(
@@ -14,7 +14,7 @@ extension SchemaCoding.Support {
       properties: repeat (each properties).property
     )
     return objectSchema.wrap { propertyValues in
-      initializer(repeat each propertyValues)
+      initializer(StructDecoder(propertyValues: repeat each propertyValues))
     } unwrap: { root in
       (repeat (each properties).accessValue(from: root))
     }
@@ -22,7 +22,34 @@ extension SchemaCoding.Support {
 
 }
 
-// MARK: - Property
+// MARK: - Decoder
+
+extension SchemaCoding {
+
+  public typealias StructDecoder = SchemaCoding.Support.StructDecoder
+
+}
+
+extension SchemaCoding.Support {
+
+  public struct StructDecoder<each PropertyValue> {
+
+    public let propertyValues: (repeat each PropertyValue)
+
+    public func verifyInitializedConstantPropertyValue<Value: Equatable & Sendable>(
+      initialized: Value,
+      decoded: Value,
+    ) throws {
+      guard initialized == decoded else {
+        throw Error.constantPropertyValueMismatch(initialized: initialized, decoded: decoded)
+      }
+    }
+
+  }
+
+}
+
+// MARK: - Properties
 
 extension SchemaCoding.Support {
 
@@ -126,4 +153,13 @@ extension SchemaCoding.Support {
     let properties: (repeat StructProperty<Root, each Property>)
   }
 
+}
+
+// MARK: - Errors
+
+private enum Error: Swift.Error {
+  case constantPropertyValueMismatch(
+    initialized: Sendable,
+    decoded: Sendable
+  )
 }
