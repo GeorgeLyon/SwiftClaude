@@ -14,7 +14,7 @@ extension SchemaCoding.Support {
       properties: repeat (each properties).property
     )
     return objectSchema.wrap { propertyValues in
-      initializer(StructDecoder(propertyValues: repeat each propertyValues))
+      initializer(StructDecoder(propertyValues: (repeat each propertyValues)))
     } unwrap: { root in
       (repeat (each properties).accessValue(from: root))
     }

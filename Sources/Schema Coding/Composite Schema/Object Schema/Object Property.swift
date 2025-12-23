@@ -369,6 +369,7 @@ extension SchemaCoding.Support {
     static let required: Self = "required"
     static let items: Self = "items"
     static let prefixItems: Self = "prefixItems"
+    static let `enum`: Self = "enum"
     static let type: Self = "type"
     static let value: Self = "value"
     static let const: Self = "const"
