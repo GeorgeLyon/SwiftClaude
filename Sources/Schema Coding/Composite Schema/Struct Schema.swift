@@ -1,4 +1,4 @@
-// MARK: - Schema
+// MARK: - Public API
 
 extension SchemaCoding.Support {
 
@@ -55,12 +55,14 @@ extension SchemaCoding.Support {
 
   public static func structProperty<Root, Schema: SchemaCoding.Schema>(
     name: ObjectPropertyName,
+    description: String? = nil,
     keyPath: KeyPath<Root, Schema.Value>,
     schema: Schema
   ) -> StructProperty<Root, some ObjectProperty<Schema.Value>> {
     StructProperty(
       property: RequiredObjectProperty(
         name: name,
+        description: description,
         schema: schema
       ),
       keyPath: keyPath
@@ -69,25 +71,29 @@ extension SchemaCoding.Support {
 
   public static func structProperty<Root, Schema: SchemaCoding.Schema>(
     name: ObjectPropertyName,
+    description: String? = nil,
     keyPath: KeyPath<Root, Schema.Value?>,
     schema: OptionalSchema<Schema>
   ) -> StructProperty<Root, some ObjectProperty<Schema.Value?>> {
     StructProperty(
       property: OptionalObjectProperty(
         name: name,
+        description: description,
         schema: schema.wrappedSchema
       ),
       keyPath: keyPath
     )
   }
 
-  public static func structProperty<Root, Value: SchemaCodable & Equatable>(
+  static func structProperty<Root, Value: SchemaCodable & Equatable>(
     name: ObjectPropertyName,
+    description: String? = nil,
     constantValue: Value
   ) -> StructProperty<Root, some ObjectProperty<Void>> {
     StructProperty(
       property: ConstantOptionalObjectProperty(
         name: name,
+        description: description,
         schema: Value.schema,
         constantValue: constantValue
       )

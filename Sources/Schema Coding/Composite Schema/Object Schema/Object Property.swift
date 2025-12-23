@@ -84,6 +84,16 @@ extension SchemaCoding.Support {
       schemaValue
     }
 
+    init(
+      name: ObjectPropertyName,
+      description: String? = nil,
+      schema: Schema
+    ) {
+      self.name = name
+      var schema = schema
+      schema.metadata.prependDescription(description)
+      self.schema = schema
+    }
     let name: ObjectPropertyName
     let schema: Schema
 
@@ -143,6 +153,16 @@ extension SchemaCoding.Support {
       schemaValue
     }
 
+    init(
+      name: ObjectPropertyName,
+      description: String? = nil,
+      schema: Schema
+    ) {
+      self.name = name
+      var schema = schema
+      schema.metadata.prependDescription(description)
+      self.schema = schema
+    }
     let name: ObjectPropertyName
     let schema: Schema
 
@@ -219,13 +239,14 @@ extension SchemaCoding.Support {
 
     init<WrappedSchema>(
       name: ObjectPropertyName,
+      description: String? = nil,
       schema: WrappedSchema,
       constantValue: WrappedSchema.Value?
     ) where Schema == ConstantSchema<OmissibleOptionalSchema<WrappedSchema>> {
       self.name = name
       self.isNone = constantValue == nil
       self.schema = ConstantSchema(
-        description: nil,
+        description: description,
         wrappedSchema: OmissibleOptionalSchema(wrappedSchema: schema),
         constantValue: constantValue
       )
