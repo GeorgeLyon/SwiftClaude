@@ -11,6 +11,7 @@ extension SchemaCoding.Support {
     each AssociatedValuesSchema
   >(
     representing: Value.Type = Value.self,
+    description: String? = nil,
     @EnumSchemaCasesBuilder<Value>
     cases: () -> EnumSchemaCases<Value, repeat each AssociatedValuesSchema>,
     encodeValue:
@@ -20,6 +21,7 @@ extension SchemaCoding.Support {
       ) -> Void
   ) -> some Schema<Value> {
     EnumSchema(
+      description: description,
       cases: repeat each cases().cases,
       encodeValue: encodeValue
     )
@@ -31,6 +33,7 @@ extension SchemaCoding.Support {
     AssociatedValuesSchema
   >(
     representing: Value.Type = Value.self,
+    description: String? = nil,
     @EnumSchemaCasesBuilder<Value>
     cases: () -> EnumSchemaCases<Value, AssociatedValuesSchema>,
     encodeValue:
@@ -40,6 +43,7 @@ extension SchemaCoding.Support {
       ) -> Void
   ) -> some Schema<Value> {
     EnumSchema(
+      description: description,
       cases: cases().cases,
       encodeValue: { value, encoder in
         var singleCaseEncoder = EnumSchemaSingleCaseEncoder(wrapped: encoder)
