@@ -47,6 +47,7 @@ extension SchemaCoding.Schema where Value: Equatable {
 
 extension SchemaCoding.Schema {
 
+  @_disfavoredOverload
   public func test<each Element: Equatable>(
     _ value: (repeat each Element),
     isCodedAs expectedJSONFragments: JSONFragments,
@@ -66,6 +67,35 @@ extension SchemaCoding.Schema {
           }
         }
         repeat process(each decoded, each expected)
+        return isEqual
+      },
+      sourceLocation: sourceLocation
+    )
+  }
+
+  public func test<
+    each FirstElements: Equatable,
+    each SecondElements: Equatable
+  >(
+    _ value: ((repeat each FirstElements), (repeat each (SecondElements))),
+    isCodedAs expectedJSONFragments: JSONFragments,
+    prettyPrint: Bool = false,
+    sourceLocation: SourceLocation = #_sourceLocation
+  ) throws where Value == ((repeat each FirstElements), (repeat each SecondElements)) {
+    try test(
+      ((repeat each value.0), (repeat each value.1)),
+      isCodedAs: expectedJSONFragments,
+      prettyPrint: prettyPrint,
+      testEquality: { decoded, expected, sourceLocation in
+        var isEqual = true
+        func process<T: Equatable>(_ a: T, _ b: T) {
+          #expect(a == b, sourceLocation: sourceLocation)
+          if a != b {
+            isEqual = false
+          }
+        }
+        repeat process(each decoded.0, each expected.0)
+        repeat process(each decoded.1, each expected.1)
         return isEqual
       },
       sourceLocation: sourceLocation
