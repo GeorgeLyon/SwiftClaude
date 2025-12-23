@@ -18,8 +18,8 @@ struct StructSchemaTests {
         keyPath: \SimpleStruct.value,
         schema: SchemaCoding.Support.schema(representing: String.self)
       )
-    } initializer: { value in
-      SimpleStruct(value: value)
+    } initializer: { decoder in
+      SimpleStruct(value: decoder.propertyValues)
     }
 
     try schema.test(SimpleStruct(value: "hello"), isCodedAs: "{\"value\":\"hello\"}")
@@ -43,8 +43,8 @@ struct StructSchemaTests {
         keyPath: \Person.age,
         schema: SchemaCoding.Support.schema(representing: Int.self)
       )
-    } initializer: { name, age in
-      Person(name: name, age: age)
+    } initializer: { (decoder: SchemaCoding.StructDecoder<String, Int>) in
+      Person(name: decoder.propertyValues.0, age: decoder.propertyValues.1)
     }
 
     try schema.test(Person(name: "Alice", age: 30), isCodedAs: "{\"name\":\"Alice\",\"age\":30}")
@@ -62,8 +62,8 @@ struct StructSchemaTests {
         keyPath: \Settings.enabled,
         schema: SchemaCoding.Support.schema(representing: Bool.self)
       )
-    } initializer: { enabled in
-      Settings(enabled: enabled)
+    } initializer: { decoder in
+      Settings(enabled: decoder.propertyValues)
     }
 
     try schema.test(Settings(enabled: true), isCodedAs: "{\"enabled\":true}")
@@ -82,8 +82,8 @@ struct StructSchemaTests {
         keyPath: \Measurement.value,
         schema: SchemaCoding.Support.schema(representing: Double.self)
       )
-    } initializer: { value in
-      Measurement(value: value)
+    } initializer: { decoder in
+      Measurement(value: decoder.propertyValues)
     }
 
     try schema.test(Measurement(value: 3.14), isCodedAs: "{\"value\":3.14}")
@@ -107,8 +107,8 @@ struct StructSchemaTests {
         keyPath: \User.nickname,
         schema: String?.schema
       )
-    } initializer: { name, nickname in
-      User(name: name, nickname: nickname)
+    } initializer: { (decoder: SchemaCoding.StructDecoder<String, String?>) in
+      User(name: decoder.propertyValues.0, nickname: decoder.propertyValues.1)
     }
 
     try schema.test(User(name: "Alice", nickname: "Ali"), isCodedAs: "{\"name\":\"Alice\",\"nickname\":\"Ali\"}")
@@ -127,8 +127,8 @@ struct StructSchemaTests {
         keyPath: \Container.items,
         schema: [String].schema
       )
-    } initializer: { items in
-      Container(items: items)
+    } initializer: { decoder in
+      Container(items: decoder.propertyValues)
     }
 
     try schema.test(Container(items: ["a", "b", "c"]), isCodedAs: "{\"items\":[\"a\",\"b\",\"c\"]}")
@@ -156,8 +156,8 @@ struct StructSchemaTests {
         keyPath: \Point.y,
         schema: SchemaCoding.Support.schema(representing: Int.self)
       )
-    } initializer: { x, y in
-      Point(x: x, y: y)
+    } initializer: { (decoder: SchemaCoding.StructDecoder<Int, Int>) in
+      Point(x: decoder.propertyValues.0, y: decoder.propertyValues.1)
     }
 
     try schema.test(Point(x: 10, y: 20), isCodedAs: "{\"x\":10,\"y\":20}")
@@ -180,8 +180,8 @@ struct StructSchemaDecodingTests {
         keyPath: \SimpleStruct.value,
         schema: SchemaCoding.Support.schema(representing: String.self)
       )
-    } initializer: { value in
-      SimpleStruct(value: value)
+    } initializer: { decoder in
+      SimpleStruct(value: decoder.propertyValues)
     }
 
     try schema.test("{\"value\":\"hello\"}", decodesAs: SimpleStruct(value: "hello"))
@@ -205,8 +205,8 @@ struct StructSchemaDecodingTests {
         keyPath: \Person.age,
         schema: SchemaCoding.Support.schema(representing: Int.self)
       )
-    } initializer: { name, age in
-      Person(name: name, age: age)
+    } initializer: { (decoder: SchemaCoding.StructDecoder<String, Int>) in
+      Person(name: decoder.propertyValues.0, age: decoder.propertyValues.1)
     }
 
     try schema.test("{\"name\":\"Alice\",\"age\":30}", decodesAs: Person(name: "Alice", age: 30))
@@ -230,8 +230,8 @@ struct StructSchemaDecodingTests {
         keyPath: \Person.age,
         schema: SchemaCoding.Support.schema(representing: Int.self)
       )
-    } initializer: { name, age in
-      Person(name: name, age: age)
+    } initializer: { (decoder: SchemaCoding.StructDecoder<String, Int>) in
+      Person(name: decoder.propertyValues.0, age: decoder.propertyValues.1)
     }
 
     try schema.test("{\"age\":25,\"name\":\"Bob\"}", decodesAs: Person(name: "Bob", age: 25))
@@ -255,8 +255,8 @@ struct StructSchemaDecodingTests {
         keyPath: \User.nickname,
         schema: String?.schema
       )
-    } initializer: { name, nickname in
-      User(name: name, nickname: nickname)
+    } initializer: { (decoder: SchemaCoding.StructDecoder<String, String?>) in
+      User(name: decoder.propertyValues.0, nickname: decoder.propertyValues.1)
     }
 
     try schema.test("{\"name\":\"Alice\",\"nickname\":\"Ali\"}", decodesAs: User(name: "Alice", nickname: "Ali"))
@@ -280,8 +280,8 @@ struct StructSchemaDecodingTests {
         keyPath: \User.nickname,
         schema: String?.schema
       )
-    } initializer: { name, nickname in
-      User(name: name, nickname: nickname)
+    } initializer: { (decoder: SchemaCoding.StructDecoder<String, String?>) in
+      User(name: decoder.propertyValues.0, nickname: decoder.propertyValues.1)
     }
 
     try schema.test("{\"name\":\"Bob\"}", decodesAs: User(name: "Bob", nickname: nil))
@@ -299,8 +299,8 @@ struct StructSchemaDecodingTests {
         keyPath: \SimpleStruct.value,
         schema: SchemaCoding.Support.schema(representing: String.self)
       )
-    } initializer: { value in
-      SimpleStruct(value: value)
+    } initializer: { decoder in
+      SimpleStruct(value: decoder.propertyValues)
     }
 
     try schema.test("{ \"value\" : \"hello\" }", decodesAs: SimpleStruct(value: "hello"))
@@ -318,8 +318,8 @@ struct StructSchemaDecodingTests {
         keyPath: \SimpleStruct.value,
         schema: SchemaCoding.Support.schema(representing: String.self)
       )
-    } initializer: { value in
-      SimpleStruct(value: value)
+    } initializer: { decoder in
+      SimpleStruct(value: decoder.propertyValues)
     }
 
     try schema.test(
@@ -351,8 +351,8 @@ struct StructSchemaMetaTests {
         keyPath: \Person.age,
         schema: SchemaCoding.Support.schema(representing: Int.self)
       )
-    } initializer: { name, age in
-      Person(name: name, age: age)
+    } initializer: { (decoder: SchemaCoding.StructDecoder<String, Int>) in
+      Person(name: decoder.propertyValues.0, age: decoder.propertyValues.1)
     }
 
     let metaSchema = schema.metaSchema
@@ -397,8 +397,8 @@ struct StructSchemaMetaTests {
         keyPath: \User.nickname,
         schema: String?.schema
       )
-    } initializer: { name, nickname in
-      User(name: name, nickname: nickname)
+    } initializer: { (decoder: SchemaCoding.StructDecoder<String, String?>) in
+      User(name: decoder.propertyValues.0, nickname: decoder.propertyValues.1)
     }
 
     let metaSchema = schema.metaSchema
@@ -445,8 +445,8 @@ struct StructSchemaMetaTests {
         keyPath: \Point.y,
         schema: SchemaCoding.Support.schema(representing: Int.self)
       )
-    } initializer: { x, y in
-      Point(x: x, y: y)
+    } initializer: { (decoder: SchemaCoding.StructDecoder<Int, Int>) in
+      Point(x: decoder.propertyValues.0, y: decoder.propertyValues.1)
     }
 
     let metaSchema = schema.metaSchema
