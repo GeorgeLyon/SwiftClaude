@@ -5,6 +5,7 @@ private import SchemaCodingSupport
 
 extension SchemaCoding.Support {
 
+  @_disfavoredOverload
   public static func enumSchema<
     Value,
     each AssociatedValuesSchema
@@ -21,6 +22,30 @@ extension SchemaCoding.Support {
     EnumSchema(
       cases: repeat each cases().cases,
       encodeValue: encodeValue
+    )
+  }
+
+  /// Single-case enums hit a compiler bug which ends up crashing the compiler.
+  public static func enumSchema<
+    Value,
+    AssociatedValuesSchema
+  >(
+    representing: Value.Type = Value.self,
+    @EnumSchemaCasesBuilder<Value>
+    cases: () -> EnumSchemaCases<Value, AssociatedValuesSchema>,
+    encodeValue:
+      @escaping (
+        Value,
+        inout EnumSchemaSingleCaseEncoder<AssociatedValuesSchema>,
+      ) -> Void
+  ) -> some Schema<Value> {
+    EnumSchema(
+      cases: cases().cases,
+      encodeValue: { value, encoder in
+        var singleCaseEncoder = EnumSchemaSingleCaseEncoder(wrapped: encoder)
+        encodeValue(value, &singleCaseEncoder)
+        encoder = singleCaseEncoder.wrapped
+      }
     )
   }
 
@@ -206,6 +231,23 @@ extension SchemaCoding.Support {
 
     fileprivate var isEncoded = false
     fileprivate var valueEncoder: Encoder
+
+  }
+  public struct EnumSchemaSingleCaseEncoder<AssociatedValueSchema: Schema>: ~Copyable {
+
+    /// Allows using `.0` even with a single enum case
+    public var encodings: (EnumSchemaCaseEncoding<AssociatedValueSchema>, Void) {
+      (wrapped.encodings, ())
+    }
+
+    public mutating func encode<Schema: SchemaCoding.Schema>(
+      _ value: Schema.Value,
+      using encoding: EnumSchemaCaseEncoding<Schema>,
+    ) {
+      wrapped.encode(value, using: encoding)
+    }
+
+    fileprivate var wrapped: EnumSchemaEncoder<AssociatedValueSchema>
 
   }
 
