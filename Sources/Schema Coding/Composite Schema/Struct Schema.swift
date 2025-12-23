@@ -54,7 +54,7 @@ extension SchemaCoding.Support {
 extension SchemaCoding.Support {
 
   public static func structProperty<Root, Schema: SchemaCoding.Schema>(
-    name: ObjectPropertyName,
+    name: SchemaCodingKey,
     description: String? = nil,
     keyPath: KeyPath<Root, Schema.Value>,
     schema: Schema
@@ -70,7 +70,7 @@ extension SchemaCoding.Support {
   }
 
   public static func structProperty<Root, Schema: SchemaCoding.Schema>(
-    name: ObjectPropertyName,
+    name: SchemaCodingKey,
     description: String? = nil,
     keyPath: KeyPath<Root, Schema.Value?>,
     schema: OptionalSchema<Schema>
@@ -86,7 +86,7 @@ extension SchemaCoding.Support {
   }
 
   static func structProperty<Root, Value: SchemaCodable & Equatable>(
-    name: ObjectPropertyName,
+    name: SchemaCodingKey,
     description: String? = nil,
     constantValue: Value
   ) -> StructProperty<Root, some ObjectProperty<Void>> {

@@ -6,7 +6,7 @@ import SchemaCodingSupport
 extension SchemaCoding.Support {
 
   public protocol ObjectProperty<Value> {
-    var name: ObjectPropertyName { get }
+    var name: SchemaCodingKey { get }
 
     var isRequired: Bool { get }
 
@@ -85,7 +85,7 @@ extension SchemaCoding.Support {
     }
 
     init(
-      name: ObjectPropertyName,
+      name: SchemaCodingKey,
       description: String? = nil,
       schema: Schema
     ) {
@@ -94,7 +94,7 @@ extension SchemaCoding.Support {
       schema.metadata.prependDescription(description)
       self.schema = schema
     }
-    let name: ObjectPropertyName
+    let name: SchemaCodingKey
     let schema: Schema
 
   }
@@ -154,7 +154,7 @@ extension SchemaCoding.Support {
     }
 
     init(
-      name: ObjectPropertyName,
+      name: SchemaCodingKey,
       description: String? = nil,
       schema: Schema
     ) {
@@ -163,7 +163,7 @@ extension SchemaCoding.Support {
       schema.metadata.prependDescription(description)
       self.schema = schema
     }
-    let name: ObjectPropertyName
+    let name: SchemaCodingKey
     let schema: Schema
 
   }
@@ -238,7 +238,7 @@ extension SchemaCoding.Support {
     }
 
     init<WrappedSchema>(
-      name: ObjectPropertyName,
+      name: SchemaCodingKey,
       description: String? = nil,
       schema: WrappedSchema,
       constantValue: WrappedSchema.Value?
@@ -253,7 +253,7 @@ extension SchemaCoding.Support {
     }
 
     private init(
-      name: ObjectPropertyName,
+      name: SchemaCodingKey,
       isNone: Bool,
       schema: Schema
     ) {
@@ -261,7 +261,7 @@ extension SchemaCoding.Support {
       self.isNone = isNone
       self.schema = schema
     }
-    let name: ObjectPropertyName
+    let name: SchemaCodingKey
     let isNone: Bool
     let schema: Schema
 
@@ -315,7 +315,7 @@ extension SchemaCoding.Support {
       )
     }
 
-    var name: ObjectPropertyName {
+    var name: SchemaCodingKey {
       wrappedProperty.name
     }
 
@@ -371,29 +371,6 @@ extension SchemaCoding.Support {
 
     var wrappedSchema: WrappedSchema
 
-  }
-
-}
-
-// MARK: - Object Property Name
-
-extension SchemaCoding.Support {
-
-  public struct ObjectPropertyName: ExpressibleByStringLiteral {
-    public init(stringLiteral value: StaticString) {
-      stringValue = "\(value)"
-    }
-    let stringValue: String
-
-    static var description: Self { "description" }
-    static var properties: Self { "properties" }
-    static var required: Self { "required" }
-    static var items: Self { "items" }
-    static var prefixItems: Self { "prefixItems" }
-    static var `enum`: Self { "enum" }
-    static var type: Self { "type" }
-    static var value: Self { "value" }
-    static var const: Self { "const" }
   }
 
 }
