@@ -98,7 +98,7 @@ extension SchemaCoding.Support {
       of values: Value,
       to encoder: inout ObjectPropertiesEncoder
     ) {
-      for (value, property) in repeat (each values, each properties) {
+      for (property, value) in repeat (each properties, each values) {
         property.encode(value, to: &encoder)
       }
     }

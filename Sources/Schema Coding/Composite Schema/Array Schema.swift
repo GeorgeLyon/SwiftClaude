@@ -59,6 +59,7 @@ extension SchemaCoding.Support {
           case .decoded(.elementStart):
             state.isDecodingArrayComponent = false
             state.elementState = elementSchema.beginDecodingValue(from: decoder)
+            continue
           case .decoded(.end):
             return .decoded(state.decodedElements)
           }
@@ -69,6 +70,7 @@ extension SchemaCoding.Support {
           case .decoded(let value):
             state.decodedElements.append(value)
             state.isDecodingArrayComponent = true
+            continue
           }
         }
       }
