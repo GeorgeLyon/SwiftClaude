@@ -13,7 +13,7 @@ extension SchemaCoding.Support {
     description: String? = nil,
     @EnumSchemaCaseAssociatedValuesBuilder
     associatedValues: () -> EnumSchemaCaseAssociatedValuesObject<>,
-    finishDecoding: @escaping () -> Value
+    finishDecoding: @escaping (EnumDecoder<>) -> Value
   ) -> EnumSchemaCase<
     Value,
     some ObjectSchema<Void>
@@ -25,7 +25,9 @@ extension SchemaCoding.Support {
         description: description,
         properties: TupleObjectSchemaProperties()
       ),
-      finishDecoding: finishDecoding
+      finishDecoding: {
+        finishDecoding(EnumDecoder())
+      }
     )
   }
 
@@ -83,7 +85,7 @@ extension SchemaCoding.Support {
     name: SchemaCodingKey,
     @EnumSchemaCaseAssociatedValuesBuilder
     associatedValues: () -> EnumSchemaCaseAssociatedValuesTuple<AssociatedValuesSchema>,
-    finishDecoding: @escaping (AssociatedValuesSchema.Value) -> Value
+    finishDecoding: @escaping (EnumDecoder<AssociatedValuesSchema.Value>) -> Value
   ) -> EnumSchemaCase<
     Value,
     AssociatedValuesSchema
@@ -92,7 +94,9 @@ extension SchemaCoding.Support {
     return EnumSchemaCase(
       name: name,
       associatedValuesSchema: associatedValues.elementSchemas,
-      finishDecoding: finishDecoding
+      finishDecoding: { associatedValues in
+        finishDecoding(EnumDecoder(associatedValues))
+      }
     )
   }
 
