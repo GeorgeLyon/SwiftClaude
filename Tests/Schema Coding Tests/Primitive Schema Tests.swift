@@ -146,7 +146,7 @@ struct PrimitiveSchemaTests {
 
     @Test
     func nullValue() throws {
-      try SchemaCoding.Support.nullSchema.test((), isCodedAs: "null")
+      try SchemaCoding.Support.NullSchema().test((), isCodedAs: "null")
     }
 
   }

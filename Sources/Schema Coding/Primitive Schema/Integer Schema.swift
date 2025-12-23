@@ -13,7 +13,7 @@ extension UInt32: SchemaCoding.SchemaCodable {}
 extension UInt64: SchemaCoding.SchemaCodable {}
 extension UInt128: SchemaCoding.SchemaCodable {}
 
-extension FixedWidthInteger where Self: SendableMetatype {
+extension FixedWidthInteger {
 
   public static var schema: some SchemaCoding.Schema<Self> {
     SchemaCoding.Support.IntegerSchema<Self>(description: nil)
@@ -23,7 +23,7 @@ extension FixedWidthInteger where Self: SendableMetatype {
 
 extension SchemaCoding.Support {
 
-  struct IntegerSchema<T: FixedWidthInteger & SendableMetatype>: Schema {
+  struct IntegerSchema<T: FixedWidthInteger>: Schema {
 
     typealias Value = T
 

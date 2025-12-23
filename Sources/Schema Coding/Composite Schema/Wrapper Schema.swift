@@ -1,8 +1,8 @@
 extension SchemaCoding.Schema {
 
   func wrap<NewValue>(
-    _ wrap: @escaping @Sendable (Value) throws -> NewValue,
-    unwrap: @escaping @Sendable (NewValue) -> Value
+    _ wrap: @escaping (Value) throws -> NewValue,
+    unwrap: @escaping (NewValue) -> Value
   ) -> SchemaCoding.Support.WrapperSchema<NewValue, Self> {
     SchemaCoding.Support.WrapperSchema(
       wrappedSchema: self,
@@ -56,8 +56,8 @@ extension SchemaCoding.Support {
     }
 
     fileprivate var wrappedSchema: WrappedSchema
-    fileprivate let wrap: @Sendable (WrappedSchema.Value) throws -> Value
-    fileprivate let unwrap: @Sendable (Value) -> WrappedSchema.Value
+    fileprivate let wrap: (WrappedSchema.Value) throws -> Value
+    fileprivate let unwrap: (Value) -> WrappedSchema.Value
 
   }
 

@@ -112,5 +112,5 @@ extension SchemaCoding.Support {
 // MARK: - Errors
 
 private enum Error: Swift.Error {
-  case constantValueMismatch(decoded: Sendable, expected: Sendable)
+  case constantValueMismatch(decoded: Any, expected: Any)
 }

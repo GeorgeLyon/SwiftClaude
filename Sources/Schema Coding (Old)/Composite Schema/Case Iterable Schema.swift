@@ -19,7 +19,7 @@ extension SchemaCoding.Support {
     representing _: Value.Type = Value.self,
     description: String?
   ) -> some SchemaCoding.Schema<Value>
-  where Value.RawValue: FixedWidthInteger & Sendable {
+  where Value.RawValue: FixedWidthInteger {
     CaseIterableIntEnumSchema(
       description: description,
       wrappedSchema: schema(

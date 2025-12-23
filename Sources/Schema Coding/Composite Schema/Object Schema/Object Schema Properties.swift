@@ -2,7 +2,7 @@ import JSONSupport
 
 extension SchemaCoding.Support {
 
-  public protocol ObjectSchemaProperties: Sendable {
+  public protocol ObjectSchemaProperties {
 
     associatedtype Value
 
@@ -204,16 +204,16 @@ extension SchemaCoding.Support {
 
     init(
       wrappedProperties: WrappedProperties,
-      wrap: @escaping @Sendable (WrappedProperties.Value) throws -> Value,
-      unwrap: @escaping @Sendable (Value) -> WrappedProperties.Value
+      wrap: @escaping (WrappedProperties.Value) throws -> Value,
+      unwrap: @escaping (Value) -> WrappedProperties.Value
     ) {
       self.wrappedProperties = wrappedProperties
       self.wrap = wrap
       self.unwrap = unwrap
     }
     private let wrappedProperties: WrappedProperties
-    private let wrap: @Sendable (WrappedProperties.Value) throws -> Value
-    private let unwrap: @Sendable (Value) -> WrappedProperties.Value
+    private let wrap: (WrappedProperties.Value) throws -> Value
+    private let unwrap: (Value) -> WrappedProperties.Value
 
   }
 

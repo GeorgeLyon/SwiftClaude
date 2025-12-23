@@ -18,7 +18,7 @@ extension SchemaCoding.Support {
       encoder.stream.encode(value)
     }
 
-    struct ValueDecodingState: Sendable {
+    struct ValueDecodingState {
       var stringState = JSON.StringDecodingState()
     }
 

@@ -2,12 +2,6 @@ import JSONSupport
 
 extension SchemaCoding.Support {
 
-  public static let nullSchema: some Schema<Void> = NullSchema(description: nil)
-
-}
-
-extension SchemaCoding.Support {
-
   struct NullSchema: Schema {
 
     typealias Value = Void

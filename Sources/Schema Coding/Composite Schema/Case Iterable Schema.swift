@@ -2,7 +2,7 @@ import JSONSupport
 
 extension SchemaCoding.Support {
 
-  public static func schema<Value: CaseIterable & RawRepresentable & SendableMetatype>(
+  public static func schema<Value: CaseIterable & RawRepresentable>(
     representing _: Value.Type = Value.self,
     description: String?
   ) -> some SchemaCoding.Schema<Value>
@@ -12,11 +12,11 @@ extension SchemaCoding.Support {
     )
   }
 
-  public static func schema<Value: CaseIterable & RawRepresentable & SendableMetatype>(
+  public static func schema<Value: CaseIterable & RawRepresentable>(
     representing _: Value.Type = Value.self,
     description: String?
   ) -> some SchemaCoding.Schema<Value>
-  where Value.RawValue: FixedWidthInteger & Sendable {
+  where Value.RawValue: FixedWidthInteger {
     CaseIterableIntEnumSchema(
       description: description
     )
@@ -48,7 +48,7 @@ extension SchemaCoding.Support {
 extension SchemaCoding.Support {
 
   private struct CaseIterableStringEnumSchema<
-    Value: CaseIterable & RawRepresentable & SendableMetatype
+    Value: CaseIterable & RawRepresentable
   >: Schema
   where Value.RawValue == String {
 
@@ -118,9 +118,9 @@ extension SchemaCoding.Support {
   }
 
   private struct CaseIterableIntEnumSchema<
-    Value: CaseIterable & RawRepresentable & SendableMetatype
+    Value: CaseIterable & RawRepresentable
   >: Schema
-  where Value.RawValue: FixedWidthInteger & Sendable {
+  where Value.RawValue: FixedWidthInteger {
 
     func encode(_ value: Value, to encoder: inout Encoder) {
       wrappedSchema.encode(value.rawValue, to: &encoder)

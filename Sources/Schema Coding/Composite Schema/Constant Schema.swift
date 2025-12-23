@@ -2,7 +2,7 @@ extension SchemaCoding.Support {
 
   struct ConstantSchema<
     WrappedSchema: SchemaCoding.Schema
-  >: Schema where WrappedSchema.Value: Equatable & Sendable {
+  >: Schema where WrappedSchema.Value: Equatable {
 
     public typealias Value = Void
 
@@ -28,10 +28,7 @@ extension SchemaCoding.Support {
         return .incomplete
       case .decoded(let value):
         guard value == constantValue else {
-          throw Error.constantValueMismatch(
-            decoded: value,
-            expected: constantValue
-          )
+          throw Error.constantValueMismatch
         }
         return .decoded(())
       }
@@ -85,7 +82,7 @@ extension SchemaCoding.Support {
   }
 
   private enum Error: Swift.Error {
-    case constantValueMismatch(decoded: Sendable, expected: Sendable)
+    case constantValueMismatch
   }
 
 }

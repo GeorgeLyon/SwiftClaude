@@ -6,7 +6,7 @@ extension SchemaCoding.Support {
     representing: Root.Type = Root.self,
     description: String? = nil,
     @StructPropertiesBuilder<Root> properties: () -> StructProperties<Root, repeat each Property>,
-    initializer: @escaping @Sendable (StructDecoder<repeat (each Property).Value>) -> Root
+    initializer: @escaping (StructDecoder<repeat (each Property).Value>) -> Root
   ) -> some ObjectSchema<Root> {
     let properties = (repeat each properties().properties)
     let objectSchema = ConcreteObjectSchema(
@@ -36,12 +36,12 @@ extension SchemaCoding.Support {
 
     public let propertyValues: (repeat each PropertyValue)
 
-    public func verifyInitializedConstantPropertyValue<Value: Equatable & Sendable>(
+    public func verifyInitializedConstantPropertyValue<Value: Equatable>(
       initialized: Value,
       decoded: Value,
     ) throws {
       guard initialized == decoded else {
-        throw Error.constantPropertyValueMismatch(initialized: initialized, decoded: decoded)
+        throw Error.constantPropertyValueMismatch
       }
     }
 
@@ -55,7 +55,7 @@ extension SchemaCoding.Support {
 
   public static func structProperty<Root, Schema: SchemaCoding.Schema>(
     name: ObjectPropertyName,
-    keyPath: KeyPath<Root, Schema.Value> & Sendable,
+    keyPath: KeyPath<Root, Schema.Value>,
     schema: Schema
   ) -> StructProperty<Root, some ObjectProperty<Schema.Value>> {
     StructProperty(
@@ -69,7 +69,7 @@ extension SchemaCoding.Support {
 
   public static func structProperty<Root, Schema: SchemaCoding.Schema>(
     name: ObjectPropertyName,
-    keyPath: KeyPath<Root, Schema.Value?> & Sendable,
+    keyPath: KeyPath<Root, Schema.Value?>,
     schema: OptionalSchema<Schema>
   ) -> StructProperty<Root, some ObjectProperty<Schema.Value?>> {
     StructProperty(
@@ -81,7 +81,7 @@ extension SchemaCoding.Support {
     )
   }
 
-  public static func structProperty<Root, Value: SchemaCodable & Equatable & Sendable>(
+  public static func structProperty<Root, Value: SchemaCodable & Equatable>(
     name: ObjectPropertyName,
     constantValue: Value
   ) -> StructProperty<Root, some ObjectProperty<Void>> {
@@ -94,16 +94,16 @@ extension SchemaCoding.Support {
     )
   }
 
-  public struct StructProperty<Root, Property: ObjectProperty>: Sendable {
+  public struct StructProperty<Root, Property: ObjectProperty> {
     fileprivate init(
       property: Property
     ) where Property.Value == Void {
       self.property = property
-      self.accessor = .constantValue({ () })
+      self.accessor = .constantValue(())
     }
     fileprivate init(
       property: Property,
-      keyPath: KeyPath<Root, Property.Value> & Sendable
+      keyPath: KeyPath<Root, Property.Value>
     ) {
       self.property = property
       self.accessor = .keyPath(keyPath)
@@ -113,14 +113,14 @@ extension SchemaCoding.Support {
       case .keyPath(let keyPath):
         root[keyPath: keyPath]
       case .constantValue(let value):
-        value()
+        value
       }
     }
     fileprivate let property: Property
 
     private enum Accessor {
-      case keyPath(KeyPath<Root, Property.Value> & Sendable)
-      case constantValue(@Sendable () -> Property.Value)
+      case keyPath(KeyPath<Root, Property.Value>)
+      case constantValue(Property.Value)
     }
     private let accessor: Accessor
   }
@@ -149,7 +149,7 @@ extension SchemaCoding.Support {
 
   }
 
-  public struct StructProperties<Root, each Property: ObjectProperty>: Sendable {
+  public struct StructProperties<Root, each Property: ObjectProperty> {
     let properties: (repeat StructProperty<Root, each Property>)
   }
 
@@ -158,8 +158,5 @@ extension SchemaCoding.Support {
 // MARK: - Errors
 
 private enum Error: Swift.Error {
-  case constantPropertyValueMismatch(
-    initialized: Sendable,
-    decoded: Sendable
-  )
+  case constantPropertyValueMismatch
 }

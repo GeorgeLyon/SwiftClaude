@@ -5,7 +5,7 @@ import SchemaCodingSupport
 
 extension SchemaCoding.Support {
 
-  public protocol ObjectProperty<Value>: Sendable {
+  public protocol ObjectProperty<Value> {
     var name: ObjectPropertyName { get }
 
     var isRequired: Bool { get }
@@ -270,7 +270,7 @@ extension SchemaCoding.Support {
         wrappedDecoder.propertyName
       }
       let wrappedDecoder: WrappedProperty.Decoder
-      let wrap: @Sendable (WrappedProperty.Value) -> NewValue
+      let wrap: (WrappedProperty.Value) -> NewValue
     }
     func beginDecoding(from decoder: borrowing SchemaCoding.Support.Decoder)
       -> Decoder
@@ -303,8 +303,8 @@ extension SchemaCoding.Support {
     }
 
     fileprivate let wrappedProperty: WrappedProperty
-    fileprivate let wrap: @Sendable (WrappedProperty.Value) -> NewValue
-    fileprivate let unwrap: @Sendable (NewValue) -> WrappedProperty.Value
+    fileprivate let wrap: (WrappedProperty.Value) -> NewValue
+    fileprivate let unwrap: (NewValue) -> WrappedProperty.Value
 
   }
 
@@ -358,21 +358,21 @@ extension SchemaCoding.Support {
 
 extension SchemaCoding.Support {
 
-  public struct ObjectPropertyName: ExpressibleByStringLiteral, Sendable {
+  public struct ObjectPropertyName: ExpressibleByStringLiteral {
     public init(stringLiteral value: StaticString) {
       stringValue = "\(value)"
     }
     let stringValue: String
 
-    static let description: Self = "description"
-    static let properties: Self = "properties"
-    static let required: Self = "required"
-    static let items: Self = "items"
-    static let prefixItems: Self = "prefixItems"
-    static let `enum`: Self = "enum"
-    static let type: Self = "type"
-    static let value: Self = "value"
-    static let const: Self = "const"
+    static var description: Self { "description" }
+    static var properties: Self { "properties" }
+    static var required: Self { "required" }
+    static var items: Self { "items" }
+    static var prefixItems: Self { "prefixItems" }
+    static var `enum`: Self { "enum" }
+    static var type: Self { "type" }
+    static var value: Self { "value" }
+    static var const: Self { "const" }
   }
 
 }
@@ -399,7 +399,7 @@ extension SchemaCoding.Support {
 
   }
 
-  struct ObjectProperties<each Property: ObjectProperty>: Sendable {
+  struct ObjectProperties<each Property: ObjectProperty> {
     let properties: (repeat each Property)
   }
 

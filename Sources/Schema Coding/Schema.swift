@@ -20,7 +20,7 @@ extension SchemaCoding {
 
 extension SchemaCoding.Support {
 
-  public protocol Schema<Value>: Sendable {
+  public protocol Schema<Value> {
 
     associatedtype Value
 
@@ -44,7 +44,7 @@ extension SchemaCoding.Support {
 
   }
 
-  public struct SchemaMetadata: Sendable {
+  public struct SchemaMetadata {
     init(description: String? = nil) {
       self.description = description
     }
