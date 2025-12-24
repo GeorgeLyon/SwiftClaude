@@ -31,7 +31,7 @@ extension SchemaCoding.Support {
   /// Single-case enums hit a compiler bug which ends up crashing the compiler.
   public static func enumSchema<
     Value,
-    AssociatedValuesSchema
+    AssociatedValuesSchema: ObjectSchema
   >(
     representing: Value.Type = Value.self,
     description: String? = nil,

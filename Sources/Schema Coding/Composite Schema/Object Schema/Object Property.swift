@@ -66,7 +66,7 @@ extension SchemaCoding.Support {
 
     typealias MetaProperty = RequiredObjectProperty<WrapperSchema<Self, Schema.MetaSchema>>
     var metaProperty: MetaProperty {
-      RequiredObjectProperty<_>(
+      MetaProperty(
         name: name,
         schema: schema.metaSchema.wrap { wrapped in
           Self(name: name, schema: wrapped)
