@@ -2,6 +2,12 @@ import JSONSupport
 
 // MARK: - Object Schema Protocol
 
+extension SchemaCoding {
+
+  public typealias ObjectSchema = Support.ObjectSchema
+
+}
+
 extension SchemaCoding.Support {
 
   public protocol ObjectSchema<Value>: Schema {

@@ -1,15 +1,15 @@
-/*
+private import JSONSupport
+
 extension SchemaCoding.Support {
 
   struct InternallyTaggedEnumSchema<
     Value,
-    DisambiguatorSchema: Schema,
     each AssociatedValuesSchema: ObjectSchema
-  >: Schema where DisambiguatorSchema.Value: Hashable {
+  >: Schema {
 
     func encode(_ value: Value, to encoder: inout SchemaCoding.Support.Encoder) {
-      var enumEncoder = EnumSchemaEncoder(
-        encodings: (repeat EnumSchemaCaseEncoding(
+      var enumEncoder = InternallyTaggedEnumSchemaEncoder(
+        encodings: (repeat InternallyTaggedEnumSchemaCaseEncoding<each AssociatedValuesSchema>(
           name: (each cases).name.stringValue,
           schema: (each cases).associatedValuesSchema
         )),
@@ -20,29 +20,276 @@ extension SchemaCoding.Support {
       encoder = enumEncoder.valueEncoder
     }
 
-    let cases: (repeat EnumSchemaCase<Value, InternallyTaggedSchema<DisambiguatorSchema, each AssociatedValuesSchema>>)
-  }
+    struct ValueDecodingState {
+      var caseDecoder: (any EnumSchemaCaseDecoderProtocol<Value>)?
+    }
 
-  typealias InternallyTaggedSchema<
-    DisambiguatorSchema: Schema,
-    WrappedSchema: ObjectSchema
-  > = ConcreteObjectSchema<
-      CompositeObjectSchemaProperties<
-        WrappedSchema.Properties,
+    func beginDecodingValue(from decoder: borrowing Decoder) -> ValueDecodingState {
+      ValueDecodingState()
+    }
+
+    func decodeValue(
+      from decoder: inout Decoder,
+      state: inout ValueDecodingState
+    ) throws -> DecodingResult<Value> {
+      let caseDecoder: any EnumSchemaCaseDecoderProtocol<Value>
+      if let activeDecoder = state.caseDecoder {
+        caseDecoder = activeDecoder
+      } else {
+        let peekResult = try decoder.stream.peekObjectProperty(
+          discriminatorPropertyName.stringValue
+        ) {
+          stream in
+          try stream.decodeString()
+        }
+        switch peekResult {
+        case .incomplete:
+          return .incomplete
+        case .decoded(.none):
+          throw Error.discriminatorNotFound
+        case .decoded(let discriminator?):
+          guard let `case` = casesByName[discriminator] else {
+            throw Error.unknownCase(String(discriminator))
+          }
+          caseDecoder = `case`.beginDecoding(from: decoder)
+          state.caseDecoder = caseDecoder
+        }
+      }
+
+      switch try caseDecoder.decode(from: &decoder).kind {
+      case .incomplete:
+        return .incomplete
+      case .decoded:
+        return .decoded(try caseDecoder.finishDecoding(from: decoder))
+      }
+    }
+
+    typealias MetaSchema = WrapperSchema<
+      Self,
+      ConcreteObjectSchema<
         TupleObjectSchemaProperties<
+          OptionalObjectProperty<StringSchema>,
           RequiredObjectProperty<
-            ConstantSchema<
-              DisambiguatorSchema
-            >
+            TupleSchema<repeat InternallyTaggedSchema<each AssociatedValuesSchema>.MetaSchema>
           >
         >
       >
-    > where DisambiguatorSchema.Value: Equatable
+    >
+    var metaSchema: MetaSchema {
+      let objectSchema = ConcreteObjectSchema {
+        OptionalObjectProperty(
+          name: .description,
+          schema: StringSchema()
+        )
+        RequiredObjectProperty(
+          name: .oneOf,
+          schema: TupleSchema(
+            elementSchemas: repeat (each cases).associatedValuesSchema.metaSchema
+          )
+        )
+      }
+      return objectSchema.wrap { (description, associatedValueSchemas) in
+        Self(
+          description: description,
+          discriminatorPropertyName: discriminatorPropertyName,
+          cases: repeat EnumSchemaCase(
+            name: (each cases).name,
+            associatedValuesSchema: (each associatedValueSchemas),
+            finishDecoding: (each cases).finishDecoding
+          ),
+          encodeValue: encodeValue
+        )
+      } unwrap: { schema in
+        (description, (repeat (each schema.cases).associatedValuesSchema))
+      }
+    }
 
+    init(
+      description: String? = nil,
+      discriminatorPropertyName: SchemaCodingKey,
+      cases: repeat EnumSchemaCase<Value, each AssociatedValuesSchema>,
+      encodeValue:
+        @escaping (
+          Value,
+          inout InternallyTaggedEnumSchemaEncoder<repeat each AssociatedValuesSchema>
+        ) -> Void
+    ) {
+      self.init(
+        description: description,
+        discriminatorPropertyName: discriminatorPropertyName,
+        cases: repeat (each cases).internallyTagged(
+          discriminatorPropertyName: discriminatorPropertyName),
+        encodeValue: encodeValue
+      )
+    }
+
+    var metadata: SchemaMetadata
+
+    init(
+      description: String? = nil,
+      discriminatorPropertyName: SchemaCodingKey,
+      cases: repeat EnumSchemaCase<Value, InternallyTaggedSchema<each AssociatedValuesSchema>>,
+      encodeValue:
+        @escaping (
+          Value,
+          inout InternallyTaggedEnumSchemaEncoder<repeat each AssociatedValuesSchema>
+        ) -> Void
+    ) {
+      self.metadata = SchemaMetadata(description: description)
+      self.discriminatorPropertyName = discriminatorPropertyName
+      self.cases = (repeat each cases)
+      var casesByName: [Substring: any EnumSchemaCaseProtocol<Value>] = [:]
+      for `case` in repeat each cases {
+        let oldCase = casesByName.updateValue(
+          `case`,
+          forKey: Substring(`case`.name.stringValue))
+        assert(oldCase == nil)
+      }
+      self.casesByName = casesByName
+
+      self.encodeValue = encodeValue
+    }
+    private let discriminatorPropertyName: SchemaCodingKey
+    private let cases:
+      (
+        repeat EnumSchemaCase<
+          Value,
+          InternallyTaggedSchema<each AssociatedValuesSchema>
+        >
+      )
+    private let casesByName: [Substring: any EnumSchemaCaseProtocol<Value>]
+    private let encodeValue:
+      (
+        Value,
+        inout InternallyTaggedEnumSchemaEncoder<repeat each AssociatedValuesSchema>
+      ) -> Void
   }
+
+}
+
+// MARK: - Cases
+
+extension SchemaCoding.Support.EnumSchemaCase
+where AssociatedValuesSchema: SchemaCoding.ObjectSchema {
+
+  func internallyTagged(
+    discriminatorPropertyName: SchemaCoding.Support.SchemaCodingKey
+  )
+    -> SchemaCoding.Support.EnumSchemaCase<
+      Value,
+      SchemaCoding.Support.InternallyTaggedSchema<AssociatedValuesSchema>
+    >
+  {
+    let schema = SchemaCoding.Support.ConcreteObjectSchema(
+      description: associatedValuesSchema.description,
+      properties: SchemaCoding.Support.CompositeObjectSchemaProperties(
+        SchemaCoding.Support.TupleObjectSchemaProperties(
+          SchemaCoding.Support.RequiredObjectProperty(
+            name: discriminatorPropertyName,
+            schema: SchemaCoding.Support.ConstantSchema(
+              wrappedSchema: SchemaCoding.Support.StringSchema(),
+              constantValue: name.stringValue
+            )
+          )
+        ),
+        associatedValuesSchema.properties
+      )
+    )
+    return SchemaCoding.Support.EnumSchemaCase<Value, _>(
+      name: name,
+      associatedValuesSchema: schema,
+      finishDecoding: { (_, value) in
+        finishDecoding(value)
+      }
+    )
+  }
+
+}
+
+// MARK: - Internally Tagged Schema
+
+extension SchemaCoding.Support {
+
+  typealias InternallyTaggedSchema<
+    WrappedSchema: ObjectSchema
+  > = ConcreteObjectSchema<
+    CompositeObjectSchemaProperties<
+      TupleObjectSchemaProperties<
+        RequiredObjectProperty<
+          ConstantSchema<
+            StringSchema
+          >
+        >
+      >,
+      WrappedSchema.Properties
+    >
+  >
 
 }
 
 // MARK: - Encoding
 
-*/
+extension SchemaCoding.Support {
+
+  public struct InternallyTaggedEnumSchemaCaseEncoding<
+    Schema: SchemaCoding.ObjectSchema
+  > {
+    fileprivate let name: String
+    fileprivate let schema: InternallyTaggedSchema<Schema>
+  }
+  public struct InternallyTaggedEnumSchemaEncoder<
+    each AssociatedValueSchema: ObjectSchema
+  >: ~Copyable {
+
+    public let encodings:
+      (
+        repeat InternallyTaggedEnumSchemaCaseEncoding<
+          each AssociatedValueSchema
+        >
+      )
+
+    public mutating func encode<Schema: SchemaCoding.Schema>(
+      _ value: Schema.Value,
+      using encoding: InternallyTaggedEnumSchemaCaseEncoding<Schema>,
+    ) {
+      guard !isEncoded else {
+        assertionFailure()
+        return
+      }
+      isEncoded = true
+
+      valueEncoder.stream.encode(((), value), using: encoding.schema)
+    }
+
+    fileprivate var isEncoded = false
+    fileprivate var valueEncoder: Encoder
+
+  }
+  public struct InternallyTaggedEnumSchemaSingleCaseEncoder<
+    AssociatedValueSchema: ObjectSchema
+  >: ~Copyable {
+
+    /// Allows using `.0` even with a single enum case
+    public var encodings: (InternallyTaggedEnumSchemaCaseEncoding<AssociatedValueSchema>, Void) {
+      (wrapped.encodings, ())
+    }
+
+    public mutating func encode<Schema: SchemaCoding.Schema>(
+      _ value: Schema.Value,
+      using encoding: InternallyTaggedEnumSchemaCaseEncoding<Schema>,
+    ) {
+      wrapped.encode(value, using: encoding)
+    }
+
+    fileprivate var wrapped: InternallyTaggedEnumSchemaEncoder<AssociatedValueSchema>
+
+  }
+
+}
+
+// MARK: - Errors
+
+private enum Error: Swift.Error {
+  case discriminatorNotFound
+  case unknownCase(String)
+}

@@ -123,6 +123,7 @@ extension SchemaCoding.Support {
     static var items: Self { "items" }
     static var prefixItems: Self { "prefixItems" }
     static var `enum`: Self { "enum" }
+    static var oneOf: Self { "oneOf" }
     static var type: Self { "type" }
     static var value: Self { "value" }
     static var const: Self { "const" }
