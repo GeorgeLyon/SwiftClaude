@@ -105,7 +105,9 @@ struct InternallyTaggedEnumSchemaTests {
     )
 
     try schema.test(Shape.circle(radius: 10), isCodedAs: #"{"kind":"circle","radius":10}"#)
-    try schema.test(Shape.rectangle(width: 5, height: 3), isCodedAs: #"{"kind":"rectangle","width":5,"height":3}"#)
+    try schema.test(
+      Shape.rectangle(width: 5, height: 3), isCodedAs: #"{"kind":"rectangle","width":5,"height":3}"#
+    )
     try schema.test(Shape.point, isCodedAs: #"{"kind":"point"}"#)
   }
 
@@ -264,7 +266,8 @@ struct InternallyTaggedEnumSchemaTests {
             )
           },
           finishDecoding: { (decoder: SchemaCoding.EnumDecoder<String, Bool>) in
-            APIRequest.upload(data: decoder.associatedValues.0, compressed: decoder.associatedValues.1)
+            APIRequest.upload(
+              data: decoder.associatedValues.0, compressed: decoder.associatedValues.1)
           }
         )
         SchemaCoding.Support.enumSchemaCase(
@@ -316,12 +319,258 @@ struct InternallyTaggedEnumSchemaTests {
     metaMetaSchema.encode(schema.metaSchema, to: &encoder)
     let json = encoder.stream.stringRepresentation
 
-    // Print the result so we can see what it looks like
-    print("Meta-meta schema JSON length: \(json.count) bytes")
-    print(json)
-
     // Verify we got valid JSON
-    #expect(!json.isEmpty)
+    #expect(
+      json == """
+        {
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "oneOf": {
+              "prefixItems": [
+                {
+                  "properties": {
+                    "description": {
+                      "type": "string"
+                    },
+                    "properties": {
+                      "properties": {
+                        "action": {
+                          "properties": {
+                            "description": {
+                              "type": "string"
+                            },
+                            "const": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "const"
+                          ]
+                        },
+                        "endpoint": {
+                          "properties": {
+                            "description": {
+                              "type": "string"
+                            },
+                            "type": {
+                              "const": "string"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        },
+                        "timeout": {
+                          "properties": {
+                            "description": {
+                              "type": "string"
+                            },
+                            "type": {
+                              "const": "integer"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        },
+                        "retryCount": {
+                          "properties": {
+                            "description": {
+                              "type": "string"
+                            },
+                            "type": {
+                              "const": "integer"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "action",
+                        "endpoint",
+                        "timeout",
+                        "retryCount"
+                      ]
+                    },
+                    "required": {
+                      "const": [
+                        "action",
+                        "endpoint",
+                        "timeout",
+                        "retryCount"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "properties",
+                    "required"
+                  ]
+                },
+                {
+                  "properties": {
+                    "description": {
+                      "type": "string"
+                    },
+                    "properties": {
+                      "properties": {
+                        "action": {
+                          "properties": {
+                            "description": {
+                              "type": "string"
+                            },
+                            "const": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "const"
+                          ]
+                        },
+                        "data": {
+                          "properties": {
+                            "description": {
+                              "type": "string"
+                            },
+                            "type": {
+                              "const": "string"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        },
+                        "compressed": {
+                          "properties": {
+                            "description": {
+                              "type": "string"
+                            },
+                            "type": {
+                              "const": "boolean"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "action",
+                        "data",
+                        "compressed"
+                      ]
+                    },
+                    "required": {
+                      "const": [
+                        "action",
+                        "data",
+                        "compressed"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "properties",
+                    "required"
+                  ]
+                },
+                {
+                  "properties": {
+                    "description": {
+                      "type": "string"
+                    },
+                    "properties": {
+                      "properties": {
+                        "action": {
+                          "properties": {
+                            "description": {
+                              "type": "string"
+                            },
+                            "const": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "const"
+                          ]
+                        },
+                        "operations": {
+                          "properties": {
+                            "description": {
+                              "type": "string"
+                            },
+                            "type": {
+                              "const": "string"
+                            }
+                          },
+                          "required": [
+                            "type"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "action",
+                        "operations"
+                      ]
+                    },
+                    "required": {
+                      "const": [
+                        "action",
+                        "operations"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "properties",
+                    "required"
+                  ]
+                },
+                {
+                  "properties": {
+                    "description": {
+                      "type": "string"
+                    },
+                    "properties": {
+                      "properties": {
+                        "action": {
+                          "properties": {
+                            "description": {
+                              "type": "string"
+                            },
+                            "const": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "const"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "action"
+                      ]
+                    },
+                    "required": {
+                      "const": [
+                        "action"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "properties",
+                    "required"
+                  ]
+                }
+              ]
+            }
+          },
+          "required": [
+            "oneOf"
+          ]
+        }
+        """)
   }
 
 }

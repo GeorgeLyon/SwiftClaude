@@ -88,11 +88,11 @@ extension SchemaCoding.Support {
         >
       >
     >
-    typealias MetaSchema = WrapperSchema<
+    typealias _MetaSchema = WrapperSchema<
       Self,
       MetaWrappedSchema
     >
-    var metaSchema: MetaSchema {
+    var metaSchema: TypeErasedSchema<Self> {
       let propertiesMetadata = properties.metadata
       let objectSchema = MetaWrappedSchema {
         OptionalObjectProperty(
@@ -114,6 +114,7 @@ extension SchemaCoding.Support {
       } unwrap: { schema in
         (schema.description, schema.properties, ())
       }
+      .typeErased()
     }
 
     init<each Component>(

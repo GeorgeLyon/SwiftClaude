@@ -124,7 +124,7 @@ extension SchemaCoding.Support {
       }
     }
 
-    typealias MetaSchema = WrapperSchema<
+    typealias _MetaSchema = WrapperSchema<
       Self,
       ConcreteObjectSchema<
         TupleObjectSchemaProperties<
@@ -135,7 +135,7 @@ extension SchemaCoding.Support {
         >
       >
     >
-    var metaSchema: MetaSchema {
+    var metaSchema: TypeErasedSchema<Self> {
       let objectSchema = ConcreteObjectSchema {
         OptionalObjectProperty(
           name: .description,
@@ -162,6 +162,7 @@ extension SchemaCoding.Support {
       } unwrap: { schema in
         (description, (repeat (each schema.cases).associatedValuesSchema))
       }
+      .typeErased()
     }
 
     init(
