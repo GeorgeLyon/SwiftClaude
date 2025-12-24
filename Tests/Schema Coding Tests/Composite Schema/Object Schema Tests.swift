@@ -60,12 +60,33 @@ struct ObjectSchemaTests {
       let objectSchema = SchemaCoding.Support.ConcreteObjectSchema {
         SchemaCoding.Support.ConstantOptionalObjectProperty(
           name: "version",
-          schema: SchemaCoding.Support.schema(representing: String.self),
-          constantValue: "1.0"
+          schema: SchemaCoding.Support.ConstantSchema(
+            wrappedSchema: SchemaCoding.Support.OptionalSchema(
+              wrappedSchema: SchemaCoding.Support.schema(representing: String.self)
+            ),
+            constantValue: "1.0"
+          )
         )
       }
 
       try objectSchema.test((), isCodedAs: #"{"version":"1.0"}"#)
+    }
+
+    @Test
+    func testConstantOptionalObjectPropertyWithNilValue() throws {
+      let objectSchema = SchemaCoding.Support.ConcreteObjectSchema {
+        SchemaCoding.Support.ConstantOptionalObjectProperty(
+          name: "version",
+          schema: SchemaCoding.Support.ConstantSchema(
+            wrappedSchema: SchemaCoding.Support.OptionalSchema(
+              wrappedSchema: SchemaCoding.Support.schema(representing: String.self)
+            ),
+            constantValue: nil
+          )
+        )
+      }
+
+      try objectSchema.test((), isCodedAs: "{}")
     }
 
     @Test
@@ -132,6 +153,44 @@ struct ObjectSchemaTests {
 
       try objectSchema.test(
         encodesAs: #"{"properties":{"count":{"description":"The number of items","type":"integer"}},"required":["count"]}"#
+      )
+    }
+
+    @Test
+    func testConstantOptionalObjectPropertyMetaSchema() throws {
+      let objectSchema = SchemaCoding.Support.ConcreteObjectSchema {
+        SchemaCoding.Support.ConstantOptionalObjectProperty(
+          name: "version",
+          schema: SchemaCoding.Support.ConstantSchema(
+            wrappedSchema: SchemaCoding.Support.OptionalSchema(
+              wrappedSchema: SchemaCoding.Support.schema(representing: String.self)
+            ),
+            constantValue: "1.0"
+          )
+        )
+      }
+
+      try objectSchema.test(
+        encodesAs: #"{"properties":{"version":{"const":"1.0"}},"required":["version"]}"#
+      )
+    }
+
+    @Test
+    func testConstantOptionalObjectPropertyWithNilValueMetaSchema() throws {
+      let objectSchema = SchemaCoding.Support.ConcreteObjectSchema {
+        SchemaCoding.Support.ConstantOptionalObjectProperty(
+          name: "version",
+          schema: SchemaCoding.Support.ConstantSchema(
+            wrappedSchema: SchemaCoding.Support.OptionalSchema(
+              wrappedSchema: SchemaCoding.Support.schema(representing: String.self)
+            ),
+            constantValue: nil
+          )
+        )
+      }
+
+      try objectSchema.test(
+        encodesAs: #"{"properties":{}}"#
       )
     }
 

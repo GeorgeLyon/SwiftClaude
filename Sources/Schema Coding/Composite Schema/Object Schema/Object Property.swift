@@ -15,8 +15,8 @@ extension SchemaCoding.Support {
     associatedtype Decoder: ObjectPropertyDecoder<Value>
     func beginDecoding(from decoder: borrowing SchemaCoding.Support.Decoder) -> Decoder
 
-    associatedtype Schema: SchemaCoding.Schema
-    var schema: Schema { get }
+    associatedtype PropertySchema: SchemaCoding.Schema
+    var propertySchema: PropertySchema { get }
 
     associatedtype MetaProperty: ObjectProperty where MetaProperty.Value == Self
     var metaProperty: MetaProperty { get }
@@ -41,6 +41,8 @@ extension SchemaCoding.Support {
     InternalObjectProperty
   {
 
+    typealias PropertySchema = Schema
+
     typealias Decoder = ConcreteObjectPropertyDecoder<Self>
 
     typealias Value = Schema.Value
@@ -51,7 +53,7 @@ extension SchemaCoding.Support {
 
     func encode(_ value: Value, to encoder: inout ObjectPropertiesEncoder) {
       encoder.encoder.encodeProperty(name: name.stringValue) { stream in
-        stream.encode(value, using: schema)
+        stream.encode(value, using: propertySchema)
       }
     }
 
@@ -68,10 +70,10 @@ extension SchemaCoding.Support {
     var metaProperty: MetaProperty {
       MetaProperty(
         name: name,
-        schema: schema.metaSchema.wrap { wrapped in
+        schema: propertySchema.metaSchema.wrap { wrapped in
           Self(name: name, schema: wrapped)
         } unwrap: { property in
-          property.schema
+          property.propertySchema
         }
       )
     }
@@ -92,10 +94,10 @@ extension SchemaCoding.Support {
       self.name = name
       var schema = schema
       schema.metadata.prependDescription(description)
-      self.schema = schema
+      self.propertySchema = schema
     }
     let name: SchemaCodingKey
-    let schema: Schema
+    let propertySchema: Schema
 
   }
 
@@ -109,6 +111,8 @@ extension SchemaCoding.Support {
     InternalObjectProperty
   {
 
+    typealias PropertySchema = Schema
+
     typealias Value = Schema.Value?
 
     var isRequired: Bool {
@@ -120,7 +124,7 @@ extension SchemaCoding.Support {
         return
       }
       encoder.encoder.encodeProperty(name: name.stringValue) { stream in
-        stream.encode(value, using: schema)
+        stream.encode(value, using: propertySchema)
       }
     }
 
@@ -137,10 +141,10 @@ extension SchemaCoding.Support {
     var metaProperty: MetaProperty {
       MetaProperty(
         name: name,
-        schema: schema.metaSchema.wrap { wrapped in
+        schema: propertySchema.metaSchema.wrap { wrapped in
           Self(name: name, schema: wrapped)
         } unwrap: { property in
-          property.schema
+          property.propertySchema
         }
       )
     }
@@ -161,10 +165,10 @@ extension SchemaCoding.Support {
       self.name = name
       var schema = schema
       schema.metadata.prependDescription(description)
-      self.schema = schema
+      self.propertySchema = schema
     }
     let name: SchemaCodingKey
-    let schema: Schema
+    let propertySchema: Schema
 
   }
 
@@ -178,6 +182,8 @@ extension SchemaCoding.Support {
     Schema: SchemaCoding.Schema
   >: InternalObjectProperty where Schema.Value == Void {
 
+    typealias PropertySchema = Schema
+
     typealias Value = Void
 
     var isRequired: Bool {
@@ -187,7 +193,7 @@ extension SchemaCoding.Support {
     func encode(_ value: Value, to encoder: inout ObjectPropertiesEncoder) {
       guard !isNone else { return }
       encoder.encoder.encodeProperty(name: name.stringValue) { stream in
-        stream.encode(value, using: schema)
+        stream.encode(value, using: propertySchema)
       }
     }
 
@@ -210,10 +216,10 @@ extension SchemaCoding.Support {
         wrappedProperty: ConstantOptionalObjectProperty<_>(
           name: name,
           isNone: isNone,
-          schema: schema.metaSchema.wrap { wrapped in
+          schema: propertySchema.metaSchema.wrap { wrapped in
             ()
           } unwrap: { _ in
-            schema
+            propertySchema
           }
         ),
         wrap: { _ in
@@ -240,14 +246,14 @@ extension SchemaCoding.Support {
     init<WrappedSchema>(
       name: SchemaCodingKey,
       description: String? = nil,
-      schema: WrappedSchema,
-      constantValue: WrappedSchema.Value?
+      schema: ConstantSchema<OptionalSchema<WrappedSchema>>
     ) where Schema == ConstantSchema<OmissibleOptionalSchema<WrappedSchema>> {
       self.name = name
+      let constantValue = schema.constantValue
       self.isNone = constantValue == nil
-      self.schema = ConstantSchema(
+      self.propertySchema = ConstantSchema(
         description: description,
-        wrappedSchema: OmissibleOptionalSchema(wrappedSchema: schema),
+        wrappedSchema: OmissibleOptionalSchema(wrappedSchema: schema.wrappedSchema.wrappedSchema),
         constantValue: constantValue
       )
     }
@@ -259,11 +265,11 @@ extension SchemaCoding.Support {
     ) {
       self.name = name
       self.isNone = isNone
-      self.schema = schema
+      self.propertySchema = schema
     }
     let name: SchemaCodingKey
     let isNone: Bool
-    let schema: Schema
+    let propertySchema: Schema
 
   }
 
@@ -319,8 +325,8 @@ extension SchemaCoding.Support {
       wrappedProperty.name
     }
 
-    var schema: WrappedProperty.Schema {
-      wrappedProperty.schema
+    var propertySchema: WrappedProperty.PropertySchema {
+      wrappedProperty.propertySchema
     }
 
     fileprivate let wrappedProperty: WrappedProperty
@@ -413,7 +419,7 @@ extension SchemaCoding.Support {
 
   protocol InternalObjectProperty: ObjectProperty {
     func notFoundValue() throws -> Value
-    func value(from schemaValue: Schema.Value) throws -> Value
+    func value(from schemaValue: PropertySchema.Value) throws -> Value
   }
 
   struct ConcreteObjectPropertyDecoder<
@@ -424,20 +430,20 @@ extension SchemaCoding.Support {
       from decoder: inout SchemaCoding.Support.Decoder
     ) throws -> SchemaCoding.Support.DecodingResult<Void> {
       try decoder.arena.withValue(reference) { decodingState in
-        var state: Property.Schema.ValueDecodingState
+        var state: Property.PropertySchema.ValueDecodingState
         switch decodingState {
         case .decoded:
           throw Error.propertyAlreadyDecoded
         case .invalid:
           throw Error.invalidState
         case .notFound:
-          state = property.schema.beginDecodingValue(from: decoder)
+          state = property.propertySchema.beginDecodingValue(from: decoder)
         case .decoding(let s):
           state = s
         }
 
         decodingState = .invalid
-        switch try property.schema.decodeValue(from: &decoder, state: &state).kind {
+        switch try property.propertySchema.decodeValue(from: &decoder, state: &state).kind {
         case .decoded(let value):
           decodingState = .decoded(value)
           return .decoded
@@ -471,8 +477,8 @@ extension SchemaCoding.Support {
 
     enum DecodingState {
       case notFound
-      case decoding(Property.Schema.ValueDecodingState)
-      case decoded(Property.Schema.Value)
+      case decoding(Property.PropertySchema.ValueDecodingState)
+      case decoded(Property.PropertySchema.Value)
       case invalid
     }
 
@@ -502,6 +508,9 @@ private enum Error: Swift.Error {
 }
 
 extension SchemaCoding.Support.ConcreteObjectPropertyDecoder.DecodingState: BitwiseCopyable
-where Property.Schema.ValueDecodingState: BitwiseCopyable, Property.Schema.Value: BitwiseCopyable {
+where
+  Property.PropertySchema.ValueDecodingState: BitwiseCopyable,
+  Property.PropertySchema.Value: BitwiseCopyable
+{
 
 }

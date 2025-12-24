@@ -105,8 +105,12 @@ extension SchemaCoding.Support {
         )
         ConstantOptionalObjectProperty(
           name: .required,
-          schema: ArraySchema(elementSchema: StringSchema()),
-          constantValue: propertiesMetadata.requiredPropertyNames
+          schema: ConstantSchema(
+            wrappedSchema: OptionalSchema(
+              wrappedSchema: ArraySchema(elementSchema: StringSchema())
+            ),
+            constantValue: propertiesMetadata.requiredPropertyNames
+          )
         )
       }
       return objectSchema.wrap { (description, properties, _) in

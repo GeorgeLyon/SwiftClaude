@@ -76,8 +76,8 @@ extension SchemaCoding.Support {
     }
 
     var metadata: SchemaMetadata
-    private let wrappedSchema: WrappedSchema
-    private let constantValue: WrappedSchema.Value
+    let wrappedSchema: WrappedSchema
+    let constantValue: WrappedSchema.Value
 
   }
 

@@ -119,21 +119,6 @@ extension SchemaCoding.Support {
     )
   }
 
-  static func structProperty<Root, Value: SchemaCodable & Equatable>(
-    name: SchemaCodingKey,
-    description: String? = nil,
-    constantValue: Value
-  ) -> StructProperty<Root, some ObjectProperty<Void>> {
-    StructProperty(
-      property: ConstantOptionalObjectProperty(
-        name: name,
-        description: description,
-        schema: Value.schema,
-        constantValue: constantValue
-      )
-    )
-  }
-
   public struct StructProperty<Root, Property: ObjectProperty> {
     fileprivate init(
       property: Property
