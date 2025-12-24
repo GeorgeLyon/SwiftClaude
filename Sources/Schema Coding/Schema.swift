@@ -81,6 +81,12 @@ extension SchemaCoding.Support.Schema {
     metadata.description
   }
 
+  func prependingDescription(_ prefix: String?) -> Self {
+    var mutableSelf = self
+    mutableSelf.metadata.prependDescription(prefix)
+    return mutableSelf
+  }
+
 }
 
 // MARK: - Schema Codable
@@ -97,9 +103,7 @@ extension SchemaCoding.Support {
     representing: Value.Type = Value.self,
     description: String? = nil
   ) -> Value.Schema {
-    var schema = Value.schema
-    schema.metadata.prependDescription(description)
-    return schema
+    return Value.schema.prependingDescription(description)
   }
 
   public protocol SchemaCodable {
