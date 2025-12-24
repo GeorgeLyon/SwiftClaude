@@ -23,13 +23,28 @@ struct NullSchemaTests {
     @Test
     func testMetaSchemaWithoutDescription() throws {
       try SchemaCoding.Support.NullSchema()
-        .test(encodesAs: #"{"type":"null"}"#)
+        .test(
+          encodesAs: """
+            {
+              "type": "null"
+            }
+            """,
+          prettyPrint: true
+        )
     }
 
     @Test
     func testMetaSchemaWithDescription() throws {
       try SchemaCoding.Support.NullSchema(description: "A null value")
-        .test(encodesAs: #"{"description":"A null value","type":"null"}"#)
+        .test(
+          encodesAs: """
+            {
+              "description": "A null value",
+              "type": "null"
+            }
+            """,
+          prettyPrint: true
+        )
     }
 
   }

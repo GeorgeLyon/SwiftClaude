@@ -50,14 +50,37 @@ struct OptionalSchemaTests {
       // Optional schema encodes as an object with optional "value" property
       try SchemaCoding.Support
         .schema(representing: Bool?.self)
-        .test(encodesAs: #"{"properties":{"value":{"type":"boolean"}}}"#)
+        .test(
+          encodesAs: """
+            {
+              "properties": {
+                "value": {
+                  "type": "boolean"
+                }
+              }
+            }
+            """,
+          prettyPrint: true
+        )
     }
 
     @Test
     func testMetaSchemaWithDescription() throws {
       try SchemaCoding.Support
         .schema(representing: Bool?.self, description: "An optional boolean")
-        .test(encodesAs: #"{"description":"An optional boolean","properties":{"value":{"type":"boolean"}}}"#)
+        .test(
+          encodesAs: """
+            {
+              "description": "An optional boolean",
+              "properties": {
+                "value": {
+                  "type": "boolean"
+                }
+              }
+            }
+            """,
+          prettyPrint: true
+        )
     }
 
   }

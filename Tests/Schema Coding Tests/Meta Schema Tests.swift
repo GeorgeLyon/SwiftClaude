@@ -37,7 +37,21 @@ struct MetaSchemaTests {
 
       // The meta-schema should describe an array whose items are object schemas
       try arraySchema.test(
-        encodesAs: #"{"items":{"properties":{"name":{"type":"string"}},"required":["name"]}}"#
+        encodesAs: """
+          {
+            "items": {
+              "properties": {
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name"
+              ]
+            }
+          }
+          """,
+        prettyPrint: true
       )
     }
 
@@ -85,8 +99,26 @@ struct MetaSchemaTests {
       )
 
       try outerSchema.test(
-        encodesAs:
-          #"{"properties":{"inner":{"properties":{"value":{"type":"integer"}},"required":["value"]}},"required":["inner"]}"#
+        encodesAs: """
+          {
+            "properties": {
+              "inner": {
+                "properties": {
+                  "value": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "value"
+                ]
+              }
+            },
+            "required": [
+              "inner"
+            ]
+          }
+          """,
+        prettyPrint: true
       )
     }
 
@@ -163,8 +195,33 @@ struct MetaSchemaTests {
 
       // Meta schema for enum with struct-based associated values
       try schema.test(
-        encodesAs:
-          #"{"properties":{"text":{"properties":{"content":{"type":"string"}},"required":["content"]},"payload":{"properties":{"data":{"type":"string"}},"required":["data"]}}}"#
+        encodesAs: """
+          {
+            "properties": {
+              "text": {
+                "properties": {
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "content"
+                ]
+              },
+              "payload": {
+                "properties": {
+                  "data": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "data"
+                ]
+              }
+            }
+          }
+          """,
+        prettyPrint: true
       )
     }
 
@@ -198,8 +255,23 @@ struct MetaSchemaTests {
       )
 
       try schema.test(
-        encodesAs:
-          #"{"properties":{"value":{"properties":{"enabled":{"type":"boolean"}},"required":["enabled"]}}}"#
+        encodesAs: """
+          {
+            "properties": {
+              "value": {
+                "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "enabled"
+                ]
+              }
+            }
+          }
+          """,
+        prettyPrint: true
       )
     }
 
@@ -242,8 +314,70 @@ struct MetaSchemaTests {
 
       // Meta-meta-schema of array-of-structs
       try arraySchema.metaSchema.test(
-        encodesAs:
-          #"{"properties":{"description":{"type":"string"},"items":{"properties":{"description":{"type":"string"},"properties":{"properties":{"name":{"properties":{"description":{"type":"string"},"type":{"const":"string"}},"required":["type"]},"age":{"properties":{"description":{"type":"string"},"type":{"const":"integer"}},"required":["type"]}},"required":["name","age"]},"required":{"const":["name","age"]}},"required":["properties","required"]}},"required":["items"]}"#
+        encodesAs: """
+          {
+            "properties": {
+              "description": {
+                "type": "string"
+              },
+              "items": {
+                "properties": {
+                  "description": {
+                    "type": "string"
+                  },
+                  "properties": {
+                    "properties": {
+                      "name": {
+                        "properties": {
+                          "description": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "const": "string"
+                          }
+                        },
+                        "required": [
+                          "type"
+                        ]
+                      },
+                      "age": {
+                        "properties": {
+                          "description": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "const": "integer"
+                          }
+                        },
+                        "required": [
+                          "type"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "age"
+                    ]
+                  },
+                  "required": {
+                    "const": [
+                      "name",
+                      "age"
+                    ]
+                  }
+                },
+                "required": [
+                  "properties",
+                  "required"
+                ]
+              }
+            },
+            "required": [
+              "items"
+            ]
+          }
+          """,
+        prettyPrint: true
       )
     }
 
@@ -299,8 +433,98 @@ struct MetaSchemaTests {
 
       // Meta-meta-schema of nested structs
       try contactSchema.metaSchema.test(
-        encodesAs:
-          #"{"properties":{"description":{"type":"string"},"properties":{"properties":{"name":{"properties":{"description":{"type":"string"},"type":{"const":"string"}},"required":["type"]},"address":{"properties":{"description":{"type":"string"},"properties":{"properties":{"city":{"properties":{"description":{"type":"string"},"type":{"const":"string"}},"required":["type"]},"zip":{"properties":{"description":{"type":"string"},"type":{"const":"integer"}},"required":["type"]}},"required":["city","zip"]},"required":{"const":["city","zip"]}},"required":["properties","required"]}},"required":["name","address"]},"required":{"const":["name","address"]}},"required":["properties","required"]}"#
+        encodesAs: """
+          {
+            "properties": {
+              "description": {
+                "type": "string"
+              },
+              "properties": {
+                "properties": {
+                  "name": {
+                    "properties": {
+                      "description": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "const": "string"
+                      }
+                    },
+                    "required": [
+                      "type"
+                    ]
+                  },
+                  "address": {
+                    "properties": {
+                      "description": {
+                        "type": "string"
+                      },
+                      "properties": {
+                        "properties": {
+                          "city": {
+                            "properties": {
+                              "description": {
+                                "type": "string"
+                              },
+                              "type": {
+                                "const": "string"
+                              }
+                            },
+                            "required": [
+                              "type"
+                            ]
+                          },
+                          "zip": {
+                            "properties": {
+                              "description": {
+                                "type": "string"
+                              },
+                              "type": {
+                                "const": "integer"
+                              }
+                            },
+                            "required": [
+                              "type"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "city",
+                          "zip"
+                        ]
+                      },
+                      "required": {
+                        "const": [
+                          "city",
+                          "zip"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "properties",
+                      "required"
+                    ]
+                  }
+                },
+                "required": [
+                  "name",
+                  "address"
+                ]
+              },
+              "required": {
+                "const": [
+                  "name",
+                  "address"
+                ]
+              }
+            },
+            "required": [
+              "properties",
+              "required"
+            ]
+          }
+          """,
+        prettyPrint: true
       )
     }
 
@@ -340,8 +564,87 @@ struct MetaSchemaTests {
 
       // Meta-meta-schema of optional-array-of-structs
       try optionalSchema.metaSchema.test(
-        encodesAs:
-          #"{"properties":{"description":{"type":"string"},"properties":{"properties":{"value":{"properties":{"description":{"type":"string"},"items":{"properties":{"description":{"type":"string"},"properties":{"properties":{"id":{"properties":{"description":{"type":"string"},"type":{"const":"integer"}},"required":["type"]},"active":{"properties":{"description":{"type":"string"},"type":{"const":"boolean"}},"required":["type"]}},"required":["id","active"]},"required":{"const":["id","active"]}},"required":["properties","required"]}},"required":["items"]}},"required":["value"]}},"required":["properties"]}"#
+        encodesAs: """
+          {
+            "properties": {
+              "description": {
+                "type": "string"
+              },
+              "properties": {
+                "properties": {
+                  "value": {
+                    "properties": {
+                      "description": {
+                        "type": "string"
+                      },
+                      "items": {
+                        "properties": {
+                          "description": {
+                            "type": "string"
+                          },
+                          "properties": {
+                            "properties": {
+                              "id": {
+                                "properties": {
+                                  "description": {
+                                    "type": "string"
+                                  },
+                                  "type": {
+                                    "const": "integer"
+                                  }
+                                },
+                                "required": [
+                                  "type"
+                                ]
+                              },
+                              "active": {
+                                "properties": {
+                                  "description": {
+                                    "type": "string"
+                                  },
+                                  "type": {
+                                    "const": "boolean"
+                                  }
+                                },
+                                "required": [
+                                  "type"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "active"
+                            ]
+                          },
+                          "required": {
+                            "const": [
+                              "id",
+                              "active"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "properties",
+                          "required"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "items"
+                    ]
+                  }
+                },
+                "required": [
+                  "value"
+                ]
+              }
+            },
+            "required": [
+              "properties"
+            ]
+          }
+          """,
+        prettyPrint: true
       )
     }
 

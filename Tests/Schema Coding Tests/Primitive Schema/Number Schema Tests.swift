@@ -49,14 +49,29 @@ struct NumberSchemaTests {
     func testMetaSchemaWithoutDescription() throws {
       try SchemaCoding.Support
         .schema(representing: Double.self)
-        .test(encodesAs: #"{"type":"number"}"#)
+        .test(
+          encodesAs: """
+            {
+              "type": "number"
+            }
+            """,
+          prettyPrint: true
+        )
     }
 
     @Test
     func testMetaSchemaWithDescription() throws {
       try SchemaCoding.Support
         .schema(representing: Double.self, description: "A number value")
-        .test(encodesAs: #"{"description":"A number value","type":"number"}"#)
+        .test(
+          encodesAs: """
+            {
+              "description": "A number value",
+              "type": "number"
+            }
+            """,
+          prettyPrint: true
+        )
     }
 
   }

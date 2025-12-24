@@ -48,7 +48,14 @@ struct ConstantSchemaTests {
         wrappedSchema: SchemaCoding.Support.schema(representing: String.self),
         constantValue: "constant"
       )
-      try schema.test(encodesAs: #"{"const":"constant"}"#)
+      try schema.test(
+        encodesAs: """
+          {
+            "const": "constant"
+          }
+          """,
+        prettyPrint: true
+      )
     }
 
     @Test
@@ -58,7 +65,15 @@ struct ConstantSchemaTests {
         wrappedSchema: SchemaCoding.Support.schema(representing: Int.self),
         constantValue: 100
       )
-      try schema.test(encodesAs: #"{"description":"A constant value","const":100}"#)
+      try schema.test(
+        encodesAs: """
+          {
+            "description": "A constant value",
+            "const": 100
+          }
+          """,
+        prettyPrint: true
+      )
     }
 
   }

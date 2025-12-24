@@ -45,14 +45,29 @@ struct StringSchemaTests {
     func testMetaSchemaWithoutDescription() throws {
       try SchemaCoding.Support
         .schema(representing: String.self)
-        .test(encodesAs: #"{"type":"string"}"#)
+        .test(
+          encodesAs: """
+            {
+              "type": "string"
+            }
+            """,
+          prettyPrint: true
+        )
     }
 
     @Test
     func testMetaSchemaWithDescription() throws {
       try SchemaCoding.Support
         .schema(representing: String.self, description: "A string value")
-        .test(encodesAs: #"{"description":"A string value","type":"string"}"#)
+        .test(
+          encodesAs: """
+            {
+              "description": "A string value",
+              "type": "string"
+            }
+            """,
+          prettyPrint: true
+        )
     }
 
   }

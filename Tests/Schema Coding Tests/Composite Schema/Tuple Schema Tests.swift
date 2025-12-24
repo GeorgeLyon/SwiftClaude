@@ -75,7 +75,21 @@ struct TupleSchemaTests {
           SchemaCoding.Support.BooleanSchema(),
           SchemaCoding.Support.schema(representing: Int.self)
       )
-      try schema.test(encodesAs: #"{"prefixItems":[{"type":"boolean"},{"type":"integer"}]}"#)
+      try schema.test(
+        encodesAs: """
+          {
+            "prefixItems": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "integer"
+              }
+            ]
+          }
+          """,
+        prettyPrint: true
+      )
     }
 
   }

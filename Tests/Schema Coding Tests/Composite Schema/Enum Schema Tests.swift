@@ -235,7 +235,25 @@ struct EnumSchemaTests {
           }
         )
 
-        try schema.test(encodesAs: #"{"properties":{"alpha":{"properties":{}},"beta":{"properties":{}}}}"#)
+        try schema.test(
+          encodesAs: """
+            {
+              "properties": {
+                "alpha": {
+                  "properties": {
+
+                  }
+                },
+                "beta": {
+                  "properties": {
+
+                  }
+                }
+              }
+            }
+            """,
+          prettyPrint: true
+        )
       }
 
     }
@@ -381,8 +399,33 @@ struct EnumSchemaTests {
         )
 
         try schema.test(
-          encodesAs:
-            #"{"oneOf":[{"properties":{"type":{"const":"alpha"}},"required":["type"]},{"properties":{"type":{"const":"beta"}},"required":["type"]}]}"#
+          encodesAs: """
+            {
+              "oneOf": [
+                {
+                  "properties": {
+                    "type": {
+                      "const": "alpha"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                },
+                {
+                  "properties": {
+                    "type": {
+                      "const": "beta"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                }
+              ]
+            }
+            """,
+          prettyPrint: true
         )
       }
 

@@ -28,14 +28,29 @@ struct BooleanSchemaTests {
     func testMetaSchemaWithoutDescription() throws {
       try SchemaCoding.Support
         .schema(representing: Bool.self)
-        .test(encodesAs: #"{"type":"boolean"}"#)
+        .test(
+          encodesAs: """
+            {
+              "type": "boolean"
+            }
+            """,
+          prettyPrint: true
+        )
     }
 
     @Test
     func testMetaSchemaWithDescription() throws {
       try SchemaCoding.Support
         .schema(representing: Bool.self, description: "A boolean value")
-        .test(encodesAs: #"{"description":"A boolean value","type":"boolean"}"#)
+        .test(
+          encodesAs: """
+            {
+              "description": "A boolean value",
+              "type": "boolean"
+            }
+            """,
+          prettyPrint: true
+        )
     }
 
   }

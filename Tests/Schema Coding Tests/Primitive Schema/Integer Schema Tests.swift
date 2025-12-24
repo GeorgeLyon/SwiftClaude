@@ -86,14 +86,29 @@ struct IntegerSchemaTests {
     func testMetaSchemaWithoutDescription() throws {
       try SchemaCoding.Support
         .schema(representing: Int.self)
-        .test(encodesAs: #"{"type":"integer"}"#)
+        .test(
+          encodesAs: """
+            {
+              "type": "integer"
+            }
+            """,
+          prettyPrint: true
+        )
     }
 
     @Test
     func testMetaSchemaWithDescription() throws {
       try SchemaCoding.Support
         .schema(representing: Int.self, description: "An integer value")
-        .test(encodesAs: #"{"description":"An integer value","type":"integer"}"#)
+        .test(
+          encodesAs: """
+            {
+              "description": "An integer value",
+              "type": "integer"
+            }
+            """,
+          prettyPrint: true
+        )
     }
 
   }

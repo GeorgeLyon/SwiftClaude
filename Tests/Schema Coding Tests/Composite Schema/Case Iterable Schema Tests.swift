@@ -51,7 +51,18 @@ struct CaseIterableSchemaTests {
       }
 
       let schema = SchemaCoding.Support.schema(representing: Color.self, description: nil)
-      try schema.test(encodesAs: #"{"enum":["red","green","blue"]}"#)
+      try schema.test(
+        encodesAs: """
+          {
+            "enum": [
+              "red",
+              "green",
+              "blue"
+            ]
+          }
+          """,
+        prettyPrint: true
+      )
     }
 
     @Test
@@ -62,7 +73,17 @@ struct CaseIterableSchemaTests {
       }
 
       let schema = SchemaCoding.Support.schema(representing: Level.self, description: nil)
-      try schema.test(encodesAs: #"{"enum":[0,1]}"#)
+      try schema.test(
+        encodesAs: """
+          {
+            "enum": [
+              0,
+              1
+            ]
+          }
+          """,
+        prettyPrint: true
+      )
     }
 
     @Test
@@ -73,7 +94,18 @@ struct CaseIterableSchemaTests {
       }
 
       let schema = SchemaCoding.Support.schema(representing: Size.self, description: "Product size")
-      try schema.test(encodesAs: #"{"description":"Product size","enum":["small","large"]}"#)
+      try schema.test(
+        encodesAs: """
+          {
+            "description": "Product size",
+            "enum": [
+              "small",
+              "large"
+            ]
+          }
+          """,
+        prettyPrint: true
+      )
     }
 
   }

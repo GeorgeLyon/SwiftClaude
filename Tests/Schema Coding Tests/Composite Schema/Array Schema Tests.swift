@@ -49,14 +49,33 @@ struct ArraySchemaTests {
     func testMetaSchemaWithoutDescription() throws {
       try SchemaCoding.Support
         .schema(representing: [Int].self)
-        .test(encodesAs: #"{"items":{"type":"integer"}}"#)
+        .test(
+          encodesAs: """
+            {
+              "items": {
+                "type": "integer"
+              }
+            }
+            """,
+          prettyPrint: true
+        )
     }
 
     @Test
     func testMetaSchemaWithDescription() throws {
       try SchemaCoding.Support
         .schema(representing: [Int].self, description: "An array of integers")
-        .test(encodesAs: #"{"description":"An array of integers","items":{"type":"integer"}}"#)
+        .test(
+          encodesAs: """
+            {
+              "description": "An array of integers",
+              "items": {
+                "type": "integer"
+              }
+            }
+            """,
+          prettyPrint: true
+        )
     }
 
   }
