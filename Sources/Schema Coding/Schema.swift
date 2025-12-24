@@ -131,3 +131,24 @@ extension SchemaCoding.Support {
   }
 
 }
+
+// MARK: - Schema Style
+
+extension SchemaCoding.Support {
+
+  public protocol Style {
+
+  }
+
+  public struct InferredStyle: Style {
+    fileprivate init() {}
+  }
+
+}
+
+extension SchemaCoding.Support.Style
+where Self == SchemaCoding.Support.InferredStyle {
+  public static var inferred: Self {
+    Self()
+  }
+}

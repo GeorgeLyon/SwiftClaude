@@ -1,5 +1,65 @@
 private import JSONSupport
 
+// MARK: - Public API
+
+extension SchemaCoding.Support {
+
+  @_disfavoredOverload
+  public static func enumSchema<
+    Value,
+    each AssociatedValuesSchema: ObjectSchema
+  >(
+    representing: Value.Type = Value.self,
+    description: String? = nil,
+    style: EnumSchemaStyleInternallyTagged,
+    @EnumSchemaCasesBuilder<Value>
+    cases: () -> EnumSchemaCases<Value, repeat each AssociatedValuesSchema>,
+    encodeValue:
+      @escaping (
+        Value,
+        inout InternallyTaggedEnumSchemaEncoder<repeat each AssociatedValuesSchema>,
+      ) -> Void
+  ) -> some Schema<Value> {
+    InternallyTaggedEnumSchema(
+      description: description,
+      discriminatorPropertyName: style.discriminatorPropertyName,
+      cases: repeat each cases().cases,
+      encodeValue: encodeValue
+    )
+  }
+
+  /// Single-case enums hit a compiler bug which ends up crashing the compiler.
+  public static func enumSchema<
+    Value,
+    AssociatedValuesSchema
+  >(
+    representing: Value.Type = Value.self,
+    description: String? = nil,
+    style: EnumSchemaStyleInternallyTagged,
+    @EnumSchemaCasesBuilder<Value>
+    cases: () -> EnumSchemaCases<Value, AssociatedValuesSchema>,
+    encodeValue:
+      @escaping (
+        Value,
+        inout InternallyTaggedEnumSchemaSingleCaseEncoder<AssociatedValuesSchema>,
+      ) -> Void
+  ) -> some Schema<Value> {
+    InternallyTaggedEnumSchema(
+      description: description,
+      discriminatorPropertyName: style.discriminatorPropertyName,
+      cases: cases().cases,
+      encodeValue: { value, encoder in
+        var singleCaseEncoder = InternallyTaggedEnumSchemaSingleCaseEncoder(wrapped: encoder)
+        encodeValue(value, &singleCaseEncoder)
+        encoder = singleCaseEncoder.wrapped
+      }
+    )
+  }
+
+}
+
+// MARK: - Schema
+
 extension SchemaCoding.Support {
 
   struct InternallyTaggedEnumSchema<
@@ -165,6 +225,25 @@ extension SchemaCoding.Support {
       ) -> Void
   }
 
+}
+
+// MARK: - Style
+
+extension SchemaCoding.Support {
+
+  public struct EnumSchemaStyleInternallyTagged: Style {
+    fileprivate let discriminatorPropertyName: SchemaCodingKey
+  }
+
+}
+
+extension SchemaCoding.Support.Style
+where Self == SchemaCoding.Support.EnumSchemaStyleInternallyTagged {
+  public static func internallyTagged(
+    discriminatorPropertyName: SchemaCoding.Support.SchemaCodingKey
+  ) -> Self {
+    Self(discriminatorPropertyName: discriminatorPropertyName)
+  }
 }
 
 // MARK: - Cases

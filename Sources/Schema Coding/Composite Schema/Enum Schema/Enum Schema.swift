@@ -12,6 +12,7 @@ extension SchemaCoding.Support {
   >(
     representing: Value.Type = Value.self,
     description: String? = nil,
+    style: EnumSchemaStyleStandard = .standard,
     @EnumSchemaCasesBuilder<Value>
     cases: () -> EnumSchemaCases<Value, repeat each AssociatedValuesSchema>,
     encodeValue:
@@ -34,6 +35,7 @@ extension SchemaCoding.Support {
   >(
     representing: Value.Type = Value.self,
     description: String? = nil,
+    style: EnumSchemaStyleStandard = .standard,
     @EnumSchemaCasesBuilder<Value>
     cases: () -> EnumSchemaCases<Value, AssociatedValuesSchema>,
     encodeValue:
@@ -202,6 +204,23 @@ extension SchemaCoding.Support {
 
   }
 
+}
+
+// MARK: - Style
+
+extension SchemaCoding.Support {
+
+  public struct EnumSchemaStyleStandard: Style {
+    fileprivate init() {}
+  }
+
+}
+
+extension SchemaCoding.Support.Style
+where Self == SchemaCoding.Support.EnumSchemaStyleStandard {
+  public static var standard: Self {
+    Self()
+  }
 }
 
 // MARK: - Encoding
