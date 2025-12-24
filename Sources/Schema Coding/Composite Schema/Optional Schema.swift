@@ -12,25 +12,30 @@ extension SchemaCoding.Support {
 
   public struct OptionalSchema<WrappedSchema: Schema>: Schema {
 
-    var wrappedSchema: WrappedSchema {
-      effectiveSchema.properties.properties.schema
-    }
-
     public typealias Value = WrappedSchema.Value?
 
     public func encode(_ value: Value, to encoder: inout Encoder) {
-      effectiveSchema.encode(value, to: &encoder)
+      encoder.stream.encodeObject { objectEncoder in
+        if let value {
+          objectEncoder.encodeProperty(name: .value) { stream in
+            stream.encode(value, using: wrappedSchema)
+          }
+        }
+      }
     }
 
     public struct ValueDecodingState {
-      fileprivate var effectiveState: EffectiveSchema.ValueDecodingState
+      fileprivate var objectState = JSON.ObjectDecodingState()
+      fileprivate var wrappedState: WrappedSchema.ValueDecodingState
+      fileprivate var isDecodingValue = false
+      fileprivate var decodedValue: WrappedSchema.Value?
     }
 
     public func beginDecodingValue(
       from decoder: borrowing Decoder
     ) -> ValueDecodingState {
       ValueDecodingState(
-        effectiveState: effectiveSchema.beginDecodingValue(from: decoder)
+        wrappedState: wrappedSchema.beginDecodingValue(from: decoder)
       )
     }
 
@@ -38,41 +43,74 @@ extension SchemaCoding.Support {
       from decoder: inout Decoder,
       state: inout ValueDecodingState
     ) throws -> DecodingResult<Value> {
-      try effectiveSchema.decodeValue(from: &decoder, state: &state.effectiveState)
+      while true {
+        if state.isDecodingValue {
+          switch try wrappedSchema.decodeValue(from: &decoder, state: &state.wrappedState).kind {
+          case .incomplete:
+            return .incomplete
+          case .decoded(let value):
+            state.isDecodingValue = false
+            state.decodedValue = value
+          }
+        }
+
+        switch try decoder.stream.decodeObjectComponent(state: &state.objectState) {
+        case .incomplete:
+          return .incomplete
+        case .decoded(.propertyValueStart(let name)):
+          guard name == SchemaCodingKey.value.stringValue else {
+            throw Error.unknownPropertyName(String(name))
+          }
+          guard state.decodedValue == nil else {
+            throw Error.multipleValueProperties
+          }
+          state.isDecodingValue = true
+        case .decoded(.end):
+          return .decoded(state.decodedValue)
+        }
+      }
     }
 
     public var metaSchema: some Schema<Self> {
-      effectiveSchema.metaSchema.wrap { effectiveSchema in
-        Self(effectiveSchema: effectiveSchema)
-      } unwrap: { schema in
-        schema.effectiveSchema
+      let objectSchema = ConcreteObjectSchema {
+        OptionalObjectProperty(
+          name: .description,
+          schema: StringSchema()
+        )
+        RequiredObjectProperty(
+          name: .properties,
+          schema: ConcreteObjectSchema {
+            RequiredObjectProperty(
+              name: .value,
+              schema: wrappedSchema.metaSchema
+            )
+          }
+        )
       }
-    }
-
-    public var metadata: SchemaMetadata {
-      get { effectiveSchema.metadata }
-      set { effectiveSchema.metadata = newValue }
+      return objectSchema.wrap { (description, wrappedSchema) in
+        Self(description: description, wrappedSchema: wrappedSchema)
+      } unwrap: { schema in
+        (schema.description, schema.wrappedSchema)
+      }
     }
 
     init(
+      description: String? = nil,
       wrappedSchema: WrappedSchema
     ) {
-      effectiveSchema = ConcreteObjectSchema {
-        OptionalObjectProperty(name: .value, schema: wrappedSchema)
-      }
+      self.metadata = SchemaMetadata(description: nil)
+      self.wrappedSchema = wrappedSchema
     }
-    private init(
-      effectiveSchema: EffectiveSchema
-    ) {
-      self.effectiveSchema = effectiveSchema
-    }
-    fileprivate typealias EffectiveSchema = ConcreteObjectSchema<
-      TupleObjectSchemaProperties<
-        OptionalObjectProperty<WrappedSchema>
-      >
-    >
-    private var effectiveSchema: EffectiveSchema
+    public var metadata: SchemaMetadata
+    let wrappedSchema: WrappedSchema
 
   }
 
+}
+
+// MARK: - Errors
+
+private enum Error: Swift.Error {
+  case unknownPropertyName(String)
+  case multipleValueProperties
 }

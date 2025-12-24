@@ -18,3 +18,12 @@ extension JSON.DecodingResult {
     }
   }
 }
+
+extension JSON.ObjectEncoder {
+  mutating func encodeProperty(
+    name: SchemaCoding.Support.SchemaCodingKey,
+    encodeValue: (inout JSON.EncodingStream) -> Void
+  ) {
+    self.encodeProperty(name: name.stringValue, encodeValue: encodeValue)
+  }
+}

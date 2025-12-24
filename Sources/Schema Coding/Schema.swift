@@ -45,7 +45,7 @@ extension SchemaCoding.Support {
   }
 
   public struct SchemaMetadata {
-    init(description: String? = nil) {
+    init(description: String?) {
       self.description = description
     }
     mutating func prependDescription(_ prefix: String?) {
