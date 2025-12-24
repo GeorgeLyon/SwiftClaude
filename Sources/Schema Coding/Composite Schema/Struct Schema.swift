@@ -2,7 +2,6 @@
 
 extension SchemaCoding.Support {
 
-  @_disfavoredOverload
   public static func structSchema<Root, each Property>(
     representing: Root.Type = Root.self,
     description: String? = nil,
@@ -45,7 +44,8 @@ extension SchemaCoding.Support {
 
 extension SchemaCoding {
 
-  public typealias StructDecoder = SchemaCoding.Support.StructDecoder
+  public typealias StructDecoder = Support.StructDecoder
+  public typealias StructSinglePropertyDecoder = Support.StructSinglePropertyDecoder
 
 }
 

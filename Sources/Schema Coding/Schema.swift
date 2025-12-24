@@ -94,9 +94,12 @@ extension SchemaCoding {
 extension SchemaCoding.Support {
 
   public static func schema<Value: SchemaCodable>(
-    representing: Value.Type = Value.self
+    representing: Value.Type = Value.self,
+    description: String? = nil
   ) -> Value.Schema {
-    Value.schema
+    var schema = Value.schema
+    schema.metadata.prependDescription(description)
+    return schema
   }
 
   public protocol SchemaCodable {
