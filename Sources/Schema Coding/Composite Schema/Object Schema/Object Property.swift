@@ -71,14 +71,23 @@ extension SchemaCoding.Support {
       )
     }
 
-    typealias MetaProperty = DirectObjectProperty<WrapperSchema<Self, Schema.MetaSchema>>
+    typealias MetaProperty = WrapperObjectProperty<Self, DirectObjectProperty<Schema.MetaSchema>>
     var metaProperty: MetaProperty {
       MetaProperty(
-        name: name,
-        schema: propertySchema.metaSchema.wrap { wrapped in
-          Self(name: name, schema: wrapped)
-        } unwrap: { property in
-          property.propertySchema
+        wrappedProperty: DirectObjectProperty<_>(
+          name: name,
+          propertySchema: propertySchema.metaSchema,
+          kind: metadata.kind == .omitted ? .omitted : .required
+        ),
+        wrap: { propertySchema in
+          return Self(
+            name: name,
+            propertySchema: propertySchema,
+            kind: metadata.kind
+          )
+        },
+        unwrap: { schema in
+          schema.propertySchema
         }
       )
     }
@@ -91,22 +100,50 @@ extension SchemaCoding.Support {
       schemaValue
     }
 
+    init<WrappedSchema>(
+      name: SchemaCodingKey,
+      description: String? = nil,
+      schema: ConstantSchema<OptionalSchema<WrappedSchema>>
+    ) where Schema == ConstantSchema<OmissibleOptionalSchema<WrappedSchema>> {
+      self.init(
+        name: name,
+        propertySchema: ConstantSchema(
+          wrappedSchema: OmissibleOptionalSchema(
+            wrappedSchema: schema.wrappedSchema.wrappedSchema
+              .prependingDescription(schema.wrappedSchema.description)
+          ),
+          constantValue: schema.constantValue
+        ),
+        kind: schema.constantValue == nil ? .omitted : .required
+      )
+    }
+
     init(
       name: SchemaCodingKey,
       description: String? = nil,
       schema: Schema
     ) {
-      self.name = name
-      var schema = schema
-      schema.metadata.prependDescription(description)
-      self.propertySchema = schema
+      self.init(
+        name: name,
+        propertySchema: schema,
+        kind: .required
+      )
     }
+
+    private init(
+      name: SchemaCodingKey,
+      description: String? = nil,
+      propertySchema: Schema,
+      kind: ObjectPropertyKind
+    ) {
+      self.name = name
+      self.propertySchema = propertySchema.prependingDescription(description)
+      self.metadata = ObjectPropertyMetadata(kind: kind)
+    }
+
     let name: SchemaCodingKey
     let propertySchema: Schema
-
-    var metadata: ObjectPropertyMetadata {
-      ObjectPropertyMetadata(kind: .required)
-    }
+    let metadata: ObjectPropertyMetadata
 
   }
 
@@ -143,27 +180,14 @@ extension SchemaCoding.Support {
       )
     }
 
-    typealias MetaProperty = WrapperObjectProperty<Self, OptionalObjectProperty<Schema.MetaSchema>>
+    typealias MetaProperty = DirectObjectProperty<WrapperSchema<Self, Schema.MetaSchema>>
     var metaProperty: MetaProperty {
       MetaProperty(
-        wrappedProperty: OptionalObjectProperty<_>(
-          name: name,
-          propertySchema: propertySchema.metaSchema,
-          kind: metadata.kind == .omitted ? .omitted : .required
-        ),
-        wrap: { propertySchema in
-          if propertySchema == nil {
-            assert(metadata.kind == .omitted)
-          }
-          return Self(
-            name: name,
-            /// If this property must be omitted, we can just use `self.propertySchema` since it will never actually be used
-            propertySchema: propertySchema ?? self.propertySchema,
-            kind: metadata.kind
-          )
-        },
-        unwrap: { schema in
-          schema.propertySchema
+        name: name,
+        schema: propertySchema.metaSchema.wrap { propertySchema in
+          Self(name: name, propertySchema: propertySchema)
+        } unwrap: { property in
+          property.propertySchema
         }
       )
     }
@@ -176,28 +200,6 @@ extension SchemaCoding.Support {
       schemaValue
     }
 
-    init<WrappedSchema>(
-      name: SchemaCodingKey,
-      description: String? = nil,
-      schema: ConstantSchema<OptionalSchema<WrappedSchema>>
-    )
-    where
-      Schema == ConstantSchema<OmissibleOptionalSchema<WrappedSchema>>
-    {
-      self.name = name
-      self.propertySchema = ConstantSchema(
-        description: schema.description,
-        wrappedSchema: OmissibleOptionalSchema(
-          wrappedSchema: schema.wrappedSchema.wrappedSchema
-            .prependingDescription(schema.wrappedSchema.description)
-        ),
-        constantValue: schema.constantValue
-      )
-      self.metadata = ObjectPropertyMetadata(
-        kind: schema.constantValue == nil ? .omitted : .optional
-      )
-    }
-
     init(
       name: SchemaCodingKey,
       description: String? = nil,
@@ -208,21 +210,20 @@ extension SchemaCoding.Support {
         .wrappedSchema
         .prependingDescription(schema.description)
         .prependingDescription(description)
-      self.metadata = ObjectPropertyMetadata(kind: .optional)
     }
 
     private init(
       name: SchemaCodingKey,
-      propertySchema: Schema,
-      kind: ObjectPropertyKind
+      propertySchema: Schema
     ) {
       self.name = name
       self.propertySchema = propertySchema
-      self.metadata = ObjectPropertyMetadata(kind: kind)
     }
     let name: SchemaCodingKey
     let propertySchema: Schema
-    let metadata: ObjectPropertyMetadata
+    var metadata: ObjectPropertyMetadata {
+      ObjectPropertyMetadata(kind: .optional)
+    }
 
   }
 

@@ -79,7 +79,7 @@ extension SchemaCoding.Support {
       TupleObjectSchemaProperties<
         OptionalObjectProperty<StringSchema>,
         DirectObjectProperty<ConcreteObjectSchema<Properties.MetaProperties>>,
-        OptionalObjectProperty<
+        DirectObjectProperty<
           ConstantSchema<
             OmissibleOptionalSchema<
               ArraySchema<StringSchema>
@@ -94,7 +94,7 @@ extension SchemaCoding.Support {
     >
     var metaSchema: TypeErasedSchema<Self> {
       let propertiesMetadata = properties.metadata
-      let objectSchema = MetaWrappedSchema {
+      let objectSchema = ConcreteObjectSchema<_> {
         OptionalObjectProperty(
           name: .description,
           schema: OptionalSchema(wrappedSchema: StringSchema())
@@ -103,7 +103,7 @@ extension SchemaCoding.Support {
           name: .properties,
           schema: ConcreteObjectSchema<_>(properties: properties.metaProperties)
         )
-        OptionalObjectProperty(
+        DirectObjectProperty(
           name: .required,
           schema: ConstantSchema(
             wrappedSchema: OptionalSchema(

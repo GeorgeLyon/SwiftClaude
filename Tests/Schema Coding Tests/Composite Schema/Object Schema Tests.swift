@@ -13,13 +13,15 @@ struct ObjectSchemaTests {
     func testConcreteObjectSchema() throws {
       // Test basic object with required and optional properties
       let objectSchema = SchemaCoding.Support.ConcreteObjectSchema {
-        SchemaCoding.Support.RequiredObjectProperty(
+        SchemaCoding.Support.DirectObjectProperty(
           name: "required",
           schema: SchemaCoding.Support.BooleanSchema()
         )
         SchemaCoding.Support.OptionalObjectProperty(
           name: "optional",
-          schema: SchemaCoding.Support.schema(representing: Int.self)
+          schema: SchemaCoding.Support.OptionalSchema(
+            wrappedSchema: SchemaCoding.Support.schema(representing: Int.self)
+          )
         )
       }
 
@@ -31,9 +33,9 @@ struct ObjectSchemaTests {
     }
 
     @Test
-    func testRequiredObjectProperty() throws {
+    func testDirectObjectProperty() throws {
       let objectSchema = SchemaCoding.Support.ConcreteObjectSchema {
-        SchemaCoding.Support.RequiredObjectProperty(
+        SchemaCoding.Support.DirectObjectProperty(
           name: "name",
           schema: SchemaCoding.Support.schema(representing: String.self)
         )
@@ -47,7 +49,9 @@ struct ObjectSchemaTests {
       let objectSchema = SchemaCoding.Support.ConcreteObjectSchema {
         SchemaCoding.Support.OptionalObjectProperty(
           name: "value",
-          schema: SchemaCoding.Support.BooleanSchema()
+          schema: SchemaCoding.Support.OptionalSchema(
+            wrappedSchema: SchemaCoding.Support.BooleanSchema()
+          )
         )
       }
 
@@ -58,7 +62,7 @@ struct ObjectSchemaTests {
     @Test
     func testConstantOptionalObjectProperty() throws {
       let objectSchema = SchemaCoding.Support.ConcreteObjectSchema {
-        SchemaCoding.Support.ConstantOptionalObjectProperty(
+        SchemaCoding.Support.OptionalObjectProperty(
           name: "version",
           schema: SchemaCoding.Support.ConstantSchema(
             wrappedSchema: SchemaCoding.Support.OptionalSchema(
@@ -75,7 +79,7 @@ struct ObjectSchemaTests {
     @Test
     func testConstantOptionalObjectPropertyWithNilValue() throws {
       let objectSchema = SchemaCoding.Support.ConcreteObjectSchema {
-        SchemaCoding.Support.ConstantOptionalObjectProperty(
+        SchemaCoding.Support.OptionalObjectProperty(
           name: "version",
           schema: SchemaCoding.Support.ConstantSchema(
             wrappedSchema: SchemaCoding.Support.OptionalSchema(
@@ -97,11 +101,11 @@ struct ObjectSchemaTests {
       }
 
       let objectSchema = SchemaCoding.Support.ConcreteObjectSchema {
-        SchemaCoding.Support.RequiredObjectProperty(
+        SchemaCoding.Support.DirectObjectProperty(
           name: "x",
           schema: SchemaCoding.Support.schema(representing: Int.self)
         )
-        SchemaCoding.Support.RequiredObjectProperty(
+        SchemaCoding.Support.DirectObjectProperty(
           name: "y",
           schema: SchemaCoding.Support.schema(representing: Int.self)
         )
@@ -126,25 +130,28 @@ struct ObjectSchemaTests {
       let objectSchema = SchemaCoding.Support.ConcreteObjectSchema(
         description: "A test object"
       ) {
-        SchemaCoding.Support.RequiredObjectProperty(
+        SchemaCoding.Support.DirectObjectProperty(
           name: "id",
           schema: SchemaCoding.Support.schema(representing: Int.self)
         )
         SchemaCoding.Support.OptionalObjectProperty(
           name: "name",
-          schema: SchemaCoding.Support.schema(representing: String.self)
+          schema: SchemaCoding.Support.OptionalSchema(
+            wrappedSchema: SchemaCoding.Support.schema(representing: String.self)
+          )
         )
       }
 
       try objectSchema.test(
-        encodesAs: #"{"description":"A test object","properties":{"id":{"type":"integer"},"name":{"type":"string"}},"required":["id"]}"#
+        encodesAs:
+          #"{"description":"A test object","properties":{"id":{"type":"integer"},"name":{"type":"string"}},"required":["id"]}"#
       )
     }
 
     @Test
     func testObjectMetaSchemaWithPropertyDescriptions() throws {
       let objectSchema = SchemaCoding.Support.ConcreteObjectSchema {
-        SchemaCoding.Support.RequiredObjectProperty(
+        SchemaCoding.Support.DirectObjectProperty(
           name: "count",
           description: "The number of items",
           schema: SchemaCoding.Support.schema(representing: Int.self)
@@ -152,14 +159,15 @@ struct ObjectSchemaTests {
       }
 
       try objectSchema.test(
-        encodesAs: #"{"properties":{"count":{"description":"The number of items","type":"integer"}},"required":["count"]}"#
+        encodesAs:
+          #"{"properties":{"count":{"description":"The number of items","type":"integer"}},"required":["count"]}"#
       )
     }
 
     @Test
     func testConstantOptionalObjectPropertyMetaSchema() throws {
       let objectSchema = SchemaCoding.Support.ConcreteObjectSchema {
-        SchemaCoding.Support.ConstantOptionalObjectProperty(
+        SchemaCoding.Support.OptionalObjectProperty(
           name: "version",
           schema: SchemaCoding.Support.ConstantSchema(
             wrappedSchema: SchemaCoding.Support.OptionalSchema(
@@ -178,7 +186,7 @@ struct ObjectSchemaTests {
     @Test
     func testConstantOptionalObjectPropertyWithNilValueMetaSchema() throws {
       let objectSchema = SchemaCoding.Support.ConcreteObjectSchema {
-        SchemaCoding.Support.ConstantOptionalObjectProperty(
+        SchemaCoding.Support.OptionalObjectProperty(
           name: "version",
           schema: SchemaCoding.Support.ConstantSchema(
             wrappedSchema: SchemaCoding.Support.OptionalSchema(
