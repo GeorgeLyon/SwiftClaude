@@ -43,7 +43,7 @@ extension SchemaCoding.Support {
   public static func structSchema<Root, Property>(
     representing: Root.Type = Root.self,
     description: String? = nil,
-    style: StructSchemaStyleWrapper = .wrapper,
+    style: StructSchemaStyleWrapper,
     @StructPropertiesBuilder<Root> properties: () -> StructProperties<Root, Property>,
     initializer: @escaping (StructSinglePropertyDecoder<Property.Value>) -> Root
   ) -> some Schema<Root> {
