@@ -130,6 +130,132 @@ struct StructSchemaTests {
       )
     }
 
+    @Test
+    func testWrapperStyleWithBool() throws {
+      struct BoolWrapper: Equatable {
+        let value: Bool
+      }
+
+      let schema = SchemaCoding.Support.structSchema(
+        representing: BoolWrapper.self,
+        style: .wrapper,
+        properties: {
+          SchemaCoding.Support.structProperty(
+            name: "value",
+            keyPath: \BoolWrapper.value,
+            schema: SchemaCoding.Support.BooleanSchema()
+          )
+        },
+        initializer: { decoder in
+          BoolWrapper(value: decoder.propertyValues.0)
+        }
+      )
+
+      try schema.test(
+        BoolWrapper(value: true),
+        isCodedAs: "true"
+      )
+
+      try schema.test(
+        BoolWrapper(value: false),
+        isCodedAs: "false"
+      )
+    }
+
+    @Test
+    func testWrapperStyleWithString() throws {
+      struct StringWrapper: Equatable {
+        let text: String
+      }
+
+      let schema = SchemaCoding.Support.structSchema(
+        representing: StringWrapper.self,
+        style: .wrapper,
+        properties: {
+          SchemaCoding.Support.structProperty(
+            name: "text",
+            keyPath: \StringWrapper.text,
+            schema: SchemaCoding.Support.schema(representing: String.self)
+          )
+        },
+        initializer: { decoder in
+          StringWrapper(text: decoder.propertyValues.0)
+        }
+      )
+
+      try schema.test(
+        StringWrapper(text: "hello"),
+        isCodedAs: "\"hello\""
+      )
+    }
+
+    @Test
+    func testWrapperStyleWithInt() throws {
+      struct IntWrapper: Equatable {
+        let number: Int
+      }
+
+      let schema = SchemaCoding.Support.structSchema(
+        representing: IntWrapper.self,
+        style: .wrapper,
+        properties: {
+          SchemaCoding.Support.structProperty(
+            name: "number",
+            keyPath: \IntWrapper.number,
+            schema: SchemaCoding.Support.schema(representing: Int.self)
+          )
+        },
+        initializer: { decoder in
+          IntWrapper(number: decoder.propertyValues.0)
+        }
+      )
+
+      try schema.test(
+        IntWrapper(number: 42),
+        isCodedAs: "42"
+      )
+    }
+
+    @Test
+    func testWrapperStyleWithOptional() throws {
+      struct OptionalWrapper: Equatable {
+        let value: Int?
+      }
+
+      let schema = SchemaCoding.Support.structSchema(
+        representing: OptionalWrapper.self,
+        style: .wrapper,
+        properties: {
+          SchemaCoding.Support.structProperty(
+            name: "value",
+            keyPath: \OptionalWrapper.value,
+            schema: Int?.schema
+          )
+        },
+        initializer: { decoder in
+          OptionalWrapper(value: decoder.propertyValues.0)
+        }
+      )
+
+      try schema.test(
+        OptionalWrapper(value: 123),
+        isCodedAs: #"""
+          {
+            "value": 123
+          }
+          """#
+      )
+
+      try schema.test(
+        OptionalWrapper(value: nil),
+        isCodedAs: """
+          {
+
+          }
+          """
+      )
+    }
+
   }
 
   @Suite("Meta Schema")
@@ -168,6 +294,68 @@ struct StructSchemaTests {
             "required": [
               "name"
             ]
+          }
+          """
+      )
+    }
+
+    @Test
+    func testWrapperStyleMetaSchema() throws {
+      struct BoolWrapper: Equatable {
+        let value: Bool
+      }
+
+      let schema = SchemaCoding.Support.structSchema(
+        representing: BoolWrapper.self,
+        style: .wrapper,
+        properties: {
+          SchemaCoding.Support.structProperty(
+            name: "value",
+            keyPath: \BoolWrapper.value,
+            schema: SchemaCoding.Support.BooleanSchema()
+          )
+        },
+        initializer: { decoder in
+          BoolWrapper(value: decoder.propertyValues.0)
+        }
+      )
+
+      try schema.test(
+        encodesAs: """
+          {
+            "type": "boolean"
+          }
+          """
+      )
+    }
+
+    @Test
+    func testWrapperStyleMetaSchemaWithDescription() throws {
+      struct DescribedWrapper: Equatable {
+        let value: String
+      }
+
+      let schema = SchemaCoding.Support.structSchema(
+        representing: DescribedWrapper.self,
+        style: .wrapper,
+        properties: {
+          SchemaCoding.Support.structProperty(
+            name: "value",
+            description: "A descriptive text",
+            keyPath: \DescribedWrapper.value,
+            schema: SchemaCoding.Support.schema(representing: String.self)
+          )
+        },
+        initializer: { decoder in
+          DescribedWrapper(value: decoder.propertyValues.0)
+        }
+      )
+
+      try schema.test(
+        encodesAs: """
+          {
+            "description": "A descriptive text",
+            "type": "string"
           }
           """
       )
