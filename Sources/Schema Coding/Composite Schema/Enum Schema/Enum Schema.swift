@@ -101,7 +101,7 @@ extension SchemaCoding.Support {
           case .incomplete:
             return .incomplete
           case .decoded:
-            state.phase =  .decoded(try `caseDecoder`.finishDecoding(from: decoder))
+            state.phase = .decoded(try `caseDecoder`.finishDecoding(from: decoder))
             break
           }
         }
@@ -126,7 +126,7 @@ extension SchemaCoding.Support {
           switch state.phase {
           case .decodingPrelude:
             throw Error.noCaseFound
-          case .decodingValue(let enumSchemaCaseDecoderProtocol):
+          case .decodingValue:
             assertionFailure()
             throw Error.invalidState
           case .decoded(let value):
@@ -293,13 +293,13 @@ extension SchemaCoding.Support {
 // MARK: - Decoding
 
 extension SchemaCoding.Support {
-  
+
   fileprivate enum EnumSchemaDecodingPhase<Value> {
     case decodingPrelude
     case decodingValue(any EnumSchemaCaseDecoderProtocol<Value>)
     case decoded(Value)
   }
-  
+
 }
 
 // MARK: - Errors
