@@ -16,6 +16,8 @@ extension SchemaCoding.Support {
     associatedtype PropertySchema: SchemaCoding.Schema
     var propertySchema: PropertySchema { get }
 
+    associatedtype EffectiveSchema: SchemaCoding.Schema where EffectiveSchema.Value == Value
+
     associatedtype MetaProperty: ObjectProperty where MetaProperty.Value == Self
     var metaProperty: MetaProperty { get }
 
@@ -51,6 +53,7 @@ extension SchemaCoding.Support {
   {
 
     typealias PropertySchema = Schema
+    typealias EffectiveSchema = Schema
 
     typealias Decoder = ConcreteObjectPropertyDecoder<Self>
 
@@ -174,6 +177,7 @@ extension SchemaCoding.Support {
   {
 
     typealias PropertySchema = Schema
+    typealias EffectiveSchema = OptionalSchema<Schema>
 
     typealias Value = Schema.Value?
 
@@ -250,6 +254,8 @@ extension SchemaCoding.Support {
 extension SchemaCoding.Support {
 
   struct WrapperObjectProperty<NewValue, WrappedProperty: ObjectProperty>: ObjectProperty {
+
+    typealias EffectiveSchema = WrapperSchema<NewValue, WrappedProperty.EffectiveSchema>
 
     func encode(_ value: Value, to encoder: inout ObjectPropertiesEncoder) {
       wrappedProperty.encode(unwrap(value), to: &encoder)

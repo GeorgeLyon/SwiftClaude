@@ -5,6 +5,7 @@ extension SchemaCoding.Support {
   public static func structSchema<Root, each Property>(
     representing: Root.Type = Root.self,
     description: String? = nil,
+    style: StructSchemaStyleStandard = .standard,
     @StructPropertiesBuilder<Root> properties: () -> StructProperties<Root, repeat each Property>,
     initializer: @escaping (StructDecoder<repeat (each Property).Value>) -> Root
   ) -> some ObjectSchema<Root> {
@@ -23,6 +24,7 @@ extension SchemaCoding.Support {
   public static func structSchema<Root, Property>(
     representing: Root.Type = Root.self,
     description: String? = nil,
+    style: StructSchemaStyleStandard = .standard,
     @StructPropertiesBuilder<Root> properties: () -> StructProperties<Root, Property>,
     initializer: @escaping (StructSinglePropertyDecoder<Property.Value>) -> Root
   ) -> some ObjectSchema<Root> {
@@ -32,6 +34,21 @@ extension SchemaCoding.Support {
       properties: properties.property
     )
     return objectSchema.wrap { propertyValues in
+      initializer(StructSinglePropertyDecoder(propertyValues: (propertyValues, ())))
+    } unwrap: { root in
+      properties.accessValue(from: root)
+    }
+  }
+
+  public static func structSchema<Root, Property>(
+    representing: Root.Type = Root.self,
+    description: String? = nil,
+    style: StructSchemaStyleWrapper = .wrapper,
+    @StructPropertiesBuilder<Root> properties: () -> StructProperties<Root, Property>,
+    initializer: @escaping (StructSinglePropertyDecoder<Property.Value>) -> Root
+  ) -> some Schema<Root> {
+    let properties = properties().properties
+    return properties.effectiveSchema.wrap { propertyValues in
       initializer(StructSinglePropertyDecoder(propertyValues: (propertyValues, ())))
     } unwrap: { root in
       properties.accessValue(from: root)
@@ -94,12 +111,10 @@ extension SchemaCoding.Support {
     schema: Schema
   ) -> StructProperty<Root, some ObjectProperty<Schema.Value>> {
     StructProperty(
-      property: DirectObjectProperty(
-        name: name,
-        description: description,
-        schema: schema
-      ),
-      keyPath: keyPath
+      name: name,
+      description: description,
+      keyPath: keyPath,
+      schema: schema
     )
   }
 
@@ -110,44 +125,51 @@ extension SchemaCoding.Support {
     schema: OptionalSchema<Schema>
   ) -> StructProperty<Root, some ObjectProperty<Schema.Value?>> {
     StructProperty(
-      property: OptionalObjectProperty(
-        name: name,
-        description: description,
-        schema: schema
-      ),
-      keyPath: keyPath
+      name: name,
+      description: description,
+      keyPath: keyPath,
+      schema: schema
     )
   }
 
   public struct StructProperty<Root, Property: ObjectProperty> {
-    fileprivate init(
-      property: Property
-    ) where Property.Value == Void {
-      self.property = property
-      self.accessor = .constantValue(())
+    @_disfavoredOverload
+    fileprivate init<Schema: SchemaCoding.Schema>(
+      name: SchemaCodingKey,
+      description: String?,
+      keyPath: KeyPath<Root, Schema.Value>,
+      schema: Schema
+    ) where Property == DirectObjectProperty<Schema> {
+      self.property = Property(
+        name: name,
+        description: description,
+        schema: schema
+      )
+      self.keyPath = keyPath
+      self.effectiveSchema = schema.prependingDescription(description)
     }
-    fileprivate init(
-      property: Property,
-      keyPath: KeyPath<Root, Property.Value>
-    ) {
-      self.property = property
-      self.accessor = .keyPath(keyPath)
+    fileprivate init<Schema: SchemaCoding.Schema>(
+      name: SchemaCodingKey,
+      description: String?,
+      keyPath: KeyPath<Root, Schema.Value?>,
+      schema: OptionalSchema<Schema>
+    ) where Property == OptionalObjectProperty<Schema> {
+      self.property = Property(
+        name: name,
+        description: description,
+        schema: schema
+      )
+      self.keyPath = keyPath
+      self.effectiveSchema = schema.prependingDescription(description)
     }
     fileprivate func accessValue(from root: Root) -> Property.Value {
-      switch accessor {
-      case .keyPath(let keyPath):
-        root[keyPath: keyPath]
-      case .constantValue(let value):
-        value
-      }
+      root[keyPath: keyPath]
     }
     fileprivate let property: Property
 
-    private enum Accessor {
-      case keyPath(KeyPath<Root, Property.Value>)
-      case constantValue(Property.Value)
-    }
-    private let accessor: Accessor
+    fileprivate let effectiveSchema: Property.EffectiveSchema
+
+    private let keyPath: KeyPath<Root, Property.Value>
   }
 
 }
@@ -178,6 +200,34 @@ extension SchemaCoding.Support {
     let properties: (repeat StructProperty<Root, each Property>)
   }
 
+}
+
+// MARK: - Style
+
+extension SchemaCoding.Support {
+
+  public struct StructSchemaStyleStandard: Style {
+    fileprivate init() {}
+  }
+
+  public struct StructSchemaStyleWrapper: Style {
+    fileprivate init() {}
+  }
+
+}
+
+extension SchemaCoding.Support.Style
+where Self == SchemaCoding.Support.StructSchemaStyleStandard {
+  public static var standard: Self {
+    Self()
+  }
+}
+
+extension SchemaCoding.Support.Style
+where Self == SchemaCoding.Support.StructSchemaStyleWrapper {
+  public static var wrapper: Self {
+    Self()
+  }
 }
 
 // MARK: - Errors
