@@ -54,13 +54,17 @@ struct EnumSchemaTests {
 
               }
             }
-            """#,
-          prettyPrint: true
+            """#
         )
         try schema.test(
           SimpleEnum.second,
-          isCodedAs: #"{"second":{}}"#,
-          prettyPrint: false
+          isCodedAs: #"""
+            {
+              "second": {
+
+              }
+            }
+            """#
         )
       }
 
@@ -112,13 +116,19 @@ struct EnumSchemaTests {
 
         try schema.test(
           IntEnum.alpha(42),
-          isCodedAs: #"{"alpha":42}"#,
-          prettyPrint: false
+          isCodedAs: #"""
+            {
+              "alpha": 42
+            }
+            """#
         )
         try schema.test(
           IntEnum.beta("hello"),
-          isCodedAs: #"{"beta":"hello"}"#,
-          prettyPrint: false
+          isCodedAs: #"""
+            {
+              "beta": "hello"
+            }
+            """#
         )
       }
 
@@ -169,13 +179,24 @@ struct EnumSchemaTests {
 
         try schema.test(
           PointEnum.point(x: 10, y: 20),
-          isCodedAs: #"{"point":{"x":10,"y":20}}"#,
-          prettyPrint: false
+          isCodedAs: #"""
+            {
+              "point": {
+                "x": 10,
+                "y": 20
+              }
+            }
+            """#
         )
         try schema.test(
           PointEnum.origin,
-          isCodedAs: #"{"origin":{}}"#,
-          prettyPrint: false
+          isCodedAs: #"""
+            {
+              "origin": {
+
+              }
+            }
+            """#
         )
       }
 
@@ -224,13 +245,24 @@ struct EnumSchemaTests {
 
         try schema.test(
           TupleEnum.pair(42, true),
-          isCodedAs: #"{"pair":[42,true]}"#,
-          prettyPrint: false
+          isCodedAs: #"""
+            {
+              "pair": [
+                42,
+                true
+              ]
+            }
+            """#
         )
         try schema.test(
           TupleEnum.single,
-          isCodedAs: #"{"single":{}}"#,
-          prettyPrint: false
+          isCodedAs: #"""
+            {
+              "single": {
+
+              }
+            }
+            """#
         )
       }
 
