@@ -14,7 +14,14 @@ struct ArraySchemaTests {
       let schema = SchemaCoding.Support.ArraySchema(
         elementSchema: SchemaCoding.Support.BooleanSchema()
       )
-      try schema.test([], isCodedAs: "[]")
+      try schema.test(
+        [],
+        isCodedAs: """
+          [
+
+          ]
+          """
+      )
     }
 
     @Test
@@ -22,7 +29,14 @@ struct ArraySchemaTests {
       let schema = SchemaCoding.Support.ArraySchema(
         elementSchema: SchemaCoding.Support.BooleanSchema()
       )
-      try schema.test([true], isCodedAs: "[true]")
+      try schema.test(
+        [true],
+        isCodedAs: """
+          [
+            true
+          ]
+          """
+      )
     }
 
     @Test
@@ -30,14 +44,50 @@ struct ArraySchemaTests {
       let schema = SchemaCoding.Support.ArraySchema(
         elementSchema: SchemaCoding.Support.BooleanSchema()
       )
-      try schema.test([true, false, true], isCodedAs: "[true,false,true]")
+      try schema.test(
+        [true, false, true],
+        isCodedAs: """
+          [
+            true,
+            false,
+            true
+          ]
+          """
+      )
     }
 
     @Test
     func testArrayWithSchemaCodableElements() throws {
-      try test([1, 2, 3], isCodedAs: "[1,2,3]")
-      try test(["a", "b", "c"], isCodedAs: #"["a","b","c"]"#)
-      try test([true, false, true], isCodedAs: "[true,false,true]")
+      try test(
+        [1, 2, 3],
+        isCodedAs: """
+          [
+            1,
+            2,
+            3
+          ]
+          """
+      )
+      try test(
+        ["a", "b", "c"],
+        isCodedAs: """
+          [
+            "a",
+            "b",
+            "c"
+          ]
+          """
+      )
+      try test(
+        [true, false, true],
+        isCodedAs: """
+          [
+            true,
+            false,
+            true
+          ]
+          """
+      )
     }
 
   }
@@ -56,8 +106,7 @@ struct ArraySchemaTests {
                 "type": "integer"
               }
             }
-            """,
-          prettyPrint: true
+            """
         )
     }
 
@@ -73,8 +122,7 @@ struct ArraySchemaTests {
                 "type": "integer"
               }
             }
-            """,
-          prettyPrint: true
+            """
         )
     }
 

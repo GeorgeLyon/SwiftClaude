@@ -60,8 +60,7 @@ struct CaseIterableSchemaTests {
               "blue"
             ]
           }
-          """,
-        prettyPrint: true
+          """
       )
     }
 
@@ -81,8 +80,7 @@ struct CaseIterableSchemaTests {
               1
             ]
           }
-          """,
-        prettyPrint: true
+          """
       )
     }
 
@@ -103,8 +101,7 @@ struct CaseIterableSchemaTests {
               "large"
             ]
           }
-          """,
-        prettyPrint: true
+          """
       )
     }
 

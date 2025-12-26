@@ -28,8 +28,7 @@ struct NullSchemaTests {
             {
               "type": "null"
             }
-            """,
-          prettyPrint: true
+            """
         )
     }
 
@@ -42,8 +41,7 @@ struct NullSchemaTests {
               "description": "A null value",
               "type": "null"
             }
-            """,
-          prettyPrint: true
+            """
         )
     }
 

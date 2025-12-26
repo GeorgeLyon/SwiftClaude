@@ -50,8 +50,7 @@ struct StringSchemaTests {
             {
               "type": "string"
             }
-            """,
-          prettyPrint: true
+            """
         )
     }
 
@@ -65,8 +64,7 @@ struct StringSchemaTests {
               "description": "A string value",
               "type": "string"
             }
-            """,
-          prettyPrint: true
+            """
         )
     }
 

@@ -91,8 +91,7 @@ struct IntegerSchemaTests {
             {
               "type": "integer"
             }
-            """,
-          prettyPrint: true
+            """
         )
     }
 
@@ -106,8 +105,7 @@ struct IntegerSchemaTests {
               "description": "An integer value",
               "type": "integer"
             }
-            """,
-          prettyPrint: true
+            """
         )
     }
 

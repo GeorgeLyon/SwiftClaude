@@ -10,7 +10,7 @@ extension SchemaCoding.Schema where Value: Equatable {
   public func test(
     _ value: Value,
     isCodedAs expectedJSONFragments: JSONFragments,
-    prettyPrint: Bool = false,
+    prettyPrint: Bool = true,
     sourceLocation: SourceLocation = #_sourceLocation
   ) throws {
     try test(
@@ -50,7 +50,7 @@ extension SchemaCoding.Schema {
   public func test<each Element: Equatable>(
     _ value: (repeat each Element),
     isCodedAs expectedJSONFragments: JSONFragments,
-    prettyPrint: Bool = false,
+    prettyPrint: Bool = true,
     sourceLocation: SourceLocation = #_sourceLocation
   ) throws where Value == (repeat each Element) {
     try test(
@@ -76,7 +76,7 @@ extension SchemaCoding.Schema {
     _ value: Value,
     flatten: (Value) -> (repeat each Element),
     isCodedAs expectedJSONFragments: JSONFragments,
-    prettyPrint: Bool = false,
+    prettyPrint: Bool = true,
     sourceLocation: SourceLocation = #_sourceLocation
   ) throws {
     try test(
@@ -129,7 +129,7 @@ extension SchemaCoding.Schema {
 
   public func test(
     encodesAs json: String,
-    prettyPrint: Bool = false,
+    prettyPrint: Bool = true,
     sourceLocation: SourceLocation = #_sourceLocation
   ) throws {
     try metaSchema.test(
@@ -149,7 +149,7 @@ extension SchemaCoding.Schema {
   public func test(
     _ value: Value,
     encodesAs json: String,
-    prettyPrint: Bool = false,
+    prettyPrint: Bool = true,
     sourceLocation: SourceLocation = #_sourceLocation
   ) throws {
     #expect(throws: Never.self, sourceLocation: sourceLocation) {
@@ -166,7 +166,7 @@ extension SchemaCoding.Schema {
   func test(
     _ value: Value,
     isCodedAs expectedJSONFragments: JSONFragments,
-    prettyPrint: Bool = false,
+    prettyPrint: Bool = true,
     testEquality: (Value, Value, SourceLocation) -> Bool,
     sourceLocation: SourceLocation = #_sourceLocation
   ) throws {
@@ -257,7 +257,7 @@ extension SchemaCoding.Schema {
 public func test<Value: SchemaCoding.SchemaCodable & Equatable>(
   _ value: Value,
   isCodedAs expectedJSONFragments: JSONFragments,
-  prettyPrint: Bool = false,
+  prettyPrint: Bool = true,
   sourceLocation: SourceLocation = #_sourceLocation
 ) throws {
   try Value.schema.test(

@@ -26,10 +26,25 @@ struct ObjectSchemaTests {
       }
 
       // With both values
-      try objectSchema.test((true, 42 as Int?), isCodedAs: #"{"required":true,"optional":42}"#)
+      try objectSchema.test(
+        (true, 42 as Int?),
+        isCodedAs: """
+          {
+            "required": true,
+            "optional": 42
+          }
+          """
+      )
 
       // With nil optional (property omitted)
-      try objectSchema.test((false, nil as Int?), isCodedAs: #"{"required":false}"#)
+      try objectSchema.test(
+        (false, nil as Int?),
+        isCodedAs: """
+          {
+            "required": false
+          }
+          """
+      )
     }
 
     @Test
@@ -41,7 +56,14 @@ struct ObjectSchemaTests {
         )
       }
 
-      try objectSchema.test("hello", isCodedAs: #"{"name":"hello"}"#)
+      try objectSchema.test(
+        "hello",
+        isCodedAs: """
+          {
+            "name": "hello"
+          }
+          """
+      )
     }
 
     @Test
@@ -55,8 +77,22 @@ struct ObjectSchemaTests {
         )
       }
 
-      try objectSchema.test(true as Bool?, isCodedAs: #"{"value":true}"#)
-      try objectSchema.test(nil as Bool?, isCodedAs: "{}")
+      try objectSchema.test(
+        true as Bool?,
+        isCodedAs: """
+          {
+            "value": true
+          }
+          """
+      )
+      try objectSchema.test(
+        nil as Bool?,
+        isCodedAs: """
+          {
+
+          }
+          """
+      )
     }
 
     @Test
@@ -73,7 +109,14 @@ struct ObjectSchemaTests {
         )
       }
 
-      try objectSchema.test((), isCodedAs: #"{"version":"1.0"}"#)
+      try objectSchema.test(
+        (),
+        isCodedAs: """
+          {
+            "version": "1.0"
+          }
+          """
+      )
     }
 
     @Test
@@ -90,7 +133,14 @@ struct ObjectSchemaTests {
         )
       }
 
-      try objectSchema.test((), isCodedAs: "{}")
+      try objectSchema.test(
+        (),
+        isCodedAs: """
+          {
+
+          }
+          """
+      )
     }
 
     @Test
@@ -117,7 +167,15 @@ struct ObjectSchemaTests {
         (point.x, point.y)
       }
 
-      try schema.test(Point(x: 10, y: 20), isCodedAs: #"{"x":10,"y":20}"#)
+      try schema.test(
+        Point(x: 10, y: 20),
+        isCodedAs: """
+          {
+            "x": 10,
+            "y": 20
+          }
+          """
+      )
     }
 
   }
@@ -143,8 +201,22 @@ struct ObjectSchemaTests {
       }
 
       try objectSchema.test(
-        encodesAs:
-          #"{"description":"A test object","properties":{"id":{"type":"integer"},"name":{"type":"string"}},"required":["id"]}"#
+        encodesAs: """
+          {
+            "description": "A test object",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id"
+            ]
+          }
+          """
       )
     }
 
@@ -159,8 +231,19 @@ struct ObjectSchemaTests {
       }
 
       try objectSchema.test(
-        encodesAs:
-          #"{"properties":{"count":{"description":"The number of items","type":"integer"}},"required":["count"]}"#
+        encodesAs: """
+          {
+            "properties": {
+              "count": {
+                "description": "The number of items",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "count"
+            ]
+          }
+          """
       )
     }
 
@@ -179,7 +262,18 @@ struct ObjectSchemaTests {
       }
 
       try objectSchema.test(
-        encodesAs: #"{"properties":{"version":{"const":"1.0"}},"required":["version"]}"#
+        encodesAs: """
+          {
+            "properties": {
+              "version": {
+                "const": "1.0"
+              }
+            },
+            "required": [
+              "version"
+            ]
+          }
+          """
       )
     }
 
@@ -198,7 +292,13 @@ struct ObjectSchemaTests {
       }
 
       try objectSchema.test(
-        encodesAs: #"{"properties":{}}"#
+        encodesAs: """
+          {
+            "properties": {
+
+            }
+          }
+          """
       )
     }
 

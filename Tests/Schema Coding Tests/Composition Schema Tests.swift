@@ -18,9 +18,38 @@ struct CompositionSchemaTests {
         elementSchema: innerSchema
       )
 
-      try schema.test([[true, false], [false]], isCodedAs: "[[true,false],[false]]")
-      try schema.test([[]], isCodedAs: "[[]]")
-      try schema.test([], isCodedAs: "[]")
+      try schema.test(
+        [[true, false], [false]],
+        isCodedAs: """
+          [
+            [
+              true,
+              false
+            ],
+            [
+              false
+            ]
+          ]
+          """
+      )
+      try schema.test(
+        [[]],
+        isCodedAs: """
+          [
+            [
+
+            ]
+          ]
+          """
+      )
+      try schema.test(
+        [],
+        isCodedAs: """
+          [
+
+          ]
+          """
+      )
     }
 
     @Test
@@ -29,8 +58,35 @@ struct CompositionSchemaTests {
         elementSchema: Bool?.schema
       )
 
-      try schema.test([true, nil, false], isCodedAs: #"[{"value":true},{},{"value":false}]"#)
-      try schema.test([nil, nil], isCodedAs: #"[{},{}]"#)
+      try schema.test(
+        [true, nil, false],
+        isCodedAs: """
+          [
+            {
+              "value": true
+            },
+            {
+
+            },
+            {
+              "value": false
+            }
+          ]
+          """
+      )
+      try schema.test(
+        [nil, nil],
+        isCodedAs: """
+          [
+            {
+
+            },
+            {
+
+            }
+          ]
+          """
+      )
     }
 
   }
@@ -52,7 +108,17 @@ struct CompositionSchemaTests {
       try schema.test(
         ([true], [false, true]),
         flatten: { ($0.0, $0.1) },
-        isCodedAs: "[[true],[false,true]]"
+        isCodedAs: """
+          [
+            [
+              true
+            ],
+            [
+              false,
+              true
+            ]
+          ]
+          """
       )
     }
 
@@ -72,7 +138,18 @@ struct CompositionSchemaTests {
       try schema.test(
         ((true, false), (false, true)),
         flatten: { ($0.0.0, $0.0.1, $0.1.0, $0.1.1) },
-        isCodedAs: "[[true,false],[false,true]]"
+        isCodedAs: """
+          [
+            [
+              true,
+              false
+            ],
+            [
+              false,
+              true
+            ]
+          ]
+          """
       )
     }
 
@@ -87,7 +164,16 @@ struct CompositionSchemaTests {
       try schema.test(
         (true, nil),
         flatten: { ($0.0, $0.1) },
-        isCodedAs: #"[{"value":true},{}]"#
+        isCodedAs: """
+          [
+            {
+              "value": true
+            },
+            {
+
+            }
+          ]
+          """
       )
     }
 
@@ -102,13 +188,38 @@ struct CompositionSchemaTests {
       let schema = Bool??.schema
 
       // .some(.some(true))
-      try schema.test(.some(.some(true)), isCodedAs: #"{"value":{"value":true}}"#)
+      try schema.test(
+        .some(.some(true)),
+        isCodedAs: """
+          {
+            "value": {
+              "value": true
+            }
+          }
+          """
+      )
 
       // .some(.none)
-      try schema.test(.some(.none), isCodedAs: #"{"value":{}}"#)
+      try schema.test(
+        .some(.none),
+        isCodedAs: """
+          {
+            "value": {
+
+            }
+          }
+          """
+      )
 
       // .none
-      try schema.test(Bool??.none, isCodedAs: "{}")
+      try schema.test(
+        Bool??.none,
+        isCodedAs: """
+          {
+
+          }
+          """
+      )
     }
 
     @Test
@@ -120,8 +231,25 @@ struct CompositionSchemaTests {
         wrappedSchema: arraySchema
       )
 
-      try schema.test([true, false], isCodedAs: #"{"value":[true,false]}"#)
-      try schema.test(nil, isCodedAs: "{}")
+      try schema.test(
+        [true, false],
+        isCodedAs: """
+          {
+            "value": [
+              true,
+              false
+            ]
+          }
+          """
+      )
+      try schema.test(
+        nil,
+        isCodedAs: """
+          {
+
+          }
+          """
+      )
     }
 
   }
@@ -141,8 +269,39 @@ struct CompositionSchemaTests {
         elementSchema: middleSchema
       )
 
-      try schema.test([[[true]]], isCodedAs: "[[[true]]]")
-      try schema.test([[[], [true, false]], [[false]]], isCodedAs: "[[[],[true,false]],[[false]]]")
+      try schema.test(
+        [[[true]]],
+        isCodedAs: """
+          [
+            [
+              [
+                true
+              ]
+            ]
+          ]
+          """
+      )
+      try schema.test(
+        [[[], [true, false]], [[false]]],
+        isCodedAs: """
+          [
+            [
+              [
+
+              ],
+              [
+                true,
+                false
+              ]
+            ],
+            [
+              [
+                false
+              ]
+            ]
+          ]
+          """
+      )
     }
 
     @Test
@@ -160,7 +319,16 @@ struct CompositionSchemaTests {
       try schema.test(
         (true, [false, true], "test"),
         flatten: { ($0.0, $0.1, $0.2) },
-        isCodedAs: #"[true,[false,true],"test"]"#
+        isCodedAs: """
+          [
+            true,
+            [
+              false,
+              true
+            ],
+            "test"
+          ]
+          """
       )
     }
 

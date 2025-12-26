@@ -54,8 +54,7 @@ struct NumberSchemaTests {
             {
               "type": "number"
             }
-            """,
-          prettyPrint: true
+            """
         )
     }
 
@@ -69,8 +68,7 @@ struct NumberSchemaTests {
               "description": "A number value",
               "type": "number"
             }
-            """,
-          prettyPrint: true
+            """
         )
     }
 

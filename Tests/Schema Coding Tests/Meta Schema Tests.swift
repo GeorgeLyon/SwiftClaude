@@ -50,8 +50,7 @@ struct MetaSchemaTests {
               ]
             }
           }
-          """,
-        prettyPrint: true
+          """
       )
     }
 
@@ -117,8 +116,7 @@ struct MetaSchemaTests {
               "inner"
             ]
           }
-          """,
-        prettyPrint: true
+          """
       )
     }
 
@@ -220,8 +218,7 @@ struct MetaSchemaTests {
               }
             }
           }
-          """,
-        prettyPrint: true
+          """
       )
     }
 
@@ -270,8 +267,7 @@ struct MetaSchemaTests {
               }
             }
           }
-          """,
-        prettyPrint: true
+          """
       )
     }
 
@@ -376,8 +372,7 @@ struct MetaSchemaTests {
               "items"
             ]
           }
-          """,
-        prettyPrint: true
+          """
       )
     }
 
@@ -523,8 +518,7 @@ struct MetaSchemaTests {
               "required"
             ]
           }
-          """,
-        prettyPrint: true
+          """
       )
     }
 
@@ -643,8 +637,7 @@ struct MetaSchemaTests {
               "properties"
             ]
           }
-          """,
-        prettyPrint: true
+          """
       )
     }
 

@@ -81,7 +81,7 @@ extension SchemaCoding.Support {
 
     struct ValueDecodingState {
       fileprivate var objectState = JSON.ObjectDecodingState()
-      fileprivate var caseDecoder: (any EnumSchemaCaseDecoderProtocol<Value>)?
+      fileprivate var phase: EnumSchemaDecodingPhase<Value> = .decodingPrelude
     }
 
     func beginDecodingValue(from decoder: borrowing Decoder) -> ValueDecodingState {
@@ -93,11 +93,15 @@ extension SchemaCoding.Support {
       state: inout ValueDecodingState
     ) throws -> DecodingResult<Value> {
       while true {
-        if let caseDecoder = state.caseDecoder {
+        switch state.phase {
+        case .decodingPrelude, .decoded:
+          break
+        case .decodingValue(let caseDecoder):
           switch try caseDecoder.decode(from: &decoder).kind {
           case .incomplete:
             return .incomplete
           case .decoded:
+            state.phase =  .decoded(try `caseDecoder`.finishDecoding(from: decoder))
             break
           }
         }
@@ -106,18 +110,28 @@ extension SchemaCoding.Support {
         case .incomplete:
           return .incomplete
         case .decoded(.propertyValueStart(let name)):
-          guard state.caseDecoder == nil else {
+          switch state.phase {
+          case .decodingPrelude:
+            guard let `case` = casesByName[name] else {
+              throw Error.unknownCase(String(name))
+            }
+            state.phase = .decodingValue(`case`.beginDecoding(from: decoder))
+          case .decodingValue:
+            assertionFailure()
+            throw Error.invalidState
+          case .decoded:
             throw Error.multipleCasesPresent
           }
-          guard let `case` = casesByName[name] else {
-            throw Error.unknownCase(String(name))
-          }
-          state.caseDecoder = `case`.beginDecoding(from: decoder)
         case .decoded(.end):
-          guard let caseDecoder = state.caseDecoder else {
+          switch state.phase {
+          case .decodingPrelude:
             throw Error.noCaseFound
+          case .decodingValue(let enumSchemaCaseDecoderProtocol):
+            assertionFailure()
+            throw Error.invalidState
+          case .decoded(let value):
+            return .decoded(value)
           }
-          return .decoded(try `caseDecoder`.finishDecoding(from: decoder))
         }
       }
     }
@@ -276,9 +290,22 @@ extension SchemaCoding.Support {
 
 }
 
+// MARK: - Decoding
+
+extension SchemaCoding.Support {
+  
+  fileprivate enum EnumSchemaDecodingPhase<Value> {
+    case decodingPrelude
+    case decodingValue(any EnumSchemaCaseDecoderProtocol<Value>)
+    case decoded(Value)
+  }
+  
+}
+
 // MARK: - Errors
 
 private enum Error: Swift.Error {
+  case invalidState
   case multipleCasesPresent
   case unknownCase(String)
   case noCaseFound

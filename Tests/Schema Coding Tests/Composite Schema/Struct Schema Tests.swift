@@ -40,7 +40,12 @@ struct StructSchemaTests {
 
       try schema.test(
         SimpleStruct(name: "Alice", age: 30),
-        isCodedAs: #"{"name":"Alice","age":30}"#
+        isCodedAs: """
+          {
+            "name": "Alice",
+            "age": 30
+          }
+          """
       )
     }
 
@@ -76,13 +81,22 @@ struct StructSchemaTests {
       // With optional value present
       try schema.test(
         StructWithOptional(required: "test", optional: 42),
-        isCodedAs: #"{"required":"test","optional":42}"#
+        isCodedAs: """
+          {
+            "required": "test",
+            "optional": 42
+          }
+          """
       )
 
       // With optional value nil (property is omitted)
       try schema.test(
         StructWithOptional(required: "test", optional: nil),
-        isCodedAs: #"{"required":"test"}"#
+        isCodedAs: """
+          {
+            "required": "test"
+          }
+          """
       )
     }
 
@@ -108,7 +122,11 @@ struct StructSchemaTests {
 
       try schema.test(
         SingleProperty(value: true),
-        isCodedAs: #"{"value":true}"#
+        isCodedAs: """
+          {
+            "value": true
+          }
+          """
       )
     }
 
@@ -139,8 +157,19 @@ struct StructSchemaTests {
       )
 
       try schema.test(
-        encodesAs:
-          #"{"description":"A person","properties":{"name":{"type":"string"}},"required":["name"]}"#
+        encodesAs: """
+          {
+            "description": "A person",
+            "properties": {
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name"
+            ]
+          }
+          """
       )
     }
 

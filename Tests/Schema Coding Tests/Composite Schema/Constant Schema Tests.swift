@@ -53,8 +53,7 @@ struct ConstantSchemaTests {
           {
             "const": "constant"
           }
-          """,
-        prettyPrint: true
+          """
       )
     }
 
@@ -71,8 +70,7 @@ struct ConstantSchemaTests {
             "description": "A constant value",
             "const": 100
           }
-          """,
-        prettyPrint: true
+          """
       )
     }
 

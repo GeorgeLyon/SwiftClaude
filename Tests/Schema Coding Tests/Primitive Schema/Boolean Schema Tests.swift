@@ -33,8 +33,7 @@ struct BooleanSchemaTests {
             {
               "type": "boolean"
             }
-            """,
-          prettyPrint: true
+            """
         )
     }
 
@@ -48,8 +47,7 @@ struct BooleanSchemaTests {
               "description": "A boolean value",
               "type": "boolean"
             }
-            """,
-          prettyPrint: true
+            """
         )
     }
 

@@ -46,8 +46,22 @@ struct EnumSchemaTests {
           }
         )
 
-        try schema.test(SimpleEnum.first, isCodedAs: #"{"first":{}}"#)
-        try schema.test(SimpleEnum.second, isCodedAs: #"{"second":{}}"#)
+        try schema.test(
+          SimpleEnum.first,
+          isCodedAs: #"""
+            {
+              "first": {
+
+              }
+            }
+            """#,
+          prettyPrint: true
+        )
+        try schema.test(
+          SimpleEnum.second,
+          isCodedAs: #"{"second":{}}"#,
+          prettyPrint: false
+        )
       }
 
       @Test
@@ -96,8 +110,16 @@ struct EnumSchemaTests {
           }
         )
 
-        try schema.test(IntEnum.alpha(42), isCodedAs: #"{"alpha":42}"#)
-        try schema.test(IntEnum.beta("hello"), isCodedAs: #"{"beta":"hello"}"#)
+        try schema.test(
+          IntEnum.alpha(42),
+          isCodedAs: #"{"alpha":42}"#,
+          prettyPrint: false
+        )
+        try schema.test(
+          IntEnum.beta("hello"),
+          isCodedAs: #"{"beta":"hello"}"#,
+          prettyPrint: false
+        )
       }
 
       @Test
@@ -145,8 +167,16 @@ struct EnumSchemaTests {
           }
         )
 
-        try schema.test(PointEnum.point(x: 10, y: 20), isCodedAs: #"{"point":{"x":10,"y":20}}"#)
-        try schema.test(PointEnum.origin, isCodedAs: #"{"origin":{}}"#)
+        try schema.test(
+          PointEnum.point(x: 10, y: 20),
+          isCodedAs: #"{"point":{"x":10,"y":20}}"#,
+          prettyPrint: false
+        )
+        try schema.test(
+          PointEnum.origin,
+          isCodedAs: #"{"origin":{}}"#,
+          prettyPrint: false
+        )
       }
 
       @Test
@@ -192,8 +222,16 @@ struct EnumSchemaTests {
           }
         )
 
-        try schema.test(TupleEnum.pair(42, true), isCodedAs: #"{"pair":[42,true]}"#)
-        try schema.test(TupleEnum.single, isCodedAs: #"{"single":{}}"#)
+        try schema.test(
+          TupleEnum.pair(42, true),
+          isCodedAs: #"{"pair":[42,true]}"#,
+          prettyPrint: false
+        )
+        try schema.test(
+          TupleEnum.single,
+          isCodedAs: #"{"single":{}}"#,
+          prettyPrint: false
+        )
       }
 
     }
@@ -251,8 +289,7 @@ struct EnumSchemaTests {
                 }
               }
             }
-            """,
-          prettyPrint: true
+            """
         )
       }
 
@@ -301,8 +338,22 @@ struct EnumSchemaTests {
           }
         )
 
-        try schema.test(TaggedEnum.first, isCodedAs: #"{"type":"first"}"#)
-        try schema.test(TaggedEnum.second, isCodedAs: #"{"type":"second"}"#)
+        try schema.test(
+          TaggedEnum.first,
+          isCodedAs: """
+            {
+              "type": "first"
+            }
+            """
+        )
+        try schema.test(
+          TaggedEnum.second,
+          isCodedAs: """
+            {
+              "type": "second"
+            }
+            """
+        )
       }
 
       @Test
@@ -354,8 +405,24 @@ struct EnumSchemaTests {
           }
         )
 
-        try schema.test(ContentEnum.text(content: "hello"), isCodedAs: #"{"kind":"text","content":"hello"}"#)
-        try schema.test(ContentEnum.number(value: 42), isCodedAs: #"{"kind":"number","value":42}"#)
+        try schema.test(
+          ContentEnum.text(content: "hello"),
+          isCodedAs: """
+            {
+              "kind": "text",
+              "content": "hello"
+            }
+            """
+        )
+        try schema.test(
+          ContentEnum.number(value: 42),
+          isCodedAs: """
+            {
+              "kind": "number",
+              "value": 42
+            }
+            """
+        )
       }
 
     }
@@ -424,8 +491,7 @@ struct EnumSchemaTests {
                 }
               ]
             }
-            """,
-          prettyPrint: true
+            """
         )
       }
 

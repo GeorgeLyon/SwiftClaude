@@ -16,8 +16,24 @@ struct TupleSchemaTests {
           SchemaCoding.Support.BooleanSchema(),
           SchemaCoding.Support.BooleanSchema()
       )
-      try schema.test((true, false), isCodedAs: "[true,false]")
-      try schema.test((false, true), isCodedAs: "[false,true]")
+      try schema.test(
+        (true, false),
+        isCodedAs: """
+          [
+            true,
+            false
+          ]
+          """
+      )
+      try schema.test(
+        (false, true),
+        isCodedAs: """
+          [
+            false,
+            true
+          ]
+          """
+      )
     }
 
     @Test
@@ -28,7 +44,16 @@ struct TupleSchemaTests {
           SchemaCoding.Support.BooleanSchema(),
           SchemaCoding.Support.BooleanSchema()
       )
-      try schema.test((true, false, true), isCodedAs: "[true,false,true]")
+      try schema.test(
+        (true, false, true),
+        isCodedAs: """
+          [
+            true,
+            false,
+            true
+          ]
+          """
+      )
     }
 
     @Test
@@ -39,7 +64,16 @@ struct TupleSchemaTests {
           SchemaCoding.Support.schema(representing: Int.self),
           SchemaCoding.Support.BooleanSchema()
       )
-      try schema.test(("hello", 42, true), isCodedAs: #"["hello",42,true]"#)
+      try schema.test(
+        ("hello", 42, true),
+        isCodedAs: """
+          [
+            "hello",
+            42,
+            true
+          ]
+          """
+      )
     }
 
     @Test
@@ -59,7 +93,15 @@ struct TupleSchemaTests {
       try outerSchema.test(
         ("test", (true, false)),
         flatten: { ($0.0, $0.1.0, $0.1.1) },
-        isCodedAs: #"["test",[true,false]]"#
+        isCodedAs: """
+          [
+            "test",
+            [
+              true,
+              false
+            ]
+          ]
+          """
       )
     }
 
@@ -87,8 +129,7 @@ struct TupleSchemaTests {
               }
             ]
           }
-          """,
-        prettyPrint: true
+          """
       )
     }
 
