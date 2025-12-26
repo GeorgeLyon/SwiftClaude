@@ -62,9 +62,9 @@ struct ObjectSchemaTests {
     @Test
     func testConstantOptionalObjectProperty() throws {
       let objectSchema = SchemaCoding.Support.ConcreteObjectSchema {
-        SchemaCoding.Support.OptionalObjectProperty(
+        SchemaCoding.Support.DirectObjectProperty(
           name: "version",
-          schema: SchemaCoding.Support.ConstantSchema(
+          constantOptionalSchema: SchemaCoding.Support.ConstantSchema(
             wrappedSchema: SchemaCoding.Support.OptionalSchema(
               wrappedSchema: SchemaCoding.Support.schema(representing: String.self)
             ),
@@ -79,9 +79,9 @@ struct ObjectSchemaTests {
     @Test
     func testConstantOptionalObjectPropertyWithNilValue() throws {
       let objectSchema = SchemaCoding.Support.ConcreteObjectSchema {
-        SchemaCoding.Support.OptionalObjectProperty(
+        SchemaCoding.Support.DirectObjectProperty(
           name: "version",
-          schema: SchemaCoding.Support.ConstantSchema(
+          constantOptionalSchema: SchemaCoding.Support.ConstantSchema(
             wrappedSchema: SchemaCoding.Support.OptionalSchema(
               wrappedSchema: SchemaCoding.Support.schema(representing: String.self)
             ),
@@ -167,9 +167,9 @@ struct ObjectSchemaTests {
     @Test
     func testConstantOptionalObjectPropertyMetaSchema() throws {
       let objectSchema = SchemaCoding.Support.ConcreteObjectSchema {
-        SchemaCoding.Support.OptionalObjectProperty(
+        SchemaCoding.Support.DirectObjectProperty(
           name: "version",
-          schema: SchemaCoding.Support.ConstantSchema(
+          constantOptionalSchema: SchemaCoding.Support.ConstantSchema(
             wrappedSchema: SchemaCoding.Support.OptionalSchema(
               wrappedSchema: SchemaCoding.Support.schema(representing: String.self)
             ),
@@ -186,9 +186,9 @@ struct ObjectSchemaTests {
     @Test
     func testConstantOptionalObjectPropertyWithNilValueMetaSchema() throws {
       let objectSchema = SchemaCoding.Support.ConcreteObjectSchema {
-        SchemaCoding.Support.OptionalObjectProperty(
+        SchemaCoding.Support.DirectObjectProperty(
           name: "version",
-          schema: SchemaCoding.Support.ConstantSchema(
+          constantOptionalSchema: SchemaCoding.Support.ConstantSchema(
             wrappedSchema: SchemaCoding.Support.OptionalSchema(
               wrappedSchema: SchemaCoding.Support.schema(representing: String.self)
             ),

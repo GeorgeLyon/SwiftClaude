@@ -105,7 +105,7 @@ extension SchemaCoding.Support {
         )
         DirectObjectProperty(
           name: .required,
-          schema: ConstantSchema(
+          constantOptionalSchema: ConstantSchema(
             wrappedSchema: OptionalSchema(
               wrappedSchema: ArraySchema(elementSchema: StringSchema())
             ),

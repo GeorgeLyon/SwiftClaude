@@ -77,13 +77,15 @@ extension SchemaCoding.Support {
         wrappedProperty: DirectObjectProperty<_>(
           name: name,
           propertySchema: propertySchema.metaSchema,
-          kind: metadata.kind == .omitted ? .omitted : .required
+          kind: metadata.kind,
+          omittedValue: { metadata.kind == .omitted ? propertySchema : nil }
         ),
         wrap: { propertySchema in
           return Self(
             name: name,
             propertySchema: propertySchema,
-            kind: metadata.kind
+            kind: metadata.kind,
+            omittedValue: omittedValue
           )
         },
         unwrap: { schema in
@@ -93,20 +95,27 @@ extension SchemaCoding.Support {
     }
 
     func notFoundValue() throws -> Value {
-      throw Error.missingProperty(name.stringValue)
+      guard let value = omittedValue() else {
+        throw Error.missingProperty(name.stringValue)
+      }
+      return value
     }
 
-    func value(from schemaValue: Schema.Value) -> Value {
-      schemaValue
+    func value(from schemaValue: Schema.Value) throws -> Value {
+      guard metadata.kind != .omitted else {
+        throw Error.propertyNotOmitted(name.stringValue)
+      }
+      return schemaValue
     }
 
     init<WrappedSchema>(
       name: SchemaCodingKey,
       description: String? = nil,
-      schema: ConstantSchema<OptionalSchema<WrappedSchema>>
+      constantOptionalSchema schema: ConstantSchema<OptionalSchema<WrappedSchema>>
     ) where Schema == ConstantSchema<OmissibleOptionalSchema<WrappedSchema>> {
       self.init(
         name: name,
+        description: description,
         propertySchema: ConstantSchema(
           wrappedSchema: OmissibleOptionalSchema(
             wrappedSchema: schema.wrappedSchema.wrappedSchema
@@ -114,7 +123,8 @@ extension SchemaCoding.Support {
           ),
           constantValue: schema.constantValue
         ),
-        kind: schema.constantValue == nil ? .omitted : .required
+        kind: schema.constantValue == nil ? .omitted : .required,
+        omittedValue: { () }
       )
     }
 
@@ -125,8 +135,10 @@ extension SchemaCoding.Support {
     ) {
       self.init(
         name: name,
+        description: description,
         propertySchema: schema,
-        kind: .required
+        kind: .required,
+        omittedValue: { nil }
       )
     }
 
@@ -134,16 +146,20 @@ extension SchemaCoding.Support {
       name: SchemaCodingKey,
       description: String? = nil,
       propertySchema: Schema,
-      kind: ObjectPropertyKind
+      kind: ObjectPropertyKind,
+      omittedValue: @escaping () -> Schema.Value?
     ) {
       self.name = name
       self.propertySchema = propertySchema.prependingDescription(description)
       self.metadata = ObjectPropertyMetadata(kind: kind)
+      self.omittedValue = omittedValue
     }
 
     let name: SchemaCodingKey
     let propertySchema: Schema
     let metadata: ObjectPropertyMetadata
+
+    private let omittedValue: () -> Schema.Value?
 
   }
 
@@ -335,6 +351,11 @@ extension SchemaCoding.Support {
       set { wrappedSchema.metadata = newValue }
     }
 
+    init(
+      wrappedSchema: WrappedSchema
+    ) {
+      self.wrappedSchema = wrappedSchema
+    }
     var wrappedSchema: WrappedSchema
 
   }

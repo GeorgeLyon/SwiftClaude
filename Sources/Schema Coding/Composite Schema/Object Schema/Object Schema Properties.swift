@@ -64,9 +64,7 @@ extension SchemaCoding.Support {
     fileprivate mutating func insert<each Decoder: ObjectPropertyDecoder>(
       _ decoders: repeat each Decoder
     ) {
-      for decoder in repeat each decoders {
-        set(decoder, forKey: Substring(decoder.propertyName))
-      }
+      repeat set(each decoders, forKey: Substring((each decoders).propertyName))
     }
     private mutating func set(
       _ decoder: any ObjectPropertyDecoder,
@@ -98,9 +96,13 @@ extension SchemaCoding.Support {
       of values: Value,
       to encoder: inout ObjectPropertiesEncoder
     ) {
-      for (property, value) in repeat (each properties, each values) {
+      func encode<T: ObjectProperty>(_ value: T.Value, for property: T) {
+        guard property.metadata.kind != .omitted else {
+          return
+        }
         property.encode(value, to: &encoder)
       }
+      repeat encode(each values, for: each properties)
     }
 
     func beginDecodingProperties(
