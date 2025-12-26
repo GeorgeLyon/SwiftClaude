@@ -127,10 +127,10 @@ extension SchemaCoding.Support {
       ConcreteObjectSchema<
         TupleObjectSchemaProperties<
           OptionalObjectProperty<StringSchema>,
-          RequiredObjectProperty<
+          DirectObjectProperty<
             ConcreteObjectSchema<
               TupleObjectSchemaProperties<
-                repeat RequiredObjectProperty<(each AssociatedValuesSchema).MetaSchema>
+                repeat DirectObjectProperty<(each AssociatedValuesSchema).MetaSchema>
               >
             >
           >
@@ -141,12 +141,12 @@ extension SchemaCoding.Support {
       let objectSchema = ConcreteObjectSchema {
         OptionalObjectProperty(
           name: .description,
-          schema: StringSchema()
+          schema: OptionalSchema(wrappedSchema: StringSchema())
         )
-        RequiredObjectProperty(
+        DirectObjectProperty(
           name: .properties,
           schema: ConcreteObjectSchema(
-            properties: repeat RequiredObjectProperty(
+            properties: repeat DirectObjectProperty(
               name: (each cases).name,
               schema: (each cases).associatedValuesSchema.metaSchema
             )

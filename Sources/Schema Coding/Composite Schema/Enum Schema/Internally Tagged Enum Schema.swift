@@ -129,7 +129,7 @@ extension SchemaCoding.Support {
       ConcreteObjectSchema<
         TupleObjectSchemaProperties<
           OptionalObjectProperty<StringSchema>,
-          RequiredObjectProperty<
+          DirectObjectProperty<
             TupleSchema<repeat InternallyTaggedSchema<each AssociatedValuesSchema>.MetaSchema>
           >
         >
@@ -139,9 +139,9 @@ extension SchemaCoding.Support {
       let objectSchema = ConcreteObjectSchema {
         OptionalObjectProperty(
           name: .description,
-          schema: StringSchema()
+          schema: OptionalSchema(wrappedSchema: StringSchema())
         )
-        RequiredObjectProperty(
+        DirectObjectProperty(
           name: .oneOf,
           schema: TupleSchema(
             elementSchemas: repeat (each cases).associatedValuesSchema.metaSchema
@@ -264,7 +264,7 @@ where AssociatedValuesSchema: SchemaCoding.ObjectSchema {
       description: associatedValuesSchema.description,
       properties: SchemaCoding.Support.CompositeObjectSchemaProperties(
         SchemaCoding.Support.TupleObjectSchemaProperties(
-          SchemaCoding.Support.RequiredObjectProperty(
+          SchemaCoding.Support.DirectObjectProperty(
             name: discriminatorPropertyName,
             schema: SchemaCoding.Support.ConstantSchema(
               wrappedSchema: SchemaCoding.Support.StringSchema(),
@@ -295,7 +295,7 @@ extension SchemaCoding.Support {
   > = ConcreteObjectSchema<
     CompositeObjectSchemaProperties<
       TupleObjectSchemaProperties<
-        RequiredObjectProperty<
+        DirectObjectProperty<
           ConstantSchema<
             StringSchema
           >

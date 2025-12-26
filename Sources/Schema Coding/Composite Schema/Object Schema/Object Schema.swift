@@ -78,8 +78,8 @@ extension SchemaCoding.Support {
     typealias MetaWrappedSchema = ConcreteObjectSchema<
       TupleObjectSchemaProperties<
         OptionalObjectProperty<StringSchema>,
-        RequiredObjectProperty<ConcreteObjectSchema<Properties.MetaProperties>>,
-        ConstantOptionalObjectProperty<
+        DirectObjectProperty<ConcreteObjectSchema<Properties.MetaProperties>>,
+        OptionalObjectProperty<
           ConstantSchema<
             OmissibleOptionalSchema<
               ArraySchema<StringSchema>
@@ -97,13 +97,13 @@ extension SchemaCoding.Support {
       let objectSchema = MetaWrappedSchema {
         OptionalObjectProperty(
           name: .description,
-          schema: StringSchema()
+          schema: OptionalSchema(wrappedSchema: StringSchema())
         )
-        RequiredObjectProperty(
+        DirectObjectProperty(
           name: .properties,
           schema: ConcreteObjectSchema<_>(properties: properties.metaProperties)
         )
-        ConstantOptionalObjectProperty(
+        OptionalObjectProperty(
           name: .required,
           schema: ConstantSchema(
             wrappedSchema: OptionalSchema(

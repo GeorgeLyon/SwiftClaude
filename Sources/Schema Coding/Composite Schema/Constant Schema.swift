@@ -39,7 +39,7 @@ extension SchemaCoding.Support {
       ConcreteObjectSchema<
         TupleObjectSchemaProperties<
           OptionalObjectProperty<StringSchema>,
-          RequiredObjectProperty<WrappedSchema>
+          DirectObjectProperty<Self>
         >
       >
     >
@@ -47,21 +47,21 @@ extension SchemaCoding.Support {
       let objectSchema = ConcreteObjectSchema {
         OptionalObjectProperty(
           name: .description,
-          schema: StringSchema()
+          schema: OptionalSchema(wrappedSchema: StringSchema())
         )
-        RequiredObjectProperty(
+        DirectObjectProperty(
           name: .const,
-          schema: wrappedSchema
+          schema: self
         )
       }
-      return objectSchema.wrap { (description, constantValue) in
+      return objectSchema.wrap { (description, _) in
         Self(
           description: description,
           wrappedSchema: wrappedSchema,
           constantValue: constantValue
         )
       } unwrap: { schema in
-        (schema.description, schema.constantValue)
+        (schema.description, ())
       }
     }
 

@@ -8,8 +8,6 @@ extension SchemaCoding.Support {
   public protocol ObjectProperty<Value> {
     var name: SchemaCodingKey { get }
 
-    var isRequired: Bool { get }
-
     associatedtype Value
     func encode(_ value: Value, to encoder: inout ObjectPropertiesEncoder)
     associatedtype Decoder: ObjectPropertyDecoder<Value>
@@ -20,6 +18,8 @@ extension SchemaCoding.Support {
 
     associatedtype MetaProperty: ObjectProperty where MetaProperty.Value == Self
     var metaProperty: MetaProperty { get }
+
+    var metadata: ObjectPropertyMetadata { get }
   }
 
   public protocol ObjectPropertyDecoder<Value> {
@@ -31,13 +31,22 @@ extension SchemaCoding.Support {
     func finishDecoding(from decoder: borrowing Decoder) throws -> Value
   }
 
+  public struct ObjectPropertyMetadata {
+    var kind: ObjectPropertyKind
+  }
+
+  enum ObjectPropertyKind {
+    case required, optional, omitted
+  }
+
 }
 
 // MARK: - Required Properties
 
 extension SchemaCoding.Support {
 
-  struct RequiredObjectProperty<Schema: SchemaCoding.Schema>:
+  /// An object property whose value is the same as the value of its schema
+  struct DirectObjectProperty<Schema: SchemaCoding.Schema>:
     InternalObjectProperty
   {
 
@@ -46,10 +55,6 @@ extension SchemaCoding.Support {
     typealias Decoder = ConcreteObjectPropertyDecoder<Self>
 
     typealias Value = Schema.Value
-
-    var isRequired: Bool {
-      true
-    }
 
     func encode(_ value: Value, to encoder: inout ObjectPropertiesEncoder) {
       encoder.encoder.encodeProperty(name: name.stringValue) { stream in
@@ -66,7 +71,7 @@ extension SchemaCoding.Support {
       )
     }
 
-    typealias MetaProperty = RequiredObjectProperty<WrapperSchema<Self, Schema.MetaSchema>>
+    typealias MetaProperty = DirectObjectProperty<WrapperSchema<Self, Schema.MetaSchema>>
     var metaProperty: MetaProperty {
       MetaProperty(
         name: name,
@@ -99,6 +104,10 @@ extension SchemaCoding.Support {
     let name: SchemaCodingKey
     let propertySchema: Schema
 
+    var metadata: ObjectPropertyMetadata {
+      ObjectPropertyMetadata(kind: .required)
+    }
+
   }
 
 }
@@ -115,10 +124,6 @@ extension SchemaCoding.Support {
 
     typealias Value = Schema.Value?
 
-    var isRequired: Bool {
-      false
-    }
-
     func encode(_ value: Value, to encoder: inout ObjectPropertiesEncoder) {
       guard let value else {
         return
@@ -128,23 +133,37 @@ extension SchemaCoding.Support {
       }
     }
 
+    typealias Decoder = ConcreteObjectPropertyDecoder<Self>
     func beginDecoding(
       from decoder: borrowing SchemaCoding.Support.Decoder
-    ) -> ConcreteObjectPropertyDecoder<Self> {
-      ConcreteObjectPropertyDecoder(
+    ) -> Decoder {
+      Decoder(
         property: self,
         reference: decoder.arena.push(.notFound)
       )
     }
 
-    typealias MetaProperty = RequiredObjectProperty<WrapperSchema<Self, Schema.MetaSchema>>
+    typealias MetaProperty = WrapperObjectProperty<Self, OptionalObjectProperty<Schema.MetaSchema>>
     var metaProperty: MetaProperty {
       MetaProperty(
-        name: name,
-        schema: propertySchema.metaSchema.wrap { wrapped in
-          Self(name: name, schema: wrapped)
-        } unwrap: { property in
-          property.propertySchema
+        wrappedProperty: OptionalObjectProperty<_>(
+          name: name,
+          propertySchema: propertySchema.metaSchema,
+          kind: metadata.kind == .omitted ? .omitted : .required
+        ),
+        wrap: { propertySchema in
+          if propertySchema == nil {
+            assert(metadata.kind == .omitted)
+          }
+          return Self(
+            name: name,
+            /// If this property must be omitted, we can just use `self.propertySchema` since it will never actually be used
+            propertySchema: propertySchema ?? self.propertySchema,
+            kind: metadata.kind
+          )
+        },
+        unwrap: { schema in
+          schema.propertySchema
         }
       )
     }
@@ -157,127 +176,63 @@ extension SchemaCoding.Support {
       schemaValue
     }
 
+    init<WrappedSchema>(
+      name: SchemaCodingKey,
+      description: String? = nil,
+      schema: ConstantSchema<OptionalSchema<WrappedSchema>>
+    )
+    where
+      Schema == ConstantSchema<OmissibleOptionalSchema<WrappedSchema>>
+    {
+      self.name = name
+      self.propertySchema = ConstantSchema(
+        description: schema.description,
+        wrappedSchema: OmissibleOptionalSchema(
+          wrappedSchema: schema.wrappedSchema.wrappedSchema
+            .prependingDescription(schema.wrappedSchema.description)
+        ),
+        constantValue: schema.constantValue
+      )
+      self.metadata = ObjectPropertyMetadata(
+        kind: schema.constantValue == nil ? .omitted : .optional
+      )
+    }
+
     init(
       name: SchemaCodingKey,
       description: String? = nil,
-      schema: Schema
+      schema: OptionalSchema<Schema>
     ) {
       self.name = name
-      var schema = schema
-      schema.metadata.prependDescription(description)
       self.propertySchema = schema
+        .wrappedSchema
+        .prependingDescription(schema.description)
+        .prependingDescription(description)
+      self.metadata = ObjectPropertyMetadata(kind: .optional)
+    }
+
+    private init(
+      name: SchemaCodingKey,
+      propertySchema: Schema,
+      kind: ObjectPropertyKind
+    ) {
+      self.name = name
+      self.propertySchema = propertySchema
+      self.metadata = ObjectPropertyMetadata(kind: kind)
     }
     let name: SchemaCodingKey
     let propertySchema: Schema
+    let metadata: ObjectPropertyMetadata
 
   }
 
 }
 
-// MARK: - Constant Optional Properties
+// MARK: - Wrapping Properties
 
 extension SchemaCoding.Support {
 
-  struct ConstantOptionalObjectProperty<
-    Schema: SchemaCoding.Schema
-  >: InternalObjectProperty where Schema.Value == Void {
-
-    typealias PropertySchema = Schema
-
-    typealias Value = Void
-
-    var isRequired: Bool {
-      !isNone
-    }
-
-    func encode(_ value: Value, to encoder: inout ObjectPropertiesEncoder) {
-      guard !isNone else { return }
-      encoder.encoder.encodeProperty(name: name.stringValue) { stream in
-        stream.encode(value, using: propertySchema)
-      }
-    }
-
-    typealias Decoder = ConcreteObjectPropertyDecoder<Self>
-    func beginDecoding(
-      from decoder: borrowing SchemaCoding.Support.Decoder
-    ) -> ConcreteObjectPropertyDecoder<Self> {
-      ConcreteObjectPropertyDecoder(
-        property: self,
-        reference: decoder.arena.push(.notFound)
-      )
-    }
-
-    typealias MetaProperty = WrapperProperty<
-      Self,
-      ConstantOptionalObjectProperty<WrapperSchema<Void, Schema.MetaSchema>>
-    >
-    var metaProperty: MetaProperty {
-      MetaProperty(
-        wrappedProperty: ConstantOptionalObjectProperty<_>(
-          name: name,
-          isNone: isNone,
-          schema: propertySchema.metaSchema.wrap { wrapped in
-            ()
-          } unwrap: { _ in
-            propertySchema
-          }
-        ),
-        wrap: { _ in
-          self
-        },
-        unwrap: { _ in
-          ()
-        }
-      )
-    }
-
-    func notFoundValue() throws {
-      guard isNone else {
-        throw Error.missingProperty(name.stringValue)
-      }
-    }
-
-    func value(from schemaValue: Schema.Value) throws {
-      guard !isNone else {
-        throw Error.propertyNotOmitted(name.stringValue)
-      }
-    }
-
-    init<WrappedSchema>(
-      name: SchemaCodingKey,
-      description: String? = nil,
-      schema: ConstantSchema<OptionalSchema<WrappedSchema>>
-    ) where Schema == ConstantSchema<OmissibleOptionalSchema<WrappedSchema>> {
-      self.name = name
-      let constantValue = schema.constantValue
-      self.isNone = constantValue == nil
-      self.propertySchema = ConstantSchema(
-        description: description,
-        wrappedSchema: OmissibleOptionalSchema(wrappedSchema: schema.wrappedSchema.wrappedSchema),
-        constantValue: constantValue
-      )
-    }
-
-    private init(
-      name: SchemaCodingKey,
-      isNone: Bool,
-      schema: Schema
-    ) {
-      self.name = name
-      self.isNone = isNone
-      self.propertySchema = schema
-    }
-    let name: SchemaCodingKey
-    let isNone: Bool
-    let propertySchema: Schema
-
-  }
-
-  struct WrapperProperty<NewValue, WrappedProperty: ObjectProperty>: ObjectProperty {
-
-    var isRequired: Bool {
-      wrappedProperty.isRequired
-    }
+  struct WrapperObjectProperty<NewValue, WrappedProperty: ObjectProperty>: ObjectProperty {
 
     func encode(_ value: Value, to encoder: inout ObjectPropertiesEncoder) {
       wrappedProperty.encode(unwrap(value), to: &encoder)
@@ -308,7 +263,7 @@ extension SchemaCoding.Support {
       )
     }
 
-    typealias MetaProperty = WrapperProperty<Self, WrappedProperty.MetaProperty>
+    typealias MetaProperty = WrapperObjectProperty<Self, WrappedProperty.MetaProperty>
     var metaProperty: MetaProperty {
       MetaProperty(
         wrappedProperty: wrappedProperty.metaProperty,
@@ -327,6 +282,10 @@ extension SchemaCoding.Support {
 
     var propertySchema: WrappedProperty.PropertySchema {
       wrappedProperty.propertySchema
+    }
+
+    var metadata: ObjectPropertyMetadata {
+      wrappedProperty.metadata
     }
 
     fileprivate let wrappedProperty: WrappedProperty

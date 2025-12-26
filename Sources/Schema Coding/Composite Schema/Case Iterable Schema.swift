@@ -81,7 +81,7 @@ extension SchemaCoding.Support {
       ConcreteObjectSchema<
         TupleObjectSchemaProperties<
           OptionalObjectProperty<StringSchema>,
-          RequiredObjectProperty<ConstantSchema<ArraySchema<WrappedSchema>>>
+          DirectObjectProperty<ConstantSchema<ArraySchema<WrappedSchema>>>
         >
       >
     >
@@ -89,9 +89,9 @@ extension SchemaCoding.Support {
       let objectSchema = ConcreteObjectSchema {
         OptionalObjectProperty(
           name: .description,
-          schema: StringSchema()
+          schema: OptionalSchema(wrappedSchema: StringSchema())
         )
-        RequiredObjectProperty(
+        DirectObjectProperty(
           name: .enum,
           schema: ConstantSchema(
             wrappedSchema: ArraySchema(elementSchema: wrappedSchema),
@@ -151,7 +151,7 @@ extension SchemaCoding.Support {
       ConcreteObjectSchema<
         TupleObjectSchemaProperties<
           OptionalObjectProperty<StringSchema>,
-          RequiredObjectProperty<ConstantSchema<ArraySchema<WrappedSchema>>>
+          DirectObjectProperty<ConstantSchema<ArraySchema<WrappedSchema>>>
         >
       >
     >
@@ -159,9 +159,9 @@ extension SchemaCoding.Support {
       let objectSchema = ConcreteObjectSchema {
         OptionalObjectProperty(
           name: .description,
-          schema: StringSchema()
+          schema: OptionalSchema(wrappedSchema: StringSchema())
         )
-        RequiredObjectProperty(
+        DirectObjectProperty(
           name: .enum,
           schema: ConstantSchema(
             wrappedSchema: ArraySchema(elementSchema: wrappedSchema),

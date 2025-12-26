@@ -94,7 +94,7 @@ extension SchemaCoding.Support {
     schema: Schema
   ) -> StructProperty<Root, some ObjectProperty<Schema.Value>> {
     StructProperty(
-      property: RequiredObjectProperty(
+      property: DirectObjectProperty(
         name: name,
         description: description,
         schema: schema
@@ -113,7 +113,7 @@ extension SchemaCoding.Support {
       property: OptionalObjectProperty(
         name: name,
         description: description,
-        schema: schema.wrappedSchema
+        schema: schema
       ),
       keyPath: keyPath
     )

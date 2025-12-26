@@ -201,7 +201,7 @@ extension SchemaCoding.Support {
     some ObjectProperty<Schema.Value>
   > {
     EnumSchemaCaseAssociatedValuesObjectProperty(
-      objectProperty: RequiredObjectProperty(
+      objectProperty: DirectObjectProperty(
         name: label,
         schema: schema
       )
@@ -219,7 +219,7 @@ extension SchemaCoding.Support {
     EnumSchemaCaseAssociatedValuesObjectProperty(
       objectProperty: OptionalObjectProperty(
         name: label,
-        schema: schema.wrappedSchema
+        schema: schema
       )
     )
   }

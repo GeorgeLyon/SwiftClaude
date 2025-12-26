@@ -136,7 +136,7 @@ extension SchemaCoding.Support {
     var metadata: ObjectPropertiesMetadata {
       var requiredPropertyNames: [String] = []
       for property in repeat each properties {
-        if property.isRequired {
+        if property.metadata.kind == .required {
           requiredPropertyNames.append(property.name.stringValue)
         }
       }

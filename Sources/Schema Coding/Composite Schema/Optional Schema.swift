@@ -75,12 +75,12 @@ extension SchemaCoding.Support {
       let objectSchema = ConcreteObjectSchema {
         OptionalObjectProperty(
           name: .description,
-          schema: StringSchema()
+          schema: OptionalSchema<_>(wrappedSchema: StringSchema())
         )
-        RequiredObjectProperty(
+        DirectObjectProperty(
           name: .properties,
           schema: ConcreteObjectSchema {
-            RequiredObjectProperty(
+            DirectObjectProperty(
               name: .value,
               schema: wrappedSchema.metaSchema
             )
