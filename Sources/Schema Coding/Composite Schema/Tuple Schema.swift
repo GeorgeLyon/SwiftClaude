@@ -9,9 +9,11 @@ extension SchemaCoding.Support {
 
     func encode(_ value: Value, to encoder: inout Encoder) {
       encoder.stream.encodeArray { arrayEncoder in
-        for (schema, value) in repeat (each elementSchemas, each value) {
-          arrayEncoder.encodeElement { elementEncoder in
-            elementEncoder.encode(value, using: schema)
+        for (element, value) in repeat (each elements, each value) {
+          if case .required = element.kind {
+            arrayEncoder.encodeElement { elementEncoder in
+              elementEncoder.encode(value, using: element.schema)
+            }
           }
         }
       }
@@ -29,7 +31,7 @@ extension SchemaCoding.Support {
     ) -> ValueDecodingState {
       let elementDecoders =
         (repeat ElementDecoder(
-          schema: each elementSchemas,
+          element: each elements,
           decoder: decoder
         ))
       var elementDecodersArray: [ElementDecoderProtocol] = []
@@ -100,14 +102,20 @@ extension SchemaCoding.Support {
         DirectObjectProperty(
           name: .prefixItems,
           schema: TupleSchema<repeat (each ElementSchema).MetaSchema>(
-            elementSchemas: repeat (each elementSchemas).metaSchema
+            elements: repeat (each elements).metaElement
           )
         )
       }
       return objectSchema.wrap { (description, elementSchemas) in
-        Self(description: description, elementSchemas: repeat each elementSchemas)
+        Self(
+          description: description,
+          elements: repeat TupleSchemaElement(
+            schema: each elementSchemas,
+            kind: (each elements).kind
+          )
+        )
       } unwrap: { schema in
-        (schema.description, (repeat each schema.elementSchemas))
+        (schema.description, (repeat (each schema.elements).schema))
       }
     }
 
@@ -115,11 +123,51 @@ extension SchemaCoding.Support {
       description: String? = nil,
       elementSchemas: repeat each ElementSchema
     ) {
-      self.metadata = SchemaMetadata(description: description)
-      self.elementSchemas = (repeat each elementSchemas)
+      self.init(
+        description: description,
+        elements: repeat TupleSchemaElement(
+          schema: each elementSchemas,
+          kind: .required
+        )
+      )
     }
+
+    init(
+      description: String? = nil,
+      elements: repeat TupleSchemaElement<each ElementSchema>
+    ) {
+      self.metadata = SchemaMetadata(description: description)
+      self.elements = (repeat each elements)
+    }
+
     var metadata: SchemaMetadata
-    let elementSchemas: (repeat each ElementSchema)
+    let elements: (repeat TupleSchemaElement<each ElementSchema>)
+  }
+
+  struct TupleSchemaElement<Schema: SchemaCoding.Schema> {
+
+    let schema: Schema
+
+    enum Kind {
+      case required
+      case omitted(constantValue: Schema.Value)
+    }
+    let kind: Kind
+
+    typealias MetaElement = TupleSchemaElement<Schema.MetaSchema>
+    var metaElement: MetaElement {
+      let metaKind: MetaElement.Kind =
+        switch kind {
+        case .required:
+          .required
+        case .omitted:
+          .omitted(constantValue: schema)
+        }
+      return MetaElement(
+        schema: schema.metaSchema,
+        kind: metaKind
+      )
+    }
   }
 
 }
@@ -131,17 +179,28 @@ extension SchemaCoding.Support {
   fileprivate struct ElementDecoder<Schema: SchemaCoding.Schema>: ElementDecoderProtocol {
 
     init(
-      schema: Schema,
+      element: TupleSchemaElement<Schema>,
       decoder: borrowing Decoder
     ) {
-      self.schema = schema
-      self.reference = decoder.arena.push(.decoding(schema.beginDecodingValue(from: decoder)))
+      switch element.kind {
+      case .required:
+        let schema = element.schema
+        kind = .required(
+          schema,
+          decoder.arena.push(.decoding(schema.beginDecodingValue(from: decoder)))
+        )
+      case .omitted(let constantValue):
+        kind = .omitted(constantValue: constantValue)
+      }
     }
 
     func decodeValue(
       from decoder: inout SchemaCoding.Support.Decoder
     ) throws -> DecodingResult<Void> {
-      try decoder.arena.withValue(reference) { state in
+      guard case .required(let schema, let reference) = kind else {
+        return .decoded(())
+      }
+      return try decoder.arena.withValue(reference) { state in
         switch state {
         case .decoded:
           throw Error.valueAlreadyDecoded
@@ -161,21 +220,28 @@ extension SchemaCoding.Support {
     func finishDecoding(
       from decoder: borrowing SchemaCoding.Support.Decoder
     ) throws -> Schema.Value {
-      switch decoder.arena[reference] {
-      case .decoded(let value):
-        return value
-      case .decoding:
-        throw Error.partiallyDecodedValue
+      switch kind {
+      case .omitted(let constantValue):
+        return constantValue
+      case .required(_, let reference):
+        switch decoder.arena[reference] {
+        case .decoded(let value):
+          return value
+        case .decoding:
+          throw Error.partiallyDecodedValue
+        }
       }
     }
-
-    private let schema: Schema
 
     private enum State {
       case decoding(Schema.ValueDecodingState)
       case decoded(Schema.Value)
     }
-    private let reference: Arena.Reference<State>
+    private enum Kind {
+      case required(Schema, Arena.Reference<State>)
+      case omitted(constantValue: Schema.Value)
+    }
+    private let kind: Kind
 
   }
 

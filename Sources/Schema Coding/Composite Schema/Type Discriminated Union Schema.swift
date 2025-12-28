@@ -104,7 +104,7 @@ extension SchemaCoding.Support {
     StringSchema: Schema,
     ArraySchema: Schema,
     ObjectSchema: Schema
-  >: Schema {
+  > {
 
     func encode(_ value: Value, to encoder: inout Encoder) {
       var caseEncoder = CaseEncoder(
@@ -176,6 +176,7 @@ extension SchemaCoding.Support {
         switch try null.schema.decodeValue(from: &decoder, state: &nullState).kind {
         case .incomplete:
           state.phase = .decodingValue(.null(nullState))
+          return .incomplete
         case .decoded(let value):
           return .decoded(null.finishDecoding(value))
         }
@@ -183,6 +184,7 @@ extension SchemaCoding.Support {
         switch try boolean.schema.decodeValue(from: &decoder, state: &booleanState).kind {
         case .incomplete:
           state.phase = .decodingValue(.boolean(booleanState))
+          return .incomplete
         case .decoded(let value):
           return .decoded(boolean.finishDecoding(value))
         }
@@ -190,6 +192,7 @@ extension SchemaCoding.Support {
         switch try number.schema.decodeValue(from: &decoder, state: &numberState).kind {
         case .incomplete:
           state.phase = .decodingValue(.number(numberState))
+          return .incomplete
         case .decoded(let value):
           return .decoded(number.finishDecoding(value))
         }
@@ -197,6 +200,7 @@ extension SchemaCoding.Support {
         switch try string.schema.decodeValue(from: &decoder, state: &stringState).kind {
         case .incomplete:
           state.phase = .decodingValue(.string(stringState))
+          return .incomplete
         case .decoded(let value):
           return .decoded(string.finishDecoding(value))
         }
@@ -204,6 +208,7 @@ extension SchemaCoding.Support {
         switch try array.schema.decodeValue(from: &decoder, state: &arrayState).kind {
         case .incomplete:
           state.phase = .decodingValue(.array(arrayState))
+          return .incomplete
         case .decoded(let value):
           return .decoded(array.finishDecoding(value))
         }
@@ -211,6 +216,7 @@ extension SchemaCoding.Support {
         switch try object.schema.decodeValue(from: &decoder, state: &objectState).kind {
         case .incomplete:
           state.phase = .decodingValue(.object(objectState))
+          return .incomplete
         case .decoded(let value):
           return .decoded(object.finishDecoding(value))
         }
