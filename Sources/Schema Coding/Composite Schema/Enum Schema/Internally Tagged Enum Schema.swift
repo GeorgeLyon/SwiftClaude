@@ -358,11 +358,17 @@ extension SchemaCoding.Support {
       _ value: Schema.Value,
       using encoding: InternallyTaggedEnumSchemaCaseEncoding<Schema>,
     ) {
+      guard !isEncoded else {
+        assertionFailure()
+        return
+      }
+      isEncoded = true
+
       wrapped.encode(value, using: encoding)
     }
 
     fileprivate var wrapped: InternallyTaggedEnumSchemaEncoder<AssociatedValueSchema>
-
+    fileprivate var isEncoded = false
   }
 
 }

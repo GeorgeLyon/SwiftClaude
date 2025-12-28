@@ -79,16 +79,14 @@ extension SchemaCoding.Support {
       MetaProperty(
         wrappedProperty: DirectObjectProperty<_>(
           name: name,
-          propertySchema: propertySchema.metaSchema,
-          kind: metadata.kind,
-          omittedValue: { metadata.kind == .omitted ? propertySchema : nil }
+          schema: propertySchema.metaSchema,
+          kind: metadata.kind == .omitted ? .omitted(constantValue: propertySchema) : .required
         ),
         wrap: { propertySchema in
           return Self(
             name: name,
-            propertySchema: propertySchema,
-            kind: metadata.kind,
-            omittedValue: omittedValue
+            schema: propertySchema,
+            kind: kind
           )
         },
         unwrap: { schema in
@@ -97,11 +95,22 @@ extension SchemaCoding.Support {
       )
     }
 
+    var metadata: ObjectPropertyMetadata {
+      switch kind {
+      case .required:
+        ObjectPropertyMetadata(kind: .required)
+      case .omitted:
+        ObjectPropertyMetadata(kind: .omitted)
+      }
+    }
+
     func notFoundValue() throws -> Value {
-      guard let value = omittedValue() else {
+      switch kind {
+      case .omitted(let constantValue):
+        return constantValue
+      case .required:
         throw Error.missingProperty(name.stringValue)
       }
-      return value
     }
 
     func value(from schemaValue: Schema.Value) throws -> Value {
@@ -119,50 +128,36 @@ extension SchemaCoding.Support {
       self.init(
         name: name,
         description: description,
-        propertySchema: ConstantSchema(
+        schema: ConstantSchema(
           wrappedSchema: OmissibleOptionalSchema(
             wrappedSchema: schema.wrappedSchema.wrappedSchema
               .prependingDescription(schema.wrappedSchema.description)
           ),
           constantValue: schema.constantValue
         ),
-        kind: schema.constantValue == nil ? .omitted : .required,
-        omittedValue: { () }
+        kind: schema.constantValue == nil ? .omitted(constantValue: ()) : .required,
       )
     }
 
     init(
       name: SchemaCodingKey,
       description: String? = nil,
-      schema: Schema
-    ) {
-      self.init(
-        name: name,
-        description: description,
-        propertySchema: schema,
-        kind: .required,
-        omittedValue: { nil }
-      )
-    }
-
-    private init(
-      name: SchemaCodingKey,
-      description: String? = nil,
-      propertySchema: Schema,
-      kind: ObjectPropertyKind,
-      omittedValue: @escaping () -> Schema.Value?
+      schema: Schema,
+      kind: Kind = .required,
     ) {
       self.name = name
-      self.propertySchema = propertySchema.prependingDescription(description)
-      self.metadata = ObjectPropertyMetadata(kind: kind)
-      self.omittedValue = omittedValue
+      self.propertySchema = schema.prependingDescription(description)
+      self.kind = kind
     }
 
     let name: SchemaCodingKey
     let propertySchema: Schema
-    let metadata: ObjectPropertyMetadata
 
-    private let omittedValue: () -> Schema.Value?
+    enum Kind {
+      case required
+      case omitted(constantValue: Schema.Value)
+    }
+    private let kind: Kind
 
   }
 
