@@ -4,37 +4,28 @@ extension SchemaCoding.Support {
 
   struct NeverSchema: Schema {
 
-    typealias Value = Never
+    public typealias Value = Never
 
-    func encode(_ value: Never, to encoder: inout Encoder) {
+    public func encode(_ value: Never, to encoder: inout Encoder) {
 
     }
 
-    typealias ValueDecodingState = Void
+    public typealias ValueDecodingState = Void
 
-    func beginDecodingValue(
+    public func beginDecodingValue(
       from decoder: borrowing Decoder
     ) -> ValueDecodingState {
       ()
     }
 
-    func decodeValue(
+    public func decodeValue(
       from decoder: inout Decoder,
       state: inout ValueDecodingState
     ) throws -> DecodingResult<Never> {
       throw Error.neverSchemaCannotDecode
     }
 
-    typealias MetaSchema = WrapperSchema<
-      Self,
-      ConcreteObjectSchema<
-        TupleObjectSchemaProperties<
-          OptionalObjectProperty<StringSchema>,
-          DirectObjectProperty<ConcreteObjectSchema<TupleObjectSchemaProperties<>>>
-        >
-      >
-    >
-    var metaSchema: MetaSchema {
+    public var metaSchema: some Schema<Self> {
       let objectSchema = ConcreteObjectSchema {
         OptionalObjectProperty(
           name: .description,
@@ -55,7 +46,7 @@ extension SchemaCoding.Support {
     init(description: String? = nil) {
       self.metadata = SchemaMetadata(description: description)
     }
-    var metadata: SchemaMetadata
+    public var metadata: SchemaMetadata
 
   }
 

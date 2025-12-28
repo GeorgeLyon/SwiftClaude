@@ -12,30 +12,12 @@ extension SchemaCoding.Support {
     ObjectSchema: Schema
   >(
     representing: Value.Type = Value.self,
-    null: TypeDiscriminatedUnionSchemaCase<Value, NullSchema> =
-      typeDiscriminatedUnionSchemaCaseNever(
-        Value.self
-      ),
-    boolean: TypeDiscriminatedUnionSchemaCase<Value, BooleanSchema> =
-      typeDiscriminatedUnionSchemaCaseNever(
-        Value.self
-      ),
-    number: TypeDiscriminatedUnionSchemaCase<Value, NumberSchema> =
-      typeDiscriminatedUnionSchemaCaseNever(
-        Value.self
-      ),
-    string: TypeDiscriminatedUnionSchemaCase<Value, StringSchema> =
-      typeDiscriminatedUnionSchemaCaseNever(
-        Value.self
-      ),
-    array: TypeDiscriminatedUnionSchemaCase<Value, ArraySchema> =
-      typeDiscriminatedUnionSchemaCaseNever(
-        Value.self
-      ),
-    object: TypeDiscriminatedUnionSchemaCase<Value, ObjectSchema> =
-      typeDiscriminatedUnionSchemaCaseNever(
-        Value.self
-      ),
+    null: TypeDiscriminatedUnionSchemaCase<Value, NullSchema>,
+    boolean: TypeDiscriminatedUnionSchemaCase<Value, BooleanSchema>,
+    number: TypeDiscriminatedUnionSchemaCase<Value, NumberSchema>,
+    string: TypeDiscriminatedUnionSchemaCase<Value, StringSchema>,
+    array: TypeDiscriminatedUnionSchemaCase<Value, ArraySchema>,
+    object: TypeDiscriminatedUnionSchemaCase<Value, ObjectSchema>,
     encodeValue:
       @escaping (
         Value,
@@ -48,16 +30,17 @@ extension SchemaCoding.Support {
           ObjectSchema
         >
       ) -> Void
-  ) {
-
-  }
-
-  public static func typeDiscriminatedUnionSchemaCaseNever<Value>(
-    _ value: Value.Type
-  ) -> TypeDiscriminatedUnionSchemaCase<
-    Value, some Schema<Never>
-  > {
-    .never()
+  ) -> some Schema<Value> {
+    TypeDiscriminatedUnionSchema(
+      metadata: SchemaMetadata(description: nil),
+      null: null,
+      boolean: boolean,
+      number: number,
+      string: string,
+      array: array,
+      object: object,
+      encodeValue: encodeValue
+    )
   }
 
   public struct TypeDiscriminatedUnionSchemaCase<Value, Schema: SchemaCoding.Schema> {
@@ -70,7 +53,8 @@ extension SchemaCoding.Support {
       self.finishDecoding = finishDecoding
     }
 
-    fileprivate static func never() -> Self where Schema == NeverSchema {
+    static func never(_ value: Value.Type = Value.self) -> Self
+    where Schema == NeverSchema {
       Self(
         isInhabited: false,
         schema: NeverSchema(),
@@ -96,7 +80,7 @@ extension SchemaCoding.Support {
 
 extension SchemaCoding.Support {
 
-  fileprivate struct TypeDiscriminatedUnionSchema<
+  struct TypeDiscriminatedUnionSchema<
     Value,
     NullSchema: Schema,
     BooleanSchema: Schema,
@@ -104,7 +88,7 @@ extension SchemaCoding.Support {
     StringSchema: Schema,
     ArraySchema: Schema,
     ObjectSchema: Schema
-  > {
+  >: Schema {
 
     func encode(_ value: Value, to encoder: inout Encoder) {
       var caseEncoder = CaseEncoder(
@@ -224,15 +208,115 @@ extension SchemaCoding.Support {
 
     }
 
-    fileprivate var metadata: SchemaMetadata
+    typealias MetaSchema = WrapperSchema<
+      Self,
+      ConcreteObjectSchema<
+        TupleObjectSchemaProperties<
+          OptionalObjectProperty<SchemaCoding.Support.StringSchema>,
+          DirectObjectProperty<
+            TupleSchema<
+              NullSchema.MetaSchema,
+              BooleanSchema.MetaSchema,
+              NumberSchema.MetaSchema,
+              StringSchema.MetaSchema,
+              ArraySchema.MetaSchema,
+              ObjectSchema.MetaSchema
+            >
+          >
+        >
+      >
+    >
+    var metaSchema: MetaSchema {
+      let objectSchema = ConcreteObjectSchema {
+        OptionalObjectProperty(
+          name: .description,
+          schema: OptionalSchema(wrappedSchema: SchemaCoding.Support.StringSchema())
+        )
+        DirectObjectProperty(
+          name: .oneOf,
+          schema: TupleSchema(
+            elements:
+              TupleSchemaElement(
+                schema: null.schema.metaSchema,
+                kind: null.isInhabited ? .required : .omitted(constantValue: null.schema)
+              ),
+            TupleSchemaElement(
+              schema: boolean.schema.metaSchema,
+              kind: boolean.isInhabited ? .required : .omitted(constantValue: boolean.schema)
+            ),
+            TupleSchemaElement(
+              schema: number.schema.metaSchema,
+              kind: number.isInhabited ? .required : .omitted(constantValue: number.schema)
+            ),
+            TupleSchemaElement(
+              schema: string.schema.metaSchema,
+              kind: string.isInhabited ? .required : .omitted(constantValue: string.schema)
+            ),
+            TupleSchemaElement(
+              schema: array.schema.metaSchema,
+              kind: array.isInhabited ? .required : .omitted(constantValue: array.schema)
+            ),
+            TupleSchemaElement(
+              schema: object.schema.metaSchema,
+              kind: object.isInhabited ? .required : .omitted(constantValue: object.schema)
+            )
+          )
+        )
+      }
+      return objectSchema.wrap { (description, schemas) in
+        let (null, boolean, number, string, array, object) = schemas
+        return Self(
+          metadata: SchemaMetadata(description: description),
+          null: TypeDiscriminatedUnionSchemaCase(
+            schema: null,
+            finishDecoding: self.null.finishDecoding
+          ),
+          boolean: TypeDiscriminatedUnionSchemaCase(
+            schema: boolean,
+            finishDecoding: self.boolean.finishDecoding
+          ),
+          number: TypeDiscriminatedUnionSchemaCase(
+            schema: number,
+            finishDecoding: self.number.finishDecoding
+          ),
+          string: TypeDiscriminatedUnionSchemaCase(
+            schema: string,
+            finishDecoding: self.string.finishDecoding
+          ),
+          array: TypeDiscriminatedUnionSchemaCase(
+            schema: array,
+            finishDecoding: self.array.finishDecoding
+          ),
+          object: TypeDiscriminatedUnionSchemaCase(
+            schema: object,
+            finishDecoding: self.object.finishDecoding
+          ),
+          encodeValue: self.encodeValue
+        )
+      } unwrap: { schema in
+        (
+          schema.metadata.description,
+          (
+            schema.null.schema,
+            schema.boolean.schema,
+            schema.number.schema,
+            schema.string.schema,
+            schema.array.schema,
+            schema.object.schema
+          )
+        )
+      }
+    }
 
-    fileprivate let null: TypeDiscriminatedUnionSchemaCase<Value, NullSchema>
-    fileprivate let boolean: TypeDiscriminatedUnionSchemaCase<Value, BooleanSchema>
-    fileprivate let number: TypeDiscriminatedUnionSchemaCase<Value, NumberSchema>
-    fileprivate let string: TypeDiscriminatedUnionSchemaCase<Value, StringSchema>
-    fileprivate let array: TypeDiscriminatedUnionSchemaCase<Value, ArraySchema>
-    fileprivate let object: TypeDiscriminatedUnionSchemaCase<Value, ObjectSchema>
-    fileprivate typealias CaseEncoder = TypeDiscriminatedUnionSchemaCaseEncoder<
+    var metadata: SchemaMetadata
+
+    let null: TypeDiscriminatedUnionSchemaCase<Value, NullSchema>
+    let boolean: TypeDiscriminatedUnionSchemaCase<Value, BooleanSchema>
+    let number: TypeDiscriminatedUnionSchemaCase<Value, NumberSchema>
+    let string: TypeDiscriminatedUnionSchemaCase<Value, StringSchema>
+    let array: TypeDiscriminatedUnionSchemaCase<Value, ArraySchema>
+    let object: TypeDiscriminatedUnionSchemaCase<Value, ObjectSchema>
+    typealias CaseEncoder = TypeDiscriminatedUnionSchemaCaseEncoder<
       NullSchema,
       BooleanSchema,
       NumberSchema,
@@ -240,7 +324,7 @@ extension SchemaCoding.Support {
       ArraySchema,
       ObjectSchema
     >
-    fileprivate let encodeValue: (Value, inout CaseEncoder) -> Void
+    let encodeValue: (Value, inout CaseEncoder) -> Void
   }
 
 }
