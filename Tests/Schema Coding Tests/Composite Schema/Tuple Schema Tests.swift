@@ -105,6 +105,29 @@ struct TupleSchemaTests {
       )
     }
 
+    @Test
+    func testOmittedElement() throws {
+      let schema = SchemaCoding.Support.TupleSchema(
+        elements:
+          SchemaCoding.Support.TupleSchemaElement(
+            schema: SchemaCoding.Support.BooleanSchema(),
+            kind: .omitted(constantValue: true)
+          ),
+          SchemaCoding.Support.TupleSchemaElement(
+            schema: SchemaCoding.Support.BooleanSchema(),
+            kind: .required
+          )
+      )
+      try schema.test(
+        (true, false),
+        isCodedAs: """
+          [
+            false
+          ]
+          """
+      )
+    }
+
   }
 
   @Suite("Meta Schema")
@@ -126,6 +149,32 @@ struct TupleSchemaTests {
               },
               {
                 "type": "integer"
+              }
+            ]
+          }
+          """
+      )
+    }
+
+    @Test
+    func testMetaSchemaWithOmittedElement() throws {
+      let schema = SchemaCoding.Support.TupleSchema(
+        elements:
+          SchemaCoding.Support.TupleSchemaElement(
+            schema: SchemaCoding.Support.BooleanSchema(),
+            kind: .omitted(constantValue: true)
+          ),
+          SchemaCoding.Support.TupleSchemaElement(
+            schema: SchemaCoding.Support.BooleanSchema(),
+            kind: .required
+          )
+      )
+      try schema.test(
+        encodesAs: """
+          {
+            "prefixItems": [
+              {
+                "type": "boolean"
               }
             ]
           }

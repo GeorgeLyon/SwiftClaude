@@ -36,7 +36,9 @@ extension SchemaCoding.Support {
         ))
       var elementDecodersArray: [ElementDecoderProtocol] = []
       for elementDecoder in repeat each elementDecoders {
-        elementDecodersArray.append(elementDecoder)
+        if elementDecoder.isRequired {
+          elementDecodersArray.append(elementDecoder)
+        }
       }
       return ValueDecodingState(
         elementDecoders: elementDecodersArray[...],
@@ -230,6 +232,15 @@ extension SchemaCoding.Support {
         case .decoding:
           throw Error.partiallyDecodedValue
         }
+      }
+    }
+
+    var isRequired: Bool {
+      switch kind {
+      case .required:
+        return true
+      case .omitted:
+        return false
       }
     }
 
