@@ -2,12 +2,6 @@ private import SchemaCodingSupport
 
 // MARK: - Cases
 
-extension SchemaCoding {
-
-  public typealias EnumDecoder = Support.EnumDecoder
-
-}
-
 extension SchemaCoding.Support {
 
   public static func enumSchemaCase<Value>(
@@ -306,6 +300,12 @@ extension SchemaCoding.Support {
 }
 
 // MARK: - Decoding
+
+extension SchemaCoding {
+
+  public typealias EnumDecoder = Support.EnumDecoder
+
+}
 
 extension SchemaCoding.Support {
 

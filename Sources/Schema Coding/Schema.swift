@@ -134,6 +134,7 @@ extension SchemaCoding.Support {
     static var type: Self { "type" }
     static var value: Self { "value" }
     static var const: Self { "const" }
+    static var not: Self { "not" }
 
   }
 
