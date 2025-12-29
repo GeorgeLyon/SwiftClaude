@@ -7,7 +7,7 @@ extension SchemaCoding.Support {
     description: String? = nil,
     style: StructSchemaStyleStandard = .standard,
     @StructPropertiesBuilder<Root> properties: () -> StructProperties<Root, repeat each Property>,
-    initializer: @escaping (StructDecoder<repeat (each Property).Value>) -> Root
+    finishDecoding: @escaping (StructDecoder<repeat (each Property).Value>) -> Root
   ) -> some ObjectSchema<Root> {
     let properties = (repeat each properties().properties)
     let objectSchema = ConcreteObjectSchema(
@@ -15,7 +15,7 @@ extension SchemaCoding.Support {
       properties: repeat (each properties).property
     )
     return objectSchema.wrap { propertyValues in
-      initializer(StructDecoder(propertyValues: (repeat each propertyValues)))
+      finishDecoding(StructDecoder(propertyValues: (repeat each propertyValues)))
     } unwrap: { root in
       (repeat (each properties).accessValue(from: root))
     }
@@ -26,7 +26,7 @@ extension SchemaCoding.Support {
     description: String? = nil,
     style: StructSchemaStyleStandard = .standard,
     @StructPropertiesBuilder<Root> properties: () -> StructProperties<Root, Property>,
-    initializer: @escaping (StructSinglePropertyDecoder<Property.Value>) -> Root
+    finishDecoding: @escaping (StructSinglePropertyDecoder<Property.Value>) -> Root
   ) -> some ObjectSchema<Root> {
     let properties = properties().properties
     let objectSchema = ConcreteObjectSchema(
@@ -34,7 +34,7 @@ extension SchemaCoding.Support {
       properties: properties.property
     )
     return objectSchema.wrap { propertyValues in
-      initializer(StructSinglePropertyDecoder(propertyValues: (propertyValues, ())))
+      finishDecoding(StructSinglePropertyDecoder(propertyValues: (propertyValues, ())))
     } unwrap: { root in
       properties.accessValue(from: root)
     }
@@ -45,11 +45,11 @@ extension SchemaCoding.Support {
     description: String? = nil,
     style: StructSchemaStyleWrapper,
     @StructPropertiesBuilder<Root> properties: () -> StructProperties<Root, Property>,
-    initializer: @escaping (StructSinglePropertyDecoder<Property.Value>) -> Root
+    finishDecoding: @escaping (StructSinglePropertyDecoder<Property.Value>) -> Root
   ) -> some Schema<Root> {
     let properties = properties().properties
     return properties.effectiveSchema.wrap { propertyValues in
-      initializer(StructSinglePropertyDecoder(propertyValues: (propertyValues, ())))
+      finishDecoding(StructSinglePropertyDecoder(propertyValues: (propertyValues, ())))
     } unwrap: { root in
       properties.accessValue(from: root)
     }

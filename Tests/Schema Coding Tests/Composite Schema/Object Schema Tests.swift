@@ -2,7 +2,6 @@ import SchemaCodingTestSupport
 import Testing
 
 @testable import SchemaCoding
-
 @Suite("Object Schema")
 struct ObjectSchemaTests {
 
@@ -46,7 +45,7 @@ struct ObjectSchemaTests {
           """
       )
     }
-
+    
     @Test
     func testDirectObjectProperty() throws {
       let objectSchema = SchemaCoding.Support.ConcreteObjectSchema {
@@ -65,7 +64,7 @@ struct ObjectSchemaTests {
           """
       )
     }
-
+    
     @Test
     func testOptionalObjectProperty() throws {
       let objectSchema = SchemaCoding.Support.ConcreteObjectSchema {
@@ -97,15 +96,16 @@ struct ObjectSchemaTests {
 
     @Test
     func testConstantOptionalObjectProperty() throws {
+      let constantOptionalSchema = SchemaCoding.Support.ConstantSchema(
+        wrappedSchema: SchemaCoding.Support.OptionalSchema(
+          wrappedSchema: SchemaCoding.Support.schema(representing: String.self)
+        ),
+        constantValue: "1.0"
+      )
       let objectSchema = SchemaCoding.Support.ConcreteObjectSchema {
         SchemaCoding.Support.DirectObjectProperty(
           name: "version",
-          constantOptionalSchema: SchemaCoding.Support.ConstantSchema(
-            wrappedSchema: SchemaCoding.Support.OptionalSchema(
-              wrappedSchema: SchemaCoding.Support.schema(representing: String.self)
-            ),
-            constantValue: "1.0"
-          )
+          constantOptionalSchema: constantOptionalSchema
         )
       }
 
@@ -118,7 +118,7 @@ struct ObjectSchemaTests {
           """
       )
     }
-
+    
     @Test
     func testConstantOptionalObjectPropertyWithNilValue() throws {
       let objectSchema = SchemaCoding.Support.ConcreteObjectSchema {
@@ -142,7 +142,7 @@ struct ObjectSchemaTests {
           """
       )
     }
-
+    
     @Test
     func testObjectSchemaWithWrapper() throws {
       struct Point: Equatable {
@@ -177,7 +177,7 @@ struct ObjectSchemaTests {
           """
       )
     }
-
+    
   }
 
   @Suite("Meta Schema")
@@ -249,15 +249,16 @@ struct ObjectSchemaTests {
 
     @Test
     func testConstantOptionalObjectPropertyMetaSchema() throws {
+      let constantOptionalSchema = SchemaCoding.Support.ConstantSchema(
+        wrappedSchema: SchemaCoding.Support.OptionalSchema(
+          wrappedSchema: SchemaCoding.Support.schema(representing: String.self)
+        ),
+        constantValue: "1.0"
+      )
       let objectSchema = SchemaCoding.Support.ConcreteObjectSchema {
         SchemaCoding.Support.DirectObjectProperty(
           name: "version",
-          constantOptionalSchema: SchemaCoding.Support.ConstantSchema(
-            wrappedSchema: SchemaCoding.Support.OptionalSchema(
-              wrappedSchema: SchemaCoding.Support.schema(representing: String.self)
-            ),
-            constantValue: "1.0"
-          )
+          constantOptionalSchema: constantOptionalSchema
         )
       }
 
@@ -279,15 +280,16 @@ struct ObjectSchemaTests {
 
     @Test
     func testConstantOptionalObjectPropertyWithNilValueMetaSchema() throws {
+      let constantOptionalSchema = SchemaCoding.Support.ConstantSchema(
+        wrappedSchema: SchemaCoding.Support.OptionalSchema(
+          wrappedSchema: SchemaCoding.Support.schema(representing: String.self)
+        ),
+        constantValue: nil
+      )
       let objectSchema = SchemaCoding.Support.ConcreteObjectSchema {
         SchemaCoding.Support.DirectObjectProperty(
           name: "version",
-          constantOptionalSchema: SchemaCoding.Support.ConstantSchema(
-            wrappedSchema: SchemaCoding.Support.OptionalSchema(
-              wrappedSchema: SchemaCoding.Support.schema(representing: String.self)
-            ),
-            constantValue: nil
-          )
+          constantOptionalSchema: constantOptionalSchema
         )
       }
 

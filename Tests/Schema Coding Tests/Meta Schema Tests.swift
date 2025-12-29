@@ -26,7 +26,7 @@ struct MetaSchemaTests {
             schema: SchemaCoding.Support.schema(representing: String.self)
           )
         },
-        initializer: { decoder in
+        finishDecoding: { decoder in
           Item(name: decoder.propertyValues.0)
         }
       )
@@ -78,7 +78,7 @@ struct MetaSchemaTests {
             schema: SchemaCoding.Support.schema(representing: Int.self)
           )
         },
-        initializer: { decoder in
+        finishDecoding: { decoder in
           Inner(value: decoder.propertyValues.0)
         }
       )
@@ -92,7 +92,7 @@ struct MetaSchemaTests {
             schema: innerSchema
           )
         },
-        initializer: { decoder in
+        finishDecoding: { decoder in
           Outer(inner: decoder.propertyValues.0)
         }
       )
@@ -145,7 +145,7 @@ struct MetaSchemaTests {
             schema: SchemaCoding.Support.schema(representing: String.self)
           )
         },
-        initializer: { decoder in
+        finishDecoding: { decoder in
           Payload(data: decoder.propertyValues.0)
         }
       )
@@ -242,7 +242,7 @@ struct MetaSchemaTests {
             schema: SchemaCoding.Support.BooleanSchema()
           )
         },
-        initializer: { decoder in
+        finishDecoding: { decoder in
           Config(enabled: decoder.propertyValues.0)
         }
       )
@@ -299,7 +299,7 @@ struct MetaSchemaTests {
             schema: SchemaCoding.Support.schema(representing: Int.self)
           )
         },
-        initializer: { (decoder: SchemaCoding.StructDecoder<String, Int>) in
+        finishDecoding: { (decoder: SchemaCoding.StructDecoder<String, Int>) in
           Person(name: decoder.propertyValues.0, age: decoder.propertyValues.1)
         }
       )
@@ -402,7 +402,7 @@ struct MetaSchemaTests {
             schema: SchemaCoding.Support.schema(representing: Int.self)
           )
         },
-        initializer: { (decoder: SchemaCoding.StructDecoder<String, Int>) in
+        finishDecoding: { (decoder: SchemaCoding.StructDecoder<String, Int>) in
           Address(city: decoder.propertyValues.0, zip: decoder.propertyValues.1)
         }
       )
@@ -421,7 +421,7 @@ struct MetaSchemaTests {
             schema: addressSchema
           )
         },
-        initializer: { (decoder: SchemaCoding.StructDecoder<String, Address>) in
+        finishDecoding: { (decoder: SchemaCoding.StructDecoder<String, Address>) in
           Contact(name: decoder.propertyValues.0, address: decoder.propertyValues.1)
         }
       )
@@ -543,7 +543,7 @@ struct MetaSchemaTests {
             schema: SchemaCoding.Support.BooleanSchema()
           )
         },
-        initializer: { (decoder: SchemaCoding.StructDecoder<Int, Bool>) in
+        finishDecoding: { (decoder: SchemaCoding.StructDecoder<Int, Bool>) in
           Item(id: decoder.propertyValues.0, active: decoder.propertyValues.1)
         }
       )

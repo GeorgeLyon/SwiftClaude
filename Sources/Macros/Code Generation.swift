@@ -204,17 +204,6 @@ extension StructSchema {
                   )
 
                   LabeledExprSyntax(
-                    label: "schema",
-                    colon: .colonToken(),
-                    expression: .schema(
-                      namespace: namespace,
-                      representing: property.type,
-                      additionalArguments: property.additionalArguments
-                    ),
-                    trailingComma: .commaToken(trailingTrivia: .newline)
-                  )
-
-                  LabeledExprSyntax(
                     label: "keyPath",
                     colon: .colonToken(),
                     expression: KeyPathExprSyntax(
@@ -230,6 +219,17 @@ extension StructSchema {
                           )
                         )
                       }
+                    ),
+                    trailingComma: .commaToken(trailingTrivia: .newline)
+                  )
+
+                  LabeledExprSyntax(
+                    label: "schema",
+                    colon: .colonToken(),
+                    expression: .schema(
+                      namespace: namespace,
+                      representing: property.type,
+                      additionalArguments: property.additionalArguments
                     )
                   )
 

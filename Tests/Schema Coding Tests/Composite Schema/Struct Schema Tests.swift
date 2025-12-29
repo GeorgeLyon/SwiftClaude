@@ -30,7 +30,7 @@ struct StructSchemaTests {
             schema: SchemaCoding.Support.schema(representing: Int.self)
           )
         },
-        initializer: { (decoder: SchemaCoding.StructDecoder<String, Int>) in
+        finishDecoding: { (decoder: SchemaCoding.StructDecoder<String, Int>) in
           SimpleStruct(
             name: decoder.propertyValues.0,
             age: decoder.propertyValues.1
@@ -70,7 +70,7 @@ struct StructSchemaTests {
             schema: Int?.schema
           )
         },
-        initializer: { (decoder: SchemaCoding.StructDecoder<String, Int?>) in
+        finishDecoding: { (decoder: SchemaCoding.StructDecoder<String, Int?>) in
           StructWithOptional(
             required: decoder.propertyValues.0,
             optional: decoder.propertyValues.1
@@ -115,7 +115,7 @@ struct StructSchemaTests {
             schema: SchemaCoding.Support.BooleanSchema()
           )
         },
-        initializer: { decoder in
+        finishDecoding: { decoder in
           SingleProperty(value: decoder.propertyValues.0)
         }
       )
@@ -146,7 +146,7 @@ struct StructSchemaTests {
             schema: SchemaCoding.Support.BooleanSchema()
           )
         },
-        initializer: { decoder in
+        finishDecoding: { decoder in
           BoolWrapper(value: decoder.propertyValues.0)
         }
       )
@@ -178,7 +178,7 @@ struct StructSchemaTests {
             schema: SchemaCoding.Support.schema(representing: String.self)
           )
         },
-        initializer: { decoder in
+        finishDecoding: { decoder in
           StringWrapper(text: decoder.propertyValues.0)
         }
       )
@@ -205,7 +205,7 @@ struct StructSchemaTests {
             schema: SchemaCoding.Support.schema(representing: Int.self)
           )
         },
-        initializer: { decoder in
+        finishDecoding: { decoder in
           IntWrapper(number: decoder.propertyValues.0)
         }
       )
@@ -232,7 +232,7 @@ struct StructSchemaTests {
             schema: Int?.schema
           )
         },
-        initializer: { decoder in
+        finishDecoding: { decoder in
           OptionalWrapper(value: decoder.propertyValues.0)
         }
       )
@@ -277,7 +277,7 @@ struct StructSchemaTests {
             schema: SchemaCoding.Support.schema(representing: String.self)
           )
         },
-        initializer: { decoder in
+        finishDecoding: { decoder in
           Person(name: decoder.propertyValues.0)
         }
       )
@@ -315,7 +315,7 @@ struct StructSchemaTests {
             schema: SchemaCoding.Support.BooleanSchema()
           )
         },
-        initializer: { decoder in
+        finishDecoding: { decoder in
           BoolWrapper(value: decoder.propertyValues.0)
         }
       )
@@ -346,7 +346,7 @@ struct StructSchemaTests {
             schema: SchemaCoding.Support.schema(representing: String.self)
           )
         },
-        initializer: { decoder in
+        finishDecoding: { decoder in
           DescribedWrapper(value: decoder.propertyValues.0)
         }
       )

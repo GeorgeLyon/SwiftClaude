@@ -3,6 +3,35 @@ private import SchemaCodingSupport
 
 extension SchemaCoding.Support {
 
+  @_disfavoredOverload
+  public static func schema<each Element: SchemaCodable>(
+    representing: (repeat each Element).Type,
+    description: String? = nil
+  ) -> some Schema<(repeat each Element)> {
+    TupleSchema(
+      description: description,
+      elementSchemas: repeat (each Element).schema
+    )
+  }
+
+  @_disfavoredOverload
+  public static func schema<each Element: SchemaCodable>(
+    representing: (repeat each Element)?.Type,
+    description: String? = nil
+  ) -> some Schema<(repeat each Element)?> {
+    OptionalSchema(
+      description: description,
+      wrappedSchema:
+        TupleSchema(
+          elementSchemas: repeat (each Element).schema
+        )
+    )
+  }
+
+}
+
+extension SchemaCoding.Support {
+
   struct TupleSchema<each ElementSchema: Schema>: Schema {
 
     typealias Value = (repeat (each ElementSchema).Value)
