@@ -20,7 +20,7 @@ extension SchemaCoding.Support {
         Value,
         inout EnumSchemaEncoder<repeat each AssociatedValuesSchema>,
       ) -> Void
-  ) -> some Schema<Value> {
+  ) -> some Schema<Value> & ComplexSchema {
     EnumSchema(
       description: description,
       cases: repeat each cases().cases,
@@ -64,7 +64,7 @@ extension SchemaCoding.Support {
   struct EnumSchema<
     Value,
     each AssociatedValuesSchema: Schema
-  >: Schema {
+  >: Schema, ComplexSchema {
 
     func encode(_ value: Value, to encoder: inout SchemaCoding.Support.Encoder) {
       var enumEncoder = EnumSchemaEncoder(

@@ -105,7 +105,8 @@ extension SchemaCoding.Support {
     name: SchemaCodingKey,
     @EnumSchemaCaseAssociatedValuesBuilder
     associatedValues: () -> EnumSchemaCaseAssociatedValuesTuple<AssociatedValuesSchema>,
-    finishDecoding: @escaping (EnumSingleAssociatedValueCaseDecoder<AssociatedValuesSchema.Value>) -> Value
+    finishDecoding:
+      @escaping (EnumSingleAssociatedValueCaseDecoder<AssociatedValuesSchema.Value>) -> Value
   ) -> EnumSchemaCase<
     Value,
     AssociatedValuesSchema
@@ -257,6 +258,14 @@ extension SchemaCoding.Support {
     )
   }
 
+  public static func enumSchemaCaseAssociatedValue<Schema: SchemaCoding.Schema & ComplexSchema>(
+    schema: Schema
+  ) -> EnumSchemaCaseAssociatedValuesTupleElement<TypeErasedSchema<Schema.Value>> {
+    EnumSchemaCaseAssociatedValuesTupleElement(
+      schema: schema.typeErased()
+    )
+  }
+
   public struct EnumSchemaCaseAssociatedValuesObjectProperty<
     Property: ObjectProperty
   > {
@@ -335,7 +344,8 @@ extension SchemaCoding.Support {
 extension SchemaCoding {
 
   public typealias EnumCaseDecoder = Support.EnumCaseDecoder
-  public typealias EnumSingleAssociatedValueCaseDecoder = Support.EnumSingleAssociatedValueCaseDecoder
+  public typealias EnumSingleAssociatedValueCaseDecoder = Support
+    .EnumSingleAssociatedValueCaseDecoder
 
 }
 

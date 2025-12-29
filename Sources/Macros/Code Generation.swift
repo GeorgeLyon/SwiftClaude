@@ -367,20 +367,6 @@ extension EnumSchema {
               )
             ),
             statements: CodeBlockItemListSyntax {
-              VariableDeclSyntax(
-                bindingSpecifier: .keyword(.let),
-                bindings: PatternBindingListSyntax {
-                  PatternBindingSyntax(
-                    pattern: IdentifierPatternSyntax(identifier: "encodings"),
-                    initializer: InitializerClauseSyntax(
-                      value: MemberAccessExprSyntax(
-                        base: DeclReferenceExprSyntax(baseName: "encoder"),
-                        name: "encodings"
-                      )
-                    )
-                  )
-                }
-              )
               SwitchExprSyntax(
                 subject: DeclReferenceExprSyntax(baseName: "value"),
                 cases: SwitchCaseListSyntax {
@@ -430,21 +416,6 @@ extension EnumSchema {
                         }
                       ),
                       statements: CodeBlockItemListSyntax {
-                        VariableDeclSyntax(
-                          bindingSpecifier: .keyword(.let),
-                          bindings: PatternBindingListSyntax {
-                            PatternBindingSyntax(
-                              pattern: IdentifierPatternSyntax(identifier: "encoding"),
-                              initializer: InitializerClauseSyntax(
-                                value: MemberAccessExprSyntax(
-                                  base: DeclReferenceExprSyntax(baseName: "encodings"),
-                                  name: "\(raw: offset)"
-                                )
-                              )
-                            )
-                          }
-                        )
-
                         /// encoder.encode(…)
                         FunctionCallExprSyntax(
                           calledExpression: MemberAccessExprSyntax(
@@ -469,7 +440,13 @@ extension EnumSchema {
                             LabeledExprSyntax(
                               label: "using",
                               colon: .colonToken(),
-                              expression: DeclReferenceExprSyntax(baseName: "encoding")
+                              expression: MemberAccessExprSyntax(
+                                base: MemberAccessExprSyntax(
+                                  base: DeclReferenceExprSyntax(baseName: "encoder"),
+                                  name: "encodings"
+                                ),
+                                name: "\(raw: offset)"
+                              )
                             )
                           },
                           rightParen: .rightParenToken()
