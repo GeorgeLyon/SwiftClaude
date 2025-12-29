@@ -158,8 +158,8 @@ struct MetaSchemaTests {
             schema: SchemaCoding.Support.schema(representing: String.self)
           )
         },
-        finishDecoding: { (decoder: SchemaCoding.EnumDecoder<String>) in
-          Message.text(content: decoder.associatedValues)
+        finishDecoding: { (decoder: SchemaCoding.EnumSingleAssociatedValueCaseDecoder<String>) in
+          Message.text(content: decoder.associatedValues.0)
         }
       )
 
@@ -170,8 +170,8 @@ struct MetaSchemaTests {
             schema: payloadSchema
           )
         },
-        finishDecoding: { (decoder: SchemaCoding.EnumDecoder<Payload>) in
-          Message.payload(decoder.associatedValues)
+        finishDecoding: { (decoder: SchemaCoding.EnumSingleAssociatedValueCaseDecoder<Payload>) in
+          Message.payload(decoder.associatedValues.0)
         }
       )
 

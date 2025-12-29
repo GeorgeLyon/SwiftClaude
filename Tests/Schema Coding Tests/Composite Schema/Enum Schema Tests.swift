@@ -82,8 +82,8 @@ struct EnumSchemaTests {
               schema: SchemaCoding.Support.schema(representing: Int.self)
             )
           },
-          finishDecoding: { (decoder: SchemaCoding.EnumDecoder<Int>) in
-            IntEnum.alpha(decoder.associatedValues)
+          finishDecoding: { (decoder: SchemaCoding.EnumSingleAssociatedValueCaseDecoder<Int>) in
+            IntEnum.alpha(decoder.associatedValues.0)
           }
         )
         let betaCase = SchemaCoding.Support.enumSchemaCase(
@@ -93,8 +93,8 @@ struct EnumSchemaTests {
               schema: SchemaCoding.Support.schema(representing: String.self)
             )
           },
-          finishDecoding: { (decoder: SchemaCoding.EnumDecoder<String>) in
-            IntEnum.beta(decoder.associatedValues)
+          finishDecoding: { (decoder: SchemaCoding.EnumSingleAssociatedValueCaseDecoder<String>) in
+            IntEnum.beta(decoder.associatedValues.0)
           }
         )
 
@@ -151,7 +151,7 @@ struct EnumSchemaTests {
               schema: SchemaCoding.Support.schema(representing: Int.self)
             )
           },
-          finishDecoding: { (decoder: SchemaCoding.EnumDecoder<Int, Int>) in
+          finishDecoding: { (decoder: SchemaCoding.EnumCaseDecoder<Int, Int>) in
             PointEnum.point(x: decoder.associatedValues.0, y: decoder.associatedValues.1)
           }
         )
@@ -217,7 +217,7 @@ struct EnumSchemaTests {
               schema: SchemaCoding.Support.BooleanSchema()
             )
           },
-          finishDecoding: { (decoder: SchemaCoding.EnumDecoder<Int, Bool>) in
+          finishDecoding: { (decoder: SchemaCoding.EnumCaseDecoder<Int, Bool>) in
             TupleEnum.pair(decoder.associatedValues.0, decoder.associatedValues.1)
           }
         )
@@ -403,8 +403,8 @@ struct EnumSchemaTests {
               schema: SchemaCoding.Support.schema(representing: String.self)
             )
           },
-          finishDecoding: { (decoder: SchemaCoding.EnumDecoder<String>) in
-            ContentEnum.text(content: decoder.associatedValues)
+          finishDecoding: { (decoder: SchemaCoding.EnumSingleAssociatedValueCaseDecoder<String>) in
+            ContentEnum.text(content: decoder.associatedValues.0)
           }
         )
         let numberCase = SchemaCoding.Support.enumSchemaCase(
@@ -415,8 +415,8 @@ struct EnumSchemaTests {
               schema: SchemaCoding.Support.schema(representing: Int.self)
             )
           },
-          finishDecoding: { (decoder: SchemaCoding.EnumDecoder<Int>) in
-            ContentEnum.number(value: decoder.associatedValues)
+          finishDecoding: { (decoder: SchemaCoding.EnumSingleAssociatedValueCaseDecoder<Int>) in
+            ContentEnum.number(value: decoder.associatedValues.0)
           }
         )
 

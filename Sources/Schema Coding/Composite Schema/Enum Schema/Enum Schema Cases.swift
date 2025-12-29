@@ -9,7 +9,7 @@ extension SchemaCoding.Support {
     description: String? = nil,
     @EnumSchemaCaseAssociatedValuesBuilder
     associatedValues: () -> EnumSchemaCaseAssociatedValuesObject<>,
-    finishDecoding: @escaping (EnumDecoder<>) -> Value
+    finishDecoding: @escaping (EnumCaseDecoder<>) -> Value
   ) -> EnumSchemaCase<
     Value,
     some ObjectSchema<Void>
@@ -22,7 +22,7 @@ extension SchemaCoding.Support {
         properties: TupleObjectSchemaProperties()
       ),
       finishDecoding: {
-        finishDecoding(EnumDecoder())
+        finishDecoding(EnumCaseDecoder())
       }
     )
   }
@@ -34,7 +34,7 @@ extension SchemaCoding.Support {
     associatedValues: () -> EnumSchemaCaseAssociatedValuesObject<
       repeat each Property
     >,
-    finishDecoding: @escaping (EnumDecoder<repeat (each Property).Value>) -> Value
+    finishDecoding: @escaping (EnumCaseDecoder<repeat (each Property).Value>) -> Value
   ) -> EnumSchemaCase<
     Value,
     some ObjectSchema<(repeat (each Property).Value)>
@@ -48,7 +48,31 @@ extension SchemaCoding.Support {
       name: name,
       associatedValuesSchema: associatedValuesSchema,
       finishDecoding: { associatedValues in
-        finishDecoding(EnumDecoder(repeat each associatedValues))
+        finishDecoding(EnumCaseDecoder(repeat each associatedValues))
+      }
+    )
+  }
+
+  public static func enumSchemaCase<Value, Property>(
+    name: SchemaCodingKey,
+    description: String? = nil,
+    @EnumSchemaCaseAssociatedValuesBuilder
+    associatedValues: () -> EnumSchemaCaseAssociatedValuesObject<Property>,
+    finishDecoding: @escaping (EnumSingleAssociatedValueCaseDecoder<Property.Value>) -> Value
+  ) -> EnumSchemaCase<
+    Value,
+    some ObjectSchema<Property.Value>
+  > {
+    let associatedValues = associatedValues()
+    let associatedValuesSchema = ConcreteObjectSchema(
+      description: description,
+      properties: associatedValues.properties
+    )
+    return EnumSchemaCase(
+      name: name,
+      associatedValuesSchema: associatedValuesSchema,
+      finishDecoding: { associatedValues in
+        finishDecoding(EnumSingleAssociatedValueCaseDecoder(associatedValues))
       }
     )
   }
@@ -58,7 +82,7 @@ extension SchemaCoding.Support {
     description: String? = nil,
     @EnumSchemaCaseAssociatedValuesBuilder
     associatedValues: () -> EnumSchemaCaseAssociatedValuesTuple<repeat each ElementSchema>,
-    finishDecoding: @escaping (EnumDecoder<repeat (each ElementSchema).Value>) -> Value
+    finishDecoding: @escaping (EnumCaseDecoder<repeat (each ElementSchema).Value>) -> Value
   ) -> EnumSchemaCase<
     Value,
     some Schema<(repeat (each ElementSchema).Value)>
@@ -72,7 +96,7 @@ extension SchemaCoding.Support {
       name: name,
       associatedValuesSchema: associatedValuesSchema,
       finishDecoding: { associatedValues in
-        finishDecoding(EnumDecoder(repeat each associatedValues))
+        finishDecoding(EnumCaseDecoder(repeat each associatedValues))
       }
     )
   }
@@ -81,7 +105,7 @@ extension SchemaCoding.Support {
     name: SchemaCodingKey,
     @EnumSchemaCaseAssociatedValuesBuilder
     associatedValues: () -> EnumSchemaCaseAssociatedValuesTuple<AssociatedValuesSchema>,
-    finishDecoding: @escaping (EnumDecoder<AssociatedValuesSchema.Value>) -> Value
+    finishDecoding: @escaping (EnumSingleAssociatedValueCaseDecoder<AssociatedValuesSchema.Value>) -> Value
   ) -> EnumSchemaCase<
     Value,
     AssociatedValuesSchema
@@ -91,7 +115,7 @@ extension SchemaCoding.Support {
       name: name,
       associatedValuesSchema: associatedValues.elementSchemas,
       finishDecoding: { associatedValues in
-        finishDecoding(EnumDecoder(associatedValues))
+        finishDecoding(EnumSingleAssociatedValueCaseDecoder(associatedValues))
       }
     )
   }
@@ -107,10 +131,17 @@ extension SchemaCoding.Support {
 
   }
 
-  public struct EnumDecoder<each AssociatedValue> {
+  public struct EnumCaseDecoder<each AssociatedValue> {
     public let associatedValues: (repeat each AssociatedValue)
     init(_ associatedValues: repeat each AssociatedValue) {
       self.associatedValues = (repeat each associatedValues)
+    }
+  }
+
+  public struct EnumSingleAssociatedValueCaseDecoder<AssociatedValue> {
+    public let associatedValues: (AssociatedValue, ())
+    init(_ associatedValue: AssociatedValue) {
+      self.associatedValues = (associatedValue, ())
     }
   }
 
@@ -303,7 +334,8 @@ extension SchemaCoding.Support {
 
 extension SchemaCoding {
 
-  public typealias EnumDecoder = Support.EnumDecoder
+  public typealias EnumCaseDecoder = Support.EnumCaseDecoder
+  public typealias EnumSingleAssociatedValueCaseDecoder = Support.EnumSingleAssociatedValueCaseDecoder
 
 }
 

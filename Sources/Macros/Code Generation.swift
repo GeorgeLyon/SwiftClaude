@@ -294,11 +294,8 @@ extension EnumSchema {
                   LabeledExprSyntax(
                     label: "name",
                     colon: .colonToken(),
-                    expression: MemberAccessExprSyntax(
-                      base: StringLiteralExprSyntax(
-                        content: caseNameConversionStrategy.convert(`case`.name.identifier.name)
-                      ),
-                      name: .identifier(`case`.name.name)
+                    expression: StringLiteralExprSyntax(
+                      content: caseNameConversionStrategy.convert(`case`.name.identifier.name)
                     ),
                     trailingComma: .commaToken(trailingTrivia: .newline)
                   )
