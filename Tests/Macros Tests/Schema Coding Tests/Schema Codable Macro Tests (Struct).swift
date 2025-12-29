@@ -37,46 +37,46 @@ private struct SchemaCodableStructTests {
           // Crazy Declaration
           let a, b: Bool, c: String
         }
-        
+
         extension TestStruct: SchemaCoding.SchemaCodable {
-          public static var schema: some SchemaCoding.ObjectSchema<Self> {
+          public static var schema: some SchemaCoding.ObjectSchema<Self> & SchemaCoding.Support.ComplexSchema {
             SchemaCoding.Support.structSchema(
               description: "Test Struct",
               properties: {
                 SchemaCoding.Support.structProperty(
                   name: "anInteger",
+                  keyPath: \Self.anInteger,
                   schema: SchemaCoding.Support.schema(
                     representing: Int.self
-                  ),
-                  keyPath: \Self.anInteger
+                  )
                 )
                 SchemaCoding.Support.structProperty(
                   name: "aCoordinate",
+                  keyPath: \Self.aCoordinate,
                   schema: SchemaCoding.Support.schema(
                     representing: (Int, Int).self, description: "A coordinate"
-                  ),
-                  keyPath: \Self.aCoordinate
+                  )
                 )
                 SchemaCoding.Support.structProperty(
                   name: "a",
+                  keyPath: \Self.a,
                   schema: SchemaCoding.Support.schema(
                     representing: Bool.self
-                  ),
-                  keyPath: \Self.a
+                  )
                 )
                 SchemaCoding.Support.structProperty(
                   name: "b",
+                  keyPath: \Self.b,
                   schema: SchemaCoding.Support.schema(
                     representing: Bool.self
-                  ),
-                  keyPath: \Self.b
+                  )
                 )
                 SchemaCoding.Support.structProperty(
                   name: "c",
+                  keyPath: \Self.c,
                   schema: SchemaCoding.Support.schema(
                     representing: String.self
-                  ),
-                  keyPath: \Self.c
+                  )
                 )
               },
               finishDecoding: Self.init(structDecoder:)

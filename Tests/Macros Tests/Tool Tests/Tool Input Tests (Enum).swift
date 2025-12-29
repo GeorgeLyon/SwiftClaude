@@ -51,136 +51,128 @@ struct ToolInputEnumTests {
         }
 
         extension ToolInputEnum: ToolInput.SchemaCodable {
-          static var schema: some ToolInput.Schema<Self> {
-            let `simple` = ToolInput.SchemaCodingSupport.EnumSchemaCaseDefinition(
-              name: __macro_local_9CodingKeyfMu_.`simple`,
-              associatedValues: {
-              },
-              initializer: { value in
-                Self.`simple`
-              })
-            let singleAssociatedValue = ToolInput.SchemaCodingSupport.EnumSchemaCaseDefinition(
-              name: __macro_local_9CodingKeyfMu_.singleAssociatedValue,
-              description: "A case with a single associated value",
-              associatedValues: {
-                ToolInput.SchemaCodingSupport.EnumSchemaCaseUnlabeledAssociatedValue(
-                  schema: ToolInput.SchemaCodingSupport.schema(representing: Int.self)
-
-                )
-              },
-              initializer: { value in
-                Self.singleAssociatedValue(value)
-              })
-            let mutlipleUnnamedAssociatedValues = ToolInput.SchemaCodingSupport.EnumSchemaCaseDefinition(
-              name: __macro_local_9CodingKeyfMu_.mutlipleUnnamedAssociatedValues,
-              description: "Multiple associated values without a name",
-              associatedValues: {
-                ToolInput.SchemaCodingSupport.EnumSchemaCaseUnlabeledAssociatedValue(
-                  schema: ToolInput.SchemaCodingSupport.schema(representing: Int.self)
-
-                )
-                ToolInput.SchemaCodingSupport.EnumSchemaCaseUnlabeledAssociatedValue(
-                  schema: ToolInput.SchemaCodingSupport.schema(representing: String.self)
-
-                )
-              },
-              initializer: { value in
-                Self.mutlipleUnnamedAssociatedValues(value.0, value.1)
-              })
-            let multipleNamedAssociatedValues = ToolInput.SchemaCodingSupport.EnumSchemaCaseDefinition(
-              name: __macro_local_9CodingKeyfMu_.multipleNamedAssociatedValues,
-              description: "Multiple associated values with a name",
-              associatedValues: {
-                ToolInput.SchemaCodingSupport.EnumSchemaCaseLabeledAssociatedValue(
-                  label: __macro_local_29multipleNamedAssociatedValuesfMu_.a,
-                  schema: ToolInput.SchemaCodingSupport.schema(representing: Int.self)
-
-                )
-                ToolInput.SchemaCodingSupport.EnumSchemaCaseLabeledAssociatedValue(
-                  label: __macro_local_29multipleNamedAssociatedValuesfMu_.b,
-                  schema: ToolInput.SchemaCodingSupport.schema(representing: String.self)
-
-                )
-                ToolInput.SchemaCodingSupport.EnumSchemaCaseLabeledAssociatedValue(
-                  label: __macro_local_29multipleNamedAssociatedValuesfMu_.c,
-                  schema: ToolInput.SchemaCodingSupport.schema(representing: Bool.self)
-
-                )
-              },
-              initializer: { value in
-                Self.multipleNamedAssociatedValues(a: value.0, b: value.1, c: value.2)
-              })
-            let mixedAssociatedValues = ToolInput.SchemaCodingSupport.EnumSchemaCaseDefinition(
-              name: __macro_local_9CodingKeyfMu_.mixedAssociatedValues,
-              description: "Multiple associated values with some named and some unnamed",
-              associatedValues: {
-                ToolInput.SchemaCodingSupport.EnumSchemaCaseUnlabeledAssociatedValue(
-                  schema: ToolInput.SchemaCodingSupport.schema(representing: Int.self)
-
-                )
-                ToolInput.SchemaCodingSupport.EnumSchemaCaseLabeledAssociatedValue(
-                  label: __macro_local_21mixedAssociatedValuesfMu_.b,
-                  schema: ToolInput.SchemaCodingSupport.schema(representing: String.self)
-
-                )
-                ToolInput.SchemaCodingSupport.EnumSchemaCaseLabeledAssociatedValue(
-                  label: __macro_local_21mixedAssociatedValuesfMu_.c,
-                  schema: ToolInput.SchemaCodingSupport.schema(representing: Bool.self)
-
-                )
-              },
-              initializer: { value in
-                Self.mixedAssociatedValues(value.0, b: value.1, c: value.2)
-              })
-            return ToolInput.SchemaCodingSupport.enumSchema(
-              representing: Self.self,
+          static var schema: some ToolInput.Schema<Self> & ToolInput.Support.ComplexSchema {
+            ToolInput.Support.enumSchema(
               description: "A Tool Input Enum",
-              cases: ToolInput.SchemaCodingSupport.EnumSchemaCases {
-                `simple`
-                singleAssociatedValue
-                mutlipleUnnamedAssociatedValues
-                multipleNamedAssociatedValues
-                mixedAssociatedValues
+              cases: {
+                ToolInput.Support.enumSchemaCase(
+                  name: "simple",
+                  associatedValues: {
+                  },
+                  finishDecoding: { (decoder: ToolInput.EnumCaseDecoder< >) in
+                    Self.`simple`
+                  }
+                )
+                ToolInput.Support.enumSchemaCase(
+                  name: "singleAssociatedValue",
+                  description: "A case with a single associated value",
+                  associatedValues: {
+                    ToolInput.Support.enumSchemaCaseAssociatedValue(
+                      schema: ToolInput.Support.schema(
+                        representing: Int.self
+                      )
+                    )
+                  },
+                  finishDecoding: { (decoder: ToolInput.EnumSingleAssociatedValueCaseDecoder<Int>) in
+                    Self.singleAssociatedValue(
+                      decoder.associatedValues.0
+                    )
+                  }
+                )
+                ToolInput.Support.enumSchemaCase(
+                  name: "mutlipleUnnamedAssociatedValues",
+                  description: "Multiple associated values without a name",
+                  associatedValues: {
+                    ToolInput.Support.enumSchemaCaseAssociatedValue(
+                      schema: ToolInput.Support.schema(
+                        representing: Int.self
+                      )
+                    )
+                    ToolInput.Support.enumSchemaCaseAssociatedValue(
+                      schema: ToolInput.Support.schema(
+                        representing: String.self
+                      )
+                    )
+                  },
+                  finishDecoding: { (decoder: ToolInput.EnumCaseDecoder<Int, String>) in
+                    Self.mutlipleUnnamedAssociatedValues(
+                      decoder.associatedValues.0, decoder.associatedValues.1
+                    )
+                  }
+                )
+                ToolInput.Support.enumSchemaCase(
+                  name: "multipleNamedAssociatedValues",
+                  description: "Multiple associated values with a name",
+                  associatedValues: {
+                    ToolInput.Support.enumSchemaCaseAssociatedValue(
+                      label: "a",
+                      schema: ToolInput.Support.schema(
+                        representing: Int.self
+                      )
+                    )
+                    ToolInput.Support.enumSchemaCaseAssociatedValue(
+                      label: "b",
+                      schema: ToolInput.Support.schema(
+                        representing: String.self
+                      )
+                    )
+                    ToolInput.Support.enumSchemaCaseAssociatedValue(
+                      label: "c",
+                      schema: ToolInput.Support.schema(
+                        representing: Bool.self
+                      )
+                    )
+                  },
+                  finishDecoding: { (decoder: ToolInput.EnumCaseDecoder<Int, String, Bool>) in
+                    Self.multipleNamedAssociatedValues(
+                      a: decoder.associatedValues.0, b: decoder.associatedValues.1, c: decoder.associatedValues.2
+                    )
+                  }
+                )
+                ToolInput.Support.enumSchemaCase(
+                  name: "mixedAssociatedValues",
+                  description: "Multiple associated values with some named and some unnamed",
+                  associatedValues: {
+                    ToolInput.Support.enumSchemaCaseAssociatedValue(
+                      schema: ToolInput.Support.schema(
+                        representing: Int.self
+                      )
+                    )
+                    ToolInput.Support.enumSchemaCaseAssociatedValue(
+                      label: "b",
+                      schema: ToolInput.Support.schema(
+                        representing: String.self
+                      )
+                    )
+                    ToolInput.Support.enumSchemaCaseAssociatedValue(
+                      label: "c",
+                      schema: ToolInput.Support.schema(
+                        representing: Bool.self
+                      )
+                    )
+                  },
+                  finishDecoding: { (decoder: ToolInput.EnumCaseDecoder<Int, String, Bool>) in
+                    Self.mixedAssociatedValues(
+                      decoder.associatedValues.0, b: decoder.associatedValues.1, c: decoder.associatedValues.2
+                    )
+                  }
+                )
               },
-              valueEncoder: { value, encoder in
+              encodeValue: { value, encoder in
                 switch value {
-                case .`simple`:
-                  let encoding = encoder.encodings.0
-                  encoder.encode((), using: encoding)
-                case .singleAssociatedValue(let _0):
-                  let encoding = encoder.encodings.1
-                  encoder.encode((_0), using: encoding)
-                case .mutlipleUnnamedAssociatedValues(let _0, let _1):
-                  let encoding = encoder.encodings.2
-                  encoder.encode((_0, _1), using: encoding)
-                case .multipleNamedAssociatedValues(let a, let b, let c):
-                  let encoding = encoder.encodings.3
-                  encoder.encode((a, b, c), using: encoding)
-                case .mixedAssociatedValues(let _0, let b, let c):
-                  let encoding = encoder.encodings.4
-                  encoder.encode((_0, b, c), using: encoding)
+                case .simple:
+                  encoder.encode((), using: encoder.encodings.0)
+                case .singleAssociatedValue(let __value_0):
+                  encoder.encode((__value_0), using: encoder.encodings.1)
+                case .mutlipleUnnamedAssociatedValues(let __value_0, let __value_1):
+                  encoder.encode((__value_0, __value_1), using: encoder.encodings.2)
+                case .multipleNamedAssociatedValues(let __value_0, let __value_1, let __value_2):
+                  encoder.encode((__value_0, __value_1, __value_2), using: encoder.encodings.3)
+                case .mixedAssociatedValues(let __value_0, let __value_1, let __value_2):
+                  encoder.encode((__value_0, __value_1, __value_2), using: encoder.encodings.4)
                 }
-              })
-          }
-          private enum __macro_local_9CodingKeyfMu_: Swift.String, Swift.CodingKey {
-            case `simple` = "simple"
-            case singleAssociatedValue = "singleAssociatedValue"
-            case mutlipleUnnamedAssociatedValues = "mutlipleUnnamedAssociatedValues"
-            case multipleNamedAssociatedValues = "multipleNamedAssociatedValues"
-            case mixedAssociatedValues = "mixedAssociatedValues"
-          }
-          private enum __macro_local_21singleAssociatedValuefMu_: Swift.CodingKey {
-          }
-          private enum __macro_local_31mutlipleUnnamedAssociatedValuesfMu_: Swift.CodingKey {
-          }
-          private enum __macro_local_29multipleNamedAssociatedValuesfMu_: Swift.String, Swift.CodingKey {
-            case a = "a"
-            case b = "b"
-            case c = "c"
-          }
-          private enum __macro_local_21mixedAssociatedValuesfMu_: Swift.String, Swift.CodingKey {
-            case b = "b"
-            case c = "c"
+              }
+            )
           }
         }
         """#####,

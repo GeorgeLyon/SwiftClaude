@@ -30,38 +30,35 @@ struct APICodableMacroTests {
         }
 
         extension Foo: APICodable.SchemaCodable {
-          static var schema: some APICodable.Schema<Self> {
-            let bar = APICodable.SchemaCodingSupport.EnumSchemaCaseDefinition(
-              name: __macro_local_9CodingKeyfMu_.bar,
-              associatedValues: {
-                APICodable.SchemaCodingSupport.EnumSchemaCaseUnlabeledAssociatedValue(
-                  schema: APICodable.SchemaCodingSupport.schema(representing: Bar.self)
-
-                )
-              },
-              initializer: { value in
-                Self.bar(value)
-              })
-            return APICodable.SchemaCodingSupport.enumSchema(
-              representing: Self.self,
+          static var schema: some APICodable.Schema<Self> & APICodable.Support.ComplexSchema {
+            APICodable.Support.enumSchema(
               style: .internallyTagged(
                 discriminatorPropertyName: "type"
               ),
-              cases: APICodable.SchemaCodingSupport.EnumSchemaCases {
-                bar
+              cases: {
+                APICodable.Support.enumSchemaCase(
+                  name: "bar",
+                  associatedValues: {
+                    APICodable.Support.enumSchemaCaseAssociatedValue(
+                      schema: APICodable.Support.schema(
+                        representing: Bar.self
+                      )
+                    )
+                  },
+                  finishDecoding: { (decoder: APICodable.EnumSingleAssociatedValueCaseDecoder<Bar>) in
+                    Self.bar(
+                      decoder.associatedValues.0
+                    )
+                  }
+                )
               },
-              valueEncoder: { value, encoder in
+              encodeValue: { value, encoder in
                 switch value {
-                case .bar(let _0):
-                  let encoding = encoder.encodings.0
-                  encoder.encode((_0), using: encoding)
+                case .bar(let __value_0):
+                  encoder.encode((__value_0), using: encoder.encodings.0)
                 }
-              })
-          }
-          private enum __macro_local_9CodingKeyfMu_: Swift.String, Swift.CodingKey {
-            case bar = "bar"
-          }
-          private enum __macro_local_3barfMu_: Swift.CodingKey {
+              }
+            )
           }
         }
         """#####,

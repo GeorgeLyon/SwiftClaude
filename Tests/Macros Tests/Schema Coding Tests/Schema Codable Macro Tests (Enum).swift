@@ -18,7 +18,7 @@ struct SchemaCodableEnumMacroTests {
       )
       enum Foo {
 
-        @SchemaDetails(
+        @SchemaParameters(
           description: "Description of Bar"
         )
         case bar
@@ -30,31 +30,27 @@ struct SchemaCodableEnumMacroTests {
         }
 
         extension Foo: SchemaCoding.SchemaCodable {
-          static var schema: some SchemaCoding.Schema<Self> {
-            let bar = SchemaCoding.SchemaCodingSupport.EnumSchemaCaseDefinition(
-              name: __macro_local_9CodingKeyfMu_.bar,
-              description: "Description of Bar",
-              associatedValues: {
-              },
-              initializer: { value in
-                Self.bar
-              })
-            return SchemaCoding.SchemaCodingSupport.enumSchema(
-              representing: Self.self,
+          static var schema: some SchemaCoding.Schema<Self> & SchemaCoding.Support.ComplexSchema {
+            SchemaCoding.Support.enumSchema(
               description: "The Foo enum",
-              cases: SchemaCoding.SchemaCodingSupport.EnumSchemaCases {
-                bar
+              cases: {
+                SchemaCoding.Support.enumSchemaCase(
+                  name: "bar",
+                  description: "Description of Bar",
+                  associatedValues: {
+                  },
+                  finishDecoding: { (decoder: SchemaCoding.EnumCaseDecoder< >) in
+                    Self.bar
+                  }
+                )
               },
-              valueEncoder: { value, encoder in
+              encodeValue: { value, encoder in
                 switch value {
                 case .bar:
-                  let encoding = encoder.encodings.0
-                  encoder.encode((), using: encoding)
+                  encoder.encode((), using: encoder.encodings.0)
                 }
-              })
-          }
-          private enum __macro_local_9CodingKeyfMu_: Swift.String, Swift.CodingKey {
-            case bar = "bar"
+              }
+            )
           }
         }
         """#####,
@@ -83,35 +79,32 @@ struct SchemaCodableEnumMacroTests {
         }
 
         extension SingleCaseEnum: SchemaCoding.SchemaCodable {
-          static var schema: some SchemaCoding.Schema<Self> {
-            let only = SchemaCoding.SchemaCodingSupport.EnumSchemaCaseDefinition(
-              name: __macro_local_9CodingKeyfMu_.only,
-              associatedValues: {
-                SchemaCoding.SchemaCodingSupport.EnumSchemaCaseUnlabeledAssociatedValue(
-                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: String.self)
-
+          static var schema: some SchemaCoding.Schema<Self> & SchemaCoding.Support.ComplexSchema {
+            SchemaCoding.Support.enumSchema(
+              cases: {
+                SchemaCoding.Support.enumSchemaCase(
+                  name: "only",
+                  associatedValues: {
+                    SchemaCoding.Support.enumSchemaCaseAssociatedValue(
+                      schema: SchemaCoding.Support.schema(
+                        representing: String.self
+                      )
+                    )
+                  },
+                  finishDecoding: { (decoder: SchemaCoding.EnumSingleAssociatedValueCaseDecoder<String>) in
+                    Self.only(
+                      decoder.associatedValues.0
+                    )
+                  }
                 )
               },
-              initializer: { value in
-                Self.only(value)
-              })
-            return SchemaCoding.SchemaCodingSupport.enumSchema(
-              representing: Self.self,
-              cases: SchemaCoding.SchemaCodingSupport.EnumSchemaCases {
-                only
-              },
-              valueEncoder: { value, encoder in
+              encodeValue: { value, encoder in
                 switch value {
-                case .only(let _0):
-                  let encoding = encoder.encodings.0
-                  encoder.encode((_0), using: encoding)
+                case .only(let __value_0):
+                  encoder.encode((__value_0), using: encoder.encodings.0)
                 }
-              })
-          }
-          private enum __macro_local_9CodingKeyfMu_: Swift.String, Swift.CodingKey {
-            case only = "only"
-          }
-          private enum __macro_local_4onlyfMu_: Swift.CodingKey {
+              }
+            )
           }
         }
         """#####,

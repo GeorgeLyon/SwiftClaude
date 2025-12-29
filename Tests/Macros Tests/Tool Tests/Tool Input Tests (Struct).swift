@@ -18,67 +18,60 @@ struct ToolInputStructMacroTests {
         description: "A tool input struct"
       )
       struct ToolInputStruct {
-
         let anInteger: Int
         @ToolInputDetails(
           description: "An (x, y) coordinate"
         )
         let aCoordinate: (Int, Int)
-        
         let a, b: Bool, c: String
-
       }
       """,
       expandedSource: #####"""
         struct ToolInputStruct {
-
           let anInteger: Int
           let aCoordinate: (Int, Int)
-          
           let a, b: Bool, c: String
-
         }
 
         extension ToolInputStruct: ToolInput.SchemaCodable {
-          static var schema: some ToolInput.ObjectSchema<Self> {
+          static var schema: some ToolInput.ObjectSchema<Self> & ToolInput.Support.ComplexSchema {
             ToolInput.Support.structSchema(
               description: "A tool input struct",
-              propertyName: __macro_local_12PropertyNamefMu_.self,
               properties: {
                 ToolInput.Support.structProperty(
-                  name: __macro_local_12PropertyNamefMu_.anInteger,
+                  name: "anInteger",
+                  keyPath: \Self.anInteger,
                   schema: ToolInput.Support.schema(
                     representing: Int.self
-                  ),
-                  keyPath: \Self.anInteger
+                  )
                 )
                 ToolInput.Support.structProperty(
-                  name: __macro_local_12PropertyNamefMu_.aCoordinate,
+                  name: "aCoordinate",
+                  keyPath: \Self.aCoordinate,
                   schema: ToolInput.Support.schema(
-                    representing: (Int, Int).self, description: "An (x, y) coordinate",
-                  ),
-                  keyPath: \Self.aCoordinate
+                    representing: (Int, Int).self, description: "An (x, y) coordinate"
+                  )
                 )
                 ToolInput.Support.structProperty(
-                  name: __macro_local_12PropertyNamefMu_.a,
-                  schema: ToolInput.Support.schema(
-                    representing: Bool.self
-                  ),
-                  keyPath: \Self.a
-                )
-                ToolInput.Support.structProperty(
-                  name: __macro_local_12PropertyNamefMu_.b,
+                  name: "a",
+                  keyPath: \Self.a,
                   schema: ToolInput.Support.schema(
                     representing: Bool.self
-                  ),
-                  keyPath: \Self.b
+                  )
                 )
                 ToolInput.Support.structProperty(
-                  name: __macro_local_12PropertyNamefMu_.c,
+                  name: "b",
+                  keyPath: \Self.b,
+                  schema: ToolInput.Support.schema(
+                    representing: Bool.self
+                  )
+                )
+                ToolInput.Support.structProperty(
+                  name: "c",
+                  keyPath: \Self.c,
                   schema: ToolInput.Support.schema(
                     representing: String.self
-                  ),
-                  keyPath: \Self.c
+                  )
                 )
               },
               finishDecoding: Self.init(structDecoder:)
@@ -90,13 +83,6 @@ struct ToolInputStructMacroTests {
             self.a = structDecoder.propertyValues.2
             self.b = structDecoder.propertyValues.3
             self.c = structDecoder.propertyValues.4
-          }
-          private enum __macro_local_12PropertyNamefMu_: Swift.String, Swift.CodingKey {
-            case anInteger = "anInteger"
-            case aCoordinate = "aCoordinate"
-            case a = "a"
-            case b = "b"
-            case c = "c"
           }
         }
         """#####,

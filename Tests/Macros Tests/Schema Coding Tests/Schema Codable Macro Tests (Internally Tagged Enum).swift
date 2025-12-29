@@ -42,82 +42,78 @@ struct InternallyTaggedEnumMacroTests {
         }
 
         extension Shape: SchemaCoding.SchemaCodable {
-          static var schema: some SchemaCoding.Schema<Self> {
+          static var schema: some SchemaCoding.Schema<Self> & SchemaCoding.Support.ComplexSchema {
             SchemaCoding.Support.enumSchema(
               style: .internallyTagged(
                 discriminatorPropertyName: "type"
               ),
               cases: {
                 SchemaCoding.Support.enumSchemaCase(
-                  name: "circle".circle,
+                  name: "circle",
                   description: "A circle with a radius",
                   associatedValues: {
                     SchemaCoding.Support.enumSchemaCaseAssociatedValue(
-                      label: __macro_local_26AssociatedValueLabe_circlefMu_.radius,
+                      label: "radius",
                       schema: SchemaCoding.Support.schema(
                         representing: Double.self
                       )
                     )
                   },
-                  finishDecoding: { (__value_0) in
+                  finishDecoding: { (decoder: SchemaCoding.EnumSingleAssociatedValueCaseDecoder<Double>) in
                     Self.circle(
-                      radius: __value_0
+                      radius: decoder.associatedValues.0
                     )
                   }
                 )
                 SchemaCoding.Support.enumSchemaCase(
-                  name: "rectangle".rectangle,
+                  name: "rectangle",
                   description: "A rectangle with width and height",
                   associatedValues: {
                     SchemaCoding.Support.enumSchemaCaseAssociatedValue(
-                      label: __macro_local_29AssociatedValueLabe_rectanglefMu_.width,
+                      label: "width",
                       schema: SchemaCoding.Support.schema(
                         representing: Double.self
                       )
                     )
                     SchemaCoding.Support.enumSchemaCaseAssociatedValue(
-                      label: __macro_local_29AssociatedValueLabe_rectanglefMu_.height,
+                      label: "height",
                       schema: SchemaCoding.Support.schema(
                         representing: Double.self
                       )
                     )
                   },
-                  finishDecoding: { (__value_0, __value_1) in
+                  finishDecoding: { (decoder: SchemaCoding.EnumCaseDecoder<Double, Double>) in
                     Self.rectangle(
-                      width: __value_0, height: __value_1
+                      width: decoder.associatedValues.0, height: decoder.associatedValues.1
                     )
                   }
                 )
                 SchemaCoding.Support.enumSchemaCase(
-                  name: "square".square,
+                  name: "square",
                   description: "A square with a side length",
                   associatedValues: {
                     SchemaCoding.Support.enumSchemaCaseAssociatedValue(
-                      label: __macro_local_26AssociatedValueLabe_squarefMu_.side,
+                      label: "side",
                       schema: SchemaCoding.Support.schema(
                         representing: Double.self
                       )
                     )
                   },
-                  finishDecoding: { (__value_0) in
+                  finishDecoding: { (decoder: SchemaCoding.EnumSingleAssociatedValueCaseDecoder<Double>) in
                     Self.square(
-                      side: __value_0
+                      side: decoder.associatedValues.0
                     )
                   }
                 )
               },
               encodeValue: { value, encoder in
-                let encodings = encoder.encodings
                 switch value {
                 case .circle(let __value_0):
-                  let encoding = encodings.0
-                  encoder.encode((__value_0), using: encoding)
+                  encoder.encode((__value_0), using: encoder.encodings.0)
                 case .rectangle(let __value_0, let __value_1):
-                  let encoding = encodings.1
-                  encoder.encode((__value_0, __value_1), using: encoding)
+                  encoder.encode((__value_0, __value_1), using: encoder.encodings.1)
                 case .square(let __value_0):
-                  let encoding = encodings.2
-                  encoder.encode((__value_0), using: encoding)
+                  encoder.encode((__value_0), using: encoder.encodings.2)
                 }
               }
             )
