@@ -346,51 +346,7 @@ extension EnumSchema {
                   LabeledExprSyntax(
                     label: "finishDecoding",
                     colon: .colonToken(),
-                    expression: ClosureExprSyntax(
-                      signature: ClosureSignatureSyntax(
-                        parameterClause: .parameterClause(
-                          ClosureParameterClauseSyntax(
-                            parameters: ClosureParameterListSyntax {
-                              for associatedValue in `case`.associatedValues {
-                                ClosureParameterSyntax(
-                                  firstName: associatedValue.bindingName
-                                )
-                              }
-                            }
-                          )
-                        ),
-                      ),
-                      statements: CodeBlockItemListSyntax {
-                        if `case`.associatedValues.isEmpty {
-                          MemberAccessExprSyntax(
-                            base: DeclReferenceExprSyntax(baseName: typeName),
-                            name: `case`.name.token
-                          )
-                        } else {
-                          FunctionCallExprSyntax(
-                            calledExpression: MemberAccessExprSyntax(
-                              base: DeclReferenceExprSyntax(baseName: typeName),
-                              name: `case`.name.token
-                            ),
-                            leftParen: .leftParenToken(trailingTrivia: .newline),
-                            arguments: LabeledExprListSyntax {
-                              for associatedValue in `case`.associatedValues {
-                                LabeledExprSyntax(
-                                  label: associatedValue.argumentLabel,
-                                  colon: associatedValue.argumentLabel.map { _ in
-                                    .colonToken()
-                                  },
-                                  expression: DeclReferenceExprSyntax(
-                                    baseName: associatedValue.bindingName
-                                  )
-                                )
-                              }
-                            },
-                            rightParen: .rightParenToken(leadingTrivia: .newline)
-                          )
-                        }
-                      }
-                    )
+                    expression: `case`.finishDecodingClosure(namespace: namespace, typeName: typeName)
                   )
                 },
                 rightParen: .rightParenToken(leadingTrivia: .newline)
@@ -476,27 +432,16 @@ extension EnumSchema {
                         }
                       ),
                       statements: CodeBlockItemListSyntax {
-                        /// let encoding = encoder.encoding…
-                        let encoding: ExprSyntax =
-                          if cases.count == 1 {
-                            ExprSyntax(
-                              DeclReferenceExprSyntax(baseName: "encodings")
-                            )
-                          } else {
-                            ExprSyntax(
-                              MemberAccessExprSyntax(
-                                base: DeclReferenceExprSyntax(baseName: "encodings"),
-                                name: "\(raw: offset)"
-                              )
-                            )
-                          }
                         VariableDeclSyntax(
                           bindingSpecifier: .keyword(.let),
                           bindings: PatternBindingListSyntax {
                             PatternBindingSyntax(
                               pattern: IdentifierPatternSyntax(identifier: "encoding"),
                               initializer: InitializerClauseSyntax(
-                                value: encoding
+                                value: MemberAccessExprSyntax(
+                                  base: DeclReferenceExprSyntax(baseName: "encodings"),
+                                  name: "\(raw: offset)"
+                                )
                               )
                             )
                           }
@@ -570,6 +515,78 @@ extension ExprSyntaxProtocol where Self == FunctionCallExprSyntax {
       leftParen: .leftParenToken(trailingTrivia: .newline),
       arguments: arguments,
       rightParen: .rightParenToken(leadingTrivia: .newline)
+    )
+  }
+
+}
+
+// MARK: - Enum Case finishDecoding
+
+extension EnumSchema.Case {
+
+
+  func finishDecodingClosure(
+    namespace: SchemaCodingNamespace,
+    typeName: TokenSyntax
+  ) -> ClosureExprSyntax {
+    let useSingleValueDecoder = associatedValues.count == 1
+    let decoderTypeName: TokenSyntax =
+      useSingleValueDecoder ? "EnumSingleAssociatedValueCaseDecoder" : "EnumCaseDecoder"
+
+    return ClosureExprSyntax(
+      signature: ClosureSignatureSyntax(
+        parameterClause: .parameterClause(
+          ClosureParameterClauseSyntax(
+            parameters: ClosureParameterListSyntax {
+              ClosureParameterSyntax(
+                firstName: "decoder",
+                type: namespace.memberType(
+                  name: decoderTypeName,
+                  genericArgumentClause: GenericArgumentClauseSyntax {
+                    for associatedValue in associatedValues {
+                      GenericArgumentSyntax(
+                        argument: associatedValue.type
+                      )
+                    }
+                  }
+                )
+              )
+            }
+          )
+        )
+      ),
+      statements: CodeBlockItemListSyntax {
+        if associatedValues.isEmpty {
+          MemberAccessExprSyntax(
+            base: DeclReferenceExprSyntax(baseName: typeName),
+            name: name.token
+          )
+        } else {
+          FunctionCallExprSyntax(
+            calledExpression: MemberAccessExprSyntax(
+              base: DeclReferenceExprSyntax(baseName: typeName),
+              name: name.token
+            ),
+            leftParen: .leftParenToken(trailingTrivia: .newline),
+            arguments: LabeledExprListSyntax {
+              for (index, associatedValue) in associatedValues.enumerated() {
+                LabeledExprSyntax(
+                  label: associatedValue.argumentLabel,
+                  colon: associatedValue.argumentLabel.map { _ in .colonToken() },
+                  expression: MemberAccessExprSyntax(
+                    base: MemberAccessExprSyntax(
+                      base: DeclReferenceExprSyntax(baseName: "decoder"),
+                      name: "associatedValues"
+                    ),
+                    name: "\(raw: index)"
+                  )
+                )
+              }
+            },
+            rightParen: .rightParenToken(leadingTrivia: .newline)
+          )
+        }
+      }
     )
   }
 

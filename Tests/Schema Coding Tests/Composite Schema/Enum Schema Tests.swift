@@ -201,6 +201,84 @@ struct EnumSchemaTests {
       }
 
       @Test
+      func testSingleCaseEnumWithNoAssociatedValues() throws {
+        enum SingleCaseEnum: Equatable {
+          case only
+        }
+
+        let onlyCase = SchemaCoding.Support.enumSchemaCase(
+          name: "only",
+          associatedValues: {},
+          finishDecoding: { _ in SingleCaseEnum.only }
+        )
+
+        let schema = SchemaCoding.Support.enumSchema(
+          representing: SingleCaseEnum.self,
+          cases: {
+            onlyCase
+          },
+          encodeValue: { value, encoder in
+            switch value {
+            case .only:
+              encoder.encode((), using: encoder.encodings.0)
+            }
+          }
+        )
+
+        try schema.test(
+          SingleCaseEnum.only,
+          isCodedAs: #"""
+            {
+              "only": {
+
+              }
+            }
+            """#
+        )
+      }
+
+      @Test
+      func testSingleCaseEnumWithAssociatedValue() throws {
+        enum SingleValueEnum: Equatable {
+          case value(Int)
+        }
+
+        let valueCase = SchemaCoding.Support.enumSchemaCase(
+          name: "value",
+          associatedValues: {
+            SchemaCoding.Support.enumSchemaCaseAssociatedValue(
+              schema: SchemaCoding.Support.schema(representing: Int.self)
+            )
+          },
+          finishDecoding: { (decoder: SchemaCoding.EnumSingleAssociatedValueCaseDecoder<Int>) in
+            SingleValueEnum.value(decoder.associatedValues.0)
+          }
+        )
+
+        let schema = SchemaCoding.Support.enumSchema(
+          representing: SingleValueEnum.self,
+          cases: {
+            valueCase
+          },
+          encodeValue: { value, encoder in
+            switch value {
+            case .value(let v):
+              encoder.encode(v, using: encoder.encodings.0)
+            }
+          }
+        )
+
+        try schema.test(
+          SingleValueEnum.value(42),
+          isCodedAs: #"""
+            {
+              "value": 42
+            }
+            """#
+        )
+      }
+
+      @Test
       func testCasesWithMultipleUnlabeledAssociatedValues() throws {
         enum TupleEnum: Equatable {
           case pair(Int, Bool)
@@ -452,6 +530,86 @@ struct EnumSchemaTests {
             {
               "kind": "number",
               "value": 42
+            }
+            """
+        )
+      }
+
+      @Test
+      func testSingleCaseEnumWithNoAssociatedValues() throws {
+        enum SingleTaggedEnum: Equatable {
+          case only
+        }
+
+        let onlyCase = SchemaCoding.Support.enumSchemaCase(
+          name: "only",
+          associatedValues: {},
+          finishDecoding: { _ in SingleTaggedEnum.only }
+        )
+
+        let schema = SchemaCoding.Support.enumSchema(
+          representing: SingleTaggedEnum.self,
+          style: .internallyTagged(discriminatorPropertyName: "type"),
+          cases: {
+            onlyCase
+          },
+          encodeValue: { value, encoder in
+            switch value {
+            case .only:
+              encoder.encode((), using: encoder.encodings.0)
+            }
+          }
+        )
+
+        try schema.test(
+          SingleTaggedEnum.only,
+          isCodedAs: """
+            {
+              "type": "only"
+            }
+            """
+        )
+      }
+
+      @Test
+      func testSingleCaseEnumWithLabeledAssociatedValue() throws {
+        enum SingleContentEnum: Equatable {
+          case data(content: String)
+        }
+
+        let dataCase = SchemaCoding.Support.enumSchemaCase(
+          name: "data",
+          associatedValues: {
+            SchemaCoding.Support.enumSchemaCaseAssociatedValue(
+              label: "content",
+              schema: SchemaCoding.Support.schema(representing: String.self)
+            )
+          },
+          finishDecoding: { (decoder: SchemaCoding.EnumSingleAssociatedValueCaseDecoder<String>) in
+            SingleContentEnum.data(content: decoder.associatedValues.0)
+          }
+        )
+
+        let schema = SchemaCoding.Support.enumSchema(
+          representing: SingleContentEnum.self,
+          style: .internallyTagged(discriminatorPropertyName: "kind"),
+          cases: {
+            dataCase
+          },
+          encodeValue: { value, encoder in
+            switch value {
+            case .data(let content):
+              encoder.encode(content, using: encoder.encodings.0)
+            }
+          }
+        )
+
+        try schema.test(
+          SingleContentEnum.data(content: "hello"),
+          isCodedAs: """
+            {
+              "kind": "data",
+              "content": "hello"
             }
             """
         )
