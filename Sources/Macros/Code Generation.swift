@@ -317,10 +317,8 @@ extension EnumSchema {
                               LabeledExprSyntax(
                                 label: "label",
                                 colon: .colonToken(),
-                                expression: MemberAccessExprSyntax(
-                                  base: DeclReferenceExprSyntax(
-                                    baseName: `case`.associatedValueLabelTypeName),
-                                  name: label
+                                expression: StringLiteralExprSyntax(
+                                  content: label.text
                                 ),
                                 trailingComma: .commaToken(trailingTrivia: .newline)
                               )
@@ -540,6 +538,7 @@ extension EnumSchema.Case {
             parameters: ClosureParameterListSyntax {
               ClosureParameterSyntax(
                 firstName: "decoder",
+                colon: .colonToken(),
                 type: namespace.memberType(
                   name: decoderTypeName,
                   genericArgumentClause: GenericArgumentClauseSyntax {

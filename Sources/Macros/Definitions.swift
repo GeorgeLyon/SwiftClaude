@@ -41,7 +41,6 @@ struct EnumSchema {
   }
   struct Case {
     let name: IdentifiableToken
-    let associatedValueLabelTypeName: TokenSyntax
     let additionalArguments: LabeledExprListSyntax
     let associatedValues: [AssociatedValue]
   }

@@ -91,6 +91,8 @@ extension SchemaCoding.Support.Schema {
 
 // MARK: - Schema Codable
 
+public typealias SchemaCodable = SchemaCoding.SchemaCodable
+
 extension SchemaCoding {
 
   public typealias SchemaCodable = Support.SchemaCodable

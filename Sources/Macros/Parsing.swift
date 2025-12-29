@@ -236,9 +236,6 @@ extension EnumDeclSyntax {
                 identifier: name,
                 token: element.name
               ),
-              associatedValueLabelTypeName: context.expansionContext.makeUniqueName(
-                "AssociatedValueLabe_\(name.name)"
-              ),
               additionalArguments: additionalArguments,
               associatedValues: associatedValues
             )
