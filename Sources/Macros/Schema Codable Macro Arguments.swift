@@ -36,6 +36,12 @@ enum KeyConversionStrategyArgument: String, InferredBaseMemberAccessExprArgument
   }
 }
 
+enum StructStyleArgument: String, InferredBaseMemberAccessExprArgument {
+  static let label: TokenSyntax = "style"
+  case standard
+  case wrapper
+}
+
 enum EnumStyleArgument: ParsableArgument {
   static let label: TokenSyntax = "style"
   case object

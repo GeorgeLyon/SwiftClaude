@@ -14,7 +14,7 @@ extension SchemaCodableType {
       VariableDeclSyntax.schemaProperty(
         namespace: namespace,
         isPublic: isPublic,
-        schemaProtocolName: "ObjectSchema",
+        schemaProtocolName: schema.style == .wrapper ? "Schema" : "ObjectSchema",
         getter: {
           schema.expr(propertyNameConversionStrategy: keyConversionStrategy)
         }
@@ -22,7 +22,8 @@ extension SchemaCodableType {
 
       InitializerDeclSyntax.schemaCodableStructInitializer(
         namespace: namespace,
-        properties: schema.properties
+        properties: schema.properties,
+        style: schema.style
       )
     case .enum(let schema):
       VariableDeclSyntax.schemaProperty(
@@ -86,9 +87,14 @@ extension DeclSyntaxProtocol where Self == InitializerDeclSyntax {
 
   fileprivate static func schemaCodableStructInitializer(
     namespace: SchemaCodingNamespace,
-    properties: [StructSchema.Property]
+    properties: [StructSchema.Property],
+    style: StructStyleArgument?
   ) -> Self {
-    InitializerDeclSyntax(
+    let useSinglePropertyDecoder = properties.count == 1
+    let decoderTypeName: TokenSyntax =
+      useSinglePropertyDecoder ? "StructSinglePropertyDecoder" : "StructDecoder"
+
+    return InitializerDeclSyntax(
       modifiers: .private,
       signature: FunctionSignatureSyntax(
         parameterClause: FunctionParameterClauseSyntax(
@@ -96,7 +102,7 @@ extension DeclSyntaxProtocol where Self == InitializerDeclSyntax {
             FunctionParameterSyntax(
               firstName: "structDecoder",
               type: namespace.memberType(
-                name: "StructDecoder",
+                name: decoderTypeName,
                 genericArgumentClause: GenericArgumentClauseSyntax {
                   for property in properties {
                     GenericArgumentSyntax(
@@ -110,26 +116,15 @@ extension DeclSyntaxProtocol where Self == InitializerDeclSyntax {
         )
       ),
       body: CodeBlockSyntax {
-        let propertyValues =
-          if properties.count == 1 {
-            /// Single-element tuples are cursed, so we need to special-case this
-            [
-              MemberAccessExprSyntax(
-                base: DeclReferenceExprSyntax(baseName: "structDecoder"),
-                name: "propertyValues"
-              )
-            ]
-          } else {
-            properties.enumerated().map { index, _ in
-              MemberAccessExprSyntax(
-                base: MemberAccessExprSyntax(
-                  base: DeclReferenceExprSyntax(baseName: "structDecoder"),
-                  name: "propertyValues"
-                ),
-                name: "\(raw: index)"
-              )
-            }
-          }
+        let propertyValues = properties.enumerated().map { index, _ in
+          MemberAccessExprSyntax(
+            base: MemberAccessExprSyntax(
+              base: DeclReferenceExprSyntax(baseName: "structDecoder"),
+              name: "propertyValues"
+            ),
+            name: "\(raw: index)"
+          )
+        }
 
         for (property, value) in zip(properties, propertyValues) {
           let accessExpr = MemberAccessExprSyntax(
@@ -183,6 +178,15 @@ extension StructSchema {
       leftParen: .leftParenToken(trailingTrivia: .newline),
       arguments: LabeledExprListSyntax {
         additionalArguments
+
+        if let style {
+          LabeledExprSyntax(
+            label: "style",
+            colon: .colonToken(),
+            expression: MemberAccessExprSyntax(name: .identifier(style.rawValue)),
+            trailingComma: .commaToken(trailingTrivia: .newline)
+          )
+        }
 
         LabeledExprSyntax(
           label: "properties",

@@ -12,6 +12,13 @@ struct StructMacroTests {
     let age: Int
   }
 
+  @SchemaCodable(
+    style: .wrapper
+  )
+  fileprivate struct WrapperStruct: Equatable {
+    let wrappedValue: String
+  }
+
   @SchemaCodable
   fileprivate struct StructWithOptional: Equatable {
     let required: String
@@ -94,6 +101,16 @@ struct StructMacroTests {
           {
             "value": true
           }
+          """
+      )
+    }
+
+    @Test
+    func testWrapperStruct() throws {
+      try test(
+        WrapperStruct(wrappedValue: "hello"),
+        isCodedAs: """
+          "hello"
           """
       )
     }
@@ -230,6 +247,17 @@ struct StructMacroTests {
             "required": [
               "required"
             ]
+          }
+          """
+      )
+    }
+
+    @Test
+    func testWrapperStructMetaSchema() throws {
+      try WrapperStruct.schema.test(
+        encodesAs: """
+          {
+            "type": "string"
           }
           """
       )

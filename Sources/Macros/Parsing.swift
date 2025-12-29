@@ -38,10 +38,11 @@ extension StructDeclSyntax {
     in context: SchemaCodableMacroContext
   ) -> StructSchema {
 
-    let (description, keyConversionStrategy) = parseArguments(
+    let (description, style, keyConversionStrategy) = parseArguments(
       ofAttribute: context.macroAttribute,
       as: (
         DescriptionArgument.self,
+        StructStyleArgument.self,
         KeyConversionStrategyArgument.self
       ),
       in: context.expansionContext
@@ -51,6 +52,7 @@ extension StructDeclSyntax {
       namespace: context.namespace,
       typeName: "Self",
       additionalArguments: .fromArguments(description),
+      style: style,
       keyConversionStrategy: keyConversionStrategy?.value
         ?? context.defaultKeyConversionStrategy,
       properties: memberBlock.members

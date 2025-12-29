@@ -15,6 +15,7 @@ struct StructSchema {
   let namespace: SchemaCodingNamespace
   let typeName: TokenSyntax
   let additionalArguments: LabeledExprListSyntax
+  let style: StructStyleArgument?
   let keyConversionStrategy: KeyConversionStrategy
 
   struct Property {
