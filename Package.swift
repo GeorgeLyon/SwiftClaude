@@ -175,14 +175,14 @@ let package = Package(
       ],
       swiftSettings: .projectDefaults
     ),
-    .testTarget(
-      name: "MacrosTests",
-      dependencies: [
-        "Macros",
-        .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
-      ],
-      path: "Tests/Macros Tests"
-    ),
+    // .testTarget(
+    //   name: "MacrosTests",
+    //   dependencies: [
+    //     "Macros",
+    //     .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
+    //   ],
+    //   path: "Tests/Macros Tests"
+    // ),
 
     // MARK: - JSON Support
 

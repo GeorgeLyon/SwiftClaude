@@ -344,6 +344,119 @@ struct EnumSchemaTests {
         )
       }
 
+      @Test
+      func testNestedEnum() throws {
+        enum InnerEnum: Equatable {
+          case on
+          case off
+        }
+
+        enum OuterEnum: Equatable {
+          case state(InnerEnum)
+          case reset
+        }
+
+        // Build the inner enum schema
+        let onCase = SchemaCoding.Support.enumSchemaCase(
+          name: "on",
+          associatedValues: {},
+          finishDecoding: { _ in InnerEnum.on }
+        )
+        let offCase = SchemaCoding.Support.enumSchemaCase(
+          name: "off",
+          associatedValues: {},
+          finishDecoding: { _ in InnerEnum.off }
+        )
+
+        let innerSchema = SchemaCoding.Support.enumSchema(
+          representing: InnerEnum.self,
+          cases: {
+            onCase
+            offCase
+          },
+          encodeValue: { value, encoder in
+            let encodings = encoder.encodings
+            switch value {
+            case .on:
+              encoder.encode((), using: encodings.0)
+            case .off:
+              encoder.encode((), using: encodings.1)
+            }
+          }
+        )
+
+        // Build the outer enum schema with nested inner enum
+        let stateCase = SchemaCoding.Support.enumSchemaCase(
+          name: "state",
+          associatedValues: {
+            SchemaCoding.Support.enumSchemaCaseAssociatedValue(
+              schema: innerSchema
+            )
+          },
+          finishDecoding: {
+            (decoder: SchemaCoding.EnumSingleAssociatedValueCaseDecoder<InnerEnum>) in
+            OuterEnum.state(decoder.associatedValues.0)
+          }
+        )
+        let resetCase = SchemaCoding.Support.enumSchemaCase(
+          name: "reset",
+          associatedValues: {},
+          finishDecoding: { _ in OuterEnum.reset }
+        )
+
+        let outerSchema = SchemaCoding.Support.enumSchema(
+          representing: OuterEnum.self,
+          cases: {
+            stateCase
+            resetCase
+          },
+          encodeValue: { value, encoder in
+            let encodings = encoder.encodings
+            switch value {
+            case .state(let inner):
+              encoder.encode(inner, using: encodings.0)
+            case .reset:
+              encoder.encode((), using: encodings.1)
+            }
+          }
+        )
+
+        try outerSchema.test(
+          OuterEnum.state(.on),
+          isCodedAs: #"""
+            {
+              "state": {
+                "on": {
+
+                }
+              }
+            }
+            """#
+        )
+        try outerSchema.test(
+          OuterEnum.state(.off),
+          isCodedAs: #"""
+            {
+              "state": {
+                "off": {
+
+                }
+              }
+            }
+            """#
+        )
+        try outerSchema.test(
+          OuterEnum.reset,
+          isCodedAs: #"""
+            {
+              "reset": {
+
+              }
+            }
+            """#
+        )
+      }
+
     }
 
     @Suite("Meta Schema")
