@@ -38,11 +38,11 @@ extension StructDeclSyntax {
     in context: SchemaCodableMacroContext
   ) -> StructSchema {
 
-    let (description, codingKeyConversionStrategy) = parseArguments(
+    let (description, keyConversionStrategy) = parseArguments(
       ofAttribute: context.macroAttribute,
       as: (
         DescriptionArgument.self,
-        CodingKeyConversionStrategyArgument.self
+        KeyConversionStrategyArgument.self
       ),
       in: context.expansionContext
     )
@@ -51,9 +51,8 @@ extension StructDeclSyntax {
       namespace: context.namespace,
       typeName: "Self",
       additionalArguments: .fromArguments(description),
-      propertyNameTypeName: context.expansionContext.makeUniqueName("PropertyName"),
-      codingKeyConversionStrategy: codingKeyConversionStrategy?.value
-        ?? context.defaultCodingKeyConversionStrategy,
+      keyConversionStrategy: keyConversionStrategy?.value
+        ?? context.defaultKeyConversionStrategy,
       properties: memberBlock.members
         .flatMap { member -> [StructSchema.Property] in
           guard let variable = member.decl.as(VariableDeclSyntax.self) else {
@@ -139,12 +138,12 @@ extension StructDeclSyntax {
 extension EnumDeclSyntax {
 
   fileprivate func schema(in context: SchemaCodableMacroContext) -> EnumSchema {
-    let (description, style, codingKeyConversionStrategy) = parseArguments(
+    let (description, style, keyConversionStrategy) = parseArguments(
       ofAttribute: context.macroAttribute,
       as: (
         DescriptionArgument.self,
         EnumStyleArgument.self,
-        CodingKeyConversionStrategyArgument.self
+        KeyConversionStrategyArgument.self
       ),
       in: context.expansionContext
     )
@@ -154,9 +153,8 @@ extension EnumDeclSyntax {
       additionalArguments: .fromArguments(
         (description, style ?? context.defaultEnumStyle)
       ),
-      caseNameTypeName: context.expansionContext.makeUniqueName("CaseName"),
-      codingKeyConversionStrategy: codingKeyConversionStrategy?.value
-        ?? context.defaultCodingKeyConversionStrategy,
+      keyConversionStrategy: keyConversionStrategy?.value
+        ?? context.defaultKeyConversionStrategy,
       cases: memberBlock
         .members
         .flatMap { member -> [EnumSchema.Case] in

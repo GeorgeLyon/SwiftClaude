@@ -21,12 +21,12 @@ struct DescriptionArgument: ParsableArgument {
   let expression: StringLiteralExprSyntax
 }
 
-enum CodingKeyConversionStrategyArgument: String, InferredBaseMemberAccessExprArgument {
-  static let label: TokenSyntax = "codingKeyConversionStrategy"
+enum KeyConversionStrategyArgument: String, InferredBaseMemberAccessExprArgument {
+  static let label: TokenSyntax = "keyConversionStrategy"
   case convertToSnakeCase
   case none
 
-  var value: CodingKeyConversionStrategy {
+  var value: KeyConversionStrategy {
     switch self {
     case .convertToSnakeCase:
       return .convertToSnakeCase

@@ -118,6 +118,6 @@ struct ToolInputStructMacroTests {
 
   private let macroSpecs = [
     "ToolInput": MacroSpec(type: ToolInputMacro.self),
-    "ToolInputDetails": MacroSpec(type: SchemaDetailsMacro.self),
+    "ToolInputDetails": MacroSpec(type: SchemaParametersMacro.self),
   ]
 }

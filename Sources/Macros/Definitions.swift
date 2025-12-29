@@ -15,8 +15,7 @@ struct StructSchema {
   let namespace: SchemaCodingNamespace
   let typeName: TokenSyntax
   let additionalArguments: LabeledExprListSyntax
-  let propertyNameTypeName: TokenSyntax
-  let codingKeyConversionStrategy: CodingKeyConversionStrategy
+  let keyConversionStrategy: KeyConversionStrategy
 
   struct Property {
     let name: IdentifiableToken
@@ -31,8 +30,7 @@ struct EnumSchema {
   let namespace: SchemaCodingNamespace
   let typeName: TokenSyntax
   let additionalArguments: LabeledExprListSyntax
-  let caseNameTypeName: TokenSyntax
-  let codingKeyConversionStrategy: CodingKeyConversionStrategy
+  let keyConversionStrategy: KeyConversionStrategy
 
   struct AssociatedValue {
     let name: IdentifiableToken?
@@ -60,12 +58,12 @@ struct SchemaCodableType {
     }
   }
 
-  var codingKeyConversionStrategy: CodingKeyConversionStrategy {
+  var keyConversionStrategy: KeyConversionStrategy {
     switch schemaKind {
     case .struct(let schema):
-      return schema.codingKeyConversionStrategy
+      return schema.keyConversionStrategy
     case .enum(let schema):
-      return schema.codingKeyConversionStrategy
+      return schema.keyConversionStrategy
     }
   }
 

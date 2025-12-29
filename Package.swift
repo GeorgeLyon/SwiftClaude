@@ -117,7 +117,7 @@ let package = Package(
       name: "SchemaCoding",
       dependencies: [
         "JSONSupport",
-        // "Macros",
+        "Macros",
         "SchemaCodingSupport",
       ],
       path: "Sources/Schema Coding",
@@ -159,30 +159,30 @@ let package = Package(
 
     // MARK: - Macros Support
 
-    /// Splitting macros into libraries causes a linker issue on macOS, so we put everything in one target
-    // .macro(
-    //   name: "Macros",
-    //   dependencies: [
-    //     .product(name: "SwiftDiagnostics", package: "swift-syntax"),
-    //     .product(name: "SwiftSyntax", package: "swift-syntax"),
-    //     .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
-    //     .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
-    //     .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
-    //   ],
-    //   path: "Sources/Macros",
-    //   exclude: [
-    //     "Support/Convert To Snake Case/LICENSE.md"
-    //   ],
-    //   swiftSettings: .projectDefaults
-    // ),
-    // .testTarget(
-    //   name: "MacrosTests",
-    //   dependencies: [
-    //     "Macros",
-    //     .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
-    //   ],
-    //   path: "Tests/Macros Tests"
-    // ),
+    /// Splitting macros into libraries causes a linker issue on macOS, so we put all macro code into a single target.
+    .macro(
+      name: "Macros",
+      dependencies: [
+        .product(name: "SwiftDiagnostics", package: "swift-syntax"),
+        .product(name: "SwiftSyntax", package: "swift-syntax"),
+        .product(name: "SwiftSyntaxBuilder", package: "swift-syntax"),
+        .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+        .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
+      ],
+      path: "Sources/Macros",
+      exclude: [
+        "Support/Convert To Snake Case/LICENSE.md"
+      ],
+      swiftSettings: .projectDefaults
+    ),
+    .testTarget(
+      name: "MacrosTests",
+      dependencies: [
+        "Macros",
+        .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
+      ],
+      path: "Tests/Macros Tests"
+    ),
 
     // MARK: - JSON Support
 

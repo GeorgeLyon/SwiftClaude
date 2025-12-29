@@ -49,11 +49,6 @@ struct SchemaCodingNamespace: ExpressibleByStringLiteral {
     name = TokenSyntax(stringLiteral: value)
   }
 
-  /// Temporary
-  init(_ name: TokenSyntax) {
-    self.name = name
-  }
-
   private let name: TokenSyntax
 
 }

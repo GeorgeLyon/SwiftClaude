@@ -8,8 +8,8 @@ import SwiftSyntaxMacros
 enum SchemaCodableMacro: SchemaCodableMacroProtocol {
   static let schemaCodingNamespace: SchemaCodingNamespace = "SchemaCoding"
   static let schemaCodableMacroAttribute: TypeSyntax = "SchemaCodable"
-  static let schemaDetailsMacroAttribute: TypeSyntax = "SchemaDetails"
-  static let defaultCodingKeyConversionStrategy: CodingKeyConversionStrategy = .none
+  static let schemaParametersMacroAttribute: TypeSyntax = "SchemaParameters"
+  static let defaultKeyConversionStrategy: KeyConversionStrategy = .none
   static let defaultEnumStyle: EnumStyleArgument? = nil
 }
 
@@ -18,8 +18,8 @@ enum SchemaCodableMacro: SchemaCodableMacroProtocol {
 protocol SchemaCodableMacroProtocol: ExtensionMacro {
   static var schemaCodingNamespace: SchemaCodingNamespace { get }
   static var schemaCodableMacroAttribute: TypeSyntax { get }
-  static var schemaDetailsMacroAttribute: TypeSyntax { get }
-  static var defaultCodingKeyConversionStrategy: CodingKeyConversionStrategy { get }
+  static var schemaParametersMacroAttribute: TypeSyntax { get }
+  static var defaultKeyConversionStrategy: KeyConversionStrategy { get }
   static var defaultEnumStyle: EnumStyleArgument? { get }
 }
 
@@ -34,8 +34,8 @@ extension SchemaCodableMacroProtocol {
     let context = SchemaCodableMacroContext(
       namespace: Self.schemaCodingNamespace,
       macroAttribute: Self.schemaCodableMacroAttribute,
-      detailMacroAttribute: Self.schemaDetailsMacroAttribute,
-      defaultCodingKeyConversionStrategy: Self.defaultCodingKeyConversionStrategy,
+      detailMacroAttribute: Self.schemaParametersMacroAttribute,
+      defaultKeyConversionStrategy: Self.defaultKeyConversionStrategy,
       defaultEnumStyle: Self.defaultEnumStyle,
       expansionContext: context
     )
@@ -58,9 +58,9 @@ extension SchemaCodableMacroProtocol {
 
 }
 
-// MARK: - Schema Details
+// MARK: - Schema Parameters
 
-enum SchemaDetailsMacro: PeerMacro {
+enum SchemaParametersMacro: PeerMacro {
 
   static func expansion(
     of node: AttributeSyntax,

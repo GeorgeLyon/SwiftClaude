@@ -160,3 +160,14 @@ where Self == SchemaCoding.Support.InferredStyle {
     Self()
   }
 }
+
+// MARK: - Key Conversion Strategy
+
+extension SchemaCoding.Support {
+
+  public enum KeyConversionStrategy: Sendable {
+    case none
+    case convertToSnakeCase
+  }
+
+}

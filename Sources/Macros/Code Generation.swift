@@ -16,7 +16,7 @@ extension SchemaCodableType {
         isPublic: isPublic,
         schemaProtocolName: "ObjectSchema",
         getter: {
-          schema.expr
+          schema.expr(propertyNameConversionStrategy: keyConversionStrategy)
         }
       )
 
@@ -24,37 +24,15 @@ extension SchemaCodableType {
         namespace: namespace,
         properties: schema.properties
       )
-
-      EnumDeclSyntax.codingKeys(
-        name: schema.propertyNameTypeName,
-        identifiers: schema.properties.map(\.name),
-        conversionStrategy: codingKeyConversionStrategy
-      )
     case .enum(let schema):
       VariableDeclSyntax.schemaProperty(
         namespace: namespace,
         isPublic: isPublic,
         schemaProtocolName: "Schema",
         getter: {
-          schema.expr
+          schema.expr(caseNameConversionStrategy: keyConversionStrategy)
         }
       )
-
-      EnumDeclSyntax.codingKeys(
-        name: schema.caseNameTypeName,
-        identifiers: schema.cases.map(\.name),
-        conversionStrategy: codingKeyConversionStrategy
-      )
-
-      for `case` in schema.cases {
-        if !`case`.associatedValues.isEmpty {
-          EnumDeclSyntax.codingKeys(
-            name: `case`.associatedValueLabelTypeName,
-            identifiers: `case`.associatedValues.compactMap(\.name),
-            conversionStrategy: codingKeyConversionStrategy
-          )
-        }
-      }
     }
   }
 
@@ -98,55 +76,6 @@ extension DeclSyntaxProtocol where Self == VariableDeclSyntax {
             )
           )
         )
-      }
-    )
-  }
-
-}
-
-extension EnumDeclSyntax {
-
-  fileprivate static func codingKeys(
-    name: TokenSyntax,
-    identifiers: [IdentifiableToken],
-    conversionStrategy: CodingKeyConversionStrategy
-  ) -> Self {
-    EnumDeclSyntax(
-      modifiers: DeclModifierListSyntax {
-        DeclModifierSyntax(name: .keyword(.private))
-      },
-      name: name,
-      inheritanceClause: InheritanceClauseSyntax {
-        if !identifiers.isEmpty {
-          /// Raw Values don't work if an enum has no cases
-          InheritedTypeSyntax(
-            type: MemberTypeSyntax(
-              baseType: IdentifierTypeSyntax(name: "Swift"),
-              name: "String"
-            ),
-            trailingComma: .commaToken()
-          )
-        }
-        InheritedTypeSyntax(
-          type: MemberTypeSyntax(
-            baseType: IdentifierTypeSyntax(name: "Swift"),
-            name: "CodingKey"
-          )
-        )
-      },
-      memberBlock: MemberBlockSyntax {
-        for identifier in identifiers {
-          EnumCaseDeclSyntax {
-            EnumCaseElementSyntax(
-              name: identifier.token,
-              rawValue: InitializerClauseSyntax(
-                value: StringLiteralExprSyntax(
-                  content: conversionStrategy.convert(identifier.identifier.name)
-                )
-              )
-            )
-          }
-        }
       }
     )
   }
@@ -246,22 +175,14 @@ extension DeclSyntaxProtocol where Self == InitializerDeclSyntax {
 
 extension StructSchema {
 
-  var expr: FunctionCallExprSyntax {
+  func expr(
+    propertyNameConversionStrategy: KeyConversionStrategy
+  ) -> FunctionCallExprSyntax {
     FunctionCallExprSyntax(
       calledExpression: namespace.supportMember(name: "structSchema"),
       leftParen: .leftParenToken(trailingTrivia: .newline),
       arguments: LabeledExprListSyntax {
         additionalArguments
-
-        LabeledExprSyntax(
-          label: "propertyName",
-          colon: .colonToken(),
-          expression: MemberAccessExprSyntax(
-            base: DeclReferenceExprSyntax(baseName: propertyNameTypeName),
-            name: "self"
-          ),
-          trailingComma: .commaToken(trailingTrivia: .newline)
-        )
 
         LabeledExprSyntax(
           label: "properties",
@@ -276,9 +197,8 @@ extension StructSchema {
                   LabeledExprSyntax(
                     label: "name",
                     colon: .colonToken(),
-                    expression: MemberAccessExprSyntax(
-                      base: DeclReferenceExprSyntax(baseName: propertyNameTypeName),
-                      name: .identifier(property.name.name)
+                    expression: StringLiteralExprSyntax(
+                      content: propertyNameConversionStrategy.convert(property.name.identifier.name)
                     ),
                     trailingComma: .commaToken(trailingTrivia: .newline)
                   )
@@ -348,22 +268,14 @@ extension StructSchema {
 
 extension EnumSchema {
 
-  var expr: FunctionCallExprSyntax {
+  func expr(
+    caseNameConversionStrategy: KeyConversionStrategy
+  ) -> FunctionCallExprSyntax {
     FunctionCallExprSyntax(
       calledExpression: namespace.supportMember(name: "enumSchema"),
       leftParen: .leftParenToken(trailingTrivia: .newline),
       arguments: LabeledExprListSyntax {
         additionalArguments
-
-        LabeledExprSyntax(
-          label: "caseName",
-          colon: .colonToken(),
-          expression: MemberAccessExprSyntax(
-            base: DeclReferenceExprSyntax(baseName: caseNameTypeName),
-            name: "self"
-          ),
-          trailingComma: .commaToken(trailingTrivia: .newline)
-        )
 
         LabeledExprSyntax(
           label: "cases",
@@ -379,7 +291,9 @@ extension EnumSchema {
                     label: "name",
                     colon: .colonToken(),
                     expression: MemberAccessExprSyntax(
-                      base: DeclReferenceExprSyntax(baseName: caseNameTypeName),
+                      base: StringLiteralExprSyntax(
+                        content: caseNameConversionStrategy.convert(`case`.name.identifier.name)
+                      ),
                       name: .identifier(`case`.name.name)
                     ),
                     trailingComma: .commaToken(trailingTrivia: .newline)
@@ -638,20 +552,22 @@ extension ExprSyntaxProtocol where Self == FunctionCallExprSyntax {
     representing type: TypeSyntax,
     additionalArguments: LabeledExprListSyntax = LabeledExprListSyntax()
   ) -> Self {
-    FunctionCallExprSyntax(
+    var arguments = LabeledExprListSyntax {
+      LabeledExprSyntax(
+        label: "representing",
+        colon: .colonToken(),
+        expression: MemberAccessExprSyntax(
+          base: DeclReferenceExprSyntax(baseName: "\(type.trimmed)"),
+          name: "self"
+        )
+      )
+      additionalArguments
+    }
+    arguments[arguments.indices.last!].trailingComma = nil
+    return FunctionCallExprSyntax(
       calledExpression: namespace.supportMember(name: "schema"),
       leftParen: .leftParenToken(trailingTrivia: .newline),
-      arguments: LabeledExprListSyntax {
-        LabeledExprSyntax(
-          label: "representing",
-          colon: .colonToken(),
-          expression: MemberAccessExprSyntax(
-            base: DeclReferenceExprSyntax(baseName: "\(type.trimmed)"),
-            name: "self"
-          )
-        )
-        additionalArguments
-      },
+      arguments: arguments,
       rightParen: .rightParenToken(leadingTrivia: .newline)
     )
   }

@@ -121,6 +121,6 @@ struct SchemaCodableEnumMacroTests {
 
   private let macroSpecs = [
     "SchemaCodable": MacroSpec(type: SchemaCodableMacro.self),
-    "SchemaDetails": MacroSpec(type: SchemaDetailsMacro.self),
+    "SchemaParameters": MacroSpec(type: SchemaParametersMacro.self),
   ]
 }

@@ -7,7 +7,7 @@ struct SchemaCodableMacroContext {
   let namespace: SchemaCodingNamespace
   let macroAttribute: TypeSyntax
   let detailMacroAttribute: TypeSyntax
-  let defaultCodingKeyConversionStrategy: CodingKeyConversionStrategy
+  let defaultKeyConversionStrategy: KeyConversionStrategy
   let defaultEnumStyle: EnumStyleArgument?
   let expansionContext: MacroExpansionContext
 }

@@ -14,15 +14,13 @@ private struct SchemaCodableStructTests {
 
     assertMacroExpansion(
       """
-      // MARK: - Some Unrelated Comment
-
       @SchemaCodable(
         description: "Test Struct"
       )
       public struct TestStruct {
         let anInteger: Int
 
-        @SchemaDetails(
+        @SchemaParameters(
           description: "A coordinate"
         )
         let aCoordinate: (Int, Int)
@@ -32,63 +30,63 @@ private struct SchemaCodableStructTests {
       }
       """,
       expandedSource: #####"""
-        // MARK: - Some Unrelated Comment
         public struct TestStruct {
           let anInteger: Int
           let aCoordinate: (Int, Int)
-
           // Crazy Declaration
           let a, b: Bool, c: String
         }
-
+        
         extension TestStruct: SchemaCoding.SchemaCodable {
           public static var schema: some SchemaCoding.ObjectSchema<Self> {
-            let anInteger = SchemaCoding.SchemaCodingSupport.StructPropertyDefinition(
-              name: __macro_local_17PropertyCodingKeyfMu_.anInteger,
-              keyPath: \Self.anInteger,
-              schema: SchemaCoding.SchemaCodingSupport.schema(representing: Int.self)
-            )
-            let aCoordinate = SchemaCoding.SchemaCodingSupport.StructPropertyDefinition(
-              name: __macro_local_17PropertyCodingKeyfMu_.aCoordinate,
-              description: "A coordinate",
-              keyPath: \Self.aCoordinate,
-              schema: SchemaCoding.SchemaCodingSupport.schema(representing: (Int, Int).self)
-            )
-            let a = SchemaCoding.SchemaCodingSupport.StructPropertyDefinition(
-              name: __macro_local_17PropertyCodingKeyfMu_.a,
-              keyPath: \Self.a,
-              schema: SchemaCoding.SchemaCodingSupport.schema(representing: Bool.self)
-            )
-            let b = SchemaCoding.SchemaCodingSupport.StructPropertyDefinition(
-              name: __macro_local_17PropertyCodingKeyfMu_.b,
-              keyPath: \Self.b,
-              schema: SchemaCoding.SchemaCodingSupport.schema(representing: Bool.self)
-            )
-            let c = SchemaCoding.SchemaCodingSupport.StructPropertyDefinition(
-              name: __macro_local_17PropertyCodingKeyfMu_.c,
-              keyPath: \Self.c,
-              schema: SchemaCoding.SchemaCodingSupport.schema(representing: String.self)
-            )
-            return SchemaCoding.SchemaCodingSupport.structSchema(
-              representing: Self.self,
+            SchemaCoding.Support.structSchema(
               description: "Test Struct",
-              properties: (anInteger, aCoordinate, a, b, c),
-              initializer: Self.init(structSchemaDecoder:)
+              properties: {
+                SchemaCoding.Support.structProperty(
+                  name: "anInteger",
+                  schema: SchemaCoding.Support.schema(
+                    representing: Int.self
+                  ),
+                  keyPath: \Self.anInteger
+                )
+                SchemaCoding.Support.structProperty(
+                  name: "aCoordinate",
+                  schema: SchemaCoding.Support.schema(
+                    representing: (Int, Int).self, description: "A coordinate"
+                  ),
+                  keyPath: \Self.aCoordinate
+                )
+                SchemaCoding.Support.structProperty(
+                  name: "a",
+                  schema: SchemaCoding.Support.schema(
+                    representing: Bool.self
+                  ),
+                  keyPath: \Self.a
+                )
+                SchemaCoding.Support.structProperty(
+                  name: "b",
+                  schema: SchemaCoding.Support.schema(
+                    representing: Bool.self
+                  ),
+                  keyPath: \Self.b
+                )
+                SchemaCoding.Support.structProperty(
+                  name: "c",
+                  schema: SchemaCoding.Support.schema(
+                    representing: String.self
+                  ),
+                  keyPath: \Self.c
+                )
+              },
+              finishDecoding: Self.init(structDecoder:)
             )
           }
-          private init(structSchemaDecoder: SchemaCoding.SchemaCodingSupport.StructSchemaDecoder<Int, (Int, Int), Bool, Bool, String>) {
-            self.anInteger = structSchemaDecoder.propertyValues.0
-            self.aCoordinate = structSchemaDecoder.propertyValues.1
-            self.a = structSchemaDecoder.propertyValues.2
-            self.b = structSchemaDecoder.propertyValues.3
-            self.c = structSchemaDecoder.propertyValues.4
-          }
-          private enum __macro_local_17PropertyCodingKeyfMu_: Swift.String, Swift.CodingKey {
-            case anInteger = "anInteger"
-            case aCoordinate = "aCoordinate"
-            case a = "a"
-            case b = "b"
-            case c = "c"
+          private init(structDecoder: SchemaCoding.StructDecoder<Int, (Int, Int), Bool, Bool, String>) {
+            self.anInteger = structDecoder.propertyValues.0
+            self.aCoordinate = structDecoder.propertyValues.1
+            self.a = structDecoder.propertyValues.2
+            self.b = structDecoder.propertyValues.3
+            self.c = structDecoder.propertyValues.4
           }
         }
         """#####,
@@ -110,6 +108,6 @@ private struct SchemaCodableStructTests {
 
   private let macroSpecs = [
     "SchemaCodable": MacroSpec(type: SchemaCodableMacro.self),
-    "SchemaDetails": MacroSpec(type: SchemaDetailsMacro.self),
+    "SchemaParameters": MacroSpec(type: SchemaParametersMacro.self),
   ]
 }

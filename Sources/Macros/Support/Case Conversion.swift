@@ -1,4 +1,4 @@
-struct CodingKeyConversionStrategy: Sendable {
+struct KeyConversionStrategy: Sendable {
   static let convertToSnakeCase = Self(
     transform: String.convertToSnakeCase(_:)
   )

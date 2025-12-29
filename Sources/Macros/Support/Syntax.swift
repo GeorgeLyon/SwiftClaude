@@ -1,4 +1,6 @@
+import SwiftDiagnostics
 import SwiftSyntax
+import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 
 extension DeclModifierListSyntax {
