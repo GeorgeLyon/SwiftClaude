@@ -43,7 +43,7 @@ extension SchemaCoding.Support {
         Value,
         inout EnumSchemaSingleCaseEncoder<AssociatedValuesSchema>,
       ) -> Void
-  ) -> some Schema<Value> {
+  ) -> some Schema<Value> & ComplexSchema {
     EnumSchema(
       description: description,
       cases: cases().cases,

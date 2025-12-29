@@ -8,7 +8,7 @@ extension SchemaCoding.Support {
     style: StructSchemaStyleStandard = .standard,
     @StructPropertiesBuilder<Root> properties: () -> StructProperties<Root, repeat each Property>,
     finishDecoding: @escaping (StructDecoder<repeat (each Property).Value>) -> Root
-  ) -> some ObjectSchema<Root> {
+  ) -> some ObjectSchema<Root> & ComplexSchema {
     let properties = (repeat each properties().properties)
     let objectSchema = ConcreteObjectSchema(
       description: description,
@@ -27,7 +27,7 @@ extension SchemaCoding.Support {
     style: StructSchemaStyleStandard = .standard,
     @StructPropertiesBuilder<Root> properties: () -> StructProperties<Root, Property>,
     finishDecoding: @escaping (StructSinglePropertyDecoder<Property.Value>) -> Root
-  ) -> some ObjectSchema<Root> {
+  ) -> some ObjectSchema<Root> & ComplexSchema {
     let properties = properties().properties
     let objectSchema = ConcreteObjectSchema(
       description: description,
@@ -115,6 +115,20 @@ extension SchemaCoding.Support {
       description: description,
       keyPath: keyPath,
       schema: schema
+    )
+  }
+
+  public static func structProperty<Root, Schema: SchemaCoding.Schema & ComplexSchema>(
+    name: SchemaCodingKey,
+    description: String? = nil,
+    keyPath: KeyPath<Root, Schema.Value>,
+    schema: Schema
+  ) -> StructProperty<Root, some ObjectProperty<Schema.Value>> {
+    StructProperty(
+      name: name,
+      description: description,
+      keyPath: keyPath,
+      schema: schema.typeErased()
     )
   }
 

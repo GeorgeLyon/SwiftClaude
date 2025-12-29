@@ -235,6 +235,22 @@ extension SchemaCoding.Support {
   }
 
   public static func enumSchemaCaseAssociatedValue<
+    Schema: SchemaCoding.Schema & ComplexSchema
+  >(
+    label: SchemaCodingKey,
+    schema: Schema
+  ) -> EnumSchemaCaseAssociatedValuesObjectProperty<
+    some ObjectProperty<Schema.Value>
+  > {
+    EnumSchemaCaseAssociatedValuesObjectProperty(
+      objectProperty: DirectObjectProperty(
+        name: label,
+        schema: schema.typeErased()
+      )
+    )
+  }
+
+  public static func enumSchemaCaseAssociatedValue<
     Schema: SchemaCoding.Schema
   >(
     label: SchemaCodingKey,

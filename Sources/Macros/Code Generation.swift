@@ -15,6 +15,7 @@ extension SchemaCodableType {
         namespace: namespace,
         isPublic: isPublic,
         schemaProtocolName: schema.style == .wrapper ? "Schema" : "ObjectSchema",
+        isComplexSchema: schema.style != .wrapper,
         getter: {
           schema.expr(propertyNameConversionStrategy: keyConversionStrategy)
         }
@@ -30,6 +31,7 @@ extension SchemaCodableType {
         namespace: namespace,
         isPublic: isPublic,
         schemaProtocolName: "Schema",
+        isComplexSchema: true,
         getter: {
           schema.expr(caseNameConversionStrategy: keyConversionStrategy)
         }
@@ -45,9 +47,36 @@ extension DeclSyntaxProtocol where Self == VariableDeclSyntax {
     namespace: SchemaCodingNamespace,
     isPublic: Bool,
     schemaProtocolName: TokenSyntax,
+    isComplexSchema: Bool,
     @CodeBlockItemListBuilder getter: () -> CodeBlockItemListSyntax
   ) -> VariableDeclSyntax {
-    VariableDeclSyntax(
+    let schemaType = namespace.memberType(
+      name: schemaProtocolName,
+      genericArgumentClause: GenericArgumentClauseSyntax {
+        GenericArgumentSyntax(
+          argument: IdentifierTypeSyntax(name: "Self")
+        )
+      }
+    )
+
+    let constraintType: TypeSyntaxProtocol
+    if isComplexSchema {
+      constraintType = CompositionTypeSyntax(
+        elements: CompositionTypeElementListSyntax {
+          CompositionTypeElementSyntax(
+            type: schemaType,
+            ampersand: .binaryOperator("&")
+          )
+          CompositionTypeElementSyntax(
+            type: namespace.supportMemberType(name: "ComplexSchema")
+          )
+        }
+      )
+    } else {
+      constraintType = schemaType
+    }
+
+    return VariableDeclSyntax(
       modifiers: DeclModifierListSyntax {
         if isPublic {
           DeclModifierSyntax(name: "public")
@@ -61,14 +90,7 @@ extension DeclSyntaxProtocol where Self == VariableDeclSyntax {
           typeAnnotation: TypeAnnotationSyntax(
             type: SomeOrAnyTypeSyntax(
               someOrAnySpecifier: .keyword(.some),
-              constraint: namespace.memberType(
-                name: schemaProtocolName,
-                genericArgumentClause: GenericArgumentClauseSyntax {
-                  GenericArgumentSyntax(
-                    argument: IdentifierTypeSyntax(name: "Self")
-                  )
-                }
-              )
+              constraint: TypeSyntax(fromProtocol: constraintType)
             )
           ),
           accessorBlock: AccessorBlockSyntax(

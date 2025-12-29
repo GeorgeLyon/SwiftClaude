@@ -23,7 +23,7 @@ extension SchemaCoding.Support {
 
 extension SchemaCoding.Support {
 
-  struct ConcreteObjectSchema<Properties: ObjectSchemaProperties>: ObjectSchema {
+  struct ConcreteObjectSchema<Properties: ObjectSchemaProperties>: ObjectSchema, ComplexSchema {
 
     typealias Value = Properties.Value
 

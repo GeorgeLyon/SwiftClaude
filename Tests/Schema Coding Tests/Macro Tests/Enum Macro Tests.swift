@@ -204,21 +204,21 @@ struct EnumMacroTests {
       )
     }
 
-    // @Test
-    // func testEnumWithNestedTypeNested() throws {
-    //   try test(
-    //     EnumWithNestedType.nested(.first),
-    //     isCodedAs: """
-    //       {
-    //         "nested": {
-    //           "first": {
+    @Test
+    func testEnumWithNestedTypeNested() throws {
+      try test(
+        EnumWithNestedType.nested(.first),
+        isCodedAs: """
+          {
+            "nested": {
+              "first": {
 
-    //           }
-    //         }
-    //       }
-    //       """
-    //   )
-    // }
+              }
+            }
+          }
+          """
+      )
+    }
 
     @Test
     func testEnumWithNestedTypePlain() throws {

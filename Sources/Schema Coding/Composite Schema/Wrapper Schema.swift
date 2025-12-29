@@ -83,3 +83,6 @@ where WrappedSchema: SchemaCoding.Support.ObjectSchema {
   }
 
 }
+
+extension SchemaCoding.Support.WrapperSchema: SchemaCoding.Support.ComplexSchema
+where WrappedSchema: SchemaCoding.Support.ComplexSchema {}
