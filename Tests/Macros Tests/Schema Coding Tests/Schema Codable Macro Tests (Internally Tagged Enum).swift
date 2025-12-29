@@ -20,15 +20,15 @@ struct InternallyTaggedEnumMacroTests {
         )
       )
       enum Shape {
-        @SchemaDetails(
+        @SchemaParameters(
           description: "A circle with a radius"
         )
         case circle(radius: Double)
-        @SchemaDetails(
+        @SchemaParameters(
           description: "A rectangle with width and height"
         )
         case rectangle(width: Double, height: Double)
-        @SchemaDetails(
+        @SchemaParameters(
           description: "A square with a side length"
         )
         case square(side: Double)
@@ -43,88 +43,84 @@ struct InternallyTaggedEnumMacroTests {
 
         extension Shape: SchemaCoding.SchemaCodable {
           static var schema: some SchemaCoding.Schema<Self> {
-            let circle = SchemaCoding.SchemaCodingSupport.EnumSchemaCaseDefinition(
-              name: __macro_local_9CodingKeyfMu_.circle,
-              description: "A circle with a radius",
-              associatedValues: {
-                SchemaCoding.SchemaCodingSupport.EnumSchemaCaseLabeledAssociatedValue(
-                  label: __macro_local_6circlefMu_.radius,
-                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: Double.self)
-
-                )
-              },
-              initializer: { value in
-                Self.circle(radius: value)
-              })
-            let rectangle = SchemaCoding.SchemaCodingSupport.EnumSchemaCaseDefinition(
-              name: __macro_local_9CodingKeyfMu_.rectangle,
-              description: "A rectangle with width and height",
-              associatedValues: {
-                SchemaCoding.SchemaCodingSupport.EnumSchemaCaseLabeledAssociatedValue(
-                  label: __macro_local_9rectanglefMu_.width,
-                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: Double.self)
-
-                )
-                SchemaCoding.SchemaCodingSupport.EnumSchemaCaseLabeledAssociatedValue(
-                  label: __macro_local_9rectanglefMu_.height,
-                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: Double.self)
-
-                )
-              },
-              initializer: { value in
-                Self.rectangle(width: value.0, height: value.1)
-              })
-            let square = SchemaCoding.SchemaCodingSupport.EnumSchemaCaseDefinition(
-              name: __macro_local_9CodingKeyfMu_.square,
-              description: "A square with a side length",
-              associatedValues: {
-                SchemaCoding.SchemaCodingSupport.EnumSchemaCaseLabeledAssociatedValue(
-                  label: __macro_local_6squarefMu_.side,
-                  schema: SchemaCoding.SchemaCodingSupport.schema(representing: Double.self)
-
-                )
-              },
-              initializer: { value in
-                Self.square(side: value)
-              })
-            return SchemaCoding.SchemaCodingSupport.enumSchema(
-              representing: Self.self,
+            SchemaCoding.Support.enumSchema(
               style: .internallyTagged(
                 discriminatorPropertyName: "type"
               ),
-              cases: SchemaCoding.SchemaCodingSupport.EnumSchemaCases {
-                circle
-                rectangle
-                square
+              cases: {
+                SchemaCoding.Support.enumSchemaCase(
+                  name: "circle".circle,
+                  description: "A circle with a radius",
+                  associatedValues: {
+                    SchemaCoding.Support.enumSchemaCaseAssociatedValue(
+                      label: __macro_local_26AssociatedValueLabe_circlefMu_.radius,
+                      schema: SchemaCoding.Support.schema(
+                        representing: Double.self
+                      )
+                    )
+                  },
+                  finishDecoding: { (__value_0) in
+                    Self.circle(
+                      radius: __value_0
+                    )
+                  }
+                )
+                SchemaCoding.Support.enumSchemaCase(
+                  name: "rectangle".rectangle,
+                  description: "A rectangle with width and height",
+                  associatedValues: {
+                    SchemaCoding.Support.enumSchemaCaseAssociatedValue(
+                      label: __macro_local_29AssociatedValueLabe_rectanglefMu_.width,
+                      schema: SchemaCoding.Support.schema(
+                        representing: Double.self
+                      )
+                    )
+                    SchemaCoding.Support.enumSchemaCaseAssociatedValue(
+                      label: __macro_local_29AssociatedValueLabe_rectanglefMu_.height,
+                      schema: SchemaCoding.Support.schema(
+                        representing: Double.self
+                      )
+                    )
+                  },
+                  finishDecoding: { (__value_0, __value_1) in
+                    Self.rectangle(
+                      width: __value_0, height: __value_1
+                    )
+                  }
+                )
+                SchemaCoding.Support.enumSchemaCase(
+                  name: "square".square,
+                  description: "A square with a side length",
+                  associatedValues: {
+                    SchemaCoding.Support.enumSchemaCaseAssociatedValue(
+                      label: __macro_local_26AssociatedValueLabe_squarefMu_.side,
+                      schema: SchemaCoding.Support.schema(
+                        representing: Double.self
+                      )
+                    )
+                  },
+                  finishDecoding: { (__value_0) in
+                    Self.square(
+                      side: __value_0
+                    )
+                  }
+                )
               },
-              valueEncoder: { value, encoder in
+              encodeValue: { value, encoder in
+                let encodings = encoder.encodings
                 switch value {
-                case .circle(let radius):
-                  let encoding = encoder.encodings.0
-                  encoder.encode((radius), using: encoding)
-                case .rectangle(let width, let height):
-                  let encoding = encoder.encodings.1
-                  encoder.encode((width, height), using: encoding)
-                case .square(let side):
-                  let encoding = encoder.encodings.2
-                  encoder.encode((side), using: encoding)
+                case .circle(let __value_0):
+                  let encoding = encodings.0
+                  encoder.encode((__value_0), using: encoding)
+                case .rectangle(let __value_0, let __value_1):
+                  let encoding = encodings.1
+                  encoder.encode((__value_0, __value_1), using: encoding)
+                case .square(let __value_0):
+                  let encoding = encodings.2
+                  encoder.encode((__value_0), using: encoding)
                 }
-              })
-          }
-          private enum __macro_local_9CodingKeyfMu_: Swift.String, Swift.CodingKey {
-            case circle = "circle"
-            case rectangle = "rectangle"
-            case square = "square"
-          }
-          private enum __macro_local_6circlefMu_: Swift.String, Swift.CodingKey {
-            case radius = "radius"
-          }
-          private enum __macro_local_9rectanglefMu_: Swift.String, Swift.CodingKey {
-            case width = "width"
-            case height = "height"
-          }
-          private enum __macro_local_6squarefMu_: Swift.String, Swift.CodingKey {
-            case side = "side"
+              }
+            )
           }
         }
         """#####,

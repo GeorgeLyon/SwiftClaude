@@ -33,6 +33,7 @@ private struct SchemaCodableStructTests {
         public struct TestStruct {
           let anInteger: Int
           let aCoordinate: (Int, Int)
+
           // Crazy Declaration
           let a, b: Bool, c: String
         }
