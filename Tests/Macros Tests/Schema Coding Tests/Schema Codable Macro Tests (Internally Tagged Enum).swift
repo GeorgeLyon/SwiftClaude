@@ -20,15 +20,15 @@ struct InternallyTaggedEnumMacroTests {
         )
       )
       enum Shape {
-        @SchemaParameters(
+        @SchemaCase(
           description: "A circle with a radius"
         )
         case circle(radius: Double)
-        @SchemaParameters(
+        @SchemaCase(
           description: "A rectangle with width and height"
         )
         case rectangle(width: Double, height: Double)
-        @SchemaParameters(
+        @SchemaCase(
           description: "A square with a side length"
         )
         case square(side: Double)
@@ -138,6 +138,6 @@ struct InternallyTaggedEnumMacroTests {
 
   private let macroSpecs = [
     "SchemaCodable": MacroSpec(type: SchemaCodableMacro.self),
-    "SchemaParameters": MacroSpec(type: SchemaParametersMacro.self),
+    "SchemaCase": MacroSpec(type: SchemaCaseMacro.self),
   ]
 }

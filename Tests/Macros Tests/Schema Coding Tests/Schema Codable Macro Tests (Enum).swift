@@ -18,7 +18,7 @@ struct SchemaCodableEnumMacroTests {
       )
       enum Foo {
 
-        @SchemaParameters(
+        @SchemaCase(
           description: "Description of Bar"
         )
         case bar
@@ -114,6 +114,6 @@ struct SchemaCodableEnumMacroTests {
 
   private let macroSpecs = [
     "SchemaCodable": MacroSpec(type: SchemaCodableMacro.self),
-    "SchemaParameters": MacroSpec(type: SchemaParametersMacro.self),
+    "SchemaCase": MacroSpec(type: SchemaCaseMacro.self),
   ]
 }

@@ -20,7 +20,7 @@ private struct SchemaCodableStructTests {
       public struct TestStruct {
         let anInteger: Int
 
-        @SchemaParameters(
+        @SchemaProperty(
           description: "A coordinate"
         )
         let aCoordinate: (Int, Int)
@@ -109,6 +109,6 @@ private struct SchemaCodableStructTests {
 
   private let macroSpecs = [
     "SchemaCodable": MacroSpec(type: SchemaCodableMacro.self),
-    "SchemaParameters": MacroSpec(type: SchemaParametersMacro.self),
+    "SchemaProperty": MacroSpec(type: SchemaPropertyMacro.self),
   ]
 }

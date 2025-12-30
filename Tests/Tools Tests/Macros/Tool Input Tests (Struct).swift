@@ -1,3 +1,4 @@
+import SchemaCoding
 import SchemaCodingTestSupport
 import Testing
 
@@ -10,12 +11,12 @@ import Testing
 private struct Person: Equatable {
   let `name`: String
 
-  @ToolInputDetails(
+  @SchemaProperty(
     description: "The person's age"
   )
   let age: Int
 
-  @ToolInputDetails(
+  @SchemaProperty(
     description: "Whether the person is active"
   )
   let isActive: Bool?

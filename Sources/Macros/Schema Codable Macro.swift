@@ -8,7 +8,6 @@ import SwiftSyntaxMacros
 enum SchemaCodableMacro: SchemaCodableMacroProtocol {
   static let schemaCodingNamespace: SchemaCodingNamespace = "SchemaCoding"
   static let schemaCodableMacroAttribute: TypeSyntax = "SchemaCodable"
-  static let schemaParametersMacroAttribute: TypeSyntax = "SchemaParameters"
   static let defaultKeyConversionStrategy: KeyConversionStrategy = .none
   static let defaultEnumStyle: EnumStyleArgument? = nil
 }
@@ -18,7 +17,6 @@ enum SchemaCodableMacro: SchemaCodableMacroProtocol {
 protocol SchemaCodableMacroProtocol: ExtensionMacro {
   static var schemaCodingNamespace: SchemaCodingNamespace { get }
   static var schemaCodableMacroAttribute: TypeSyntax { get }
-  static var schemaParametersMacroAttribute: TypeSyntax { get }
   static var defaultKeyConversionStrategy: KeyConversionStrategy { get }
   static var defaultEnumStyle: EnumStyleArgument? { get }
 }
@@ -34,7 +32,6 @@ extension SchemaCodableMacroProtocol {
     let context = SchemaCodableMacroContext(
       namespace: Self.schemaCodingNamespace,
       macroAttribute: Self.schemaCodableMacroAttribute,
-      detailMacroAttribute: Self.schemaParametersMacroAttribute,
       defaultKeyConversionStrategy: Self.defaultKeyConversionStrategy,
       defaultEnumStyle: Self.defaultEnumStyle,
       expansionContext: context
@@ -58,9 +55,23 @@ extension SchemaCodableMacroProtocol {
 
 }
 
-// MARK: - Schema Parameters
+// MARK: - Schema Property
 
-enum SchemaParametersMacro: PeerMacro {
+enum SchemaPropertyMacro: PeerMacro {
+
+  static func expansion(
+    of node: AttributeSyntax,
+    providingPeersOf declaration: some DeclSyntaxProtocol,
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    return []
+  }
+
+}
+
+// MARK: - Schema Case
+
+enum SchemaCaseMacro: PeerMacro {
 
   static func expansion(
     of node: AttributeSyntax,

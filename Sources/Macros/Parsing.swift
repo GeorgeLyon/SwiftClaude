@@ -69,10 +69,32 @@ extension StructDeclSyntax {
             return []
           }
 
+          // Validate: @SchemaCase should not be used on struct properties
+          if variable.hasAttribute("SchemaCase") {
+            context.expansionContext.diagnose(
+              DiagnosticError(
+                node: variable,
+                severity: .error,
+                message: "@SchemaCase cannot be used on struct properties. Use @SchemaProperty instead."
+              )
+            )
+          }
+
+          // Validate: @SchemaProperty should not be used on wrapper struct properties
+          if style == .wrapper, variable.hasAttribute("SchemaProperty") {
+            context.expansionContext.diagnose(
+              DiagnosticError(
+                node: variable,
+                severity: .error,
+                message: "@SchemaProperty cannot be used on wrapper struct properties."
+              )
+            )
+          }
+
           let additionalArguments: LabeledExprListSyntax =
             .fromArguments(
               variable.parseArguments(
-                ofAttribute: context.detailMacroAttribute,
+                ofAttribute: "SchemaProperty",
                 as: DescriptionArgument.self,
                 in: context.expansionContext
               )
@@ -163,9 +185,20 @@ extension EnumDeclSyntax {
           guard let caseDecl = member.decl.as(EnumCaseDeclSyntax.self) else {
             return []
           }
+          // Validate: @SchemaProperty should not be used on enum cases
+          if caseDecl.hasAttribute("SchemaProperty") {
+            context.expansionContext.diagnose(
+              DiagnosticError(
+                node: caseDecl,
+                severity: .error,
+                message: "@SchemaProperty cannot be used on enum cases. Use @SchemaCase instead."
+              )
+            )
+          }
+
           let additionalArguments: LabeledExprListSyntax = .fromArguments(
             caseDecl.parseArguments(
-              ofAttribute: context.detailMacroAttribute,
+              ofAttribute: "SchemaCase",
               as: DescriptionArgument.self,
               in: context.expansionContext
             )

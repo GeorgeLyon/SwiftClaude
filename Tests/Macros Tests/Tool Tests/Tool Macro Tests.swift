@@ -105,7 +105,7 @@ struct ToolMacroTests {
 
   private let macroSpecs = [
     "Tool": MacroSpec(type: ToolMacro.self),
-    "ToolInputDetails": MacroSpec(type: SchemaDetailsMacro.self),
+    "SchemaProperty": MacroSpec(type: SchemaPropertyMacro.self),
   ]
 }
 */

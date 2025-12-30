@@ -19,7 +19,7 @@ struct ToolInputStructMacroTests {
       )
       struct ToolInputStruct {
         let anInteger: Int
-        @ToolInputDetails(
+        @SchemaProperty(
           description: "An (x, y) coordinate"
         )
         let aCoordinate: (Int, Int)
@@ -104,6 +104,6 @@ struct ToolInputStructMacroTests {
 
   private let macroSpecs = [
     "ToolInput": MacroSpec(type: ToolInputMacro.self),
-    "ToolInputDetails": MacroSpec(type: SchemaParametersMacro.self),
+    "SchemaProperty": MacroSpec(type: SchemaPropertyMacro.self),
   ]
 }

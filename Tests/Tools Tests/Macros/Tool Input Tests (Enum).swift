@@ -1,3 +1,4 @@
+import SchemaCoding
 import SchemaCodingTestSupport
 import Testing
 
@@ -44,7 +45,7 @@ struct ToolInputEnumTests {
     description: "An enum with only one case"
   )
   enum SingleCaseEnum: Equatable {
-    @ToolInputDetails(
+    @SchemaCase(
       description: "The only case"
     )
     case only(String)

@@ -80,4 +80,32 @@ extension AttributeListSyntax {
 
   }
 
+  func hasAttribute(_ name: String) -> Bool {
+    contains { element in
+      guard case .attribute(let attribute) = element else {
+        return false
+      }
+      guard let identifier = attribute.attributeName.as(IdentifierTypeSyntax.self) else {
+        return false
+      }
+      return identifier.name.text == name
+    }
+  }
+
+}
+
+extension VariableDeclSyntax {
+
+  func hasAttribute(_ name: String) -> Bool {
+    attributes.hasAttribute(name)
+  }
+
+}
+
+extension EnumCaseDeclSyntax {
+
+  func hasAttribute(_ name: String) -> Bool {
+    attributes.hasAttribute(name)
+  }
+
 }

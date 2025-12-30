@@ -99,12 +99,3 @@ public macro ToolInput(
     module: "Macros",
     type: "ToolInputMacro"
   )
-
-@attached(peer)
-public macro ToolInputDetails(
-  description: String? = nil
-) =
-  #externalMacro(
-    module: "Macros",
-    type: "SchemaDetailsMacro"
-  )

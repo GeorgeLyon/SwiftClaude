@@ -14,10 +14,19 @@ public macro SchemaCodable(
   )
 
 @attached(peer)
-public macro SchemaDetails(
+public macro SchemaProperty(
   description: String? = nil
 ) =
   #externalMacro(
     module: "Macros",
-    type: "SchemaDetailsMacro"
+    type: "SchemaPropertyMacro"
+  )
+
+@attached(peer)
+public macro SchemaCase(
+  description: String? = nil
+) =
+  #externalMacro(
+    module: "Macros",
+    type: "SchemaCaseMacro"
   )

@@ -20,22 +20,22 @@ struct ToolInputEnumTests {
       enum ToolInputEnum {
         case `simple`
 
-        @ToolInputDetails(
+        @SchemaCase(
           description: "A case with a single associated value"
         )
         case singleAssociatedValue(Int)
 
-        @ToolInputDetails(
+        @SchemaCase(
           description: "Multiple associated values without a name"
         )
         case mutlipleUnnamedAssociatedValues(Int, String)
 
-        @ToolInputDetails(
+        @SchemaCase(
           description: "Multiple associated values with a name"
         )
         case multipleNamedAssociatedValues(a: Int, b: String, c: Bool)
 
-        @ToolInputDetails(
+        @SchemaCase(
           description: "Multiple associated values with some named and some unnamed"
         )
         case mixedAssociatedValues(Int, b: String, c: Bool)
@@ -194,6 +194,6 @@ struct ToolInputEnumTests {
 
   private let macroSpecs = [
     "ToolInput": MacroSpec(type: ToolInputMacro.self),
-    "ToolInputDetails": MacroSpec(type: SchemaParametersMacro.self),
+    "SchemaCase": MacroSpec(type: SchemaCaseMacro.self),
   ]
 }
