@@ -1,4 +1,3 @@
-import SchemaCoding
 import SchemaCodingTestSupport
 import Testing
 
