@@ -192,13 +192,9 @@ extension SchemaCoding.Support {
 
 extension SchemaCoding.Support {
 
-  public protocol EnumSchemaCaseAssociatedValues {
-    associatedtype Value
-  }
-
   public struct EnumSchemaCaseAssociatedValuesObject<
     each Property: ObjectProperty
-  >: EnumSchemaCaseAssociatedValues {
+  > {
     public typealias Value = (repeat (each Property).Value)
 
     let properties: (repeat each Property)
@@ -206,7 +202,7 @@ extension SchemaCoding.Support {
 
   public struct EnumSchemaCaseAssociatedValuesTuple<
     each ElementSchema: SchemaCoding.Schema
-  >: EnumSchemaCaseAssociatedValues {
+  > {
     public typealias Value = (repeat (each ElementSchema).Value)
 
     let elementSchemas: (repeat each ElementSchema)
