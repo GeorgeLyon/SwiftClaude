@@ -2,7 +2,7 @@ import JSONSupport
 
 extension SchemaCoding.Support {
 
-  struct NeverSchema: Schema {
+  public struct NeverSchema: Schema {
 
     public typealias Value = Never
 
