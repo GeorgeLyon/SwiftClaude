@@ -19,7 +19,7 @@ extension SchemaCoding.Support {
   > {
     public typealias Value = (repeat (each ElementSchema).Value)
 
-    let elementSchemas: (repeat each ElementSchema)
+    let elements: (repeat TupleSchemaElement<each ElementSchema>)
   }
 
 }
@@ -143,7 +143,7 @@ extension SchemaCoding.Support {
       first: ParameterClauseTupleElement<Element>
     ) -> ParameterClauseTuple<Element> {
       ParameterClauseTuple(
-        elementSchemas: first.schema
+        elements: TupleSchemaElement(schema: first.schema)
       )
     }
 
@@ -167,19 +167,70 @@ extension SchemaCoding.Support {
       )
     }
 
+    /// Object + Element = Tuple
+    public static func buildPartialBlock<
+      each Property,
+      NextElementSchema
+    >(
+      accumulated: ParameterClauseObject<
+        repeat each Property
+      >,
+      next: ParameterClauseTupleElement<
+        NextElementSchema
+      >
+    ) -> ParameterClauseTuple<
+      repeat (each Property).PropertySchema,
+      NextElementSchema
+    > {
+      ParameterClauseTuple(
+        elements: (
+          repeat (each accumulated.properties).tupleElement,
+          TupleSchemaElement(schema: next.schema)
+        )
+      )
+    }
+
     /// Tuple + Element = Tuple
     public static func buildPartialBlock<
       each ElementSchema,
-      NextElementSchema: SchemaCoding.Schema
+      NextElementSchema
     >(
       accumulated: ParameterClauseTuple<repeat each ElementSchema>,
       next: ParameterClauseTupleElement<NextElementSchema>
     ) -> ParameterClauseTuple<repeat each ElementSchema, NextElementSchema> {
       ParameterClauseTuple(
-        elementSchemas: (repeat each accumulated.elementSchemas, next.schema)
+        elements: (
+          repeat each accumulated.elements,
+          TupleSchemaElement(schema: next.schema)
+        )
+      )
+    }
+
+    /// Tuple + Property = Tuple
+    public static func buildPartialBlock<
+      each ElementSchema,
+      NextProperty
+    >(
+      accumulated: ParameterClauseTuple<repeat each ElementSchema>,
+      next: ParameterClauseObjectProperty<NextProperty>
+    ) -> ParameterClauseTuple<repeat each ElementSchema, NextProperty.PropertySchema> {
+      ParameterClauseTuple(
+        elements: (
+          repeat each accumulated.elements,
+          next.objectProperty.tupleElement
+        )
       )
     }
 
   }
 
+}
+
+extension SchemaCoding.Support.ObjectProperty {
+  fileprivate var tupleElement: SchemaCoding.Support.TupleSchemaElement<PropertySchema> {
+    SchemaCoding.Support.TupleSchemaElement(
+      description: name.stringValue,
+      schema: propertySchema,
+    )
+  }
 }

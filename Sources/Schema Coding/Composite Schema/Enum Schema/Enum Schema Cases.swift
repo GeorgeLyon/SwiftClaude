@@ -90,7 +90,7 @@ extension SchemaCoding.Support {
     let associatedValues = associatedValues()
     let associatedValuesSchema = TupleSchema(
       description: description,
-      elementSchemas: repeat each associatedValues.elementSchemas
+      elements: repeat each associatedValues.elements
     )
     return EnumSchemaCase(
       name: name,
@@ -114,7 +114,7 @@ extension SchemaCoding.Support {
     let associatedValues = associatedValues()
     return EnumSchemaCase(
       name: name,
-      associatedValuesSchema: associatedValues.elementSchemas,
+      associatedValuesSchema: associatedValues.elements.schema,
       finishDecoding: { associatedValues in
         finishDecoding(EnumSingleAssociatedValueCaseDecoder(associatedValues))
       }

@@ -177,6 +177,17 @@ extension SchemaCoding.Support {
 
   struct TupleSchemaElement<Schema: SchemaCoding.Schema> {
 
+    init(
+      description: String? = nil,
+      schema: Schema,
+      kind: Kind = .required
+    ) {
+      self.schema =
+        schema
+        .prependingDescription(description)
+      self.kind = kind
+    }
+
     let schema: Schema
 
     enum Kind {
