@@ -42,10 +42,24 @@ extension SchemaCoding.Support {
     }
 
     public func invoke(
+      with input: InputSchema.Value
+    ) throws(Failure) -> OutputSchema.Value
+    where Callee == Void {
+      try _invoke((), input)
+    }
+
+    public func invoke(
       on callee: Callee,
       with input: AsyncInputSchema.Value
     ) async throws(Failure) -> AsyncOutputSchema.Value {
       try await _invokeAsync(callee, input)
+    }
+
+    public func invoke(
+      with input: AsyncInputSchema.Value
+    ) async throws(Failure) -> AsyncOutputSchema.Value
+    where Callee == Void {
+      try await _invokeAsync((), input)
     }
 
     public let inputSchema: AsyncInputSchema
