@@ -153,7 +153,7 @@ struct MetaSchemaTests {
       let textCase = SchemaCoding.Support.enumSchemaCase(
         name: "text",
         associatedValues: {
-          SchemaCoding.Support.enumSchemaCaseAssociatedValue(
+          SchemaCoding.Support.parameter(
             label: "content",
             schema: SchemaCoding.Support.schema(representing: String.self)
           )
@@ -166,7 +166,7 @@ struct MetaSchemaTests {
       let payloadCase = SchemaCoding.Support.enumSchemaCase(
         name: "payload",
         associatedValues: {
-          SchemaCoding.Support.enumSchemaCaseAssociatedValue(
+          SchemaCoding.Support.parameter(
             schema: payloadSchema
           )
         },

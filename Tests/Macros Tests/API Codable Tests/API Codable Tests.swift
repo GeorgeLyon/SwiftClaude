@@ -39,7 +39,7 @@ struct APICodableMacroTests {
                 APICodable.Support.enumSchemaCase(
                   name: "bar",
                   associatedValues: {
-                    APICodable.Support.enumSchemaCaseAssociatedValue(
+                    APICodable.Support.parameter(
                       schema: APICodable.Support.schema(
                         representing: Bar.self
                       )

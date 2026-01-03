@@ -78,7 +78,7 @@ struct EnumSchemaTests {
         let alphaCase = SchemaCoding.Support.enumSchemaCase(
           name: "alpha",
           associatedValues: {
-            SchemaCoding.Support.enumSchemaCaseAssociatedValue(
+            SchemaCoding.Support.parameter(
               schema: SchemaCoding.Support.schema(representing: Int.self)
             )
           },
@@ -89,7 +89,7 @@ struct EnumSchemaTests {
         let betaCase = SchemaCoding.Support.enumSchemaCase(
           name: "beta",
           associatedValues: {
-            SchemaCoding.Support.enumSchemaCaseAssociatedValue(
+            SchemaCoding.Support.parameter(
               schema: SchemaCoding.Support.schema(representing: String.self)
             )
           },
@@ -142,11 +142,11 @@ struct EnumSchemaTests {
         let pointCase = SchemaCoding.Support.enumSchemaCase(
           name: "point",
           associatedValues: {
-            SchemaCoding.Support.enumSchemaCaseAssociatedValue(
+            SchemaCoding.Support.parameter(
               label: "x",
               schema: SchemaCoding.Support.schema(representing: Int.self)
             )
-            SchemaCoding.Support.enumSchemaCaseAssociatedValue(
+            SchemaCoding.Support.parameter(
               label: "y",
               schema: SchemaCoding.Support.schema(representing: Int.self)
             )
@@ -246,7 +246,7 @@ struct EnumSchemaTests {
         let valueCase = SchemaCoding.Support.enumSchemaCase(
           name: "value",
           associatedValues: {
-            SchemaCoding.Support.enumSchemaCaseAssociatedValue(
+            SchemaCoding.Support.parameter(
               schema: SchemaCoding.Support.schema(representing: Int.self)
             )
           },
@@ -288,10 +288,10 @@ struct EnumSchemaTests {
         let pairCase = SchemaCoding.Support.enumSchemaCase(
           name: "pair",
           associatedValues: {
-            SchemaCoding.Support.enumSchemaCaseAssociatedValue(
+            SchemaCoding.Support.parameter(
               schema: SchemaCoding.Support.schema(representing: Int.self)
             )
-            SchemaCoding.Support.enumSchemaCaseAssociatedValue(
+            SchemaCoding.Support.parameter(
               schema: SchemaCoding.Support.BooleanSchema()
             )
           },
@@ -388,7 +388,7 @@ struct EnumSchemaTests {
           let stateCase = SchemaCoding.Support.enumSchemaCase(
             name: "state",
             associatedValues: {
-              SchemaCoding.Support.enumSchemaCaseAssociatedValue(
+              SchemaCoding.Support.parameter(
                 schema: InnerEnum.schema
               )
             },
@@ -595,7 +595,7 @@ struct EnumSchemaTests {
         let textCase = SchemaCoding.Support.enumSchemaCase(
           name: "text",
           associatedValues: {
-            SchemaCoding.Support.enumSchemaCaseAssociatedValue(
+            SchemaCoding.Support.parameter(
               label: "content",
               schema: SchemaCoding.Support.schema(representing: String.self)
             )
@@ -607,7 +607,7 @@ struct EnumSchemaTests {
         let numberCase = SchemaCoding.Support.enumSchemaCase(
           name: "number",
           associatedValues: {
-            SchemaCoding.Support.enumSchemaCaseAssociatedValue(
+            SchemaCoding.Support.parameter(
               label: "value",
               schema: SchemaCoding.Support.schema(representing: Int.self)
             )
@@ -699,7 +699,7 @@ struct EnumSchemaTests {
         let dataCase = SchemaCoding.Support.enumSchemaCase(
           name: "data",
           associatedValues: {
-            SchemaCoding.Support.enumSchemaCaseAssociatedValue(
+            SchemaCoding.Support.parameter(
               label: "content",
               schema: SchemaCoding.Support.schema(representing: String.self)
             )

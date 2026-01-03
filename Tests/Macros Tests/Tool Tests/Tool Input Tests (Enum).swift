@@ -67,7 +67,7 @@ struct ToolInputEnumTests {
                   name: "singleAssociatedValue",
                   description: "A case with a single associated value",
                   associatedValues: {
-                    ToolInput.Support.enumSchemaCaseAssociatedValue(
+                    ToolInput.Support.parameter(
                       schema: ToolInput.Support.schema(
                         representing: Int.self
                       )
@@ -83,12 +83,12 @@ struct ToolInputEnumTests {
                   name: "mutlipleUnnamedAssociatedValues",
                   description: "Multiple associated values without a name",
                   associatedValues: {
-                    ToolInput.Support.enumSchemaCaseAssociatedValue(
+                    ToolInput.Support.parameter(
                       schema: ToolInput.Support.schema(
                         representing: Int.self
                       )
                     )
-                    ToolInput.Support.enumSchemaCaseAssociatedValue(
+                    ToolInput.Support.parameter(
                       schema: ToolInput.Support.schema(
                         representing: String.self
                       )
@@ -104,19 +104,19 @@ struct ToolInputEnumTests {
                   name: "multipleNamedAssociatedValues",
                   description: "Multiple associated values with a name",
                   associatedValues: {
-                    ToolInput.Support.enumSchemaCaseAssociatedValue(
+                    ToolInput.Support.parameter(
                       label: "a",
                       schema: ToolInput.Support.schema(
                         representing: Int.self
                       )
                     )
-                    ToolInput.Support.enumSchemaCaseAssociatedValue(
+                    ToolInput.Support.parameter(
                       label: "b",
                       schema: ToolInput.Support.schema(
                         representing: String.self
                       )
                     )
-                    ToolInput.Support.enumSchemaCaseAssociatedValue(
+                    ToolInput.Support.parameter(
                       label: "c",
                       schema: ToolInput.Support.schema(
                         representing: Bool.self
@@ -133,18 +133,18 @@ struct ToolInputEnumTests {
                   name: "mixedAssociatedValues",
                   description: "Multiple associated values with some named and some unnamed",
                   associatedValues: {
-                    ToolInput.Support.enumSchemaCaseAssociatedValue(
+                    ToolInput.Support.parameter(
                       schema: ToolInput.Support.schema(
                         representing: Int.self
                       )
                     )
-                    ToolInput.Support.enumSchemaCaseAssociatedValue(
+                    ToolInput.Support.parameter(
                       label: "b",
                       schema: ToolInput.Support.schema(
                         representing: String.self
                       )
                     )
-                    ToolInput.Support.enumSchemaCaseAssociatedValue(
+                    ToolInput.Support.parameter(
                       label: "c",
                       schema: ToolInput.Support.schema(
                         representing: Bool.self

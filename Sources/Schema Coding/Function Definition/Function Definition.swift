@@ -10,11 +10,15 @@ extension SchemaCoding.Support {
   > {
 
     public init(
+      name: StaticString,
+      description: String? = nil,
       inputSchema: InputSchema,
       outputSchema: OutputSchema,
       failure: Failure.Type = Failure.self,
       invoke: @escaping (Callee, InputSchema.Value) throws(Failure) -> OutputSchema.Value
     ) where AsyncInputSchema == InputSchema, AsyncOutputSchema == OutputSchema {
+      self.name = "\(name)"
+      self.description = description
       self.inputSchema = inputSchema
       self.outputSchema = outputSchema
       self._invoke = invoke
@@ -22,12 +26,16 @@ extension SchemaCoding.Support {
     }
 
     public init(
+      name: StaticString,
+      description: String? = nil,
       inputSchema: AsyncInputSchema,
       outputSchema: AsyncOutputSchema,
       failure: Failure.Type = Failure.self,
       invoke:
         @escaping (Callee, AsyncInputSchema.Value) async throws(Failure) -> AsyncOutputSchema.Value
     ) where InputSchema == NeverSchema, OutputSchema == NeverSchema {
+      self.name = "\(name)"
+      self.description = description
       self.inputSchema = inputSchema
       self.outputSchema = outputSchema
       self._invoke = { (_, _: Never) -> OutputSchema.Value in }
@@ -61,6 +69,9 @@ extension SchemaCoding.Support {
     where Callee == Void {
       try await _invokeAsync((), input)
     }
+
+    public let name: String
+    public let description: String?
 
     public let inputSchema: AsyncInputSchema
     public let outputSchema: AsyncOutputSchema

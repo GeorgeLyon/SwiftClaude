@@ -52,7 +52,7 @@ struct InternallyTaggedEnumMacroTests {
                   name: "circle",
                   description: "A circle with a radius",
                   associatedValues: {
-                    SchemaCoding.Support.enumSchemaCaseAssociatedValue(
+                    SchemaCoding.Support.parameter(
                       label: "radius",
                       schema: SchemaCoding.Support.schema(
                         representing: Double.self
@@ -69,13 +69,13 @@ struct InternallyTaggedEnumMacroTests {
                   name: "rectangle",
                   description: "A rectangle with width and height",
                   associatedValues: {
-                    SchemaCoding.Support.enumSchemaCaseAssociatedValue(
+                    SchemaCoding.Support.parameter(
                       label: "width",
                       schema: SchemaCoding.Support.schema(
                         representing: Double.self
                       )
                     )
-                    SchemaCoding.Support.enumSchemaCaseAssociatedValue(
+                    SchemaCoding.Support.parameter(
                       label: "height",
                       schema: SchemaCoding.Support.schema(
                         representing: Double.self
@@ -92,7 +92,7 @@ struct InternallyTaggedEnumMacroTests {
                   name: "square",
                   description: "A square with a side length",
                   associatedValues: {
-                    SchemaCoding.Support.enumSchemaCaseAssociatedValue(
+                    SchemaCoding.Support.parameter(
                       label: "side",
                       schema: SchemaCoding.Support.schema(
                         representing: Double.self

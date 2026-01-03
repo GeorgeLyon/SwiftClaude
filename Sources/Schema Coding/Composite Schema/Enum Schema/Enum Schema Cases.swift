@@ -7,8 +7,8 @@ extension SchemaCoding.Support {
   public static func enumSchemaCase<Value>(
     name: SchemaCodingKey,
     description: String? = nil,
-    @EnumSchemaCaseAssociatedValuesBuilder
-    associatedValues: () -> EnumSchemaCaseAssociatedValuesObject<>,
+    @ParameterClauseSchemaBuilder
+    associatedValues: () -> ParameterClauseObject<>,
     finishDecoding: @escaping (EnumCaseDecoder<>) -> Value
   ) -> EnumSchemaCase<
     Value,
@@ -30,8 +30,8 @@ extension SchemaCoding.Support {
   public static func enumSchemaCase<Value, each Property>(
     name: SchemaCodingKey,
     description: String? = nil,
-    @EnumSchemaCaseAssociatedValuesBuilder
-    associatedValues: () -> EnumSchemaCaseAssociatedValuesObject<
+    @ParameterClauseSchemaBuilder
+    associatedValues: () -> ParameterClauseObject<
       repeat each Property
     >,
     finishDecoding: @escaping (EnumCaseDecoder<repeat (each Property).Value>) -> Value
@@ -56,8 +56,8 @@ extension SchemaCoding.Support {
   public static func enumSchemaCase<Value, Property>(
     name: SchemaCodingKey,
     description: String? = nil,
-    @EnumSchemaCaseAssociatedValuesBuilder
-    associatedValues: () -> EnumSchemaCaseAssociatedValuesObject<Property>,
+    @ParameterClauseSchemaBuilder
+    associatedValues: () -> ParameterClauseObject<Property>,
     finishDecoding: @escaping (EnumSingleAssociatedValueCaseDecoder<Property.Value>) -> Value
   ) -> EnumSchemaCase<
     Value,
@@ -80,8 +80,8 @@ extension SchemaCoding.Support {
   public static func enumSchemaCase<Value, each ElementSchema>(
     name: SchemaCodingKey,
     description: String? = nil,
-    @EnumSchemaCaseAssociatedValuesBuilder
-    associatedValues: () -> EnumSchemaCaseAssociatedValuesTuple<repeat each ElementSchema>,
+    @ParameterClauseSchemaBuilder
+    associatedValues: () -> ParameterClauseTuple<repeat each ElementSchema>,
     finishDecoding: @escaping (EnumCaseDecoder<repeat (each ElementSchema).Value>) -> Value
   ) -> EnumSchemaCase<
     Value,
@@ -103,8 +103,8 @@ extension SchemaCoding.Support {
 
   public static func enumSchemaCase<Value, AssociatedValuesSchema>(
     name: SchemaCodingKey,
-    @EnumSchemaCaseAssociatedValuesBuilder
-    associatedValues: () -> EnumSchemaCaseAssociatedValuesTuple<AssociatedValuesSchema>,
+    @ParameterClauseSchemaBuilder
+    associatedValues: () -> ParameterClauseTuple<AssociatedValuesSchema>,
     finishDecoding:
       @escaping (EnumSingleAssociatedValueCaseDecoder<AssociatedValuesSchema.Value>) -> Value
   ) -> EnumSchemaCase<
@@ -188,165 +188,83 @@ extension SchemaCoding.Support {
 
 }
 
-// MARK: - Associated Values
+// MARK: - Associated Values (Type Aliases for Backward Compatibility)
 
 extension SchemaCoding.Support {
 
-  public struct EnumSchemaCaseAssociatedValuesObject<
-    each Property: ObjectProperty
-  > {
-    public typealias Value = (repeat (each Property).Value)
+  /// Type alias for backward compatibility - use `ParameterClauseObject` instead
+  public typealias EnumSchemaCaseAssociatedValuesObject<each Property: ObjectProperty> =
+    ParameterClauseObject<repeat each Property>
 
-    let properties: (repeat each Property)
-  }
+  /// Type alias for backward compatibility - use `ParameterClauseTuple` instead
+  public typealias EnumSchemaCaseAssociatedValuesTuple<each ElementSchema: SchemaCoding.Schema> =
+    ParameterClauseTuple<repeat each ElementSchema>
 
-  public struct EnumSchemaCaseAssociatedValuesTuple<
-    each ElementSchema: SchemaCoding.Schema
-  > {
-    public typealias Value = (repeat (each ElementSchema).Value)
+  /// Type alias for backward compatibility - use `ParameterClauseObjectProperty` instead
+  public typealias EnumSchemaCaseAssociatedValuesObjectProperty<Property: ObjectProperty> =
+    ParameterClauseObjectProperty<Property>
 
-    let elementSchemas: (repeat each ElementSchema)
-  }
+  /// Type alias for backward compatibility - use `ParameterClauseTupleElement` instead
+  public typealias EnumSchemaCaseAssociatedValuesTupleElement<Schema: SchemaCoding.Schema> =
+    ParameterClauseTupleElement<Schema>
+
+  /// Type alias for backward compatibility - use `ParameterClauseSchemaBuilder` instead
+  public typealias EnumSchemaCaseAssociatedValuesBuilder = ParameterClauseSchemaBuilder
 
 }
 
-// MARK: - Associated Value
+// MARK: - Associated Value Functions (Aliases for Backward Compatibility)
 
 extension SchemaCoding.Support {
 
+  /// Backward compatibility alias - use `parameter(label:schema:)` instead
   public static func enumSchemaCaseAssociatedValue<
     Schema: SchemaCoding.Schema
   >(
     label: SchemaCodingKey,
     schema: Schema
-  ) -> EnumSchemaCaseAssociatedValuesObjectProperty<
+  ) -> ParameterClauseObjectProperty<
     some ObjectProperty<Schema.Value>
   > {
-    EnumSchemaCaseAssociatedValuesObjectProperty(
-      objectProperty: DirectObjectProperty(
-        name: label,
-        schema: schema
-      )
-    )
+    parameter(label: label, schema: schema)
   }
 
+  /// Backward compatibility alias - use `parameter(label:schema:)` instead
   public static func enumSchemaCaseAssociatedValue<
     Schema: SchemaCoding.Schema & ComplexSchema
   >(
     label: SchemaCodingKey,
     schema: Schema
-  ) -> EnumSchemaCaseAssociatedValuesObjectProperty<
+  ) -> ParameterClauseObjectProperty<
     some ObjectProperty<Schema.Value>
   > {
-    EnumSchemaCaseAssociatedValuesObjectProperty(
-      objectProperty: DirectObjectProperty(
-        name: label,
-        schema: schema.typeErased()
-      )
-    )
+    parameter(label: label, schema: schema)
   }
 
+  /// Backward compatibility alias - use `parameter(label:schema:)` instead
   public static func enumSchemaCaseAssociatedValue<
     Schema: SchemaCoding.Schema
   >(
     label: SchemaCodingKey,
     schema: OptionalSchema<Schema>
-  ) -> EnumSchemaCaseAssociatedValuesObjectProperty<
+  ) -> ParameterClauseObjectProperty<
     some ObjectProperty<Schema.Value?>
   > {
-    EnumSchemaCaseAssociatedValuesObjectProperty(
-      objectProperty: OptionalObjectProperty(
-        name: label,
-        schema: schema
-      )
-    )
+    parameter(label: label, schema: schema)
   }
 
+  /// Backward compatibility alias - use `parameter(schema:)` instead
   public static func enumSchemaCaseAssociatedValue<Schema>(
     schema: Schema
-  ) -> EnumSchemaCaseAssociatedValuesTupleElement<Schema> {
-    EnumSchemaCaseAssociatedValuesTupleElement(
-      schema: schema
-    )
+  ) -> ParameterClauseTupleElement<Schema> {
+    parameter(schema: schema)
   }
 
+  /// Backward compatibility alias - use `parameter(schema:)` instead
   public static func enumSchemaCaseAssociatedValue<Schema: SchemaCoding.Schema & ComplexSchema>(
     schema: Schema
-  ) -> EnumSchemaCaseAssociatedValuesTupleElement<TypeErasedSchema<Schema.Value>> {
-    EnumSchemaCaseAssociatedValuesTupleElement(
-      schema: schema.typeErased()
-    )
-  }
-
-  public struct EnumSchemaCaseAssociatedValuesObjectProperty<
-    Property: ObjectProperty
-  > {
-    fileprivate let objectProperty: Property
-  }
-
-  public struct EnumSchemaCaseAssociatedValuesTupleElement<
-    Schema: SchemaCoding.Schema
-  > {
-    fileprivate let schema: Schema
-  }
-
-  @resultBuilder
-  public struct EnumSchemaCaseAssociatedValuesBuilder {
-
-    /// Empty Object
-    public static func buildBlock() -> EnumSchemaCaseAssociatedValuesObject<> {
-      EnumSchemaCaseAssociatedValuesObject(properties: ())
-    }
-
-    /// Start Object
-    public static func buildPartialBlock<Property>(
-      first: EnumSchemaCaseAssociatedValuesObjectProperty<Property>
-    ) -> EnumSchemaCaseAssociatedValuesObject<Property> {
-      EnumSchemaCaseAssociatedValuesObject(properties: first.objectProperty)
-    }
-
-    /// Start Tuple
-    public static func buildPartialBlock<Element>(
-      first: EnumSchemaCaseAssociatedValuesTupleElement<Element>
-    ) -> EnumSchemaCaseAssociatedValuesTuple<Element> {
-      EnumSchemaCaseAssociatedValuesTuple(
-        elementSchemas: first.schema
-      )
-    }
-
-    /// Object + Property = Object
-    public static func buildPartialBlock<
-      each Property,
-      NextProperty
-    >(
-      accumulated: EnumSchemaCaseAssociatedValuesObject<
-        repeat each Property
-      >,
-      next: EnumSchemaCaseAssociatedValuesObjectProperty<
-        NextProperty
-      >
-    ) -> EnumSchemaCaseAssociatedValuesObject<
-      repeat each Property,
-      NextProperty
-    > {
-      EnumSchemaCaseAssociatedValuesObject(
-        properties: (repeat each accumulated.properties, next.objectProperty)
-      )
-    }
-
-    /// Tuple + Element = Tuple
-    public static func buildPartialBlock<
-      each ElementSchema,
-      NextElementSchema: SchemaCoding.Schema
-    >(
-      accumulated: EnumSchemaCaseAssociatedValuesTuple<repeat each ElementSchema>,
-      next: EnumSchemaCaseAssociatedValuesTupleElement<NextElementSchema>
-    ) -> EnumSchemaCaseAssociatedValuesTuple<repeat each ElementSchema, NextElementSchema> {
-      EnumSchemaCaseAssociatedValuesTuple(
-        elementSchemas: (repeat each accumulated.elementSchemas, next.schema)
-      )
-    }
-
+  ) -> ParameterClauseTupleElement<TypeErasedSchema<Schema.Value>> {
+    parameter(schema: schema)
   }
 
 }

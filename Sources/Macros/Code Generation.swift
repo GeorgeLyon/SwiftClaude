@@ -331,7 +331,7 @@ extension EnumSchema {
                       for associatedValue in `case`.associatedValues {
                         FunctionCallExprSyntax(
                           calledExpression: namespace.supportMember(
-                            name: "enumSchemaCaseAssociatedValue"
+                            name: "parameter"
                           ),
                           leftParen: .leftParenToken(trailingTrivia: .newline),
                           arguments: LabeledExprListSyntax {

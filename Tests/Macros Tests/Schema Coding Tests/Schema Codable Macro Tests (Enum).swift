@@ -85,7 +85,7 @@ struct SchemaCodableEnumMacroTests {
                 SchemaCoding.Support.enumSchemaCase(
                   name: "only",
                   associatedValues: {
-                    SchemaCoding.Support.enumSchemaCaseAssociatedValue(
+                    SchemaCoding.Support.parameter(
                       schema: SchemaCoding.Support.schema(
                         representing: String.self
                       )
