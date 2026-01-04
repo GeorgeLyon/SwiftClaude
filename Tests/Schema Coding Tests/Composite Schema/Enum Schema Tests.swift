@@ -344,6 +344,216 @@ struct EnumSchemaTests {
         )
       }
 
+      @Test
+      func testCasesWithMixedLabeledThenUnlabeledAssociatedValues() throws {
+        enum MixedEnum: Equatable {
+          case mixed(x: Int, Bool)
+          case plain
+        }
+
+        let mixedCase = SchemaCoding.Support.enumSchemaCase(
+          name: "mixed",
+          associatedValues: {
+            SchemaCoding.Support.parameter(
+              label: "x",
+              schema: SchemaCoding.Support.schema(representing: Int.self)
+            )
+            SchemaCoding.Support.parameter(
+              schema: SchemaCoding.Support.BooleanSchema()
+            )
+          },
+          finishDecoding: { (decoder: SchemaCoding.EnumCaseDecoder<Int, Bool>) in
+            MixedEnum.mixed(x: decoder.associatedValues.0, decoder.associatedValues.1)
+          }
+        )
+        let plainCase = SchemaCoding.Support.enumSchemaCase(
+          name: "plain",
+          associatedValues: {},
+          finishDecoding: { _ in MixedEnum.plain }
+        )
+
+        let schema = SchemaCoding.Support.enumSchema(
+          representing: MixedEnum.self,
+          cases: {
+            mixedCase
+            plainCase
+          },
+          encodeValue: { value, encoder in
+            switch value {
+            case .mixed(let x, let b):
+              encoder.encode((x, b), using: encoder.encodings.0)
+            case .plain:
+              encoder.encode((), using: encoder.encodings.1)
+            }
+          }
+        )
+
+        try schema.test(
+          MixedEnum.mixed(x: 42, true),
+          isCodedAs: #"""
+            {
+              "mixed": [
+                42,
+                true
+              ]
+            }
+            """#
+        )
+        try schema.test(
+          MixedEnum.plain,
+          isCodedAs: #"""
+            {
+              "plain": {
+
+              }
+            }
+            """#
+        )
+      }
+
+      @Test
+      func testCasesWithMixedUnlabeledThenLabeledAssociatedValues() throws {
+        enum MixedEnum: Equatable {
+          case mixed(Int, y: Bool)
+          case plain
+        }
+
+        let mixedCase = SchemaCoding.Support.enumSchemaCase(
+          name: "mixed",
+          associatedValues: {
+            SchemaCoding.Support.parameter(
+              schema: SchemaCoding.Support.schema(representing: Int.self)
+            )
+            SchemaCoding.Support.parameter(
+              label: "y",
+              schema: SchemaCoding.Support.BooleanSchema()
+            )
+          },
+          finishDecoding: { (decoder: SchemaCoding.EnumCaseDecoder<Int, Bool>) in
+            MixedEnum.mixed(decoder.associatedValues.0, y: decoder.associatedValues.1)
+          }
+        )
+        let plainCase = SchemaCoding.Support.enumSchemaCase(
+          name: "plain",
+          associatedValues: {},
+          finishDecoding: { _ in MixedEnum.plain }
+        )
+
+        let schema = SchemaCoding.Support.enumSchema(
+          representing: MixedEnum.self,
+          cases: {
+            mixedCase
+            plainCase
+          },
+          encodeValue: { value, encoder in
+            switch value {
+            case .mixed(let i, let y):
+              encoder.encode((i, y), using: encoder.encodings.0)
+            case .plain:
+              encoder.encode((), using: encoder.encodings.1)
+            }
+          }
+        )
+
+        try schema.test(
+          MixedEnum.mixed(42, y: true),
+          isCodedAs: #"""
+            {
+              "mixed": [
+                42,
+                true
+              ]
+            }
+            """#
+        )
+        try schema.test(
+          MixedEnum.plain,
+          isCodedAs: #"""
+            {
+              "plain": {
+
+              }
+            }
+            """#
+        )
+      }
+
+      @Test
+      func testCasesWithMixedLabeledUnlabeledLabeledAssociatedValues() throws {
+        enum MixedEnum: Equatable {
+          case mixed(a: Int, String, c: Bool)
+          case plain
+        }
+
+        let mixedCase = SchemaCoding.Support.enumSchemaCase(
+          name: "mixed",
+          associatedValues: {
+            SchemaCoding.Support.parameter(
+              label: "a",
+              schema: SchemaCoding.Support.schema(representing: Int.self)
+            )
+            SchemaCoding.Support.parameter(
+              schema: SchemaCoding.Support.schema(representing: String.self)
+            )
+            SchemaCoding.Support.parameter(
+              label: "c",
+              schema: SchemaCoding.Support.BooleanSchema()
+            )
+          },
+          finishDecoding: { (decoder: SchemaCoding.EnumCaseDecoder<Int, String, Bool>) in
+            MixedEnum.mixed(
+              a: decoder.associatedValues.0,
+              decoder.associatedValues.1,
+              c: decoder.associatedValues.2
+            )
+          }
+        )
+        let plainCase = SchemaCoding.Support.enumSchemaCase(
+          name: "plain",
+          associatedValues: {},
+          finishDecoding: { _ in MixedEnum.plain }
+        )
+
+        let schema = SchemaCoding.Support.enumSchema(
+          representing: MixedEnum.self,
+          cases: {
+            mixedCase
+            plainCase
+          },
+          encodeValue: { value, encoder in
+            switch value {
+            case .mixed(let a, let s, let c):
+              encoder.encode((a, s, c), using: encoder.encodings.0)
+            case .plain:
+              encoder.encode((), using: encoder.encodings.1)
+            }
+          }
+        )
+
+        try schema.test(
+          MixedEnum.mixed(a: 42, "hello", c: true),
+          isCodedAs: #"""
+            {
+              "mixed": [
+                42,
+                "hello",
+                true
+              ]
+            }
+            """#
+        )
+        try schema.test(
+          MixedEnum.plain,
+          isCodedAs: #"""
+            {
+              "plain": {
+
+              }
+            }
+            """#
+        )
+      }
+
       enum InnerEnum: Equatable, SchemaCodable {
         case on
         case off
