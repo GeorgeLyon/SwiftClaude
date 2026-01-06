@@ -170,11 +170,12 @@ extension FunctionDeclSyntax {
     let signature = self.signature
 
     // Parse parameters
-    let parameters = signature.parameterClause.parameters.map { param in
-      CallableSchema.Parameter(
+    let parameters = signature.parameterClause.parameters.enumerated().map { (offset, param) in
+      SchemaParameter(
         firstName: param.firstName,
         secondName: param.secondName,
-        type: param.type
+        type: param.type,
+        bindingName: "__param_\(raw: offset)"
       )
     }
 
@@ -243,7 +244,7 @@ extension FunctionDeclSyntax {
 
   private func buildFullName(
     baseName: TokenSyntax,
-    parameters: [CallableSchema.Parameter]
+    parameters: [SchemaParameter]
   ) -> String {
     let labels = parameters.map { param -> String in
       if param.firstName.tokenKind == .wildcard {
@@ -314,49 +315,16 @@ extension EnumDeclSyntax {
               return nil
             }
 
-            var associatedValues: [EnumSchema.AssociatedValue] = []
+            var associatedValues: [SchemaParameter] = []
 
             if let parameterClause = element.parameterClause {
               for (offset, parameter) in parameterClause.parameters.enumerated() {
-                /// The argument label we need to use when creating a value of this case
-                let argumentLabel: TokenSyntax? =
-                  if let firstName = parameter.firstName,
-                    firstName.tokenKind != .wildcard
-                  {
-                    firstName
-                  } else {
-                    nil
-                  }
-
-                let identifier: IdentifiableToken?
-                if let name = (parameter.secondName ?? parameter.firstName),
-                  /// If the second name is a wildcard, the first name must also be a wildcard.
-                  name.tokenKind != .wildcard
-                {
-                  guard let nameIdentifier = name.identifier else {
-                    context.expansionContext.diagnose(
-                      DiagnosticError(
-                        node: name,
-                        severity: .error,
-                        message: "Name must be an identifier."
-                      )
-                    )
-                    continue
-                  }
-                  identifier = IdentifiableToken(
-                    identifier: nameIdentifier,
-                    token: name
-                  )
-                } else {
-                  identifier = nil
-                }
-
                 associatedValues.append(
-                  EnumSchema.AssociatedValue(
-                    name: identifier,
-                    argumentLabel: argumentLabel,
-                    bindingName: "__value_\(raw: offset)",
-                    type: parameter.type
+                  SchemaParameter(
+                    firstName: parameter.firstName ?? .wildcardToken(),
+                    secondName: parameter.secondName,
+                    type: parameter.type,
+                    bindingName: "__value_\(raw: offset)"
                   )
                 )
               }

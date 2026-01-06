@@ -3,6 +3,42 @@ import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 
+// MARK: - Schema Parameter
+
+extension SchemaParameter {
+
+  /// Generates a `parameter(label: "...", schema: ...)` call
+  func parameterCallExpr(namespace: SchemaCodingNamespace) -> FunctionCallExprSyntax {
+    var arguments = LabeledExprListSyntax()
+
+    if let label {
+      arguments.append(
+        LabeledExprSyntax(
+          label: "label",
+          colon: .colonToken(),
+          expression: StringLiteralExprSyntax(content: label.text),
+          trailingComma: .commaToken(trailingTrivia: .newline)
+        )
+      )
+    }
+
+    arguments.append(
+      LabeledExprSyntax(
+        label: "schema",
+        colon: .colonToken(),
+        expression: .schema(namespace: namespace, representing: type)
+      )
+    )
+
+    return FunctionCallExprSyntax(
+      calledExpression: namespace.supportMember(name: "parameter"),
+      leftParen: .leftParenToken(trailingTrivia: .newline),
+      arguments: arguments,
+      rightParen: .rightParenToken(leadingTrivia: .newline)
+    )
+  }
+}
+
 // MARK: - Schema Codable
 
 extension SchemaCodableType {
@@ -329,35 +365,7 @@ extension EnumSchema {
                     colon: .colonToken(),
                     expression: ClosureExprSyntax {
                       for associatedValue in `case`.associatedValues {
-                        FunctionCallExprSyntax(
-                          calledExpression: namespace.supportMember(
-                            name: "parameter"
-                          ),
-                          leftParen: .leftParenToken(trailingTrivia: .newline),
-                          arguments: LabeledExprListSyntax {
-                            if let label = associatedValue.argumentLabel {
-                              LabeledExprSyntax(
-                                label: "label",
-                                colon: .colonToken(),
-                                expression: StringLiteralExprSyntax(
-                                  content: label.text
-                                ),
-                                trailingComma: .commaToken(trailingTrivia: .newline)
-                              )
-                            }
-
-                            LabeledExprSyntax(
-                              label: "schema",
-                              colon: .colonToken(),
-                              expression: .schema(
-                                namespace: namespace,
-                                representing: associatedValue.type,
-                                additionalArguments: LabeledExprListSyntax()
-                              )
-                            )
-                          },
-                          rightParen: .rightParenToken(leadingTrivia: .newline)
-                        )
+                        associatedValue.parameterCallExpr(namespace: namespace)
                       }
                     },
                     trailingComma: .commaToken(trailingTrivia: .newline)
@@ -569,8 +577,8 @@ extension EnumSchema.Case {
             arguments: LabeledExprListSyntax {
               for (index, associatedValue) in associatedValues.enumerated() {
                 LabeledExprSyntax(
-                  label: associatedValue.argumentLabel,
-                  colon: associatedValue.argumentLabel.map { _ in .colonToken() },
+                  label: associatedValue.label,
+                  colon: associatedValue.label.map { _ in .colonToken() },
                   expression: MemberAccessExprSyntax(
                     base: MemberAccessExprSyntax(
                       base: DeclReferenceExprSyntax(baseName: "decoder"),
@@ -727,10 +735,7 @@ extension CallableSchema {
       trailingClosure: ClosureExprSyntax(
         statements: CodeBlockItemListSyntax {
           for param in parameters {
-            parameterCallExpr(
-              label: param.isLabeled ? param.firstName.text : nil,
-              type: param.type
-            )
+            param.parameterCallExpr(namespace: namespace)
           }
         }
       )

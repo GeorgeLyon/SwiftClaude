@@ -11,6 +11,26 @@ struct IdentifiableToken {
   }
 }
 
+struct SchemaParameter {
+  let firstName: TokenSyntax
+  let secondName: TokenSyntax?
+  let type: TypeSyntax
+  let bindingName: TokenSyntax
+
+  var isLabeled: Bool {
+    firstName.tokenKind != .wildcard
+  }
+
+  var effectiveName: TokenSyntax {
+    secondName ?? firstName
+  }
+
+  /// The label to use in parameter() calls - nil if unlabeled
+  var label: TokenSyntax? {
+    isLabeled ? firstName : nil
+  }
+}
+
 struct StructSchema {
   let namespace: SchemaCodingNamespace
   let typeName: TokenSyntax
@@ -33,16 +53,10 @@ struct EnumSchema {
   let additionalArguments: LabeledExprListSyntax
   let keyConversionStrategy: KeyConversionStrategy
 
-  struct AssociatedValue {
-    let name: IdentifiableToken?
-    let argumentLabel: TokenSyntax?
-    let bindingName: TokenSyntax
-    let type: TypeSyntax
-  }
   struct Case {
     let name: IdentifiableToken
     let additionalArguments: LabeledExprListSyntax
-    let associatedValues: [AssociatedValue]
+    let associatedValues: [SchemaParameter]
   }
   let cases: [Case]
 }
@@ -82,25 +96,11 @@ struct CallableSchema {
   let namespace: SchemaCodingNamespace
   let name: TokenSyntax
   let fullName: String
-  let parameters: [Parameter]
+  let parameters: [SchemaParameter]
   let returnType: ReturnType
   let isAsync: Bool
   let throwsClause: ThrowsClauseSyntax?
   let isMethod: Bool
-
-  struct Parameter {
-    let firstName: TokenSyntax
-    let secondName: TokenSyntax?
-    let type: TypeSyntax
-
-    var isLabeled: Bool {
-      firstName.tokenKind != .wildcard
-    }
-
-    var effectiveName: TokenSyntax {
-      secondName ?? firstName
-    }
-  }
 
   enum ReturnType {
     case void
