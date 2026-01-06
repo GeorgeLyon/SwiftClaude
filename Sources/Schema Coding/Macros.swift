@@ -30,3 +30,12 @@ public macro SchemaCase(
     module: "Macros",
     type: "SchemaCaseMacro"
   )
+
+@attached(peer)
+public macro SchemaCallable(
+  description: String? = nil
+) =
+  #externalMacro(
+    module: "Macros",
+    type: "Callable"
+  )

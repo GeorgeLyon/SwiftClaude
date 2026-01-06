@@ -1,5 +1,35 @@
 private import SchemaCodingSupport
 
+// MARK: - API
+
+extension SchemaCoding.Support {
+
+  public static func parameterClauseSchema<each Property>(
+    @ParameterClauseSchemaBuilder parameters: () -> ParameterClauseObject<repeat each Property>
+  ) -> some ObjectSchema<(repeat (each Property).Value)> {
+    ConcreteObjectSchema(
+      properties: TupleObjectSchemaProperties(
+        repeat (each parameters().properties).objectProperty
+      )
+    )
+  }
+
+  public static func parameterClauseSchema<each ElementSchema>(
+    @ParameterClauseSchemaBuilder parameters: () -> ParameterClauseTuple<repeat each ElementSchema>
+  ) -> some Schema<(repeat (each ElementSchema).Value)> {
+    TupleSchema(
+      elements: repeat each parameters().elements
+    )
+  }
+
+  public static func parameterClauseSchema<Schema>(
+    @ParameterClauseSchemaBuilder parameters: () -> ParameterClauseTuple<Schema>
+  ) -> Schema {
+    parameters().elements.schema
+  }
+
+}
+
 // MARK: - Parameter Clause Result Types
 
 extension SchemaCoding.Support {

@@ -4,29 +4,6 @@ private import SchemaCodingSupport
 
 extension SchemaCoding.Support {
 
-  public static func enumSchemaCase<Value>(
-    name: SchemaCodingKey,
-    description: String? = nil,
-    @ParameterClauseSchemaBuilder
-    associatedValues: () -> ParameterClauseObject<>,
-    finishDecoding: @escaping (EnumCaseDecoder<>) -> Value
-  ) -> EnumSchemaCase<
-    Value,
-    some ObjectSchema<Void>
-  > {
-    let _ = associatedValues()
-    return EnumSchemaCase(
-      name: name,
-      associatedValuesSchema: ConcreteObjectSchema(
-        description: description,
-        properties: TupleObjectSchemaProperties()
-      ),
-      finishDecoding: {
-        finishDecoding(EnumCaseDecoder())
-      }
-    )
-  }
-
   public static func enumSchemaCase<Value, each Property>(
     name: SchemaCodingKey,
     description: String? = nil,
