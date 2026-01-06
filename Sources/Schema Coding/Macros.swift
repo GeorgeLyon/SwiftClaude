@@ -31,11 +31,11 @@ public macro SchemaCase(
     type: "SchemaCaseMacro"
   )
 
-@attached(peer)
+@attached(peer, names: prefixed(__schema__))
 public macro SchemaCallable(
   description: String? = nil
 ) =
   #externalMacro(
     module: "Macros",
-    type: "Callable"
+    type: "SchemaCallableMacro"
   )

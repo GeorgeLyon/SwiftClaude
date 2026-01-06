@@ -159,6 +159,104 @@ extension StructDeclSyntax {
   }
 }
 
+// MARK: - Callable Schema Parsing
+
+extension FunctionDeclSyntax {
+
+  func callableSchema(
+    namespace: SchemaCodingNamespace,
+    in context: some MacroExpansionContext
+  ) -> CallableSchema {
+    let signature = self.signature
+
+    // Parse parameters
+    let parameters = signature.parameterClause.parameters.map { param in
+      CallableSchema.Parameter(
+        firstName: param.firstName,
+        secondName: param.secondName,
+        type: param.type
+      )
+    }
+
+    // Parse return type
+    let returnType = parseReturnType(signature.returnClause?.type)
+
+    // Parse effect specifiers
+    let isAsync = signature.effectSpecifiers?.asyncSpecifier != nil
+    let throwsClause = signature.effectSpecifiers?.throwsClause
+
+    // Build full function name like "foo(bar:_:)"
+    let fullName = buildFullName(baseName: name, parameters: parameters)
+
+    // If we're inside a type declaration, it's a method
+    let isMethod = !context.lexicalContext.isEmpty
+
+    return CallableSchema(
+      namespace: namespace,
+      name: name,
+      fullName: fullName,
+      parameters: parameters,
+      returnType: returnType,
+      isAsync: isAsync,
+      throwsClause: throwsClause,
+      isMethod: isMethod
+    )
+  }
+
+  private func parseReturnType(_ type: TypeSyntax?) -> CallableSchema.ReturnType {
+    guard let type else {
+      return .void
+    }
+
+    // Check for Void identifier
+    if let identifier = type.as(IdentifierTypeSyntax.self),
+       identifier.name.text == "Void"
+    {
+      return .void
+    }
+
+    // Check for tuple type
+    if let tupleType = type.as(TupleTypeSyntax.self) {
+      // Empty tuple is Void
+      guard !tupleType.elements.isEmpty else {
+        return .void
+      }
+
+      // Single unlabeled element is treated as single type
+      if tupleType.elements.count == 1,
+         let element = tupleType.elements.first,
+         element.firstName == nil
+      {
+        return .single(element.type)
+      }
+
+      // Multi-element or labeled tuple
+      let elements = tupleType.elements.map { element in
+        (label: element.firstName, type: element.type)
+      }
+      return .tuple(elements)
+    }
+
+    // Single type
+    return .single(type)
+  }
+
+  private func buildFullName(
+    baseName: TokenSyntax,
+    parameters: [CallableSchema.Parameter]
+  ) -> String {
+    let labels = parameters.map { param -> String in
+      if param.firstName.tokenKind == .wildcard {
+        return "_:"
+      } else {
+        return "\(param.firstName.text):"
+      }
+    }.joined()
+    return "\(baseName.text)(\(labels))"
+  }
+
+}
+
 extension EnumDeclSyntax {
 
   fileprivate func schema(in context: SchemaCodableMacroContext) -> EnumSchema {

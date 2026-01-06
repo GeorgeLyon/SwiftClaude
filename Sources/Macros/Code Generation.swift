@@ -366,7 +366,8 @@ extension EnumSchema {
                   LabeledExprSyntax(
                     label: "finishDecoding",
                     colon: .colonToken(),
-                    expression: `case`.finishDecodingClosure(namespace: namespace, typeName: typeName)
+                    expression: `case`.finishDecodingClosure(
+                      namespace: namespace, typeName: typeName)
                   )
                 },
                 rightParen: .rightParenToken(leadingTrivia: .newline)
@@ -521,7 +522,6 @@ extension ExprSyntaxProtocol where Self == FunctionCallExprSyntax {
 
 extension EnumSchema.Case {
 
-
   func finishDecodingClosure(
     namespace: SchemaCodingNamespace,
     typeName: TokenSyntax
@@ -585,6 +585,342 @@ extension EnumSchema.Case {
           )
         }
       }
+    )
+  }
+
+}
+
+// MARK: - Callable Schema Code Generation
+
+extension CallableSchema {
+
+  /// Generates the complete sidecar function declaration
+  func sidecarFunction() -> FunctionDeclSyntax {
+    FunctionDeclSyntax(
+      modifiers: DeclModifierListSyntax {
+        DeclModifierSyntax(name: .keyword(.static))
+      },
+      name: "__schema__\(raw: name.text)",
+      signature: FunctionSignatureSyntax(
+        parameterClause: sidecarParameterClause(),
+        returnClause: ReturnClauseSyntax(
+          type: callableSchemaReturnType()
+        )
+      ),
+      body: CodeBlockSyntax {
+        // let inputSchema = ...
+        VariableDeclSyntax(
+          bindingSpecifier: .keyword(.let),
+          bindings: PatternBindingListSyntax {
+            PatternBindingSyntax(
+              pattern: IdentifierPatternSyntax(identifier: "inputSchema"),
+              initializer: InitializerClauseSyntax(
+                value: inputSchemaExpr()
+              )
+            )
+          }
+        )
+
+        // let outputSchema = ...
+        VariableDeclSyntax(
+          bindingSpecifier: .keyword(.let),
+          bindings: PatternBindingListSyntax {
+            PatternBindingSyntax(
+              pattern: IdentifierPatternSyntax(identifier: "outputSchema"),
+              initializer: InitializerClauseSyntax(
+                value: outputSchemaExpr()
+              )
+            )
+          }
+        )
+
+        // return CallableSchema(...)
+        ReturnStmtSyntax(
+          expression: callableSchemaInitExpr()
+        )
+      }
+    )
+  }
+
+  /// Generates parameters like: bar: Bool.Type = Bool.self, _ baz: Bool.Type = Bool.self
+  private func sidecarParameterClause() -> FunctionParameterClauseSyntax {
+    FunctionParameterClauseSyntax(
+      parameters: FunctionParameterListSyntax {
+        for param in parameters {
+          FunctionParameterSyntax(
+            firstName: param.firstName,
+            secondName: param.secondName,
+            type: MemberTypeSyntax(
+              baseType: param.type,
+              name: "Type"
+            ),
+            defaultValue: InitializerClauseSyntax(
+              value: MemberAccessExprSyntax(
+                base: DeclReferenceExprSyntax(baseName: "\(param.type.trimmed)"),
+                name: "self"
+              )
+            )
+          )
+        }
+      }
+    )
+  }
+
+  /// Generates the CallableSchema<...> return type
+  private func callableSchemaReturnType() -> some TypeSyntaxProtocol {
+    // Callee type: Void for standalone, Self for methods
+    let calleeType: TypeSyntax = isMethod ? "Self" : "Void"
+
+    // Input value type
+    let inputValueType = tupleType(from: parameters.map(\.type))
+
+    // Output value type
+    let outputValueType = outputTupleType()
+
+    // SyncInput: Never for async, inputValueType for sync
+    let syncInputType: TypeSyntax = isAsync ? "Never" : inputValueType
+
+    // Failure type
+    let failureType = failureTypeSyntax()
+
+    return namespace.supportMemberType(
+      name: "CallableSchema",
+      genericArgumentClause: GenericArgumentClauseSyntax {
+        GenericArgumentSyntax(argument: calleeType)
+        GenericArgumentSyntax(
+          argument: TypeSyntax(
+            SomeOrAnyTypeSyntax(
+              someOrAnySpecifier: .keyword(.some),
+              constraint: namespace.memberType(
+                name: "Schema",
+                genericArgumentClause: GenericArgumentClauseSyntax {
+                  GenericArgumentSyntax(argument: inputValueType)
+                }
+              )
+            )
+          )
+        )
+        GenericArgumentSyntax(
+          argument: TypeSyntax(
+            SomeOrAnyTypeSyntax(
+              someOrAnySpecifier: .keyword(.some),
+              constraint: namespace.memberType(
+                name: "Schema",
+                genericArgumentClause: GenericArgumentClauseSyntax {
+                  GenericArgumentSyntax(argument: outputValueType)
+                }
+              )
+            )
+          )
+        )
+        GenericArgumentSyntax(argument: syncInputType)
+        GenericArgumentSyntax(argument: failureType)
+      }
+    )
+  }
+
+  /// Generates inputSchema = parameterClauseSchema { ... }
+  private func inputSchemaExpr() -> FunctionCallExprSyntax {
+    FunctionCallExprSyntax(
+      calledExpression: namespace.supportMember(name: "parameterClauseSchema"),
+      arguments: [],
+      trailingClosure: ClosureExprSyntax(
+        statements: CodeBlockItemListSyntax {
+          for param in parameters {
+            parameterCallExpr(
+              label: param.isLabeled ? param.firstName.text : nil,
+              type: param.type
+            )
+          }
+        }
+      )
+    )
+  }
+
+  /// Generates outputSchema = parameterClauseSchema { ... }
+  private func outputSchemaExpr() -> FunctionCallExprSyntax {
+    FunctionCallExprSyntax(
+      calledExpression: namespace.supportMember(name: "parameterClauseSchema"),
+      arguments: [],
+      trailingClosure: ClosureExprSyntax(
+        statements: outputSchemaStatements()
+      )
+    )
+  }
+
+  private func outputSchemaStatements() -> CodeBlockItemListSyntax {
+    switch returnType {
+    case .void:
+      // Empty closure for Void return
+      return CodeBlockItemListSyntax()
+
+    case .single(let type):
+      // Single unlabeled parameter
+      return CodeBlockItemListSyntax {
+        parameterCallExpr(label: nil, type: type)
+      }
+
+    case .tuple(let elements):
+      return CodeBlockItemListSyntax {
+        for (label, type) in elements {
+          let labelText: String? =
+            if let label, label.tokenKind != .wildcard {
+              label.text
+            } else {
+              nil
+            }
+          parameterCallExpr(label: labelText, type: type)
+        }
+      }
+    }
+  }
+
+  /// Helper to generate a parameter(...) call
+  private func parameterCallExpr(label: String?, type: TypeSyntax) -> FunctionCallExprSyntax {
+    var arguments = LabeledExprListSyntax()
+
+    if let label {
+      arguments.append(
+        LabeledExprSyntax(
+          label: "label",
+          colon: .colonToken(),
+          expression: StringLiteralExprSyntax(content: label),
+          trailingComma: .commaToken(trailingTrivia: .newline)
+        )
+      )
+    }
+
+    arguments.append(
+      LabeledExprSyntax(
+        label: "schema",
+        colon: .colonToken(),
+        expression: .schema(namespace: namespace, representing: type)
+      )
+    )
+
+    return FunctionCallExprSyntax(
+      calledExpression: namespace.supportMember(name: "parameter"),
+      leftParen: .leftParenToken(trailingTrivia: .newline),
+      arguments: arguments,
+      rightParen: .rightParenToken(leadingTrivia: .newline)
+    )
+  }
+
+  /// Generates CallableSchema(...) initializer call
+  private func callableSchemaInitExpr() -> FunctionCallExprSyntax {
+    // Build argument names for function reference
+    var argumentNamesList = DeclNameArgumentListSyntax()
+    for param in parameters {
+      argumentNamesList.append(
+        DeclNameArgumentSyntax(
+          name: param.isLabeled ? param.firstName : .wildcardToken()
+        )
+      )
+    }
+
+    return FunctionCallExprSyntax(
+      calledExpression: namespace.supportMember(name: "CallableSchema"),
+      leftParen: .leftParenToken(trailingTrivia: .newline),
+      arguments: LabeledExprListSyntax {
+        // name: "foo(bar:_:)"
+        LabeledExprSyntax(
+          label: "name",
+          colon: .colonToken(),
+          expression: StringLiteralExprSyntax(content: fullName),
+          trailingComma: .commaToken(trailingTrivia: .newline)
+        )
+
+        // inputSchema: inputSchema
+        LabeledExprSyntax(
+          label: "inputSchema",
+          colon: .colonToken(),
+          expression: DeclReferenceExprSyntax(baseName: "inputSchema"),
+          trailingComma: .commaToken(trailingTrivia: .newline)
+        )
+
+        // outputSchema: outputSchema
+        LabeledExprSyntax(
+          label: "outputSchema",
+          colon: .colonToken(),
+          expression: DeclReferenceExprSyntax(baseName: "outputSchema"),
+          trailingComma: .commaToken(trailingTrivia: .newline)
+        )
+
+        // invoke: foo(bar:_:)
+        LabeledExprSyntax(
+          label: "invoke",
+          colon: .colonToken(),
+          expression: DeclReferenceExprSyntax(
+            baseName: name,
+            argumentNames: DeclNameArgumentsSyntax(arguments: argumentNamesList)
+          )
+        )
+      },
+      rightParen: .rightParenToken(leadingTrivia: .newline)
+    )
+  }
+
+  // MARK: - Helper Methods
+
+  private func tupleType(from types: [TypeSyntax]) -> TypeSyntax {
+    if types.isEmpty {
+      return "Void"
+    }
+    if types.count == 1 {
+      return types[0]
+    }
+    let elements = TupleTypeElementListSyntax {
+      for type in types {
+        TupleTypeElementSyntax(
+          type: type
+        )
+      }
+    }
+    return TypeSyntax(TupleTypeSyntax(elements: elements))
+  }
+
+  private func outputTupleType() -> TypeSyntax {
+    switch returnType {
+    case .void:
+      return "Void"
+    case .single(let type):
+      return type
+    case .tuple(let elements):
+      if elements.isEmpty {
+        return "Void"
+      }
+      let tupleElements = TupleTypeElementListSyntax {
+        for (label, type) in elements {
+          if let label, label.tokenKind != .wildcard {
+            TupleTypeElementSyntax(
+              firstName: label,
+              colon: .colonToken(),
+              type: type
+            )
+          } else {
+            TupleTypeElementSyntax(type: type)
+          }
+        }
+      }
+      return TypeSyntax(TupleTypeSyntax(elements: tupleElements))
+    }
+  }
+
+  private func failureTypeSyntax() -> TypeSyntax {
+    guard let throwsClause else {
+      return "Never"  // Non-throwing
+    }
+
+    if let typedError = throwsClause.type {
+      return typedError  // Typed throws
+    }
+
+    // Untyped throws -> any Error
+    return TypeSyntax(
+      SomeOrAnyTypeSyntax(
+        someOrAnySpecifier: .keyword(.any),
+        constraint: IdentifierTypeSyntax(name: "Error")
+      )
     )
   }
 

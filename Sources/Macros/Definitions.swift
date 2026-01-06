@@ -75,3 +75,36 @@ struct SchemaCodableType {
   }
   let schemaKind: SchemaKind
 }
+
+// MARK: - Callable Schema
+
+struct CallableSchema {
+  let namespace: SchemaCodingNamespace
+  let name: TokenSyntax
+  let fullName: String
+  let parameters: [Parameter]
+  let returnType: ReturnType
+  let isAsync: Bool
+  let throwsClause: ThrowsClauseSyntax?
+  let isMethod: Bool
+
+  struct Parameter {
+    let firstName: TokenSyntax
+    let secondName: TokenSyntax?
+    let type: TypeSyntax
+
+    var isLabeled: Bool {
+      firstName.tokenKind != .wildcard
+    }
+
+    var effectiveName: TokenSyntax {
+      secondName ?? firstName
+    }
+  }
+
+  enum ReturnType {
+    case void
+    case single(TypeSyntax)
+    case tuple([(label: TokenSyntax?, type: TypeSyntax)])
+  }
+}
