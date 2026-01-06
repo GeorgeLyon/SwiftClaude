@@ -188,8 +188,8 @@ extension FunctionDeclSyntax {
     // Build full function name like "foo(bar:_:)"
     let fullName = buildFullName(baseName: name, parameters: parameters)
 
-    // If we're inside a type declaration, it's a method
-    let isMethod = !context.lexicalContext.isEmpty
+    // Instance methods require a callee; static methods do not
+    let isMethod = !context.lexicalContext.isEmpty && !modifiers.contains(where: \.isStatic)
 
     return CallableSchema(
       namespace: namespace,

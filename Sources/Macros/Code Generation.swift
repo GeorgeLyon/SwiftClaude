@@ -890,16 +890,8 @@ extension CallableSchema {
         return "Void"
       }
       let tupleElements = TupleTypeElementListSyntax {
-        for (label, type) in elements {
-          if let label, label.tokenKind != .wildcard {
-            TupleTypeElementSyntax(
-              firstName: label,
-              colon: .colonToken(),
-              type: type
-            )
-          } else {
-            TupleTypeElementSyntax(type: type)
-          }
+        for (_, type) in elements {
+          TupleTypeElementSyntax(type: type)
         }
       }
       return TypeSyntax(TupleTypeSyntax(elements: tupleElements))
