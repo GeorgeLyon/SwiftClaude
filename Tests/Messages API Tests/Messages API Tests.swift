@@ -7,7 +7,7 @@ import Testing
 struct ToolTests {
 
   @Test
-  func testEncoding() {
+  func testEncoding() throws {
     let message = Message(
       role: .user,
       content: [
@@ -17,12 +17,13 @@ struct ToolTests {
             mediaType: .png,
             data: ""
           )
-        )
+        ),
       ]
     )
 
-    #expect(
-      message.encodedJSON == #"""
+    try test(
+      message,
+      encodesAs: #"""
         {
           "role": "user",
           "content": [

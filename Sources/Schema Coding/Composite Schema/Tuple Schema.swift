@@ -1,6 +1,8 @@
 private import JSONSupport
 private import SchemaCodingSupport
 
+// MARK: - Public API
+
 extension SchemaCoding.Support {
 
   @_disfavoredOverload
@@ -28,7 +30,31 @@ extension SchemaCoding.Support {
     )
   }
 
+  public struct Tuple<each Element: SchemaCodable>: SchemaCodable {
+    public init(
+      elements: repeat each Element
+    ) {
+      self.elements = (repeat each elements)
+    }
+    public let elements: (repeat each Element)
+
+    public static var schema: TypeErasedSchema<Self> {
+      let schema = TupleSchema(
+        elementSchemas: repeat (each Element).schema
+      )
+      return schema.wrap { wrapped in
+        let values = Tuple(elements: repeat each wrapped)
+        return values
+      } unwrap: { tuple in
+        (repeat each tuple.elements)
+      }
+      .typeErased()
+    }
+  }
+
 }
+
+// MARK: - Schema
 
 extension SchemaCoding.Support {
 

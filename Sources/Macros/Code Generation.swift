@@ -8,7 +8,10 @@ import SwiftSyntaxMacros
 extension SchemaParameter {
 
   /// Generates a `parameter(label: "...", schema: ...)` call
-  func parameterCallExpr(namespace: SchemaCodingNamespace) -> FunctionCallExprSyntax {
+  func parameterCallExpr(
+    namespace: SchemaCodingNamespace,
+    keyConversionStrategy: KeyConversionStrategy = .none
+  ) -> FunctionCallExprSyntax {
     var arguments = LabeledExprListSyntax()
 
     if let label {
@@ -16,7 +19,9 @@ extension SchemaParameter {
         LabeledExprSyntax(
           label: "label",
           colon: .colonToken(),
-          expression: StringLiteralExprSyntax(content: label.text),
+          expression: StringLiteralExprSyntax(
+            content: keyConversionStrategy.convert(label.text)
+          ),
           trailingComma: .commaToken(trailingTrivia: .newline)
         )
       )
@@ -735,7 +740,10 @@ extension CallableSchema {
       trailingClosure: ClosureExprSyntax(
         statements: CodeBlockItemListSyntax {
           for param in parameters {
-            param.parameterCallExpr(namespace: namespace)
+            param.parameterCallExpr(
+              namespace: namespace,
+              keyConversionStrategy: keyConversionStrategy
+            )
           }
         }
       )
@@ -834,6 +842,9 @@ extension CallableSchema {
           expression: StringLiteralExprSyntax(content: fullName),
           trailingComma: .commaToken(trailingTrivia: .newline)
         )
+
+        // description: "..." (if provided)
+        additionalArguments
 
         // inputSchema: inputSchema
         LabeledExprSyntax(

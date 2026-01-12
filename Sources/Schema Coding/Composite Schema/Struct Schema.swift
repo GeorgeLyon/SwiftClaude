@@ -117,7 +117,6 @@ extension SchemaCoding.Support {
       schema: schema
     )
   }
-
   public static func structProperty<Root, Schema: SchemaCoding.Schema & ComplexSchema>(
     name: SchemaCodingKey,
     description: String? = nil,
@@ -147,6 +146,7 @@ extension SchemaCoding.Support {
   }
 
   public struct StructProperty<Root, Property: ObjectProperty> {
+
     @_disfavoredOverload
     fileprivate init<Schema: SchemaCoding.Schema>(
       name: SchemaCodingKey,
@@ -162,6 +162,7 @@ extension SchemaCoding.Support {
       self.keyPath = keyPath
       self.effectiveSchema = schema.prependingDescription(description)
     }
+
     fileprivate init<Schema: SchemaCoding.Schema>(
       name: SchemaCodingKey,
       description: String?,
@@ -176,9 +177,11 @@ extension SchemaCoding.Support {
       self.keyPath = keyPath
       self.effectiveSchema = schema.prependingDescription(description)
     }
+
     fileprivate func accessValue(from root: Root) -> Property.Value {
       root[keyPath: keyPath]
     }
+
     fileprivate let property: Property
 
     fileprivate let effectiveSchema: Property.EffectiveSchema

@@ -75,7 +75,8 @@ extension StructDeclSyntax {
               DiagnosticError(
                 node: variable,
                 severity: .error,
-                message: "@SchemaCase cannot be used on struct properties. Use @SchemaProperty instead."
+                message:
+                  "@SchemaCase cannot be used on struct properties. Use @SchemaProperty instead."
               )
             )
           }
@@ -165,6 +166,8 @@ extension FunctionDeclSyntax {
 
   func callableSchema(
     namespace: SchemaCodingNamespace,
+    additionalArguments: LabeledExprListSyntax,
+    keyConversionStrategy: KeyConversionStrategy,
     in context: some MacroExpansionContext
   ) -> CallableSchema {
     let signature = self.signature
@@ -196,6 +199,8 @@ extension FunctionDeclSyntax {
       namespace: namespace,
       name: name,
       fullName: fullName,
+      additionalArguments: additionalArguments,
+      keyConversionStrategy: keyConversionStrategy,
       parameters: parameters,
       returnType: returnType,
       isAsync: isAsync,
@@ -211,7 +216,7 @@ extension FunctionDeclSyntax {
 
     // Check for Void identifier
     if let identifier = type.as(IdentifierTypeSyntax.self),
-       identifier.name.text == "Void"
+      identifier.name.text == "Void"
     {
       return .void
     }
@@ -225,8 +230,8 @@ extension FunctionDeclSyntax {
 
       // Single unlabeled element is treated as single type
       if tupleType.elements.count == 1,
-         let element = tupleType.elements.first,
-         element.firstName == nil
+        let element = tupleType.elements.first,
+        element.firstName == nil
       {
         return .single(element.type)
       }

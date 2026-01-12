@@ -1,6 +1,6 @@
 public import SchemaCoding
 
-// @APICodable
+//@APICodable
 public struct Request<each Tool: SchemaCoding.SchemaCodable> {
 
   public let messages: [Message]
@@ -29,7 +29,7 @@ public enum ContentBlock {
   case text(text: String)
   case image(source: ImageSource)
 
-  @APICodable()
+  @APICodable
   public enum ImageSource {
 
     @APICodable(style: .wrapper)

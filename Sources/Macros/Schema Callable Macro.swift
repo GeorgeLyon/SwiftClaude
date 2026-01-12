@@ -18,10 +18,38 @@ enum SchemaCallableMacro: PeerMacro {
       )
     }
 
+    // Parse arguments from the attribute
+    let arguments: LabeledExprListSyntax
+    switch node.arguments {
+    case .argumentList(let argumentList):
+      arguments = argumentList
+    case .none:
+      arguments = []
+    default:
+      context.diagnose(
+        DiagnosticError(
+          node: node,
+          severity: .error,
+          message: "Expected argument list"
+        )
+      )
+      arguments = []
+    }
+
+    let (description, keyConversionStrategy) = arguments.parse(
+      ofAttribute: "SchemaCallable",
+      as: (DescriptionArgument.self, KeyConversionStrategyArgument.self),
+      in: context
+    )
+
+    let additionalArguments: LabeledExprListSyntax = .fromArguments(description)
+
     let namespace: SchemaCodingNamespace = "SchemaCoding"
 
     let callable = funcDecl.callableSchema(
       namespace: namespace,
+      additionalArguments: additionalArguments,
+      keyConversionStrategy: keyConversionStrategy?.value ?? .none,
       in: context
     )
 

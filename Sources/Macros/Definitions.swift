@@ -96,6 +96,8 @@ struct CallableSchema {
   let namespace: SchemaCodingNamespace
   let name: TokenSyntax
   let fullName: String
+  let additionalArguments: LabeledExprListSyntax
+  let keyConversionStrategy: KeyConversionStrategy
   let parameters: [SchemaParameter]
   let returnType: ReturnType
   let isAsync: Bool

@@ -83,14 +83,14 @@ let package = Package(
       path: "Sources/Messages API",
       swiftSettings: .projectDefaults,
     ),
-    // .testTarget(
-    //   name: "MessagesAPITests",
-    //   dependencies: [
-    //     "MessagesAPI",
-    //     "SchemaCodingTestSupport",
-    //   ],
-    //   path: "Tests/Messages API Tests"
-    // ),
+    .testTarget(
+      name: "MessagesAPITests",
+      dependencies: [
+        "MessagesAPI",
+        "SchemaCodingTestSupport",
+      ],
+      path: "Tests/Messages API Tests"
+    ),
 
     // MARK: - Tool
 

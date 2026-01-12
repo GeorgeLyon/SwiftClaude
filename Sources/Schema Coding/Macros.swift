@@ -33,7 +33,8 @@ public macro SchemaCase(
 
 @attached(peer, names: prefixed(__schema__))
 public macro SchemaCallable(
-  description: String? = nil
+  description: String? = nil,
+  keyConversionStrategy: SchemaCoding.Support.KeyConversionStrategy = .none,
 ) =
   #externalMacro(
     module: "Macros",

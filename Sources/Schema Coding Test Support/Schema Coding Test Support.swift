@@ -280,6 +280,20 @@ public func test<Value: SchemaCoding.SchemaCodable & Equatable>(
   )
 }
 
+public func test<Value: SchemaCoding.SchemaCodable>(
+  _ value: Value,
+  encodesAs json: String,
+  prettyPrint: Bool = true,
+  sourceLocation: SourceLocation = #_sourceLocation
+) throws {
+  try Value.schema.test(
+    value,
+    encodesAs: json,
+    prettyPrint: prettyPrint,
+    sourceLocation: sourceLocation
+  )
+}
+
 // MARK: - JSON Fragments
 
 public struct JSONFragments: ExpressibleByStringInterpolation, ExpressibleByArrayLiteral {
