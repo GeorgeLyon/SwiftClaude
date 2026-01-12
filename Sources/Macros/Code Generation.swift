@@ -10,7 +10,7 @@ extension SchemaParameter {
   /// Generates a `parameter(label: "...", schema: ...)` call
   func parameterCallExpr(
     namespace: SchemaCodingNamespace,
-    keyConversionStrategy: KeyConversionStrategy = .none
+    keyConversionStrategy: KeyConversionStrategy
   ) -> FunctionCallExprSyntax {
     var arguments = LabeledExprListSyntax()
 
@@ -370,7 +370,7 @@ extension EnumSchema {
                     colon: .colonToken(),
                     expression: ClosureExprSyntax {
                       for associatedValue in `case`.associatedValues {
-                        associatedValue.parameterCallExpr(namespace: namespace)
+                        associatedValue.parameterCallExpr(namespace: namespace, keyConversionStrategy: keyConversionStrategy)
                       }
                     },
                     trailingComma: .commaToken(trailingTrivia: .newline)
@@ -797,7 +797,7 @@ extension CallableSchema {
         LabeledExprSyntax(
           label: "label",
           colon: .colonToken(),
-          expression: StringLiteralExprSyntax(content: label),
+          expression: StringLiteralExprSyntax(content: keyConversionStrategy.convert(label)),
           trailingComma: .commaToken(trailingTrivia: .newline)
         )
       )
