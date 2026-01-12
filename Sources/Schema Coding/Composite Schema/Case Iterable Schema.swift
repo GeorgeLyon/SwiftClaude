@@ -4,7 +4,7 @@ extension SchemaCoding.Support {
 
   public static func schema<Value: CaseIterable & RawRepresentable>(
     representing _: Value.Type = Value.self,
-    description: String?
+    description: String? = nil
   ) -> some SchemaCoding.Schema<Value>
   where Value.RawValue == String {
     CaseIterableStringEnumSchema(
@@ -14,7 +14,7 @@ extension SchemaCoding.Support {
 
   public static func schema<Value: CaseIterable & RawRepresentable>(
     representing _: Value.Type = Value.self,
-    description: String?
+    description: String? = nil
   ) -> some SchemaCoding.Schema<Value>
   where Value.RawValue: FixedWidthInteger {
     CaseIterableIntEnumSchema(

@@ -1,7 +1,6 @@
 public import SchemaCoding
-import Tools
 
-//@APICodable
+// @APICodable
 public struct Request<each Tool: SchemaCoding.SchemaCodable> {
 
   public let messages: [Message]

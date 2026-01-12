@@ -22,7 +22,7 @@ let package = Package(
     /// Temporary
     .library(
       name: "SwiftClaude",
-      targets: ["SchemaCoding"]
+      targets: ["MessagesAPI"]
     )
   ],
   dependencies: [
@@ -74,15 +74,15 @@ let package = Package(
 
     // MARK: - API
 
-    // .target(
-    //   name: "MessagesAPI",
-    //   dependencies: [
-    //     "Tools",
-    //     "Macros",
-    //   ],
-    //   path: "Sources/Messages API",
-    //   swiftSettings: .projectDefaults,
-    // ),
+    .target(
+      name: "MessagesAPI",
+      dependencies: [
+        "SchemaCoding",
+        "Macros",
+      ],
+      path: "Sources/Messages API",
+      swiftSettings: .projectDefaults,
+    ),
     // .testTarget(
     //   name: "MessagesAPITests",
     //   dependencies: [

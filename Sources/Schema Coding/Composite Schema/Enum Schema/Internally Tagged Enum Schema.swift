@@ -19,7 +19,7 @@ extension SchemaCoding.Support {
         Value,
         inout InternallyTaggedEnumSchemaEncoder<repeat each AssociatedValuesSchema>,
       ) -> Void
-  ) -> some Schema<Value> {
+  ) -> some Schema<Value> & ComplexSchema {
     InternallyTaggedEnumSchema(
       description: description,
       discriminatorPropertyName: style.discriminatorPropertyName,
@@ -43,7 +43,7 @@ extension SchemaCoding.Support {
         Value,
         inout InternallyTaggedEnumSchemaSingleCaseEncoder<AssociatedValuesSchema>,
       ) -> Void
-  ) -> some Schema<Value> {
+  ) -> some Schema<Value> & ComplexSchema {
     InternallyTaggedEnumSchema(
       description: description,
       discriminatorPropertyName: style.discriminatorPropertyName,
@@ -65,7 +65,7 @@ extension SchemaCoding.Support {
   struct InternallyTaggedEnumSchema<
     Value,
     each AssociatedValuesSchema: ObjectSchema
-  >: Schema {
+  >: Schema, ComplexSchema {
 
     func encode(_ value: Value, to encoder: inout SchemaCoding.Support.Encoder) {
       var enumEncoder = InternallyTaggedEnumSchemaEncoder(
