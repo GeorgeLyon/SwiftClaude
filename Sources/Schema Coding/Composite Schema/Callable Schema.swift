@@ -35,7 +35,8 @@ extension SchemaCoding.Support {
       outputSchema: OutputSchema,
       failure: Failure.Type = Failure.self,
       invoke: @escaping (repeat each Parameter) throws(Failure) -> OutputSchema.Value
-    ) where
+    )
+    where
       SyncInput == InputSchema.Value,
       InputSchema.Value == (repeat each Parameter),
       Callee == Void
