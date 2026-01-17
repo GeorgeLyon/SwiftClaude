@@ -1,5 +1,3 @@
-// Macros
-
 @attached(
   extension,
   conformances: SchemaCoding.SchemaCodable,
@@ -42,35 +40,3 @@ public macro SchemaCallable(
     module: "Macros",
     type: "SchemaCallableMacro"
   )
-
-// MARK: - Style
-
-extension SchemaCoding.Support {
-
-  public protocol Style {
-
-  }
-
-  public struct InferredStyle: Style {
-    fileprivate init() {}
-  }
-
-}
-
-extension SchemaCoding.Support.Style
-where Self == SchemaCoding.Support.InferredStyle {
-  public static var inferred: Self {
-    Self()
-  }
-}
-
-// MARK: - Key Conversion Strategy
-
-extension SchemaCoding.Support {
-
-  public enum KeyConversionStrategy: Sendable {
-    case none
-    case convertToSnakeCase
-  }
-
-}

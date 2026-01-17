@@ -224,7 +224,7 @@ extension SchemaCoding.Support {
 
 extension SchemaCoding.Support {
 
-  public struct EnumSchemaStyleStandard: Style {
+  public struct EnumSchemaStyleStandard: EnumSchemaStyle {
     fileprivate init() {}
   }
 
@@ -242,8 +242,8 @@ where Self == SchemaCoding.Support.EnumSchemaStyleStandard {
 extension SchemaCoding.Support {
 
   public struct EnumSchemaCaseEncoding<Schema: SchemaCoding.Schema> {
-    fileprivate let name: String
-    fileprivate let schema: Schema
+    let name: String
+    let schema: Schema
   }
   public struct EnumSchemaEncoder<each AssociatedValueSchema: Schema>: ~Copyable {
 
@@ -266,8 +266,8 @@ extension SchemaCoding.Support {
       }
     }
 
-    fileprivate var isEncoded = false
-    fileprivate var valueEncoder: Encoder
+    var isEncoded = false
+    var valueEncoder: Encoder
 
   }
   public struct EnumSchemaSingleCaseEncoder<AssociatedValueSchema: Schema>: ~Copyable {

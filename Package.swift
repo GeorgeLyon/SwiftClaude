@@ -22,7 +22,7 @@ let package = Package(
     /// Temporary
     .library(
       name: "SwiftClaude",
-      targets: ["MessagesAPI"]
+      targets: ["SchemaCoding"]
     )
   ],
   dependencies: [
@@ -74,23 +74,23 @@ let package = Package(
 
     // MARK: - API
 
-    .target(
-      name: "MessagesAPI",
-      dependencies: [
-        "SchemaCoding",
-        "Macros",
-      ],
-      path: "Sources/Messages API",
-      swiftSettings: .projectDefaults,
-    ),
-    .testTarget(
-      name: "MessagesAPITests",
-      dependencies: [
-        "MessagesAPI",
-        "SchemaCodingTestSupport",
-      ],
-      path: "Tests/Messages API Tests"
-    ),
+    // .target(
+    //   name: "MessagesAPI",
+    //   dependencies: [
+    //     "SchemaCoding",
+    //     "Macros",
+    //   ],
+    //   path: "Sources/Messages API",
+    //   swiftSettings: .projectDefaults,
+    // ),
+    // .testTarget(
+    //   name: "MessagesAPITests",
+    //   dependencies: [
+    //     "MessagesAPI",
+    //     "SchemaCodingTestSupport",
+    //   ],
+    //   path: "Tests/Messages API Tests"
+    // ),
 
     // MARK: - Tool
 
@@ -121,7 +121,9 @@ let package = Package(
         "SchemaCodingSupport",
       ],
       path: "Sources/Schema Coding",
-      swiftSettings: .projectDefaults
+      swiftSettings: .projectDefaults + [
+        .define("ENABLE_META_SCHEMA")
+      ]
     ),
 
     .target(

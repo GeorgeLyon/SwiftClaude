@@ -132,12 +132,14 @@ extension SchemaCoding.Schema {
     prettyPrint: Bool = true,
     sourceLocation: SourceLocation = #_sourceLocation
   ) throws {
-    try metaSchema.test(
-      self,
-      encodesAs: json,
-      prettyPrint: prettyPrint,
-      sourceLocation: sourceLocation
-    )
+    #if ENABLE_META_SCHEMA
+      try metaSchema.test(
+        self,
+        encodesAs: json,
+        prettyPrint: prettyPrint,
+        sourceLocation: sourceLocation
+      )
+    #endif
   }
 
 }

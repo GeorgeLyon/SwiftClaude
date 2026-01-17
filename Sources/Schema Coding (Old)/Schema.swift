@@ -37,19 +37,14 @@ extension SchemaCoding.Support {
       state: inout ValueDecodingState
     ) throws -> DecodingResult<Value>
 
-    #if ENABLE_META_SCHEMA
-      associatedtype MetaSchema: Schema where MetaSchema.Value == Self
-      var metaSchema: MetaSchema { get }
-    #endif
+    associatedtype MetaSchema: Schema where MetaSchema.Value == Self
+    var metaSchema: MetaSchema { get }
 
     var metadata: SchemaMetadata { get set }
 
   }
 
   public struct SchemaMetadata {
-    public init() {
-
-    }
     init(description: String?) {
       self.description = description
     }
@@ -64,36 +59,32 @@ extension SchemaCoding.Support {
         self.description = prefix
       }
     }
+    mutating func appendDescription(_ suffix: String?) {
+      guard let suffix else { return }
+      if let description {
+        self.description = [
+          description,
+          suffix,
+        ].joined(separator: "\n")
+      } else {
+        self.description = suffix
+      }
+    }
     private(set) var description: String?
   }
 
 }
 
-// MARK: - Internal Schema API
+extension SchemaCoding.Support.Schema {
 
-extension SchemaCoding.Schema {
+  var description: String? {
+    metadata.description
+  }
 
   func prependingDescription(_ prefix: String?) -> Self {
     var mutableSelf = self
     mutableSelf.metadata.prependDescription(prefix)
     return mutableSelf
-  }
-
-}
-
-extension SchemaCoding.Support {
-
-  protocol InternalSchema: Schema {
-    var description: String? { get set }
-  }
-
-}
-
-extension SchemaCoding.Support.InternalSchema {
-
-  public var metadata: SchemaCoding.Support.SchemaMetadata {
-    get { SchemaCoding.Support.SchemaMetadata(description: description) }
-    set { description = metadata.description }
   }
 
 }
@@ -147,6 +138,38 @@ extension SchemaCoding.Support {
     static var const: Self { "const" }
     static var not: Self { "not" }
 
+  }
+
+}
+
+// MARK: - Schema Style
+
+extension SchemaCoding.Support {
+
+  public protocol Style {
+
+  }
+
+  public struct InferredStyle: Style {
+    fileprivate init() {}
+  }
+
+}
+
+extension SchemaCoding.Support.Style
+where Self == SchemaCoding.Support.InferredStyle {
+  public static var inferred: Self {
+    Self()
+  }
+}
+
+// MARK: - Key Conversion Strategy
+
+extension SchemaCoding.Support {
+
+  public enum KeyConversionStrategy: Sendable {
+    case none
+    case convertToSnakeCase
   }
 
 }
