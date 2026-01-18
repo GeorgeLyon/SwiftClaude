@@ -1,4 +1,5 @@
 private import JSONSupport
+private import SchemaCodingSupport
 
 // MARK: - Object Schema
 
@@ -21,6 +22,12 @@ extension SchemaCoding.Support {
     static func propertyValues(from value: Value) -> PropertyValues
 
     func encodeProperties(of value: Value, to propertiesEncoder: inout ObjectPropertiesEncoder)
+
+    associatedtype PropertiesDecoder: ObjectPropertiesDecoderProtocol
+    where PropertiesDecoder.Value == Value
+    func beginDecodingPropertyValues(
+      from decoder: borrowing Decoder
+    ) -> PropertiesDecoder
 
   }
 
@@ -82,7 +89,238 @@ extension SchemaCoding.Support.ObjectSchema {
 
 }
 
-// MARK: - Object Properties Schema
+// MARK: Object Schema Decoding
+
+extension SchemaCoding.Support.ObjectSchema {
+
+  public func beginDecodingPropertyValues<each Property>(
+    from decoder: borrowing SchemaCoding.Support.Decoder
+  ) -> PropertiesDecoder
+  where
+    PropertiesDecoder == SchemaCoding.Support.ObjectPropertiesDecoder<
+      Self,
+      repeat each Property
+    >
+  {
+    SchemaCoding.Support.ObjectPropertiesDecoder(
+      properties: (repeat each properties()),
+      decoder: decoder
+    )
+  }
+
+}
+
+// MARK: Properties Decoder
+
+extension SchemaCoding.Support {
+
+  public protocol ObjectPropertiesDecoderProtocol {
+    associatedtype Value
+    func finishDecoding(from decoder: borrowing Decoder) throws -> Value
+
+    var propertyDecodersByName: ObjectPropertyDecodersByName { get }
+  }
+
+  public struct ObjectPropertiesDecoder<
+    Schema: ObjectSchema,
+    each Property: ObjectProperty
+  >: ObjectPropertiesDecoderProtocol
+  where
+    Schema.PropertyTypeMetadatas == (repeat PropertyTypeMetadata<each Property>),
+    Schema.Properties == (repeat each Property),
+    Schema.PropertyValues == (repeat (each Property).EffectiveSchema.Value)
+  {
+
+    public let propertyDecodersByName: ObjectPropertyDecodersByName
+    private let propertyDecoders: (repeat ObjectPropertyDecoder<each Property>)
+
+    public func finishDecoding(from decoder: borrowing Decoder) throws -> Schema.Value {
+      try Schema.value(from: (repeat (each propertyDecoders).finishDecoding(from: decoder)))
+    }
+
+    fileprivate init(
+      properties: Schema.Properties,
+      decoder: borrowing SchemaCoding.Support.Decoder
+    ) {
+      self.propertyDecoders =
+        (repeat ObjectPropertyDecoder(
+          property: each properties,
+          decoder: decoder
+        ))
+      self.propertyDecodersByName = ObjectPropertyDecodersByName(
+        typeMetadatas: repeat each Schema.propertyTypeMetadatas(),
+        decoders: repeat each propertyDecoders
+      )
+    }
+
+  }
+
+  struct MergedObjectPropertiesDecoder<
+    FirstComponent: ObjectPropertiesDecoderProtocol,
+    each OtherComponent: ObjectPropertiesDecoderProtocol
+  >: ObjectPropertiesDecoderProtocol {
+
+    let propertyDecodersByName: ObjectPropertyDecodersByName
+    private let firstComponent: FirstComponent
+    private let otherComponents: (repeat each OtherComponent)
+
+    init(
+      _ firstComponent: FirstComponent,
+      _ otherComponents: repeat each OtherComponent
+    ) {
+      self.firstComponent = firstComponent
+      self.otherComponents = (repeat each otherComponents)
+
+      do {
+        var propertyDecodersByName = firstComponent.propertyDecodersByName
+        for component in repeat each otherComponents {
+          propertyDecodersByName.merge(with: component.propertyDecodersByName)
+        }
+        self.propertyDecodersByName = propertyDecodersByName
+      }
+    }
+
+    func finishDecoding(
+      from decoder: borrowing Decoder
+    ) throws -> (FirstComponent.Value, repeat (each OtherComponent).Value) {
+      try (
+        firstComponent.finishDecoding(from: decoder),
+        repeat (each otherComponents).finishDecoding(from: decoder)
+      )
+    }
+
+  }
+
+  public struct ObjectPropertyDecodersByName {
+
+    fileprivate init<each Property: ObjectProperty>(
+      typeMetadatas: repeat PropertyTypeMetadata<each Property>,
+      decoders: repeat ObjectPropertyDecoder<each Property>
+    ) {
+      self.init()
+      for (name, decoder) in repeat ((each typeMetadatas).name, each decoders) {
+        self[Substring(name.stringValue)] = decoder
+      }
+    }
+
+    subscript(propertyName: Substring) -> ObjectPropertyDecoderProtocol? {
+      get { dictionary[propertyName] }
+      set {
+        guard let newValue else {
+          assertionFailure()
+          return
+        }
+        let oldValue = dictionary.updateValue(newValue, forKey: propertyName)
+        assert(oldValue == nil)
+      }
+    }
+
+    mutating func merge(with other: ObjectPropertyDecodersByName) {
+      for (key, value) in other.dictionary {
+        self[key] = value
+      }
+    }
+
+    private init() {
+      dictionary = [:]
+    }
+    private var dictionary: [Substring: ObjectPropertyDecoderProtocol]
+  }
+
+}
+
+// MARK: Property Decoder
+
+extension SchemaCoding.Support {
+
+  protocol ObjectPropertyDecoderProtocol {
+    func decodeValue(from decoder: inout Decoder) throws -> DecodingResult<Void>
+  }
+
+  fileprivate struct ObjectPropertyDecoder<
+    Property: ObjectProperty
+  >: ObjectPropertyDecoderProtocol {
+
+    func decodeValue(
+      from decoder: inout Decoder
+    ) throws -> DecodingResult<Void> {
+      guard let propertySchema = property.propertySchema else {
+        throw Error.propertyNotOmitted
+      }
+      return try decoder.arena.withValue(reference) { decodingState in
+        var state: Property.PropertySchema.ValueDecodingState
+        switch decodingState {
+        case .decoded:
+          throw Error.propertyAlreadyDecoded
+        case .encounteredError(let error):
+          throw error
+        case .notFound:
+          state = propertySchema.beginDecodingValue(from: decoder)
+        case .decoding(let s):
+          state = s
+        }
+
+        do {
+          switch try propertySchema.decodeValue(from: &decoder, state: &state).kind {
+          case .decoded(let value):
+            decodingState = .decoded(value)
+            return .decoded
+          case .incomplete:
+            decodingState = .decoding(state)
+            return .incomplete
+          }
+        } catch {
+          decodingState = .encounteredError(error)
+          throw error
+        }
+      }
+    }
+
+    func finishDecoding(
+      from decoder: borrowing SchemaCoding.Support.Decoder
+    ) throws -> Property.EffectiveSchema.Value {
+      let propertyValue = try decoder.arena
+        .withValue(reference) { decodingState -> Property.PropertySchema.Value? in
+          switch decodingState {
+          case .encounteredError(let error):
+            throw error
+          case .decoding:
+            throw Error.partiallyDecoded
+          case .notFound:
+            return nil
+          case .decoded(let value):
+            return value
+          }
+        }
+      guard let value = Property.value(from: propertyValue) else {
+        throw Error.missingProperty
+      }
+      return value
+    }
+
+    fileprivate init(
+      property: Property,
+      decoder: borrowing Decoder
+    ) {
+      self.property = property
+      self.reference = decoder.arena.push(.notFound)
+    }
+
+    private enum DecodingState {
+      case notFound
+      case decoding(Property.PropertySchema.ValueDecodingState)
+      case decoded(Property.PropertySchema.Value)
+      case encounteredError(Swift.Error)
+    }
+
+    private let property: Property
+    private let reference: Arena.Reference<DecodingState>
+
+  }
+
+}
+
+// MARK: - Object Meta Schema
 
 extension SchemaCoding.Support {
 
@@ -131,6 +369,11 @@ extension SchemaCoding.Support {
     ) {
       self._properties = (repeat each properties)
     }
+
+    public typealias PropertiesDecoder = SchemaCoding.Support.ObjectPropertiesDecoder<
+      Self,
+      repeat ObjectMetaProperty<each ValueProperty>
+    >
 
   }
 
@@ -279,4 +522,14 @@ extension SchemaCoding.Support {
 
   }
 
+}
+
+// MARK: - Errors
+
+private enum Error: Swift.Error {
+  case propertyAlreadyDecoded
+  case propertyNotOmitted
+  case partiallyDecoded
+  case missingProperty
+  case unknownProperty(String)
 }
