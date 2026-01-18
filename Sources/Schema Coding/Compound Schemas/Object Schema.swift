@@ -33,6 +33,11 @@ extension SchemaCoding.Support {
     }
     fileprivate let name: SchemaCodingKey
   }
+}
+
+// MARK: Object Schema Encoding
+
+extension SchemaCoding.Support {
 
   public struct ObjectPropertiesEncoder: ~Copyable {
     fileprivate var objectEncoder: JSON.ObjectEncoder
