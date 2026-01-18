@@ -8,9 +8,11 @@ extension SchemaCoding.Support {
     associatedtype Value
 
     associatedtype PropertyTypeMetadatas
-    static func propertyTypeMetadata() -> PropertyTypeMetadatas
+    static func propertyTypeMetadatas() -> PropertyTypeMetadatas
 
     associatedtype Properties
+    /// This can't be an initializer because it causes a compiler crash
+    static func create(from properties: Properties) -> Self
     func properties() -> Properties
 
     associatedtype PropertyValues
@@ -19,6 +21,7 @@ extension SchemaCoding.Support {
 
   }
 
+  /// This type is only generic so we can create a parameter pack of type metadatas
   public struct PropertyTypeMetadata<Property: ObjectProperty> {
     public init(
       name: SchemaCodingKey
@@ -34,7 +37,51 @@ extension SchemaCoding.Support {
 
 extension SchemaCoding.Support {
 
-  public struct ObjectPropertiesSchema<Schema: ObjectSchema> {
+  public struct ObjectPropertiesMetaSchema<
+    Value: ObjectSchema,
+    each ValueProperty: ObjectProperty
+  >: ObjectSchema
+  where
+    Value.PropertyTypeMetadatas == (repeat PropertyTypeMetadata<each ValueProperty>),
+    Value.Properties == (repeat each ValueProperty),
+    Value.PropertyValues == (repeat (each ValueProperty).EffectiveSchema.Value)
+  {
+
+    public typealias PropertyTypeMetadatas = (
+      repeat PropertyTypeMetadata<ObjectMetaProperty<each ValueProperty>>
+    )
+    public static func propertyTypeMetadatas() -> (
+      repeat PropertyTypeMetadata<ObjectMetaProperty<each ValueProperty>>
+    ) {
+      (repeat PropertyTypeMetadata(name: (each Value.propertyTypeMetadatas()).name))
+    }
+
+    public typealias Properties = (repeat ObjectMetaProperty<each ValueProperty>)
+    public func properties() -> (repeat ObjectMetaProperty<each ValueProperty>) {
+      (repeat each _properties)
+    }
+    private let _properties: (repeat ObjectMetaProperty<each ValueProperty>)
+
+    public typealias PropertyValues = (repeat (each ValueProperty).PropertySchema?)
+    public static func value(
+      from propertyValues: (repeat (each ValueProperty).PropertySchema?)
+    ) throws -> Value {
+      Value.create(from: (repeat (each ValueProperty)(propertySchema: each propertyValues)))
+    }
+    public static func propertyValues(from value: Value) -> PropertyValues {
+      (repeat (each value.properties()).propertySchema)
+    }
+
+    public static func create(
+      from properties: (repeat ObjectMetaProperty<each ValueProperty>)
+    ) -> Self {
+      Self(properties: (repeat each properties))
+    }
+    private init(
+      properties: (repeat ObjectMetaProperty<each ValueProperty>)
+    ) {
+      self._properties = (repeat each properties)
+    }
 
   }
 
