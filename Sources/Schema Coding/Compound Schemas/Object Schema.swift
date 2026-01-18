@@ -1,10 +1,11 @@
+private import JSONSupport
+
 // MARK: - Object Schema
 
 extension SchemaCoding.Support {
 
   public protocol ObjectSchema {
 
-    /// TODO: Remove when conforming to Schema
     associatedtype Value
 
     associatedtype PropertyTypeMetadatas
@@ -19,6 +20,8 @@ extension SchemaCoding.Support {
     static func value(from propertyValues: PropertyValues) throws -> Value
     static func propertyValues(from value: Value) -> PropertyValues
 
+    func encodeProperties(of value: Value, to propertiesEncoder: inout ObjectPropertiesEncoder)
+
   }
 
   /// This type is only generic so we can create a parameter pack of type metadatas
@@ -29,6 +32,47 @@ extension SchemaCoding.Support {
       self.name = name
     }
     fileprivate let name: SchemaCodingKey
+  }
+
+  public struct ObjectPropertiesEncoder: ~Copyable {
+    fileprivate var objectEncoder: JSON.ObjectEncoder
+  }
+
+}
+
+extension SchemaCoding.Support.ObjectSchema {
+
+  public func encodeProperties<each Property: SchemaCoding.Support.ObjectProperty>(
+    of value: Value,
+    to propertiesEncoder: inout SchemaCoding.Support.ObjectPropertiesEncoder
+  )
+  where
+    PropertyTypeMetadatas == (repeat SchemaCoding.Support.PropertyTypeMetadata<each Property>),
+    Properties == (repeat each Property),
+    PropertyValues == (repeat (each Property).EffectiveSchema.Value)
+  {
+    let propertyTypeMetadatas = Self.propertyTypeMetadatas()
+    let properties = properties()
+    let propertyValues = Self.propertyValues(from: value)
+
+    func encode<T: SchemaCoding.Support.ObjectProperty>(
+      name: SchemaCoding.Support.SchemaCodingKey,
+      property: T,
+      value: T.EffectiveSchema.Value
+    ) {
+      if let propertySchema = property.propertySchema,
+        let value = T.propertyValue(from: value)
+      {
+        propertiesEncoder.objectEncoder.encodeProperty(name: name) { stream in
+          stream.encode(value, using: propertySchema)
+        }
+      }
+    }
+    repeat encode(
+      name: (each propertyTypeMetadatas).name,
+      property: each properties,
+      value: each propertyValues
+    )
   }
 
 }
