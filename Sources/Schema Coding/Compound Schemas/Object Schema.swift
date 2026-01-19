@@ -406,6 +406,7 @@ extension SchemaCoding.Support {
     Value.PropertyValues == (repeat (each ValueProperty).EffectiveSchema.Value)
   {
 
+    public typealias DescriptionProperty = OptionalObjectProperty<String.Schema>
     public typealias PropertiesProperty = DirectObjectProperty<
       ObjectMetaSchemaPropertiesSchema<
         Value,
@@ -414,39 +415,55 @@ extension SchemaCoding.Support {
     >
 
     public typealias PropertyTypeMetadatas = (
+      PropertyTypeMetadata<DescriptionProperty>,
       PropertyTypeMetadata<PropertiesProperty>
     )
     public static func propertyTypeMetadatas() -> PropertyTypeMetadatas {
-      (PropertyTypeMetadata(name: .properties))
+      (
+        PropertyTypeMetadata(name: .description),
+        PropertyTypeMetadata(name: .properties)
+      )
     }
 
-    public typealias Properties = (PropertiesProperty)
+    public typealias Properties = (
+      DescriptionProperty,
+      PropertiesProperty
+    )
     public static func create(from properties: Properties) -> Self {
-      Self(propertiesProperty: properties)
+      Self(
+        descriptionProperty: properties.0,
+        propertiesProperty: properties.1
+      )
     }
     public func properties() -> Properties {
-      (propertiesProperty)
+      (descriptionProperty, propertiesProperty)
     }
 
-    public typealias PropertyValues = (PropertiesProperty.EffectiveSchema.Value)
+    public typealias PropertyValues = (
+      String?,
+      PropertiesProperty.EffectiveSchema.Value
+    )
     public static func value(
-      from propertyValues: (PropertiesProperty.EffectiveSchema.Value)
+      from propertyValues: PropertyValues
     ) throws -> Value {
-      propertyValues
+      propertyValues.1
+        .prependingDescription(propertyValues.0)
     }
     public static func propertyValues(from value: Value) -> PropertyValues {
-      value
+      (value.metadata.description, value)
     }
 
     public typealias ValueDecodingState = ObjectSchemaValueDecodingState<Self>
 
     public typealias PropertiesDecoder = SchemaCoding.Support.ObjectPropertiesDecoder<
       Self,
+      DescriptionProperty,
       PropertiesProperty
     >
 
     public typealias MetaSchema = ObjectMetaSchema<
       Self,
+      DescriptionProperty,
       PropertiesProperty
     >
     public var metaSchema: MetaSchema {
@@ -456,6 +473,8 @@ extension SchemaCoding.Support {
     fileprivate init(
       value: Value
     ) {
+      self.descriptionProperty = OptionalObjectProperty(propertySchema: String.Schema())
+
       let propertyMetaSchemas = (repeat (each value.properties()).propertySchema?.metaSchema)
       let properties =
         (repeat ObjectMetaProperty<each ValueProperty>(
@@ -468,12 +487,16 @@ extension SchemaCoding.Support {
     }
 
     private init(
+      descriptionProperty: DescriptionProperty,
       propertiesProperty: PropertiesProperty
     ) {
+      self.descriptionProperty = descriptionProperty
       self.propertiesProperty = propertiesProperty
     }
 
     public var metadata = SchemaMetadata()
+
+    private let descriptionProperty: DescriptionProperty
     private let propertiesProperty: PropertiesProperty
 
   }
