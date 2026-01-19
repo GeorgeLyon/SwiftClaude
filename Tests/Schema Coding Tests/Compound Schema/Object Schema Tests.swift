@@ -11,6 +11,21 @@ struct ObjectSchemaTests {
     let a: String
     let b: String
 
+    static var schema: Schema {
+      Schema(
+        _properties: (
+          SchemaCoding.Support.DirectObjectProperty(
+            description: "Property A",
+            schema: String.Schema()
+          ),
+          SchemaCoding.Support.DirectObjectProperty(
+            description: "Property B",
+            schema: String.Schema()
+          )
+        )
+      )
+    }
+
     struct Schema: SchemaCoding.ObjectSchema {
 
       typealias Value = SimpleObject
@@ -36,7 +51,7 @@ struct ObjectSchemaTests {
         Self(_properties: properties)
       }
 
-      private let _properties: Properties
+      fileprivate let _properties: Properties
       func properties() -> Properties {
         (
           SchemaCoding.Support.DirectObjectProperty<String.Schema>(

@@ -587,6 +587,12 @@ extension SchemaCoding.Support {
     public init(propertySchema: PropertySchema?) {
       self.propertySchema = propertySchema
     }
+    public init(
+      description: String? = nil,
+      schema: EffectiveSchema
+    ) {
+      self.propertySchema = schema.prependingDescription(description)
+    }
 
     public static func value(from propertyValue: PropertySchema.Value?) -> EffectiveSchema.Value? {
       propertyValue
@@ -615,6 +621,14 @@ extension SchemaCoding.Support {
     public let propertySchema: PropertySchema?
     public init(propertySchema: PropertySchema?) {
       self.propertySchema = propertySchema
+    }
+    public init(
+      description: String? = nil,
+      schema: EffectiveSchema
+    ) {
+      self.propertySchema = schema.wrappedSchema
+        .prependingDescription(description)
+        .prependingDescription(schema.description)
     }
 
     public static func value(from propertyValue: PropertySchema.Value?) -> EffectiveSchema.Value? {
@@ -647,6 +661,22 @@ extension SchemaCoding.Support {
     public let propertySchema: PropertySchema?
     public init(propertySchema: PropertySchema?) {
       self.propertySchema = propertySchema
+    }
+    public init(
+      description: String? = nil,
+      schema: EffectiveSchema
+    ) {
+      if let constantValue = schema.constantValue {
+        self.propertySchema =
+          PropertySchema(
+            wrappedSchema: schema.wrappedSchema.wrappedSchema
+              .prependingDescription(schema.wrappedSchema.description),
+            description: schema.description,
+            constantValue: constantValue
+          )
+      } else {
+        self.propertySchema = nil
+      }
     }
 
     public static func value(from propertyValue: PropertySchema.Value?) -> EffectiveSchema.Value? {
