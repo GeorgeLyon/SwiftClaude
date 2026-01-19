@@ -3,9 +3,15 @@ private import SchemaCodingSupport
 
 // MARK: - Object Schema
 
+extension SchemaCoding {
+
+  public typealias ObjectSchema = Support.ObjectSchema
+
+}
+
 extension SchemaCoding.Support {
 
-  public protocol ObjectSchema {
+  public protocol ObjectSchema: Schema {
 
     associatedtype Value
 
@@ -42,7 +48,7 @@ extension SchemaCoding.Support {
   }
 }
 
-// MARK: Object Schema Encoding
+// MARK: - Object Schema Encoding
 
 extension SchemaCoding.Support {
 
@@ -53,6 +59,16 @@ extension SchemaCoding.Support {
 }
 
 extension SchemaCoding.Support.ObjectSchema {
+
+  public func encode(_ value: Value, to encoder: inout SchemaCoding.Support.Encoder) {
+    encoder.stream.encodeObject { objectEncoder in
+      var propertiesEncoder = SchemaCoding.Support.ObjectPropertiesEncoder(
+        objectEncoder: objectEncoder
+      )
+      encodeProperties(of: value, to: &propertiesEncoder)
+      objectEncoder = propertiesEncoder.objectEncoder
+    }
+  }
 
   public func encodeProperties<each Property: SchemaCoding.Support.ObjectProperty>(
     of value: Value,
@@ -89,9 +105,45 @@ extension SchemaCoding.Support.ObjectSchema {
 
 }
 
-// MARK: Object Schema Decoding
+// MARK: - Object Schema Decoding
 
 extension SchemaCoding.Support.ObjectSchema {
+
+  public func beginDecodingValue(
+    from decoder: borrowing SchemaCoding.Support.Decoder
+  ) -> SchemaCoding.Support.ObjectSchemaValueDecodingState<Self> {
+    SchemaCoding.Support.ObjectSchemaValueDecodingState(
+      propertiesDecoder: beginDecodingPropertyValues(from: decoder)
+    )
+  }
+
+  public func decodeValue(
+    from decoder: inout SchemaCoding.Support.Decoder,
+    state: inout SchemaCoding.Support.ObjectSchemaValueDecodingState<Self>
+  ) throws -> SchemaCoding.Support.DecodingResult<Value> {
+    while true {
+      if let propertyDecoder = state.activePropertyDecoder {
+        switch try propertyDecoder.decodeValue(from: &decoder).kind {
+        case .incomplete:
+          return .incomplete
+        case .decoded:
+          state.activePropertyDecoder = nil
+        }
+      }
+
+      switch try decoder.stream.decodeObjectComponent(state: &state.objectState) {
+      case .incomplete:
+        return .incomplete
+      case .decoded(.propertyValueStart(let name)):
+        guard let propertyDecoder = state.propertiesDecoder.propertyDecodersByName[name] else {
+          throw Error.unknownProperty(String(name))
+        }
+        state.activePropertyDecoder = propertyDecoder
+      case .decoded(.end):
+        return .decoded(try state.propertiesDecoder.finishDecoding(from: decoder))
+      }
+    }
+  }
 
   public func beginDecodingPropertyValues<each Property>(
     from decoder: borrowing SchemaCoding.Support.Decoder
@@ -110,7 +162,17 @@ extension SchemaCoding.Support.ObjectSchema {
 
 }
 
-// MARK: Properties Decoder
+extension SchemaCoding.Support {
+
+  public struct ObjectSchemaValueDecodingState<Schema: ObjectSchema> {
+    fileprivate var objectState = JSON.ObjectDecodingState()
+    fileprivate let propertiesDecoder: Schema.PropertiesDecoder
+    fileprivate var activePropertyDecoder: ObjectPropertyDecoderProtocol?
+  }
+
+}
+
+// MARK: Object Properties Decoder
 
 extension SchemaCoding.Support {
 
@@ -229,7 +291,7 @@ extension SchemaCoding.Support {
 
 }
 
-// MARK: Property Decoder
+// MARK: Object Property Decoder
 
 extension SchemaCoding.Support {
 
@@ -320,11 +382,109 @@ extension SchemaCoding.Support {
 
 }
 
-// MARK: - Object Meta Schema
+// MARK:- Object Meta Schema
+
+extension SchemaCoding.Support.ObjectSchema {
+
+  public func _metaSchema<each Property: SchemaCoding.Support.ObjectProperty>()
+    -> SchemaCoding.Support.ObjectMetaSchema<Self, repeat each Property>
+  {
+    SchemaCoding.Support.ObjectMetaSchema(value: self)
+  }
+
+}
 
 extension SchemaCoding.Support {
 
-  public struct ObjectPropertiesMetaSchema<
+  public struct ObjectMetaSchema<
+    Value: ObjectSchema,
+    each ValueProperty: ObjectProperty
+  >: ObjectSchema
+  where
+    Value.PropertyTypeMetadatas == (repeat PropertyTypeMetadata<each ValueProperty>),
+    Value.Properties == (repeat each ValueProperty),
+    Value.PropertyValues == (repeat (each ValueProperty).EffectiveSchema.Value)
+  {
+
+    public typealias PropertiesProperty = DirectObjectProperty<
+      ObjectMetaSchemaPropertiesSchema<
+        Value,
+        repeat each ValueProperty
+      >
+    >
+
+    public typealias PropertyTypeMetadatas = (
+      PropertyTypeMetadata<PropertiesProperty>
+    )
+    public static func propertyTypeMetadatas() -> PropertyTypeMetadatas {
+      (PropertyTypeMetadata(name: .properties))
+    }
+
+    public typealias Properties = (PropertiesProperty)
+    public static func create(from properties: Properties) -> Self {
+      Self(propertiesProperty: properties)
+    }
+    public func properties() -> Properties {
+      (propertiesProperty)
+    }
+
+    public typealias PropertyValues = (PropertiesProperty.EffectiveSchema.Value)
+    public static func value(
+      from propertyValues: (PropertiesProperty.EffectiveSchema.Value)
+    ) throws -> Value {
+      propertyValues
+    }
+    public static func propertyValues(from value: Value) -> PropertyValues {
+      value
+    }
+
+    public typealias ValueDecodingState = ObjectSchemaValueDecodingState<Self>
+
+    public typealias PropertiesDecoder = SchemaCoding.Support.ObjectPropertiesDecoder<
+      Self,
+      PropertiesProperty
+    >
+
+    public typealias MetaSchema = ObjectMetaSchema<
+      Self,
+      PropertiesProperty
+    >
+    public var metaSchema: MetaSchema {
+      _metaSchema()
+    }
+
+    fileprivate init(
+      value: Value
+    ) {
+      let propertyMetaSchemas = (repeat (each value.properties()).propertySchema?.metaSchema)
+      let properties =
+        (repeat ObjectMetaProperty<each ValueProperty>(
+          propertySchema: each propertyMetaSchemas))
+      self.propertiesProperty = PropertiesProperty(
+        propertySchema: ObjectMetaSchemaPropertiesSchema(
+          properties: (repeat each properties)
+        )
+      )
+    }
+
+    private init(
+      propertiesProperty: PropertiesProperty
+    ) {
+      self.propertiesProperty = propertiesProperty
+    }
+
+    public var metadata = SchemaMetadata()
+    private let propertiesProperty: PropertiesProperty
+
+  }
+
+}
+
+// MARK: Object Meta Schema Properties
+
+extension SchemaCoding.Support {
+
+  public struct ObjectMetaSchemaPropertiesSchema<
     Value: ObjectSchema,
     each ValueProperty: ObjectProperty
   >: ObjectSchema
@@ -364,7 +524,7 @@ extension SchemaCoding.Support {
     ) -> Self {
       Self(properties: (repeat each properties))
     }
-    private init(
+    fileprivate init(
       properties: (repeat ObjectMetaProperty<each ValueProperty>)
     ) {
       self._properties = (repeat each properties)
@@ -374,6 +534,16 @@ extension SchemaCoding.Support {
       Self,
       repeat ObjectMetaProperty<each ValueProperty>
     >
+
+    public typealias MetaSchema = ObjectMetaSchema<
+      Self,
+      repeat ObjectMetaProperty<each ValueProperty>
+    >
+    public var metaSchema: MetaSchema {
+      _metaSchema()
+    }
+
+    public var metadata = SchemaMetadata()
 
   }
 

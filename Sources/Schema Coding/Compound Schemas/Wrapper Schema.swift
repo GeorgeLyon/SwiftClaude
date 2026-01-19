@@ -61,18 +61,3 @@ extension SchemaCoding.Support.WrapperSchema {
   #endif
 
 }
-
-extension SchemaCoding.Support {
-
-  private struct Foo: WrapperSchema {
-    typealias Value = String
-    var wrappedSchema: UnimplementedSchema<String>
-    static func wrap(_ wrappedValue: WrappedSchema.Value) -> String {
-      wrappedValue
-    }
-    static func unwrap(_ value: String) -> String {
-      value
-    }
-  }
-
-}

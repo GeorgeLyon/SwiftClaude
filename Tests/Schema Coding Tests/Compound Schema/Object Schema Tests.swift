@@ -11,29 +11,31 @@ struct ObjectSchemaTests {
     let a: String
     let b: String
 
-    /*
     struct Schema: SchemaCoding.ObjectSchema {
-    
+
       typealias Value = SimpleObject
-    
+
       typealias PropertyA = SchemaCoding.Support.DirectObjectProperty<String.Schema>
       typealias PropertyB = SchemaCoding.Support.DirectObjectProperty<String.Schema>
-    
-      typealias PropertyNames = (
-        SchemaCoding.Support.PropertyName<PropertyA>,
-        SchemaCoding.Support.PropertyName<PropertyB>
+
+      typealias PropertyTypeMetadatas = (
+        SchemaCoding.Support.PropertyTypeMetadata<PropertyA>,
+        SchemaCoding.Support.PropertyTypeMetadata<PropertyB>
       )
-      static func propertyNames() -> PropertyNames {
-        ("a", "b")
+      static func propertyTypeMetadatas() -> PropertyTypeMetadatas {
+        (
+          SchemaCoding.Support.PropertyTypeMetadata(name: "a"),
+          SchemaCoding.Support.PropertyTypeMetadata(name: "b")
+        )
       }
-    
+
       typealias Properties = (PropertyA, PropertyB)
-      init(
-        properties: Properties
-      ) {
-        self._properties = properties
+      static func create(from properties: (PropertyA, PropertyB))
+        -> ObjectSchemaTests.SimpleObject.Schema
+      {
+        Self(_properties: properties)
       }
-    
+
       private let _properties: Properties
       func properties() -> Properties {
         (
@@ -45,7 +47,7 @@ struct ObjectSchemaTests {
           )
         )
       }
-    
+
       typealias PropertyValues = (String, String)
       static func value(from propertyValues: PropertyValues) throws -> Value {
         Value(a: propertyValues.0, b: propertyValues.1)
@@ -53,19 +55,28 @@ struct ObjectSchemaTests {
       static func propertyValues(from value: Value) -> (String, String) {
         (value.a, value.b)
       }
-    
+
       var metadata = SchemaCoding.Support.SchemaMetadata()
-    
+
       typealias ValueDecodingState = SchemaCoding.Support.ObjectSchemaValueDecodingState<Self>
-    
+
       typealias PropertiesDecoder = SchemaCoding.Support.ObjectPropertiesDecoder<
         Self,
         SchemaCoding.Support.DirectObjectProperty<String.Schema>,
         SchemaCoding.Support.DirectObjectProperty<String.Schema>
       >
-    
+
+      typealias MetaSchema = SchemaCoding.Support.ObjectMetaSchema<
+        Self,
+        PropertyA,
+        PropertyB
+      >
+      var metaSchema: MetaSchema {
+        _metaSchema()
+      }
+
     }
-    */
+
   }
 
 }
