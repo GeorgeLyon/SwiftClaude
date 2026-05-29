@@ -2,6 +2,9 @@
   "name": "SwiftClaude",
   "dockerFile": "Dockerfile",
 
+  "workspaceMount": "source=${localWorkspaceFolder}/..,target=/workspaces,type=bind",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+
   "capAdd": [
     "SYS_PTRACE"
   ],
@@ -12,13 +15,12 @@
   "mounts": [
     /// Keep build products on a volume for performance and to separate host and guest build artifacts
     "type=volume,source=${localWorkspaceFolderBasename}-build,target=${containerWorkspaceFolder}/.build",
-    "type=volume,source=${localWorkspaceFolderBasename}-npm,target=/root/.npm"
+    "type=volume,source=claude-code-npm,target=/root/.npm"
   ],
 
   /// Install Claude Code, but only after creating the npm volume
   "postCreateCommand": {
-    "Install Claude Code": "npm install -g @anthropic-ai/claude-code",
-    "Link Local Configuration": "ln -s ${containerWorkspaceFolder}/.claude/code/claude.json /root/.claude.json && ln -s ${containerWorkspaceFolder}/.claude/code/claude /root/.claude"
+    "Link Local Configuration": "rm -f /root/.claude.json && rm -rf /root/.claude && ln -s ${containerWorkspaceFolder}/.claude/code/claude.json /root/.claude.json && ln -s ${containerWorkspaceFolder}/.claude/code/claude /root/.claude"
   },
 
   "remoteEnv": {
@@ -30,7 +32,13 @@
     "vscode": {
       "extensions": [
         "swiftlang.swift-vscode"
-      ]
+      ],
+      "settings": {
+        "files.exclude": {
+          /// Code coverage data
+          "default.profraw": true
+        }
+      }
     }
   }
 }
