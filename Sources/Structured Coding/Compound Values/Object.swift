@@ -168,6 +168,7 @@ extension StructuredObjectProperty {
 }
 
 public struct StructuredObjectProperty<Root, Definition: StructuredObjectPropertyDefinition> {
+  public typealias ObjectDecoderValue = Definition.ObjectDecoderValue
   fileprivate let name: StructuredCodingKey
   fileprivate let taggedKeyPath: TaggedKeyPath<Root, Definition.PropertyValue>
   fileprivate let definition: Definition

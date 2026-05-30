@@ -74,28 +74,29 @@ private struct ConstantObject: StructuredObject, Equatable, Sendable {
     self.opt = opt
   }
 
-  typealias Properties = (
-    StructuredObjectProperty<
-      Self,
-      StructuredImmutableDefaultInitializedPropertyDefinition<
-        StructuredRequiredObjectPropertyDefinition<String>
-      >
-    >,
-    StructuredObjectProperty<
-      Self,
-      StructuredImmutableDefaultInitializedPropertyDefinition<
-        StructuredOptionalObjectPropertyDefinition<String>
-      >
+  typealias _KindProperty = StructuredObjectProperty<
+    Self,
+    StructuredImmutableDefaultInitializedPropertyDefinition<
+      StructuredRequiredObjectPropertyDefinition<String>
     >
-  )
+  >
+  typealias _OptProperty = StructuredObjectProperty<
+    Self,
+    StructuredImmutableDefaultInitializedPropertyDefinition<
+      StructuredOptionalObjectPropertyDefinition<String>
+    >
+  >
+  typealias Properties = (_KindProperty, _OptProperty)
   static func properties() -> Properties {
     (
-      StructuredObjectProperty(name: "kind", keyPath: \.kind),
-      StructuredObjectProperty(name: "opt", keyPath: \.opt)
+      _KindProperty(name: "kind", keyPath: \.kind),
+      _OptProperty(name: "opt", keyPath: \.opt)
     )
   }
 
-  typealias ObjectDecoderValues = (Void, Void)
+  typealias ObjectDecoderValues = (
+    _KindProperty.ObjectDecoderValue, _OptProperty.ObjectDecoderValue
+  )
   static func decode(from objectDecoder: sending StructuredObjectDecoder<ObjectDecoderValues>)
     -> sending Self
   {
@@ -116,23 +117,26 @@ private struct TaggedConstantObject: StructuredObject, Equatable, Sendable {
     self.kind = kind
   }
 
-  typealias Properties = (
-    StructuredObjectProperty<Self, StructuredRequiredObjectPropertyDefinition<Int>>,
-    StructuredObjectProperty<
-      Self,
-      StructuredImmutableDefaultInitializedPropertyDefinition<
-        StructuredRequiredObjectPropertyDefinition<String>
-      >
+  typealias _IDProperty = StructuredObjectProperty<
+    Self, StructuredRequiredObjectPropertyDefinition<Int>
+  >
+  typealias _KindProperty = StructuredObjectProperty<
+    Self,
+    StructuredImmutableDefaultInitializedPropertyDefinition<
+      StructuredRequiredObjectPropertyDefinition<String>
     >
-  )
+  >
+  typealias Properties = (_IDProperty, _KindProperty)
   static func properties() -> Properties {
     (
-      StructuredObjectProperty(name: "id", keyPath: \.id),
-      StructuredObjectProperty(name: "kind", keyPath: \.kind)
+      _IDProperty(name: "id", keyPath: \.id),
+      _KindProperty(name: "kind", keyPath: \.kind)
     )
   }
 
-  typealias ObjectDecoderValues = (Int, Void)
+  typealias ObjectDecoderValues = (
+    _IDProperty.ObjectDecoderValue, _KindProperty.ObjectDecoderValue
+  )
   static func decode(from objectDecoder: sending StructuredObjectDecoder<ObjectDecoderValues>)
     -> sending Self
   {

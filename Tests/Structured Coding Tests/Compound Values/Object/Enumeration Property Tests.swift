@@ -111,18 +111,23 @@ private struct EnumHolder: StructuredObject, Equatable, Sendable {
     self.choice = choice
   }
 
-  typealias Properties = (
-    StructuredObjectProperty<Self, StructuredRequiredObjectPropertyDefinition<Int>>,
-    StructuredObjectProperty<Self, StructuredRequiredObjectPropertyDefinition<Choice>>
-  )
+  typealias _XProperty = StructuredObjectProperty<
+    Self, StructuredRequiredObjectPropertyDefinition<Int>
+  >
+  typealias _ChoiceProperty = StructuredObjectProperty<
+    Self, StructuredRequiredObjectPropertyDefinition<Choice>
+  >
+  typealias Properties = (_XProperty, _ChoiceProperty)
   static func properties() -> Properties {
     (
-      StructuredObjectProperty(name: "x", keyPath: \.x),
-      StructuredObjectProperty(name: "choice", keyPath: \.choice)
+      _XProperty(name: "x", keyPath: \.x),
+      _ChoiceProperty(name: "choice", keyPath: \.choice)
     )
   }
 
-  typealias ObjectDecoderValues = (Int, Choice)
+  typealias ObjectDecoderValues = (
+    _XProperty.ObjectDecoderValue, _ChoiceProperty.ObjectDecoderValue
+  )
   static func decode(from objectDecoder: sending StructuredObjectDecoder<ObjectDecoderValues>) -> sending Self {
     Self(x: objectDecoder.values.0, choice: objectDecoder.values.1)
   }
@@ -159,18 +164,23 @@ private struct OptionalPayloadHolder: StructuredObject, Equatable, Sendable {
     self.choice = choice
   }
 
-  typealias Properties = (
-    StructuredObjectProperty<Self, StructuredRequiredObjectPropertyDefinition<Int>>,
-    StructuredObjectProperty<Self, StructuredRequiredObjectPropertyDefinition<MaybeChoice>>
-  )
+  typealias _XProperty = StructuredObjectProperty<
+    Self, StructuredRequiredObjectPropertyDefinition<Int>
+  >
+  typealias _ChoiceProperty = StructuredObjectProperty<
+    Self, StructuredRequiredObjectPropertyDefinition<MaybeChoice>
+  >
+  typealias Properties = (_XProperty, _ChoiceProperty)
   static func properties() -> Properties {
     (
-      StructuredObjectProperty(name: "x", keyPath: \.x),
-      StructuredObjectProperty(name: "choice", keyPath: \.choice)
+      _XProperty(name: "x", keyPath: \.x),
+      _ChoiceProperty(name: "choice", keyPath: \.choice)
     )
   }
 
-  typealias ObjectDecoderValues = (Int, MaybeChoice)
+  typealias ObjectDecoderValues = (
+    _XProperty.ObjectDecoderValue, _ChoiceProperty.ObjectDecoderValue
+  )
   static func decode(from objectDecoder: sending StructuredObjectDecoder<ObjectDecoderValues>) -> sending Self {
     Self(x: objectDecoder.values.0, choice: objectDecoder.values.1)
   }

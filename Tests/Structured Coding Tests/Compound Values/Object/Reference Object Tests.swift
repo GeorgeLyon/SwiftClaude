@@ -36,12 +36,15 @@ private final class ReferenceObject: StructuredObject, @unchecked Sendable, Equa
     lhs.name == rhs.name
   }
 
-  typealias Properties = StructuredObjectProperty<ReferenceObject, StructuredRequiredObjectPropertyDefinition<String>>
+  typealias _NameProperty = StructuredObjectProperty<
+    ReferenceObject, StructuredRequiredObjectPropertyDefinition<String>
+  >
+  typealias Properties = _NameProperty
   static func properties() -> Properties {
-    StructuredObjectProperty(name: "name", keyPath: \.name)
+    _NameProperty(name: "name", keyPath: \.name)
   }
 
-  typealias ObjectDecoderValues = String
+  typealias ObjectDecoderValues = _NameProperty.ObjectDecoderValue
   static func decode(from objectDecoder: sending StructuredObjectDecoder<ObjectDecoderValues>) -> sending Self {
     Self(name: objectDecoder.values)
   }

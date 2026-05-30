@@ -77,18 +77,23 @@ private struct NestingObject: StructuredObject, Equatable, Sendable {
     self.inner = inner
   }
 
-  typealias Properties = (
-    StructuredObjectProperty<Self, StructuredRequiredObjectPropertyDefinition<String>>,
-    StructuredObjectProperty<Self, StructuredRequiredObjectPropertyDefinition<MutableStringObject>>
-  )
+  typealias _LabelProperty = StructuredObjectProperty<
+    Self, StructuredRequiredObjectPropertyDefinition<String>
+  >
+  typealias _InnerProperty = StructuredObjectProperty<
+    Self, StructuredRequiredObjectPropertyDefinition<MutableStringObject>
+  >
+  typealias Properties = (_LabelProperty, _InnerProperty)
   static func properties() -> Properties {
     (
-      StructuredObjectProperty(name: "label", keyPath: \.label),
-      StructuredObjectProperty(name: "inner", keyPath: \.inner)
+      _LabelProperty(name: "label", keyPath: \.label),
+      _InnerProperty(name: "inner", keyPath: \.inner)
     )
   }
 
-  typealias ObjectDecoderValues = (String, MutableStringObject)
+  typealias ObjectDecoderValues = (
+    _LabelProperty.ObjectDecoderValue, _InnerProperty.ObjectDecoderValue
+  )
   static func decode(from objectDecoder: sending StructuredObjectDecoder<ObjectDecoderValues>) -> sending Self {
     Self(label: objectDecoder.values.0, inner: objectDecoder.values.1)
   }
@@ -103,12 +108,15 @@ private struct DeferredParent: StructuredObject, Equatable, Sendable {
     self.inner = inner
   }
 
-  typealias Properties = StructuredObjectProperty<Self, StructuredRequiredObjectPropertyDefinition<SingleScalarObject>>
+  typealias _InnerProperty = StructuredObjectProperty<
+    Self, StructuredRequiredObjectPropertyDefinition<SingleScalarObject>
+  >
+  typealias Properties = _InnerProperty
   static func properties() -> Properties {
-    StructuredObjectProperty(name: "inner", keyPath: \.inner)
+    _InnerProperty(name: "inner", keyPath: \.inner)
   }
 
-  typealias ObjectDecoderValues = SingleScalarObject
+  typealias ObjectDecoderValues = _InnerProperty.ObjectDecoderValue
   static func decode(from objectDecoder: sending StructuredObjectDecoder<ObjectDecoderValues>) -> sending Self {
     Self(inner: objectDecoder.values)
   }

@@ -263,12 +263,15 @@ private struct Message: StructuredObject, Equatable, Sendable {
     self.body = body
   }
 
-  typealias Properties = StructuredObjectProperty<Self, StructuredRequiredObjectPropertyDefinition<String>>
+  typealias _BodyProperty = StructuredObjectProperty<
+    Self, StructuredRequiredObjectPropertyDefinition<String>
+  >
+  typealias Properties = _BodyProperty
   static func properties() -> Properties {
-    StructuredObjectProperty(name: "body", keyPath: \.body)
+    _BodyProperty(name: "body", keyPath: \.body)
   }
 
-  typealias ObjectDecoderValues = String
+  typealias ObjectDecoderValues = _BodyProperty.ObjectDecoderValue
   static func decode(from objectDecoder: sending StructuredObjectDecoder<ObjectDecoderValues>) -> sending Self
   {
     Self(body: objectDecoder.values)
@@ -287,18 +290,23 @@ private struct Move: StructuredObject, Equatable, Sendable {
     self.y = y
   }
 
-  typealias Properties = (
-    StructuredObjectProperty<Self, StructuredRequiredObjectPropertyDefinition<Int>>,
-    StructuredObjectProperty<Self, StructuredRequiredObjectPropertyDefinition<Int>>
-  )
+  typealias _XProperty = StructuredObjectProperty<
+    Self, StructuredRequiredObjectPropertyDefinition<Int>
+  >
+  typealias _YProperty = StructuredObjectProperty<
+    Self, StructuredRequiredObjectPropertyDefinition<Int>
+  >
+  typealias Properties = (_XProperty, _YProperty)
   static func properties() -> Properties {
     (
-      StructuredObjectProperty(name: "x", keyPath: \.x),
-      StructuredObjectProperty(name: "y", keyPath: \.y)
+      _XProperty(name: "x", keyPath: \.x),
+      _YProperty(name: "y", keyPath: \.y)
     )
   }
 
-  typealias ObjectDecoderValues = (Int, Int)
+  typealias ObjectDecoderValues = (
+    _XProperty.ObjectDecoderValue, _YProperty.ObjectDecoderValue
+  )
   static func decode(from objectDecoder: sending StructuredObjectDecoder<ObjectDecoderValues>) -> sending Self
   {
     Self(x: objectDecoder.values.0, y: objectDecoder.values.1)

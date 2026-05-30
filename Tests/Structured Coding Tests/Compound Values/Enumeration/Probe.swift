@@ -69,14 +69,19 @@ private struct ProbeMove: StructuredObject, Equatable, Sendable {
   let x: Int
   let y: Int
   init(x: Int, y: Int) { self.x = x; self.y = y }
-  typealias Properties = (
-    StructuredObjectProperty<Self, StructuredRequiredObjectPropertyDefinition<Int>>,
-    StructuredObjectProperty<Self, StructuredRequiredObjectPropertyDefinition<Int>>
-  )
+  typealias _XProperty = StructuredObjectProperty<
+    Self, StructuredRequiredObjectPropertyDefinition<Int>
+  >
+  typealias _YProperty = StructuredObjectProperty<
+    Self, StructuredRequiredObjectPropertyDefinition<Int>
+  >
+  typealias Properties = (_XProperty, _YProperty)
   static func properties() -> Properties {
-    (StructuredObjectProperty(name: "x", keyPath: \.x), StructuredObjectProperty(name: "y", keyPath: \.y))
+    (_XProperty(name: "x", keyPath: \.x), _YProperty(name: "y", keyPath: \.y))
   }
-  typealias ObjectDecoderValues = (Int, Int)
+  typealias ObjectDecoderValues = (
+    _XProperty.ObjectDecoderValue, _YProperty.ObjectDecoderValue
+  )
   static func decode(from objectDecoder: sending StructuredObjectDecoder<ObjectDecoderValues>) -> sending Self {
     Self(x: objectDecoder.values.0, y: objectDecoder.values.1)
   }

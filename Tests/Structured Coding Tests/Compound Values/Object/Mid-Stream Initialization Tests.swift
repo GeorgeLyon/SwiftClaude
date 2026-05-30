@@ -133,14 +133,15 @@ private struct LetStringObject: StructuredObject, Equatable, Sendable {
     self.name = name
   }
 
-  typealias Properties = StructuredObjectProperty<
+  typealias _NameProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<String>
   >
+  typealias Properties = _NameProperty
   static func properties() -> Properties {
-    StructuredObjectProperty(name: "name", keyPath: \.name)
+    _NameProperty(name: "name", keyPath: \.name)
   }
 
-  typealias ObjectDecoderValues = String
+  typealias ObjectDecoderValues = _NameProperty.ObjectDecoderValue
   static func decode(from objectDecoder: sending StructuredObjectDecoder<ObjectDecoderValues>)
     -> sending Self
   {
@@ -162,18 +163,23 @@ private struct ProfileObject: StructuredObject, Equatable, Sendable {
     self.name = name
   }
 
-  typealias Properties = (
-    StructuredObjectProperty<Self, StructuredOptionalObjectPropertyDefinition<Int>>,
-    StructuredObjectProperty<Self, StructuredRequiredObjectPropertyDefinition<String>>
-  )
+  typealias _NicknameProperty = StructuredObjectProperty<
+    Self, StructuredOptionalObjectPropertyDefinition<Int>
+  >
+  typealias _NameProperty = StructuredObjectProperty<
+    Self, StructuredRequiredObjectPropertyDefinition<String>
+  >
+  typealias Properties = (_NicknameProperty, _NameProperty)
   static func properties() -> Properties {
     (
-      StructuredObjectProperty(name: "nickname", keyPath: \.nickname),
-      StructuredObjectProperty(name: "name", keyPath: \.name)
+      _NicknameProperty(name: "nickname", keyPath: \.nickname),
+      _NameProperty(name: "name", keyPath: \.name)
     )
   }
 
-  typealias ObjectDecoderValues = (Int?, String)
+  typealias ObjectDecoderValues = (
+    _NicknameProperty.ObjectDecoderValue, _NameProperty.ObjectDecoderValue
+  )
   static func decode(from objectDecoder: sending StructuredObjectDecoder<ObjectDecoderValues>)
     -> sending Self
   {
