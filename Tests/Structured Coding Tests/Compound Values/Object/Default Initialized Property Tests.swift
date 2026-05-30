@@ -63,18 +63,30 @@ private struct DefaultObject: StructuredObject, Equatable, Sendable {
   }
 
   typealias Properties = (
-    StructuredObjectProperty<Self, StructuredMutableDefaultInitializedPropertyDefinition<StructuredRequiredObjectPropertyDefinition<Int>>>,
-    StructuredObjectProperty<Self, StructuredMutableDefaultInitializedPropertyDefinition<StructuredOptionalObjectPropertyDefinition<String>>>
+    StructuredObjectProperty<
+      Self,
+      StructuredMutableDefaultInitializedPropertyDefinition<
+        StructuredRequiredObjectPropertyDefinition<Int>
+      >
+    >,
+    StructuredObjectProperty<
+      Self,
+      StructuredMutableDefaultInitializedPropertyDefinition<
+        StructuredOptionalObjectPropertyDefinition<String>
+      >
+    >
   )
   static func properties() -> Properties {
     (
-      StructuredObjectProperty(name: "count", keyPath: \.count, isDefaultInitialized: true),
-      StructuredObjectProperty(name: "note", keyPath: \.note, isDefaultInitialized: true)
+      StructuredObjectProperty(name: "count", keyPath: \.count),
+      StructuredObjectProperty(name: "note", keyPath: \.note)
     )
   }
 
   typealias ObjectDecoderValues = (Int?, String??)
-  static func decode(from objectDecoder: sending StructuredObjectDecoder<ObjectDecoderValues>) -> sending Self {
+  static func decode(from objectDecoder: sending StructuredObjectDecoder<ObjectDecoderValues>)
+    -> sending Self
+  {
     Self(
       count: objectDecoder.values.0 ?? 10,
       note: objectDecoder.values.1 ?? nil

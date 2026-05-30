@@ -75,18 +75,30 @@ private struct ConstantObject: StructuredObject, Equatable, Sendable {
   }
 
   typealias Properties = (
-    StructuredObjectProperty<Self, StructuredImmutableDefaultInitializedPropertyDefinition<StructuredRequiredObjectPropertyDefinition<String>>>,
-    StructuredObjectProperty<Self, StructuredImmutableDefaultInitializedPropertyDefinition<StructuredOptionalObjectPropertyDefinition<String>>>
+    StructuredObjectProperty<
+      Self,
+      StructuredImmutableDefaultInitializedPropertyDefinition<
+        StructuredRequiredObjectPropertyDefinition<String>
+      >
+    >,
+    StructuredObjectProperty<
+      Self,
+      StructuredImmutableDefaultInitializedPropertyDefinition<
+        StructuredOptionalObjectPropertyDefinition<String>
+      >
+    >
   )
   static func properties() -> Properties {
     (
-      StructuredObjectProperty(name: "kind", keyPath: \.kind, isDefaultInitialized: true),
-      StructuredObjectProperty(name: "opt", keyPath: \.opt, isDefaultInitialized: true)
+      StructuredObjectProperty(name: "kind", keyPath: \.kind),
+      StructuredObjectProperty(name: "opt", keyPath: \.opt)
     )
   }
 
   typealias ObjectDecoderValues = (Void, Void)
-  static func decode(from objectDecoder: sending StructuredObjectDecoder<ObjectDecoderValues>) -> sending Self {
+  static func decode(from objectDecoder: sending StructuredObjectDecoder<ObjectDecoderValues>)
+    -> sending Self
+  {
     Self()
   }
 }
@@ -116,7 +128,7 @@ private struct TaggedConstantObject: StructuredObject, Equatable, Sendable {
   static func properties() -> Properties {
     (
       StructuredObjectProperty(name: "id", keyPath: \.id),
-      StructuredObjectProperty(name: "kind", keyPath: \.kind, isDefaultInitialized: true)
+      StructuredObjectProperty(name: "kind", keyPath: \.kind)
     )
   }
 

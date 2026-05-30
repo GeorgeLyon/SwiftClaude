@@ -26,7 +26,7 @@ public protocol StructuredObject: StructuredCodable {
 
 }
 
-// MARK: StructuredDecoder
+// MARK: Structured Object Decoder
 
 public struct StructuredObjectDecoder<Values> {
   public let values: Values
@@ -90,14 +90,12 @@ extension StructuredObjectProperty {
   public init<T>(
     name: StructuredCodingKey,
     keyPath: KeyPath<Root, T> & Sendable,
-    isDefaultInitialized: Bool
   )
   where
     Definition == StructuredImmutableDefaultInitializedPropertyDefinition<
       StructuredRequiredObjectPropertyDefinition<T>
     >
   {
-    guard isDefaultInitialized else { fatalError() }
     self.name = name
     self.taggedKeyPath = .getOnly(keyPath)
     self.definition = Definition(name: name, base: .init(name: name))
@@ -105,14 +103,12 @@ extension StructuredObjectProperty {
   public init<T>(
     name: StructuredCodingKey,
     keyPath: KeyPath<Root, T?> & Sendable,
-    isDefaultInitialized: Bool
   )
   where
     Definition == StructuredImmutableDefaultInitializedPropertyDefinition<
       StructuredOptionalObjectPropertyDefinition<T>
     >
   {
-    guard isDefaultInitialized else { fatalError() }
     self.name = name
     self.taggedKeyPath = .getOnly(keyPath)
     self.definition = Definition(name: name, base: .init())
@@ -120,14 +116,12 @@ extension StructuredObjectProperty {
   public init<T>(
     name: StructuredCodingKey,
     keyPath: WritableKeyPath<Root, T> & Sendable,
-    isDefaultInitialized: Bool
   )
   where
     Definition == StructuredMutableDefaultInitializedPropertyDefinition<
       StructuredRequiredObjectPropertyDefinition<T>
     >
   {
-    guard isDefaultInitialized else { fatalError() }
     self.name = name
     self.taggedKeyPath = .writable(keyPath)
     self.definition = Definition(base: .init(name: name))
@@ -135,14 +129,12 @@ extension StructuredObjectProperty {
   public init<T>(
     name: StructuredCodingKey,
     keyPath: WritableKeyPath<Root, T?> & Sendable,
-    isDefaultInitialized: Bool
   )
   where
     Definition == StructuredMutableDefaultInitializedPropertyDefinition<
       StructuredOptionalObjectPropertyDefinition<T>
     >
   {
-    guard isDefaultInitialized else { fatalError() }
     self.name = name
     self.taggedKeyPath = .writable(keyPath)
     self.definition = Definition(base: .init())
@@ -150,14 +142,12 @@ extension StructuredObjectProperty {
   public init<T>(
     name: StructuredCodingKey,
     keyPath: ReferenceWritableKeyPath<Root, T> & Sendable,
-    isDefaultInitialized: Bool
   )
   where
     Definition == StructuredMutableDefaultInitializedPropertyDefinition<
       StructuredRequiredObjectPropertyDefinition<T>
     >
   {
-    guard isDefaultInitialized else { fatalError() }
     self.name = name
     self.taggedKeyPath = .referenceWritable(keyPath)
     self.definition = Definition(base: .init(name: name))
@@ -165,14 +155,12 @@ extension StructuredObjectProperty {
   public init<T>(
     name: StructuredCodingKey,
     keyPath: ReferenceWritableKeyPath<Root, T?> & Sendable,
-    isDefaultInitialized: Bool
   )
   where
     Definition == StructuredMutableDefaultInitializedPropertyDefinition<
       StructuredOptionalObjectPropertyDefinition<T>
     >
   {
-    guard isDefaultInitialized else { fatalError() }
     self.name = name
     self.taggedKeyPath = .referenceWritable(keyPath)
     self.definition = Definition(base: .init())
