@@ -3,56 +3,909 @@ import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 
-// MARK: - Schema Codable
+// MARK: - Conformance Members
 
 extension SchemaCodableType {
 
+  /// The protocol the generated extension conforms the type to.
+  var conformanceType: some TypeSyntaxProtocol {
+    switch kind {
+    case .object:
+      namespace.memberType(name: "StructuredObject")
+    case .enumeration:
+      namespace.memberType(name: "StructuredEnumeration")
+    }
+  }
+
   @MemberBlockItemListBuilder
   var members: MemberBlockItemListSyntax {
-    switch schemaKind {
-    case .struct(let schema):
-      if schema.style == .wrapper {
-        VariableDeclSyntax.schemaProperty(
-          namespace: namespace,
-          isPublic: isPublic,
-          schemaProtocolName: "Schema",
-          isComplexSchema: false,
-          getter: {
-            schema.expr(propertyNameConversionStrategy: keyConversionStrategy)
+    switch kind {
+    case .object(let schema):
+      schema.conformanceMembers(isPublic: isPublic)
+    case .enumeration(let schema):
+      schema.conformanceMembers(isPublic: isPublic)
+    }
+  }
+
+}
+
+// MARK: - Object Code Generation
+
+extension ObjectSchema {
+
+  /// The `StructuredObject` witnesses to add to the decorated type's conformance.
+  @MemberBlockItemListBuilder
+  func conformanceMembers(isPublic: Bool) -> MemberBlockItemListSyntax {
+    // typealias <unique> = {ns}.StructuredObjectProperty<Self, {definition}>
+    for property in properties {
+      TypeAliasDeclSyntax(
+        modifiers: .visibility(isPublic),
+        name: property.propertyTypeAliasName,
+        initializer: TypeInitializerClauseSyntax(
+          value: namespace.memberType(
+            name: "StructuredObjectProperty",
+            genericArgumentClause: GenericArgumentClauseSyntax {
+              GenericArgumentSyntax(
+                argument: GenericArgumentSyntax.Argument(IdentifierTypeSyntax(name: "Self"))
+              )
+              GenericArgumentSyntax(
+                argument: GenericArgumentSyntax.Argument(property.definition.typeSyntax(in: namespace))
+              )
+            }
+          )
+        )
+      )
+    }
+
+    // typealias Properties = (<unique>, ...)
+    TypeAliasDeclSyntax(
+      modifiers: .visibility(isPublic),
+      name: "Properties",
+      initializer: TypeInitializerClauseSyntax(
+        value: tupleOrSingle(properties.map { property in
+          TypeSyntax(IdentifierTypeSyntax(name: property.propertyTypeAliasName))
+        })
+      )
+    )
+
+    // static func properties() -> Properties { ... }
+    FunctionDeclSyntax(
+      modifiers: .visibility(isPublic, static: true),
+      name: "properties",
+      signature: FunctionSignatureSyntax(
+        parameterClause: FunctionParameterClauseSyntax(parameters: FunctionParameterListSyntax()),
+        returnClause: ReturnClauseSyntax(type: IdentifierTypeSyntax(name: "Properties"))
+      ),
+      body: CodeBlockSyntax {
+        tupleOrSingleExpr(
+          properties.map { property in
+            ExprSyntax(property.propertyExpr(keyConversionStrategy: keyConversionStrategy))
           }
         )
+      }
+    )
 
-        InitializerDeclSyntax.schemaCodableStructInitializer(
-          namespace: namespace,
-          properties: schema.properties,
-          style: schema.style
+    // typealias ObjectDecoderValues = (<unique>.ObjectDecoderValue, ...)
+    TypeAliasDeclSyntax(
+      modifiers: .visibility(isPublic),
+      name: "ObjectDecoderValues",
+      initializer: TypeInitializerClauseSyntax(
+        value: tupleOrSingle(properties.map { property in
+          TypeSyntax(
+            MemberTypeSyntax(
+              baseType: IdentifierTypeSyntax(name: property.propertyTypeAliasName),
+              name: "ObjectDecoderValue"
+            )
+          )
+        })
+      )
+    )
+
+    // static func decode(from objectDecoder: sending {ns}.StructuredObjectDecoder<ObjectDecoderValues>) -> sending Self { ... }
+    FunctionDeclSyntax(
+      modifiers: .visibility(isPublic, static: true),
+      name: "decode",
+      signature: FunctionSignatureSyntax(
+        parameterClause: decoderParameterClause(),
+        returnClause: ReturnClauseSyntax(
+          type: sendingType(IdentifierTypeSyntax(name: "Self"))
         )
-      } else {
-        VariableDeclSyntax.objectSchemaProperty(isPublic: isPublic)
+      ),
+      body: CodeBlockSyntax {
+        if isSynthesized {
+          // A synthesized associated-value object has no user-written initializer,
+          // so its implicit memberwise initializer is always available — and it must
+          // stay available for the enum case's accessor to construct it, which an
+          // in-body `private init` would suppress.
+          decodeInitializerCallExpr()
+        } else {
+          // Self(from: objectDecoder)
+          FunctionCallExprSyntax(
+            calledExpression: DeclReferenceExprSyntax(baseName: "Self"),
+            leftParen: .leftParenToken(),
+            arguments: LabeledExprListSyntax {
+              LabeledExprSyntax(
+                label: "from",
+                colon: .colonToken(),
+                expression: DeclReferenceExprSyntax(baseName: "objectDecoder")
+              )
+            },
+            rightParen: .rightParenToken()
+          )
+        }
+      }
+    )
 
-        StructDeclSyntax.objectSchemaStruct(
-          schema: schema,
-          valueType: typeSyntax,
-          isPublic: isPublic,
-          keyConversionStrategy: keyConversionStrategy
+    // private init(from objectDecoder: …) { self.x = … } — assigns the stored
+    // properties directly rather than relying on a memberwise initializer the type
+    // may not have. Synthesized objects use the memberwise path above instead.
+    if !isSynthesized {
+      decoderInitializer()
+    }
+  }
+
+  /// The full nested type declaration synthesized for an all-labeled enum case:
+  /// the stored properties plus the `StructuredObject` conformance.
+  func synthesizedStructDecl(isPublic: Bool) -> StructDeclSyntax {
+    StructDeclSyntax(
+      modifiers: .visibility(isPublic),
+      name: rootType,
+      inheritanceClause: InheritanceClauseSyntax {
+        InheritedTypeSyntax(type: namespace.memberType(name: "StructuredObject"))
+      }
+    ) {
+      for property in properties {
+        VariableDeclSyntax(
+          modifiers: .visibility(isPublic),
+          bindingSpecifier: .keyword(.var),
+          bindings: PatternBindingListSyntax {
+            PatternBindingSyntax(
+              pattern: IdentifierPatternSyntax(identifier: property.name.token),
+              typeAnnotation: TypeAnnotationSyntax(type: property.definition.declaredType)
+            )
+          }
         )
       }
-    case .enum(let schema):
-      VariableDeclSyntax.schemaProperty(
-        namespace: namespace,
-        isPublic: isPublic,
-        schemaProtocolName: "Schema",
-        isComplexSchema: true,
-        getter: {
-          schema.expr(caseNameConversionStrategy: keyConversionStrategy)
+      conformanceMembers(isPublic: isPublic)
+    }
+  }
+
+  /// `Self(label0: objectDecoder.values.0, label2: objectDecoder.values.2 ?? <default>)`,
+  /// omitting constant (immutable-default) properties so the type's own
+  /// initializer supplies them.
+  private func decodeInitializerCallExpr() -> FunctionCallExprSyntax {
+    let isSingle = properties.count == 1
+    var arguments = LabeledExprListSyntax()
+    for (index, property) in properties.enumerated() {
+      let expression: ExprSyntax
+      switch property.definition.defaulting {
+      case .immutable:
+        // Omitted — the initializer's own default supplies the constant.
+        continue
+      case .none:
+        expression = property.decoderValueExpr(index: index, isSingle: isSingle)
+      case .mutable(let defaultValue):
+        expression = ExprSyntax(
+          InfixOperatorExprSyntax(
+            leftOperand: property.decoderValueExpr(index: index, isSingle: isSingle),
+            operator: BinaryOperatorExprSyntax(
+              operator: .binaryOperator("??", leadingTrivia: .space, trailingTrivia: .space)
+            ),
+            rightOperand: defaultValue.trimmed
+          )
+        )
+      }
+      arguments.append(
+        LabeledExprSyntax(
+          label: .identifier(property.name.name),
+          colon: .colonToken(),
+          expression: expression,
+          trailingComma: .commaToken(trailingTrivia: .newline)
+        )
+      )
+    }
+    guard let lastIndex = arguments.indices.last else {
+      // No decoded arguments (e.g. an empty object, or one whose every property is
+      // a constant supplied by the initializer's own defaults) — `Self()`.
+      return FunctionCallExprSyntax(
+        calledExpression: DeclReferenceExprSyntax(baseName: "Self"),
+        leftParen: .leftParenToken(),
+        arguments: LabeledExprListSyntax(),
+        rightParen: .rightParenToken()
+      )
+    }
+    arguments[lastIndex].trailingComma = nil
+    return FunctionCallExprSyntax(
+      calledExpression: DeclReferenceExprSyntax(baseName: "Self"),
+      leftParen: .leftParenToken(trailingTrivia: .newline),
+      arguments: arguments,
+      rightParen: .rightParenToken(leadingTrivia: .newline)
+    )
+  }
+
+  /// `(from objectDecoder: sending {ns}.StructuredObjectDecoder<ObjectDecoderValues>)`,
+  /// shared by `decode` and the private initializer.
+  private func decoderParameterClause() -> FunctionParameterClauseSyntax {
+    FunctionParameterClauseSyntax {
+      FunctionParameterSyntax(
+        firstName: "from",
+        secondName: "objectDecoder",
+        type: sendingType(
+          namespace.memberType(
+            name: "StructuredObjectDecoder",
+            genericArgumentClause: GenericArgumentClauseSyntax {
+              GenericArgumentSyntax(
+                argument: GenericArgumentSyntax.Argument(
+                  IdentifierTypeSyntax(name: "ObjectDecoderValues")))
+            }
+          )
+        )
+      )
+    }
+  }
+
+  /// `private init(from objectDecoder: …) { self.x = … }` — assigns each stored
+  /// property directly so the type need not expose a memberwise initializer:
+  /// - plain properties are assigned unconditionally;
+  /// - default-initialized `var`s are assigned only when a value was decoded
+  ///   (`if let`), otherwise keeping their declared default;
+  /// - default-initialized `let`s keep their declared value (left as a comment).
+  private func decoderInitializer() -> InitializerDeclSyntax {
+    let isSingle = properties.count == 1
+    var statements = CodeBlockItemListSyntax()
+    var pendingTrivia = Trivia()
+
+    func appendStatement(_ expression: some ExprSyntaxProtocol) {
+      var element = CodeBlockItemSyntax(item: .expr(ExprSyntax(expression)))
+      element.leadingTrivia = pendingTrivia + element.leadingTrivia
+      pendingTrivia = Trivia()
+      statements.append(element)
+    }
+
+    for (index, property) in properties.enumerated() {
+      let storedProperty = MemberAccessExprSyntax(
+        base: DeclReferenceExprSyntax(baseName: "self"),
+        name: property.name.token
+      )
+      switch property.definition.defaulting {
+      case .immutable:
+        pendingTrivia =
+          pendingTrivia
+          + .lineComment(
+            "// `\(property.name.name)` is a default-initialized `let`; its declared value is kept.")
+          + .newline
+      case .none:
+        // self.x = objectDecoder.values.N
+        appendStatement(
+          InfixOperatorExprSyntax(
+            leftOperand: storedProperty,
+            operator: AssignmentExprSyntax(),
+            rightOperand: property.decoderValueExpr(index: index, isSingle: isSingle)
+          )
+        )
+      case .mutable:
+        // if let x = objectDecoder.values.N { self.x = x }
+        appendStatement(
+          IfExprSyntax(
+            conditions: ConditionElementListSyntax {
+              ConditionElementSyntax(
+                condition: .optionalBinding(
+                  OptionalBindingConditionSyntax(
+                    bindingSpecifier: .keyword(.let),
+                    pattern: IdentifierPatternSyntax(identifier: property.name.token),
+                    initializer: InitializerClauseSyntax(
+                      value: property.decoderValueExpr(index: index, isSingle: isSingle)
+                    )
+                  )
+                )
+              )
+            },
+            body: CodeBlockSyntax {
+              InfixOperatorExprSyntax(
+                leftOperand: storedProperty,
+                operator: AssignmentExprSyntax(),
+                rightOperand: DeclReferenceExprSyntax(baseName: property.name.token)
+              )
+            }
+          )
+        )
+      }
+    }
+
+    return InitializerDeclSyntax(
+      modifiers: .private,
+      signature: FunctionSignatureSyntax(parameterClause: decoderParameterClause()),
+      body: CodeBlockSyntax(
+        statements: statements,
+        rightBrace: .rightBraceToken(
+          leadingTrivia: pendingTrivia.isEmpty ? .newline : .newline + pendingTrivia
+        )
+      )
+    )
+  }
+
+}
+
+extension ObjectSchema.Property {
+
+  /// `<unique>(name: "json", keyPath: \.swiftName)`
+  fileprivate func propertyExpr(
+    keyConversionStrategy: KeyConversionStrategy
+  ) -> FunctionCallExprSyntax {
+    FunctionCallExprSyntax(
+      calledExpression: DeclReferenceExprSyntax(baseName: propertyTypeAliasName),
+      leftParen: .leftParenToken(trailingTrivia: .newline),
+      arguments: LabeledExprListSyntax {
+        LabeledExprSyntax(
+          label: "name",
+          colon: .colonToken(),
+          expression: StringLiteralExprSyntax(
+            content: keyConversionStrategy.convert(name.identifier.name)
+          ),
+          trailingComma: .commaToken(trailingTrivia: .newline)
+        )
+        LabeledExprSyntax(
+          label: "keyPath",
+          colon: .colonToken(),
+          expression: KeyPathExprSyntax(
+            components: KeyPathComponentListSyntax {
+              KeyPathComponentSyntax(
+                period: .periodToken(),
+                component: .property(
+                  KeyPathPropertyComponentSyntax(
+                    declName: DeclReferenceExprSyntax(baseName: .identifier(name.name))
+                  )
+                )
+              )
+            }
+          )
+        )
+      },
+      rightParen: .rightParenToken(leadingTrivia: .newline)
+    )
+  }
+
+  /// `objectDecoder.values` (single property) or `objectDecoder.values.N`.
+  fileprivate func decoderValueExpr(index: Int, isSingle: Bool) -> ExprSyntax {
+    let values = MemberAccessExprSyntax(
+      base: DeclReferenceExprSyntax(baseName: "objectDecoder"),
+      name: "values"
+    )
+    if isSingle {
+      return ExprSyntax(values)
+    } else {
+      return ExprSyntax(MemberAccessExprSyntax(base: values, name: "\(raw: index)"))
+    }
+  }
+
+}
+
+extension ObjectSchema.Property.Definition {
+
+  /// The `Structured…ObjectPropertyDefinition` generic specialization for this
+  /// property, e.g.
+  /// `{ns}.StructuredMutableDefaultInitializedPropertyDefinition<{ns}.StructuredRequiredObjectPropertyDefinition<Int>>`.
+  func typeSyntax(in namespace: SchemaCodingNamespace) -> TypeSyntax {
+    let coreType: TypeSyntax
+    switch core {
+    case .required(let valueType):
+      coreType = TypeSyntax(
+        namespace.memberType(
+          name: "StructuredRequiredObjectPropertyDefinition",
+          genericArgumentClause: GenericArgumentClauseSyntax {
+            GenericArgumentSyntax(argument: GenericArgumentSyntax.Argument(valueType.trimmed))
+          }
+        )
+      )
+    case .optional(let wrappedType):
+      coreType = TypeSyntax(
+        namespace.memberType(
+          name: "StructuredOptionalObjectPropertyDefinition",
+          genericArgumentClause: GenericArgumentClauseSyntax {
+            GenericArgumentSyntax(argument: GenericArgumentSyntax.Argument(wrappedType.trimmed))
+          }
+        )
+      )
+    }
+
+    let wrapperName: TokenSyntax?
+    switch defaulting {
+    case .none:
+      wrapperName = nil
+    case .immutable:
+      wrapperName = "StructuredImmutableDefaultInitializedPropertyDefinition"
+    case .mutable:
+      wrapperName = "StructuredMutableDefaultInitializedPropertyDefinition"
+    }
+
+    guard let wrapperName else {
+      return coreType
+    }
+    return TypeSyntax(
+      namespace.memberType(
+        name: wrapperName,
+        genericArgumentClause: GenericArgumentClauseSyntax {
+          GenericArgumentSyntax(argument: GenericArgumentSyntax.Argument(coreType))
         }
+      )
+    )
+  }
+
+  /// The property's Swift type as written (`T` or `T?`) — used for the stored
+  /// property of a synthesized associated-value object.
+  var declaredType: TypeSyntax {
+    switch core {
+    case .required(let valueType):
+      return valueType.trimmed
+    case .optional(let wrappedType):
+      return TypeSyntax(OptionalTypeSyntax(wrappedType: wrappedType.trimmed))
+    }
+  }
+
+}
+
+// MARK: - Enumeration Code Generation
+
+extension EnumerationSchema {
+
+  @MemberBlockItemListBuilder
+  func conformanceMembers(isPublic: Bool) -> MemberBlockItemListSyntax {
+    // static var codingStyle: <StyleType> { <styleExpr> }  (non-default styles only)
+    if let codingStyleMember = codingStyle.codingStyleMember(in: namespace, isPublic: isPublic) {
+      codingStyleMember
+    }
+
+    // typealias Cases = ({ns}.StructuredEnumerationCase<Self, <associated>>, ...)
+    TypeAliasDeclSyntax(
+      modifiers: .visibility(isPublic),
+      name: "Cases",
+      initializer: TypeInitializerClauseSyntax(
+        value: tupleOrSingle(cases.map { `case` in
+          TypeSyntax(
+            namespace.memberType(
+              name: "StructuredEnumerationCase",
+              genericArgumentClause: GenericArgumentClauseSyntax {
+                GenericArgumentSyntax(
+                  argument: GenericArgumentSyntax.Argument(IdentifierTypeSyntax(name: "Self")))
+                GenericArgumentSyntax(
+                  argument: GenericArgumentSyntax.Argument(
+                    `case`.associatedValue.typeSyntax(in: namespace)))
+              }
+            )
+          )
+        })
+      )
+    )
+
+    // static func cases() -> Cases { ... }
+    FunctionDeclSyntax(
+      modifiers: .visibility(isPublic, static: true),
+      name: "cases",
+      signature: FunctionSignatureSyntax(
+        parameterClause: FunctionParameterClauseSyntax(parameters: FunctionParameterListSyntax()),
+        returnClause: ReturnClauseSyntax(type: IdentifierTypeSyntax(name: "Cases"))
+      ),
+      body: CodeBlockSyntax {
+        tupleOrSingleExpr(
+          cases.map { `case` in
+            ExprSyntax(
+              `case`.caseExpr(in: namespace, keyConversionStrategy: keyConversionStrategy))
+          }
+        )
+      }
+    )
+
+    // Nested `StructuredObject` types synthesized for all-labeled cases.
+    for `case` in cases {
+      if case .object(let objectSchema) = `case`.associatedValue {
+        objectSchema.synthesizedStructDecl(isPublic: isPublic)
+      }
+    }
+  }
+
+}
+
+extension EnumerationSchema.CodingStyle {
+
+  /// `static var codingStyle: <StyleType> { <expr> }`, or `nil` for the default
+  /// object-properties style (which the protocol supplies).
+  fileprivate func codingStyleMember(
+    in namespace: SchemaCodingNamespace,
+    isPublic: Bool
+  ) -> VariableDeclSyntax? {
+    let styleTypeName: TokenSyntax
+    let valueExpr: ExprSyntax
+    switch self {
+    case .objectProperties:
+      return nil
+    case .internallyTagged(let discriminatorPropertyName):
+      styleTypeName = "StructuredEnumerationCodingStyleInternallyTagged"
+      valueExpr = ExprSyntax(
+        FunctionCallExprSyntax(
+          calledExpression: namespace.member(name: styleTypeName),
+          leftParen: .leftParenToken(),
+          arguments: LabeledExprListSyntax {
+            LabeledExprSyntax(
+              label: "discriminatorPropertyName",
+              colon: .colonToken(),
+              expression: discriminatorPropertyName.trimmed
+            )
+          },
+          rightParen: .rightParenToken()
+        )
+      )
+    case .typeDiscriminated:
+      styleTypeName = "StructuredEnumerationCodingStyleTypeDiscriminated"
+      valueExpr = ExprSyntax(MemberAccessExprSyntax(name: "typeDiscriminated"))
+    }
+
+    return VariableDeclSyntax(
+      modifiers: .visibility(isPublic, static: true),
+      bindingSpecifier: .keyword(.var),
+      bindings: PatternBindingListSyntax {
+        PatternBindingSyntax(
+          pattern: IdentifierPatternSyntax(identifier: "codingStyle"),
+          typeAnnotation: TypeAnnotationSyntax(
+            type: namespace.memberType(name: styleTypeName)
+          ),
+          accessorBlock: AccessorBlockSyntax(
+            accessors: .getter(CodeBlockItemListSyntax { valueExpr })
+          )
+        )
+      }
+    )
+  }
+
+}
+
+extension EnumerationSchema.Case {
+
+  /// `{ns}.StructuredEnumerationCase(name: "...", accessor: { ... }, initializer: { ... })`
+  fileprivate func caseExpr(
+    in namespace: SchemaCodingNamespace,
+    keyConversionStrategy: KeyConversionStrategy
+  ) -> FunctionCallExprSyntax {
+    FunctionCallExprSyntax(
+      calledExpression: namespace.member(name: "StructuredEnumerationCase"),
+      leftParen: .leftParenToken(trailingTrivia: .newline),
+      arguments: LabeledExprListSyntax {
+        LabeledExprSyntax(
+          label: "name",
+          colon: .colonToken(),
+          expression: StringLiteralExprSyntax(
+            content: keyConversionStrategy.convert(name.identifier.name)
+          ),
+          trailingComma: .commaToken(trailingTrivia: .newline)
+        )
+        LabeledExprSyntax(
+          label: "accessor",
+          colon: .colonToken(),
+          expression: accessorClosure(in: namespace),
+          trailingComma: .commaToken(trailingTrivia: .newline)
+        )
+        LabeledExprSyntax(
+          label: "initializer",
+          colon: .colonToken(),
+          expression: initializerClosure()
+        )
+      },
+      rightParen: .rightParenToken(leadingTrivia: .newline)
+    )
+  }
+
+  /// `{ value in guard case .name(let v0, ...) = value else { return nil }; return <wrapper> }`
+  private func accessorClosure(in namespace: SchemaCodingNamespace) -> ClosureExprSyntax {
+    let bindingNames = associatedValue.bindingNames
+    let returnExpr = associatedValue.accessorReturnExpr(
+      caseName: name, in: namespace, bindingNames: bindingNames)
+
+    return ClosureExprSyntax(
+      signature: ClosureSignatureSyntax(
+        parameterClause: .simpleInput(
+          ClosureShorthandParameterListSyntax {
+            ClosureShorthandParameterSyntax(name: "value")
+          }
+        )
+      ),
+      statements: CodeBlockItemListSyntax {
+        GuardStmtSyntax(
+          conditions: ConditionElementListSyntax {
+            ConditionElementSyntax(
+              condition: .matchingPattern(
+                MatchingPatternConditionSyntax(
+                  pattern: casePattern(bindingNames: bindingNames),
+                  initializer: InitializerClauseSyntax(
+                    value: DeclReferenceExprSyntax(baseName: "value")
+                  )
+                )
+              )
+            )
+          },
+          body: CodeBlockSyntax {
+            ReturnStmtSyntax(expression: NilLiteralExprSyntax())
+          }
+        )
+        ReturnStmtSyntax(expression: returnExpr)
+      }
+    )
+  }
+
+  /// `.name(let v0, let v1)` (or `.name` with no bindings) as an expression pattern.
+  private func casePattern(bindingNames: [TokenSyntax]) -> ExpressionPatternSyntax {
+    let caseAccess = MemberAccessExprSyntax(name: name.token)
+    guard !bindingNames.isEmpty else {
+      return ExpressionPatternSyntax(expression: caseAccess)
+    }
+    return ExpressionPatternSyntax(
+      expression: FunctionCallExprSyntax(
+        calledExpression: caseAccess,
+        leftParen: .leftParenToken(),
+        arguments: LabeledExprListSyntax {
+          for bindingName in bindingNames {
+            LabeledExprSyntax(
+              expression: PatternExprSyntax(
+                pattern: ValueBindingPatternSyntax(
+                  bindingSpecifier: .keyword(.let),
+                  pattern: IdentifierPatternSyntax(identifier: bindingName)
+                )
+              )
+            )
+          }
+        },
+        rightParen: .rightParenToken()
+      )
+    )
+  }
+
+  /// `{ .name($0) }`, `{ .name(label: $0.values.0, ...) }`, etc.
+  private func initializerClosure() -> ClosureExprSyntax {
+    switch associatedValue {
+    case .none:
+      return ClosureExprSyntax(
+        signature: ClosureSignatureSyntax(
+          parameterClause: .simpleInput(
+            ClosureShorthandParameterListSyntax {
+              ClosureShorthandParameterSyntax(name: .wildcardToken())
+            }
+          )
+        ),
+        statements: CodeBlockItemListSyntax {
+          MemberAccessExprSyntax(name: name.token)
+        }
+      )
+    case .single(let element):
+      return initializerClosure(
+        arguments: LabeledExprListSyntax {
+          labeledArgument(label: element.label, expression: dollarArgument())
+        }
+      )
+    case .tuple(let elements):
+      return initializerClosure(
+        arguments: LabeledExprListSyntax {
+          for (index, element) in elements.enumerated() {
+            labeledArgument(
+              label: element.label,
+              expression: dollarMember("values", "\(index)")
+            )
+          }
+        }
+      )
+    case .object(let objectSchema):
+      return initializerClosure(
+        arguments: LabeledExprListSyntax {
+          for property in objectSchema.properties {
+            labeledArgument(
+              label: property.name.token,
+              expression: dollarMember(property.name.name)
+            )
+          }
+        }
+      )
+    }
+  }
+
+  private func initializerClosure(arguments: LabeledExprListSyntax) -> ClosureExprSyntax {
+    ClosureExprSyntax(
+      statements: CodeBlockItemListSyntax {
+        FunctionCallExprSyntax(
+          calledExpression: MemberAccessExprSyntax(name: name.token),
+          leftParen: .leftParenToken(),
+          arguments: arguments,
+          rightParen: .rightParenToken()
+        )
+      }
+    )
+  }
+
+  private func labeledArgument(label: TokenSyntax?, expression: some ExprSyntaxProtocol)
+    -> LabeledExprSyntax
+  {
+    if let label {
+      LabeledExprSyntax(
+        label: .identifier(label.identifierOrText),
+        colon: .colonToken(),
+        expression: expression
+      )
+    } else {
+      LabeledExprSyntax(expression: expression)
+    }
+  }
+
+  /// `$0`
+  private func dollarArgument() -> DeclReferenceExprSyntax {
+    DeclReferenceExprSyntax(baseName: .dollarIdentifier("$0"))
+  }
+
+  /// `$0.<components...>`
+  private func dollarMember(_ components: String...) -> ExprSyntax {
+    var expression = ExprSyntax(dollarArgument())
+    for component in components {
+      expression = ExprSyntax(
+        MemberAccessExprSyntax(base: expression, name: .identifier(component)))
+    }
+    return expression
+  }
+
+}
+
+extension EnumerationSchema.Case.AssociatedValue {
+
+  /// The single type the `StructuredEnumerationCase` wraps.
+  func typeSyntax(in namespace: SchemaCodingNamespace) -> TypeSyntax {
+    switch self {
+    case .none:
+      return TypeSyntax(namespace.memberType(name: "StructuredEmptyObject"))
+    case .single(let element):
+      return element.type.trimmed
+    case .tuple(let elements):
+      return TypeSyntax(
+        namespace.memberType(
+          name: "StructuredTuple",
+          genericArgumentClause: GenericArgumentClauseSyntax {
+            for element in elements {
+              GenericArgumentSyntax(
+                argument: GenericArgumentSyntax.Argument(element.type.trimmed))
+            }
+          }
+        )
+      )
+    case .object(let objectSchema):
+      return TypeSyntax(IdentifierTypeSyntax(name: objectSchema.rootType))
+    }
+  }
+
+  /// The positional binding names introduced by the case pattern (`v0`, `v1`, …),
+  /// empty for a value-less case.
+  fileprivate var bindingNames: [TokenSyntax] {
+    let count =
+      switch self {
+      case .none: 0
+      case .single: 1
+      case .tuple(let elements): elements.count
+      case .object(let objectSchema): objectSchema.properties.count
+      }
+    return (0..<count).map { .identifier("v\($0)") }
+  }
+
+  /// The value returned from the accessor once the case has matched.
+  fileprivate func accessorReturnExpr(
+    caseName: IdentifiableToken,
+    in namespace: SchemaCodingNamespace,
+    bindingNames: [TokenSyntax]
+  ) -> ExprSyntax {
+    switch self {
+    case .none:
+      return ExprSyntax(
+        FunctionCallExprSyntax(
+          calledExpression: namespace.member(name: "StructuredEmptyObject"),
+          leftParen: .leftParenToken(),
+          arguments: LabeledExprListSyntax(),
+          rightParen: .rightParenToken()
+        )
+      )
+    case .single:
+      return ExprSyntax(DeclReferenceExprSyntax(baseName: bindingNames[0]))
+    case .tuple:
+      return ExprSyntax(
+        FunctionCallExprSyntax(
+          calledExpression: namespace.member(name: "StructuredTuple"),
+          leftParen: .leftParenToken(),
+          arguments: LabeledExprListSyntax {
+            for bindingName in bindingNames {
+              LabeledExprSyntax(expression: DeclReferenceExprSyntax(baseName: bindingName))
+            }
+          },
+          rightParen: .rightParenToken()
+        )
+      )
+    case .object(let objectSchema):
+      return ExprSyntax(
+        FunctionCallExprSyntax(
+          calledExpression: DeclReferenceExprSyntax(baseName: objectSchema.rootType),
+          leftParen: .leftParenToken(),
+          arguments: LabeledExprListSyntax {
+            for (property, bindingName) in zip(objectSchema.properties, bindingNames) {
+              LabeledExprSyntax(
+                label: .identifier(property.name.name),
+                colon: .colonToken(),
+                expression: DeclReferenceExprSyntax(baseName: bindingName)
+              )
+            }
+          },
+          rightParen: .rightParenToken()
+        )
       )
     }
   }
 
 }
 
-// MARK: - Schema Parameter
+// MARK: - Generation Helpers
+
+/// Wraps a type in the `sending` parameter/result specifier.
+private func sendingType(_ base: some TypeSyntaxProtocol) -> AttributedTypeSyntax {
+  AttributedTypeSyntax(
+    specifiers: TypeSpecifierListSyntax {
+      SimpleTypeSpecifierSyntax(specifier: .keyword(.sending))
+    },
+    baseType: base
+  )
+}
+
+/// A tuple type of `elements`, collapsing to the bare element when there is
+/// exactly one (Swift unwraps a single-element parenthesized type) and to `()`
+/// when empty — matching the fixtures' `Properties` / `Cases` / `ObjectDecoderValues`.
+private func tupleOrSingle(_ elements: [TypeSyntax]) -> TypeSyntax {
+  if elements.count == 1 {
+    return elements[0]
+  }
+  return TypeSyntax(
+    TupleTypeSyntax(
+      elements: TupleTypeElementListSyntax {
+        for element in elements {
+          TupleTypeElementSyntax(type: element)
+        }
+      }
+    )
+  )
+}
+
+/// The expression form of `tupleOrSingle`: a bare expression for one element, a
+/// parenthesized tuple otherwise (`()` when empty).
+private func tupleOrSingleExpr(_ elements: [ExprSyntax]) -> ExprSyntax {
+  if elements.count == 1 {
+    return elements[0]
+  }
+  return ExprSyntax(
+    TupleExprSyntax(
+      elements: LabeledExprListSyntax {
+        for element in elements {
+          LabeledExprSyntax(expression: element)
+        }
+      }
+    )
+  )
+}
+
+extension DeclModifierListSyntax {
+
+  /// `public` when `isPublic`, optionally followed by `static`.
+  fileprivate static func visibility(_ isPublic: Bool, static isStatic: Bool = false)
+    -> DeclModifierListSyntax
+  {
+    DeclModifierListSyntax {
+      if isPublic {
+        DeclModifierSyntax(name: "public")
+      }
+      if isStatic {
+        DeclModifierSyntax(name: .keyword(.static))
+      }
+    }
+  }
+
+}
+
+// MARK: - Callable Schema Code Generation
 
 extension SchemaParameter {
 
@@ -93,1117 +946,6 @@ extension SchemaParameter {
   }
 }
 
-extension DeclSyntaxProtocol where Self == VariableDeclSyntax {
-
-  fileprivate static func schemaProperty(
-    namespace: SchemaCodingNamespace,
-    isPublic: Bool,
-    schemaProtocolName: TokenSyntax,
-    isComplexSchema: Bool,
-    @CodeBlockItemListBuilder getter: () -> CodeBlockItemListSyntax
-  ) -> VariableDeclSyntax {
-    let schemaType = namespace.memberType(
-      name: schemaProtocolName,
-      genericArgumentClause: GenericArgumentClauseSyntax {
-        GenericArgumentSyntax(
-          argument: GenericArgumentSyntax.Argument(IdentifierTypeSyntax(name: "Self"))
-        )
-      }
-    )
-
-    let constraintType: TypeSyntaxProtocol
-    if isComplexSchema {
-      constraintType = CompositionTypeSyntax(
-        elements: CompositionTypeElementListSyntax {
-          CompositionTypeElementSyntax(
-            type: schemaType,
-            ampersand: .binaryOperator("&")
-          )
-          CompositionTypeElementSyntax(
-            type: namespace.supportMemberType(name: "ComplexSchema")
-          )
-        }
-      )
-    } else {
-      constraintType = schemaType
-    }
-
-    return VariableDeclSyntax(
-      modifiers: DeclModifierListSyntax {
-        if isPublic {
-          DeclModifierSyntax(name: "public")
-        }
-        DeclModifierSyntax(name: .keyword(.static))
-      },
-      bindingSpecifier: .keyword(.var),
-      bindings: PatternBindingListSyntax {
-        PatternBindingSyntax(
-          pattern: IdentifierPatternSyntax(identifier: "schema"),
-          typeAnnotation: TypeAnnotationSyntax(
-            type: SomeOrAnyTypeSyntax(
-              someOrAnySpecifier: .keyword(.some),
-              constraint: TypeSyntax(fromProtocol: constraintType)
-            )
-          ),
-          accessorBlock: AccessorBlockSyntax(
-            accessors: .getter(
-              CodeBlockItemListSyntax(itemsBuilder: getter)
-            )
-          )
-        )
-      }
-    )
-  }
-
-}
-
-extension DeclSyntaxProtocol where Self == VariableDeclSyntax {
-
-  fileprivate static func objectSchemaProperty(
-    isPublic: Bool
-  ) -> VariableDeclSyntax {
-    VariableDeclSyntax(
-      modifiers: DeclModifierListSyntax {
-        if isPublic {
-          DeclModifierSyntax(name: "public")
-        }
-        DeclModifierSyntax(name: .keyword(.static))
-      },
-      bindingSpecifier: .keyword(.var),
-      bindings: PatternBindingListSyntax {
-        PatternBindingSyntax(
-          pattern: IdentifierPatternSyntax(identifier: "schema"),
-          typeAnnotation: TypeAnnotationSyntax(
-            type: IdentifierTypeSyntax(name: "Schema")
-          ),
-          accessorBlock: AccessorBlockSyntax(
-            accessors: .getter(
-              CodeBlockItemListSyntax {
-                FunctionCallExprSyntax(
-                  calledExpression: DeclReferenceExprSyntax(baseName: "Schema"),
-                  leftParen: .leftParenToken(),
-                  arguments: LabeledExprListSyntax(),
-                  rightParen: .rightParenToken()
-                )
-              }
-            )
-          )
-        )
-      }
-    )
-  }
-
-}
-
-extension DeclSyntaxProtocol where Self == StructDeclSyntax {
-
-  fileprivate static func objectSchemaStruct(
-    schema: StructSchema,
-    valueType: TypeSyntax,
-    isPublic: Bool,
-    keyConversionStrategy: KeyConversionStrategy
-  ) -> StructDeclSyntax {
-    let ns = schema.namespace
-    let properties = schema.properties
-
-    return StructDeclSyntax(
-      modifiers: DeclModifierListSyntax {
-        if isPublic {
-          DeclModifierSyntax(name: "public")
-        }
-      },
-      name: "Schema",
-      inheritanceClause: InheritanceClauseSyntax {
-        InheritedTypeSyntax(
-          type: ns.supportMemberType(name: "ObjectSchema")
-        )
-      }
-    ) {
-      // typealias Value = {valueType}
-      TypeAliasDeclSyntax(
-        modifiers: DeclModifierListSyntax {
-          if isPublic {
-            DeclModifierSyntax(name: "public")
-          }
-        },
-        name: "Value",
-        initializer: TypeInitializerClauseSyntax(
-          value: valueType
-        )
-      )
-
-      // typealias {PA} = {Type}.Schema.ObjectProperty per property
-      for property in properties {
-        TypeAliasDeclSyntax(
-          modifiers: DeclModifierListSyntax {
-            if isPublic {
-              DeclModifierSyntax(name: "public")
-            }
-          },
-          name: property.propertyTypeAliasName,
-          initializer: TypeInitializerClauseSyntax(
-            value: MemberTypeSyntax(
-              baseType: MemberTypeSyntax(
-                baseType: IdentifierTypeSyntax(
-                  name: "\(property.type.syntax.trimmed)"
-                ),
-                name: "Schema"
-              ),
-              name: "ObjectProperty"
-            )
-          )
-        )
-      }
-
-      // typealias ObjectPropertyTypeMetadatas = (...)
-      TypeAliasDeclSyntax(
-        modifiers: DeclModifierListSyntax {
-          if isPublic {
-            DeclModifierSyntax(name: "public")
-          }
-        },
-        name: "ObjectPropertyTypeMetadatas",
-        initializer: TypeInitializerClauseSyntax(
-          value: TupleTypeSyntax(
-            elements: TupleTypeElementListSyntax {
-              for property in properties {
-                TupleTypeElementSyntax(
-                  type: ns.supportMemberType(
-                    name: "ObjectPropertyTypeMetadata",
-                    genericArgumentClause: GenericArgumentClauseSyntax {
-                      GenericArgumentSyntax(
-                        argument: GenericArgumentSyntax.Argument(IdentifierTypeSyntax(name: "Value"))
-                      )
-                      GenericArgumentSyntax(
-                        argument: GenericArgumentSyntax.Argument(IdentifierTypeSyntax(
-                          name: property.propertyTypeAliasName
-                        ))
-                      )
-                    }
-                  )
-                )
-              }
-            }
-          )
-        )
-      )
-
-      // static func propertyTypeMetadatas() -> ObjectPropertyTypeMetadatas
-      FunctionDeclSyntax(
-        modifiers: DeclModifierListSyntax {
-          if isPublic {
-            DeclModifierSyntax(name: "public")
-          }
-          DeclModifierSyntax(name: .keyword(.static))
-        },
-        name: "propertyTypeMetadatas",
-        signature: FunctionSignatureSyntax(
-          parameterClause: FunctionParameterClauseSyntax(
-            parameters: FunctionParameterListSyntax()
-          ),
-          returnClause: ReturnClauseSyntax(
-            type: IdentifierTypeSyntax(name: "ObjectPropertyTypeMetadatas")
-          )
-        ),
-        body: CodeBlockSyntax {
-          TupleExprSyntax {
-            for property in properties {
-              LabeledExprSyntax(
-                expression: FunctionCallExprSyntax(
-                  calledExpression: ns.supportMember(name: "ObjectPropertyTypeMetadata"),
-                  leftParen: .leftParenToken(trailingTrivia: .newline),
-                  arguments: LabeledExprListSyntax {
-                    LabeledExprSyntax(
-                      label: "name",
-                      colon: .colonToken(),
-                      expression: StringLiteralExprSyntax(
-                        content: keyConversionStrategy.convert(
-                          property.name.identifier.name
-                        )
-                      ),
-                      trailingComma: .commaToken(trailingTrivia: .newline)
-                    )
-                    LabeledExprSyntax(
-                      label: "keyPath",
-                      colon: .colonToken(),
-                      expression: KeyPathExprSyntax(
-                        root: IdentifierTypeSyntax(name: "Value"),
-                        components: KeyPathComponentListSyntax {
-                          KeyPathComponentSyntax(
-                            period: .periodToken(),
-                            component: .property(
-                              KeyPathPropertyComponentSyntax(
-                                declName: DeclReferenceExprSyntax(
-                                  baseName: .identifier(property.name.name)
-                                )
-                              )
-                            )
-                          )
-                        }
-                      )
-                    )
-                  },
-                  rightParen: .rightParenToken(leadingTrivia: .newline)
-                )
-              )
-            }
-          }
-        }
-      )
-
-      // typealias Properties = ({PA1}, {PA2}, ...)
-      TypeAliasDeclSyntax(
-        modifiers: DeclModifierListSyntax {
-          if isPublic {
-            DeclModifierSyntax(name: "public")
-          }
-        },
-        name: "Properties",
-        initializer: TypeInitializerClauseSyntax(
-          value: TupleTypeSyntax(
-            elements: TupleTypeElementListSyntax {
-              for property in properties {
-                TupleTypeElementSyntax(
-                  type: IdentifierTypeSyntax(
-                    name: property.propertyTypeAliasName
-                  )
-                )
-              }
-            }
-          )
-        )
-      )
-
-      // static func create(from properties: Properties) -> Self
-      FunctionDeclSyntax(
-        modifiers: DeclModifierListSyntax {
-          if isPublic {
-            DeclModifierSyntax(name: "public")
-          }
-          DeclModifierSyntax(name: .keyword(.static))
-        },
-        name: "create",
-        signature: FunctionSignatureSyntax(
-          parameterClause: FunctionParameterClauseSyntax(
-            parameters: FunctionParameterListSyntax {
-              FunctionParameterSyntax(
-                firstName: "from",
-                secondName: "properties",
-                type: IdentifierTypeSyntax(name: "Properties")
-              )
-            }
-          ),
-          returnClause: ReturnClauseSyntax(
-            type: IdentifierTypeSyntax(name: "Self")
-          )
-        ),
-        body: CodeBlockSyntax {
-          FunctionCallExprSyntax(
-            calledExpression: DeclReferenceExprSyntax(baseName: "Self"),
-            leftParen: .leftParenToken(trailingTrivia: .newline),
-            arguments: LabeledExprListSyntax {
-              /// A single-element parenthesized type collapses to its element, so
-              /// `properties` is the value itself rather than a tuple — pass it
-              /// directly instead of accessing `.0`.
-              if properties.count == 1 {
-                LabeledExprSyntax(
-                  expression: DeclReferenceExprSyntax(baseName: "properties")
-                )
-              } else {
-                for (index, _) in properties.enumerated() {
-                  LabeledExprSyntax(
-                    expression: MemberAccessExprSyntax(
-                      base: DeclReferenceExprSyntax(baseName: "properties"),
-                      name: "\(raw: index)"
-                    )
-                  )
-                }
-              }
-            },
-            rightParen: .rightParenToken(leadingTrivia: .newline)
-          )
-        }
-      )
-
-      // func properties() -> Properties
-      FunctionDeclSyntax(
-        modifiers: DeclModifierListSyntax {
-          if isPublic {
-            DeclModifierSyntax(name: "public")
-          }
-        },
-        name: "properties",
-        signature: FunctionSignatureSyntax(
-          parameterClause: FunctionParameterClauseSyntax(
-            parameters: FunctionParameterListSyntax()
-          ),
-          returnClause: ReturnClauseSyntax(
-            type: IdentifierTypeSyntax(name: "Properties")
-          )
-        ),
-        body: CodeBlockSyntax {
-          TupleExprSyntax {
-            for property in properties {
-              LabeledExprSyntax(
-                expression: DeclReferenceExprSyntax(
-                  baseName: property.storedPropertyName
-                )
-              )
-            }
-          }
-        }
-      )
-
-      // typealias PropertyValues = ({Type1}, {Type2}, ...)
-      TypeAliasDeclSyntax(
-        modifiers: DeclModifierListSyntax {
-          if isPublic {
-            DeclModifierSyntax(name: "public")
-          }
-        },
-        name: "PropertyValues",
-        initializer: TypeInitializerClauseSyntax(
-          value: TupleTypeSyntax(
-            elements: TupleTypeElementListSyntax {
-              for property in properties {
-                TupleTypeElementSyntax(
-                  type: property.type.syntax
-                )
-              }
-            }
-          )
-        )
-      )
-
-      // static func value(from propertyValues: PropertyValues) throws -> Value
-      FunctionDeclSyntax(
-        modifiers: DeclModifierListSyntax {
-          if isPublic {
-            DeclModifierSyntax(name: "public")
-          }
-          DeclModifierSyntax(name: .keyword(.static))
-        },
-        name: "value",
-        signature: FunctionSignatureSyntax(
-          parameterClause: FunctionParameterClauseSyntax(
-            parameters: FunctionParameterListSyntax {
-              FunctionParameterSyntax(
-                firstName: "from",
-                secondName: "propertyValues",
-                type: IdentifierTypeSyntax(name: "PropertyValues")
-              )
-            }
-          ),
-          effectSpecifiers: FunctionEffectSpecifiersSyntax(
-            throwsClause: ThrowsClauseSyntax(
-              throwsSpecifier: .keyword(.throws)
-            )
-          ),
-          returnClause: ReturnClauseSyntax(
-            type: IdentifierTypeSyntax(name: "Value")
-          )
-        ),
-        body: CodeBlockSyntax {
-          // let value = Value(nonConstantProp1: propertyValues.0, ...)
-          VariableDeclSyntax(
-            bindingSpecifier: .keyword(.let)
-          ) {
-            PatternBindingSyntax(
-              pattern: IdentifierPatternSyntax(identifier: "value"),
-              initializer: InitializerClauseSyntax(
-                value: FunctionCallExprSyntax(
-                  calledExpression: DeclReferenceExprSyntax(baseName: "Value"),
-                  leftParen: .leftParenToken(trailingTrivia: .newline),
-                  arguments: LabeledExprListSyntax {
-                    /// A single-element parenthesized type collapses to its element,
-                    /// so `propertyValues` is the value itself rather than a tuple —
-                    /// pass it directly instead of accessing `.0`.
-                    if properties.count == 1, let property = properties.first,
-                      !property.isInitializedConstantProperty
-                    {
-                      LabeledExprSyntax(
-                        label: .identifier(property.name.name),
-                        colon: .colonToken(),
-                        expression: DeclReferenceExprSyntax(baseName: "propertyValues")
-                      )
-                    } else {
-                      for (index, property) in properties.enumerated()
-                      where !property.isInitializedConstantProperty {
-                        LabeledExprSyntax(
-                          label: .identifier(property.name.name),
-                          colon: .colonToken(),
-                          expression: MemberAccessExprSyntax(
-                            base: DeclReferenceExprSyntax(baseName: "propertyValues"),
-                            name: "\(raw: index)"
-                          )
-                        )
-                      }
-                    }
-                  },
-                  rightParen: .rightParenToken(leadingTrivia: .newline)
-                )
-              )
-            )
-          }
-          // try Self.validate(constantPropertyValue: value.X, isEqualToDecodedValue: propertyValues.N)
-          for (index, property) in properties.enumerated()
-          where property.isInitializedConstantProperty {
-            TryExprSyntax(
-              expression: FunctionCallExprSyntax(
-                calledExpression: ns.supportMember(name: "validate"),
-                leftParen: .leftParenToken(trailingTrivia: .newline),
-                arguments: LabeledExprListSyntax {
-                  LabeledExprSyntax(
-                    label: "constantPropertyValue",
-                    colon: .colonToken(),
-                    expression: MemberAccessExprSyntax(
-                      base: DeclReferenceExprSyntax(baseName: "value"),
-                      name: "\(raw: property.name.name)"
-                    )
-                  )
-                  LabeledExprSyntax(
-                    label: "isEqualToDecodedValue",
-                    colon: .colonToken(),
-                    expression: MemberAccessExprSyntax(
-                      base: DeclReferenceExprSyntax(baseName: "propertyValues"),
-                      name: "\(raw: index)"
-                    )
-                  )
-                },
-                rightParen: .rightParenToken(leadingTrivia: .newline)
-              )
-            )
-          }
-          // return value
-          ReturnStmtSyntax(
-            expression: DeclReferenceExprSyntax(baseName: "value")
-          )
-        }
-      )
-
-      // static func propertyValues(from value: Value) -> PropertyValues
-      FunctionDeclSyntax(
-        modifiers: DeclModifierListSyntax {
-          if isPublic {
-            DeclModifierSyntax(name: "public")
-          }
-          DeclModifierSyntax(name: .keyword(.static))
-        },
-        name: "propertyValues",
-        signature: FunctionSignatureSyntax(
-          parameterClause: FunctionParameterClauseSyntax(
-            parameters: FunctionParameterListSyntax {
-              FunctionParameterSyntax(
-                firstName: "from",
-                secondName: "value",
-                type: IdentifierTypeSyntax(name: "Value")
-              )
-            }
-          ),
-          returnClause: ReturnClauseSyntax(
-            type: IdentifierTypeSyntax(name: "PropertyValues")
-          )
-        ),
-        body: CodeBlockSyntax {
-          TupleExprSyntax {
-            for property in properties {
-              LabeledExprSyntax(
-                expression: MemberAccessExprSyntax(
-                  base: DeclReferenceExprSyntax(baseName: "value"),
-                  name: .identifier(property.name.name)
-                )
-              )
-            }
-          }
-        }
-      )
-
-      // typealias MetaSchema = {ns}.Support.ObjectMetaSchema<Self, {PA1}, {PA2}, ...>
-      TypeAliasDeclSyntax(
-        modifiers: DeclModifierListSyntax {
-          if isPublic {
-            DeclModifierSyntax(name: "public")
-          }
-        },
-        name: "MetaSchema",
-        initializer: TypeInitializerClauseSyntax(
-          value: TypeSyntax(
-            fromProtocol: ns.supportMemberType(
-              name: "ObjectMetaSchema",
-              genericArgumentClause: GenericArgumentClauseSyntax {
-                GenericArgumentSyntax(
-                  argument: GenericArgumentSyntax.Argument(IdentifierTypeSyntax(name: "Self"))
-                )
-                for property in properties {
-                  GenericArgumentSyntax(
-                    argument: GenericArgumentSyntax.Argument(IdentifierTypeSyntax(
-                      name: property.propertyTypeAliasName
-                    ))
-                  )
-                }
-              }
-            )
-          )
-        )
-      )
-
-      // var metaSchema: MetaSchema { _metaSchema() }
-      VariableDeclSyntax(
-        modifiers: DeclModifierListSyntax {
-          if isPublic {
-            DeclModifierSyntax(name: "public")
-          }
-        },
-        bindingSpecifier: .keyword(.var),
-        bindings: PatternBindingListSyntax {
-          PatternBindingSyntax(
-            pattern: IdentifierPatternSyntax(identifier: "metaSchema"),
-            typeAnnotation: TypeAnnotationSyntax(
-              type: IdentifierTypeSyntax(name: "MetaSchema")
-            ),
-            accessorBlock: AccessorBlockSyntax(
-              accessors: .getter(
-                CodeBlockItemListSyntax {
-                  FunctionCallExprSyntax(
-                    calledExpression: DeclReferenceExprSyntax(
-                      baseName: "_metaSchema"
-                    ),
-                    leftParen: .leftParenToken(),
-                    arguments: LabeledExprListSyntax(),
-                    rightParen: .rightParenToken()
-                  )
-                }
-              )
-            )
-          )
-        }
-      )
-
-      // func initialValueForDecoding(isMutable: Bool) -> Value? { _initialValueForDecoding(isMutable: isMutable) }
-      FunctionDeclSyntax(
-        modifiers: DeclModifierListSyntax {
-          if isPublic {
-            DeclModifierSyntax(name: "public")
-          }
-        },
-        name: "initialValueForDecoding",
-        signature: FunctionSignatureSyntax(
-          parameterClause: FunctionParameterClauseSyntax(
-            parameters: FunctionParameterListSyntax {
-              FunctionParameterSyntax(
-                firstName: "isMutable",
-                type: IdentifierTypeSyntax(name: "Bool")
-              )
-            }
-          ),
-          returnClause: ReturnClauseSyntax(
-            type: OptionalTypeSyntax(
-              wrappedType: IdentifierTypeSyntax(name: "Value")
-            )
-          )
-        ),
-        body: CodeBlockSyntax {
-          FunctionCallExprSyntax(
-            calledExpression: DeclReferenceExprSyntax(
-              baseName: "_initialValueForDecoding"
-            ),
-            leftParen: .leftParenToken(),
-            arguments: LabeledExprListSyntax {
-              LabeledExprSyntax(
-                label: "isMutable",
-                colon: .colonToken(),
-                expression: DeclReferenceExprSyntax(baseName: "isMutable")
-              )
-            },
-            rightParen: .rightParenToken()
-          )
-        }
-      )
-
-      // var metadata = {ns}.Support.SchemaMetadata()
-      VariableDeclSyntax(
-        modifiers: DeclModifierListSyntax {
-          if isPublic {
-            DeclModifierSyntax(name: "public")
-          }
-        },
-        bindingSpecifier: .keyword(.var),
-        bindings: PatternBindingListSyntax {
-          PatternBindingSyntax(
-            pattern: IdentifierPatternSyntax(identifier: "metadata"),
-            initializer: InitializerClauseSyntax(
-              value: FunctionCallExprSyntax(
-                calledExpression: ns.supportMember(name: "SchemaMetadata"),
-                leftParen: .leftParenToken(),
-                arguments: LabeledExprListSyntax(),
-                rightParen: .rightParenToken()
-              )
-            )
-          )
-        }
-      )
-
-      // private let {sp}: {PA} per property
-      for property in properties {
-        VariableDeclSyntax(
-          modifiers: .private,
-          bindingSpecifier: .keyword(.let),
-          bindings: PatternBindingListSyntax {
-            PatternBindingSyntax(
-              pattern: IdentifierPatternSyntax(
-                identifier: property.storedPropertyName
-              ),
-              typeAnnotation: TypeAnnotationSyntax(
-                type: IdentifierTypeSyntax(
-                  name: property.propertyTypeAliasName
-                )
-              )
-            )
-          }
-        )
-      }
-
-      // init() — self.{sp} = {PA}(schema: {Type}.schema)
-      InitializerDeclSyntax(
-        modifiers: DeclModifierListSyntax {
-          if isPublic {
-            DeclModifierSyntax(name: "public")
-          }
-        },
-        signature: FunctionSignatureSyntax(
-          parameterClause: FunctionParameterClauseSyntax(
-            parameters: FunctionParameterListSyntax()
-          )
-        ),
-        body: CodeBlockSyntax {
-          for property in properties {
-            InfixOperatorExprSyntax(
-              leftOperand: MemberAccessExprSyntax(
-                base: DeclReferenceExprSyntax(baseName: "self"),
-                name: property.storedPropertyName
-              ),
-              operator: AssignmentExprSyntax(),
-              rightOperand: FunctionCallExprSyntax(
-                calledExpression: DeclReferenceExprSyntax(
-                  baseName: property.propertyTypeAliasName
-                ),
-                leftParen: .leftParenToken(),
-                arguments: LabeledExprListSyntax {
-                  LabeledExprSyntax(
-                    label: "schema",
-                    colon: .colonToken(),
-                    expression: MemberAccessExprSyntax(
-                      base: DeclReferenceExprSyntax(
-                        baseName: "\(property.type.syntax.trimmed)"
-                      ),
-                      name: "schema"
-                    )
-                  )
-                },
-                rightParen: .rightParenToken()
-              )
-            )
-          }
-        }
-      )
-
-      // private init(_ sp0: PA0, _ sp1: PA1, ...) — memberwise init for create(from:)
-      InitializerDeclSyntax(
-        modifiers: .private,
-        signature: FunctionSignatureSyntax(
-          parameterClause: FunctionParameterClauseSyntax(
-            parameters: FunctionParameterListSyntax {
-              for property in properties {
-                FunctionParameterSyntax(
-                  firstName: .wildcardToken(),
-                  secondName: property.storedPropertyName,
-                  type: IdentifierTypeSyntax(
-                    name: property.propertyTypeAliasName
-                  )
-                )
-              }
-            }
-          )
-        ),
-        body: CodeBlockSyntax {
-          for property in properties {
-            InfixOperatorExprSyntax(
-              leftOperand: MemberAccessExprSyntax(
-                base: DeclReferenceExprSyntax(baseName: "self"),
-                name: property.storedPropertyName
-              ),
-              operator: AssignmentExprSyntax(),
-              rightOperand: DeclReferenceExprSyntax(
-                baseName: property.storedPropertyName
-              )
-            )
-          }
-        }
-      )
-    }
-  }
-
-}
-
-extension DeclSyntaxProtocol where Self == InitializerDeclSyntax {
-
-  fileprivate static func schemaCodableStructInitializer(
-    namespace: SchemaCodingNamespace,
-    properties: [StructSchema.Property],
-    style: StructStyleArgument?
-  ) -> Self {
-    let useSinglePropertyDecoder = properties.count == 1
-    let decoderTypeName: TokenSyntax =
-      useSinglePropertyDecoder ? "StructSinglePropertyDecoder" : "StructDecoder"
-
-    return InitializerDeclSyntax(
-      modifiers: .private,
-      signature: FunctionSignatureSyntax(
-        parameterClause: FunctionParameterClauseSyntax(
-          parameters: FunctionParameterListSyntax {
-            FunctionParameterSyntax(
-              firstName: "structDecoder",
-              type: namespace.memberType(
-                name: decoderTypeName,
-                genericArgumentClause: GenericArgumentClauseSyntax {
-                  for property in properties {
-                    GenericArgumentSyntax(
-                      argument: GenericArgumentSyntax.Argument(property.type.syntax)
-                    )
-                  }
-                }
-              )
-            )
-          }
-        )
-      ),
-      body: CodeBlockSyntax {
-        let propertyValues = properties.enumerated().map { index, _ in
-          MemberAccessExprSyntax(
-            base: MemberAccessExprSyntax(
-              base: DeclReferenceExprSyntax(baseName: "structDecoder"),
-              name: "propertyValues"
-            ),
-            name: "\(raw: index)"
-          )
-        }
-
-        for (property, value) in zip(properties, propertyValues) {
-          let accessExpr = MemberAccessExprSyntax(
-            base: DeclReferenceExprSyntax(baseName: "self"),
-            name: .identifier(property.name.name)
-          )
-          if property.isInitializedConstantProperty {
-            FunctionCallExprSyntax(
-              calledExpression: MemberAccessExprSyntax(
-                base: DeclReferenceExprSyntax(baseName: "structDecoder"),
-                name: "verifyInitializedConstantPropertyValue"
-              ),
-              leftParen: .leftParenToken(trailingTrivia: .newline),
-              arguments: LabeledExprListSyntax {
-                LabeledExprSyntax(
-                  label: "initialized",
-                  colon: .colonToken(),
-                  expression: accessExpr
-                )
-                LabeledExprSyntax(
-                  label: "decoded",
-                  colon: .colonToken(),
-                  expression: value
-                )
-              },
-              rightParen: .rightParenToken(leadingTrivia: .newline),
-            )
-          } else {
-            InfixOperatorExprSyntax(
-              leftOperand: accessExpr,
-              operator: AssignmentExprSyntax(),
-              rightOperand: value
-            )
-          }
-        }
-      }
-    )
-  }
-
-}
-
-// MARK: - Schema Expressions
-
-extension StructSchema {
-
-  func expr(
-    propertyNameConversionStrategy: KeyConversionStrategy
-  ) -> FunctionCallExprSyntax {
-    FunctionCallExprSyntax(
-      calledExpression: namespace.supportMember(name: "structSchema"),
-      leftParen: .leftParenToken(trailingTrivia: .newline),
-      arguments: LabeledExprListSyntax {
-        additionalArguments
-
-        if let style {
-          LabeledExprSyntax(
-            label: "style",
-            colon: .colonToken(),
-            expression: MemberAccessExprSyntax(name: .identifier(style.rawValue)),
-            trailingComma: .commaToken(trailingTrivia: .newline)
-          )
-        }
-
-        LabeledExprSyntax(
-          label: "properties",
-          colon: .colonToken(),
-          expression: ClosureExprSyntax {
-            for property in properties {
-              FunctionCallExprSyntax(
-                calledExpression: namespace.supportMember(name: "structProperty"),
-                leftParen: .leftParenToken(trailingTrivia: .newline),
-                arguments: LabeledExprListSyntax {
-
-                  LabeledExprSyntax(
-                    label: "name",
-                    colon: .colonToken(),
-                    expression: StringLiteralExprSyntax(
-                      content: propertyNameConversionStrategy.convert(property.name.identifier.name)
-                    ),
-                    trailingComma: .commaToken(trailingTrivia: .newline)
-                  )
-
-                  LabeledExprSyntax(
-                    label: "keyPath",
-                    colon: .colonToken(),
-                    expression: KeyPathExprSyntax(
-                      root: IdentifierTypeSyntax(name: typeName),
-                      components: KeyPathComponentListSyntax {
-                        KeyPathComponentSyntax(
-                          period: .periodToken(),
-                          component: .property(
-                            KeyPathPropertyComponentSyntax(
-                              declName: DeclReferenceExprSyntax(
-                                baseName: .identifier(property.name.name))
-                            )
-                          )
-                        )
-                      }
-                    ),
-                    trailingComma: .commaToken(trailingTrivia: .newline)
-                  )
-
-                  LabeledExprSyntax(
-                    label: "schema",
-                    colon: .colonToken(),
-                    expression: .schema(
-                      namespace: namespace,
-                      representing: property.type.syntax,
-                      additionalArguments: property.additionalArguments
-                    )
-                  )
-
-                },
-                rightParen: .rightParenToken(leadingTrivia: .newline)
-              )
-            }
-
-          },
-          trailingComma: .commaToken(trailingTrivia: .newline)
-        )
-
-        LabeledExprSyntax(
-          label: "finishDecoding",
-          colon: .colonToken(),
-          expression: MemberAccessExprSyntax(
-            base: DeclReferenceExprSyntax(
-              baseName: "Self"
-            ),
-            declName: DeclReferenceExprSyntax(
-              baseName: "init",
-              argumentNames: DeclNameArgumentsSyntax(
-                arguments: DeclNameArgumentListSyntax {
-                  DeclNameArgumentSyntax(name: "structDecoder")
-                }
-              )
-            )
-          )
-        )
-      },
-      rightParen: .rightParenToken(leadingTrivia: .newline)
-    )
-  }
-
-}
-
-extension EnumSchema {
-
-  func expr(
-    caseNameConversionStrategy: KeyConversionStrategy
-  ) -> FunctionCallExprSyntax {
-    FunctionCallExprSyntax(
-      calledExpression: namespace.supportMember(name: "enumSchema"),
-      leftParen: .leftParenToken(trailingTrivia: .newline),
-      arguments: LabeledExprListSyntax {
-        additionalArguments
-
-        LabeledExprSyntax(
-          label: "cases",
-          colon: .colonToken(),
-          expression: ClosureExprSyntax {
-            for `case` in cases {
-              FunctionCallExprSyntax(
-                calledExpression: namespace.supportMember(name: "enumSchemaCase"),
-                leftParen: .leftParenToken(trailingTrivia: .newline),
-                arguments: LabeledExprListSyntax {
-
-                  LabeledExprSyntax(
-                    label: "name",
-                    colon: .colonToken(),
-                    expression: StringLiteralExprSyntax(
-                      content: caseNameConversionStrategy.convert(`case`.name.identifier.name)
-                    ),
-                    trailingComma: .commaToken(trailingTrivia: .newline)
-                  )
-
-                  `case`.additionalArguments
-
-                  LabeledExprSyntax(
-                    label: "associatedValues",
-                    colon: .colonToken(),
-                    expression: ClosureExprSyntax {
-                      for associatedValue in `case`.associatedValues {
-                        associatedValue.parameterCallExpr(
-                          namespace: namespace,
-                          keyConversionStrategy: keyConversionStrategy
-                        )
-                      }
-                    },
-                    trailingComma: .commaToken(trailingTrivia: .newline)
-                  )
-
-                  LabeledExprSyntax(
-                    label: "finishDecoding",
-                    colon: .colonToken(),
-                    expression: `case`.finishDecodingClosure(
-                      namespace: namespace, typeName: typeName)
-                  )
-                },
-                rightParen: .rightParenToken(leadingTrivia: .newline)
-              )
-            }
-          },
-          trailingComma: .commaToken(trailingTrivia: .newline)
-        )
-
-        LabeledExprSyntax(
-          label: "encodeValue",
-          colon: .colonToken(),
-          expression: ClosureExprSyntax(
-            signature: ClosureSignatureSyntax(
-              parameterClause: .simpleInput(
-                ClosureShorthandParameterListSyntax {
-                  ClosureShorthandParameterSyntax(name: "value")
-                  ClosureShorthandParameterSyntax(name: "encoder")
-                }
-              )
-            ),
-            statements: CodeBlockItemListSyntax {
-              SwitchExprSyntax(
-                subject: DeclReferenceExprSyntax(baseName: "value"),
-                cases: SwitchCaseListSyntax {
-                  for (offset, `case`) in cases.enumerated() {
-                    SwitchCaseSyntax(
-                      label: .case(
-                        SwitchCaseLabelSyntax {
-                          SwitchCaseItemListSyntax {
-                            if `case`.associatedValues.isEmpty {
-                              /// case .enumCase: …
-                              SwitchCaseItemSyntax(
-                                pattern: ExpressionPatternSyntax(
-                                  expression: MemberAccessExprSyntax(
-                                    name: .identifier(`case`.name.name)
-                                  )
-                                )
-                              )
-                            } else {
-                              /// case .enumCase(…):
-                              SwitchCaseItemSyntax(
-                                pattern: ExpressionPatternSyntax(
-                                  expression: FunctionCallExprSyntax(
-                                    calledExpression: MemberAccessExprSyntax(
-                                      name: .identifier(`case`.name.name)
-                                    ),
-                                    leftParen: .leftParenToken(),
-                                    arguments: LabeledExprListSyntax {
-                                      for associatedValue in `case`.associatedValues {
-                                        LabeledExprSyntax(
-                                          expression: PatternExprSyntax(
-                                            pattern: ValueBindingPatternSyntax(
-                                              bindingSpecifier: .keyword(.let),
-                                              pattern: IdentifierPatternSyntax(
-                                                identifier: associatedValue.bindingName
-                                              )
-                                            )
-                                          )
-                                        )
-                                      }
-                                    },
-                                    rightParen: .rightParenToken()
-                                  )
-                                )
-                              )
-                            }
-                          }
-                        }
-                      ),
-                      statements: CodeBlockItemListSyntax {
-                        /// encoder.encode(…)
-                        FunctionCallExprSyntax(
-                          calledExpression: MemberAccessExprSyntax(
-                            base: DeclReferenceExprSyntax(baseName: "encoder"),
-                            name: "encode"
-                          ),
-                          leftParen: .leftParenToken(),
-                          arguments: LabeledExprListSyntax {
-                            /// (…)
-                            LabeledExprSyntax(
-                              expression: TupleExprSyntax {
-                                for associatedValue in `case`.associatedValues {
-                                  LabeledExprSyntax(
-                                    expression: DeclReferenceExprSyntax(
-                                      baseName: associatedValue.bindingName
-                                    )
-                                  )
-                                }
-                              }
-                            )
-
-                            LabeledExprSyntax(
-                              label: "using",
-                              colon: .colonToken(),
-                              expression: MemberAccessExprSyntax(
-                                base: MemberAccessExprSyntax(
-                                  base: DeclReferenceExprSyntax(baseName: "encoder"),
-                                  name: "encodings"
-                                ),
-                                name: "\(raw: offset)"
-                              )
-                            )
-                          },
-                          rightParen: .rightParenToken()
-                        )
-                      }
-                    )
-                  }
-                }
-              )
-            }
-          )
-        )
-      },
-      rightParen: .rightParenToken(leadingTrivia: .newline),
-    )
-  }
-
-}
-
 extension ExprSyntaxProtocol where Self == FunctionCallExprSyntax {
 
   fileprivate static func schema(
@@ -1232,80 +974,6 @@ extension ExprSyntaxProtocol where Self == FunctionCallExprSyntax {
   }
 
 }
-
-// MARK: - Enum Case finishDecoding
-
-extension EnumSchema.Case {
-
-  func finishDecodingClosure(
-    namespace: SchemaCodingNamespace,
-    typeName: TokenSyntax
-  ) -> ClosureExprSyntax {
-    let useSingleValueDecoder = associatedValues.count == 1
-    let decoderTypeName: TokenSyntax =
-      useSingleValueDecoder ? "EnumSingleAssociatedValueCaseDecoder" : "EnumCaseDecoder"
-
-    return ClosureExprSyntax(
-      signature: ClosureSignatureSyntax(
-        parameterClause: .parameterClause(
-          ClosureParameterClauseSyntax(
-            parameters: ClosureParameterListSyntax {
-              ClosureParameterSyntax(
-                firstName: "decoder",
-                colon: .colonToken(),
-                type: namespace.memberType(
-                  name: decoderTypeName,
-                  genericArgumentClause: GenericArgumentClauseSyntax {
-                    for associatedValue in associatedValues {
-                      GenericArgumentSyntax(
-                        argument: GenericArgumentSyntax.Argument(associatedValue.type.syntax)
-                      )
-                    }
-                  }
-                )
-              )
-            }
-          )
-        )
-      ),
-      statements: CodeBlockItemListSyntax {
-        if associatedValues.isEmpty {
-          MemberAccessExprSyntax(
-            base: DeclReferenceExprSyntax(baseName: typeName),
-            name: name.token
-          )
-        } else {
-          FunctionCallExprSyntax(
-            calledExpression: MemberAccessExprSyntax(
-              base: DeclReferenceExprSyntax(baseName: typeName),
-              name: name.token
-            ),
-            leftParen: .leftParenToken(trailingTrivia: .newline),
-            arguments: LabeledExprListSyntax {
-              for (index, associatedValue) in associatedValues.enumerated() {
-                LabeledExprSyntax(
-                  label: associatedValue.label,
-                  colon: associatedValue.label.map { _ in .colonToken() },
-                  expression: MemberAccessExprSyntax(
-                    base: MemberAccessExprSyntax(
-                      base: DeclReferenceExprSyntax(baseName: "decoder"),
-                      name: "associatedValues"
-                    ),
-                    name: "\(raw: index)"
-                  )
-                )
-              }
-            },
-            rightParen: .rightParenToken(leadingTrivia: .newline)
-          )
-        }
-      }
-    )
-  }
-
-}
-
-// MARK: - Callable Schema Code Generation
 
 extension CallableSchema {
 

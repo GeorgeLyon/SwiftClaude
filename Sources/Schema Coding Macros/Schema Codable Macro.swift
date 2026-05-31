@@ -37,19 +37,17 @@ extension SchemaCodableMacroProtocol {
       extendedType: TypeSyntax(type),
       expansionContext: context
     )
-    let schemaCodableType = declaration.schemaCodableType(in: context)
+    guard let schemaCodableType = declaration.schemaCodableType(in: context) else {
+      return []
+    }
     return [
       ExtensionDeclSyntax(
         extendedType: type,
         inheritanceClause: InheritanceClauseSyntax {
-          InheritedTypeSyntax(
-            type: context.namespace.memberType(name: "SchemaCodable")
-          )
+          InheritedTypeSyntax(type: schemaCodableType.conformanceType)
         }
       ) {
-        if let schemaCodableType {
-          schemaCodableType.members
-        }
+        schemaCodableType.members
       }
     ]
   }

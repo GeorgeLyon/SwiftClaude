@@ -54,27 +54,27 @@ let package = Package(
       swiftSettings: .projectDefaults
     ),
 
-    // .macro(
-    //   name: "StructuredCoding",
-    //   dependencies: [
-    //     .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
-    //     .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
-    //   ],
-    //   path: "Sources/Structured Coding Macros",
-    //   exclude: ["Support/Convert To Snake Case/LICENSE.md"],
-    //   swiftSettings: .projectDefaults
-    // ),
-    // .testTarget(
-    //   name: "SchemaCodingMacrosTests",
-    //   dependencies: [
-    //     "SchemaCodingMacros",
-    //     .product(name: "SwiftSyntaxMacroExpansion", package: "swift-syntax"),
-    //     .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
-    //     .product(name: "SwiftSyntaxMacrosGenericTestSupport", package: "swift-syntax"),
-    //   ],
-    //   path: "Tests/Schema Coding Macros Tests",
-    //   swiftSettings: .projectDefaults
-    // ),
+    .macro(
+      name: "SchemaCodingMacros",
+      dependencies: [
+        .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+        .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
+      ],
+      path: "Sources/Schema Coding Macros",
+      exclude: ["Support/Convert To Snake Case/LICENSE.md"],
+      swiftSettings: .projectDefaults
+    ),
+    .testTarget(
+      name: "SchemaCodingMacrosTests",
+      dependencies: [
+        "SchemaCodingMacros",
+        .product(name: "SwiftSyntaxMacroExpansion", package: "swift-syntax"),
+        .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+        .product(name: "SwiftSyntaxMacrosGenericTestSupport", package: "swift-syntax"),
+      ],
+      path: "Tests/Schema Coding Macros Tests",
+      swiftSettings: .projectDefaults
+    ),
 
     .target(
       name: "JavaScriptObjectNotation",

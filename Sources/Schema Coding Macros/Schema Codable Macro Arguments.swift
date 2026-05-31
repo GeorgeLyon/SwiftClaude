@@ -46,6 +46,7 @@ enum EnumStyleArgument: ParsableArgument {
   static let label: TokenSyntax = "style"
   case object
   case internallyTagged(discriminatorPropertyName: StringLiteralExprSyntax)
+  case typeDiscriminated
 
   init?(_ expression: ExprSyntax, in context: any MacroExpansionContext) {
     if let memberAccessExpr = expression.as(MemberAccessExprSyntax.self),
@@ -53,9 +54,11 @@ enum EnumStyleArgument: ParsableArgument {
       memberAccessExpr.declName.argumentNames == nil
     {
       let rawValue = memberAccessExpr.declName.baseName.trimmed
-      switch rawValue {
+      switch rawValue.text {
       case "object":
         self = .object
+      case "typeDiscriminated":
+        self = .typeDiscriminated
       default:
         context.diagnose(
           DiagnosticError(
@@ -128,6 +131,8 @@ enum EnumStyleArgument: ParsableArgument {
     switch self {
     case .object:
       ExprSyntax(MemberAccessExprSyntax(name: "object"))
+    case .typeDiscriminated:
+      ExprSyntax(MemberAccessExprSyntax(name: "typeDiscriminated"))
     case .internallyTagged(let discriminatorPropertyName):
       ExprSyntax(
         FunctionCallExprSyntax(

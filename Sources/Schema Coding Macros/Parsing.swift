@@ -3,6 +3,8 @@ import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 
+// MARK: - Declaration Dispatch
+
 extension DeclGroupSyntax {
 
   func schemaCodableType(
@@ -14,7 +16,7 @@ extension DeclGroupSyntax {
         typeSyntax: context.extendedType.bindingGenericParameters(
           structDecl.genericParameterClause
         ),
-        schemaKind: .struct(structDecl.schema(in: context))
+        kind: .object(structDecl.objectSchema(in: context))
       )
     } else if let classDecl = self.as(ClassDeclSyntax.self) {
       return SchemaCodableType(
@@ -22,7 +24,7 @@ extension DeclGroupSyntax {
         typeSyntax: context.extendedType.bindingGenericParameters(
           classDecl.genericParameterClause
         ),
-        schemaKind: .struct(classDecl.schema(in: context))
+        kind: .object(classDecl.objectSchema(in: context))
       )
     } else if let enumDecl = self.as(EnumDeclSyntax.self) {
       return SchemaCodableType(
@@ -30,7 +32,7 @@ extension DeclGroupSyntax {
         typeSyntax: context.extendedType.bindingGenericParameters(
           enumDecl.genericParameterClause
         ),
-        schemaKind: .enum(enumDecl.schema(in: context))
+        kind: .enumeration(enumDecl.enumerationSchema(in: context))
       )
     } else {
       context.expansionContext.diagnose(
@@ -46,68 +48,66 @@ extension DeclGroupSyntax {
 
 }
 
+// MARK: - Object Schema Parsing
+
 extension StructDeclSyntax {
 
-  fileprivate func schema(
+  fileprivate func objectSchema(
     in context: SchemaCodableMacroContext
-  ) -> StructSchema {
-
-    let (description, style, keyConversionStrategy) = parseArguments(
+  ) -> ObjectSchema {
+    let description = parseArguments(
       ofAttribute: context.macroAttribute,
-      as: (
-        DescriptionArgument.self,
-        StructStyleArgument.self,
-        KeyConversionStrategyArgument.self
-      ),
+      as: (DescriptionArgument.self, KeyConversionStrategyArgument.self),
       in: context.expansionContext
     )
-
-    return StructSchema(
-      namespace: context.namespace,
-      typeName: "Self",
-      additionalArguments: .fromArguments(description),
-      style: style,
-      keyConversionStrategy: keyConversionStrategy?.value
-        ?? context.defaultKeyConversionStrategy,
-      properties: memberBlock.parseSchemaProperties(style: style, in: context)
+    return memberBlock.objectSchema(
+      description: description.0,
+      keyConversionStrategy: description.1,
+      in: context
     )
   }
 }
 
 extension ClassDeclSyntax {
 
-  fileprivate func schema(
+  fileprivate func objectSchema(
     in context: SchemaCodableMacroContext
-  ) -> StructSchema {
-
-    let (description, keyConversionStrategy) = parseArguments(
+  ) -> ObjectSchema {
+    let description = parseArguments(
       ofAttribute: context.macroAttribute,
-      as: (
-        DescriptionArgument.self,
-        KeyConversionStrategyArgument.self
-      ),
+      as: (DescriptionArgument.self, KeyConversionStrategyArgument.self),
       in: context.expansionContext
     )
-
-    return StructSchema(
-      namespace: context.namespace,
-      typeName: "Self",
-      additionalArguments: .fromArguments(description),
-      style: nil,
-      keyConversionStrategy: keyConversionStrategy?.value
-        ?? context.defaultKeyConversionStrategy,
-      properties: memberBlock.parseSchemaProperties(style: nil, in: context)
+    return memberBlock.objectSchema(
+      description: description.0,
+      keyConversionStrategy: description.1,
+      in: context
     )
   }
 }
 
 extension MemberBlockSyntax {
 
-  fileprivate func parseSchemaProperties(
-    style: StructStyleArgument?,
+  fileprivate func objectSchema(
+    description: DescriptionArgument?,
+    keyConversionStrategy: KeyConversionStrategyArgument?,
     in context: SchemaCodableMacroContext
-  ) -> [StructSchema.Property] {
-    members.flatMap { member -> [StructSchema.Property] in
+  ) -> ObjectSchema {
+    ObjectSchema(
+      namespace: context.namespace,
+      rootType: "Self",
+      isSynthesized: false,
+      keyConversionStrategy: keyConversionStrategy?.value
+        ?? context.defaultKeyConversionStrategy,
+      description: description?.expression,
+      properties: parseObjectProperties(in: context)
+    )
+  }
+
+  fileprivate func parseObjectProperties(
+    in context: SchemaCodableMacroContext
+  ) -> [ObjectSchema.Property] {
+    members.flatMap { member -> [ObjectSchema.Property] in
       guard let variable = member.decl.as(VariableDeclSyntax.self) else {
         return []
       }
@@ -132,31 +132,20 @@ extension MemberBlockSyntax {
         )
       }
 
-      // Validate: @SchemaProperty should not be used on wrapper struct properties
-      if style == .wrapper, variable.hasAttribute("SchemaProperty") {
-        context.expansionContext.diagnose(
-          DiagnosticError(
-            node: variable,
-            severity: .error,
-            message: "@SchemaProperty cannot be used on wrapper struct properties."
-          )
+      let description =
+        variable.parseArguments(
+          ofAttribute: "SchemaProperty",
+          as: DescriptionArgument.self,
+          in: context.expansionContext
         )
-      }
 
-      let additionalArguments: LabeledExprListSyntax =
-        .fromArguments(
-          variable.parseArguments(
-            ofAttribute: "SchemaProperty",
-            as: DescriptionArgument.self,
-            in: context.expansionContext
-          )
-        )
+      let isMutable = variable.bindingSpecifier.tokenKind == .keyword(.var)
 
       /// In order to handle complex declarations such as `let a, b: Bool, c: String`, we iterate over the bindings in reverse and store the last type annotation.
       var lastTypeAnnotation: TypeSyntax?
       return variable.bindings
         .reversed()
-        .compactMap { binding -> StructSchema.Property? in
+        .compactMap { binding -> ObjectSchema.Property? in
           guard
             let type = binding.typeAnnotation?.type
               ?? lastTypeAnnotation
@@ -195,29 +184,216 @@ extension MemberBlockSyntax {
             return nil
           }
 
-          return StructSchema.Property(
+          let defaulting: ObjectSchema.Property.Defaulting
+          if let initializer = binding.initializer {
+            defaulting = isMutable ? .mutable(defaultValue: initializer.value) : .immutable
+          } else {
+            defaulting = .none
+          }
+
+          return ObjectSchema.Property(
             name: IdentifiableToken(
               identifier: identifier,
               token: name
             ),
-            type: type.schemaType,
-            additionalArguments: additionalArguments,
-            isInitializedConstantProperty: [
-              variable.bindingSpecifier.tokenKind == .keyword(.let),
-              binding.initializer != nil,
-            ].allSatisfy { $0 },
+            definition: ObjectSchema.Property.Definition(
+              core: type.objectPropertyCore,
+              defaulting: defaulting
+            ),
             propertyTypeAliasName: context.expansionContext.makeUniqueName(
               identifier.name
             ),
-            storedPropertyName: context.expansionContext.makeUniqueName(
-              identifier.name
-            )
+            description: description?.expression
           )
 
         }
         .reversed()
     }
   }
+}
+
+extension TypeSyntax {
+
+  /// Splits a property's declared type into the `Required` / `Optional`
+  /// definition core the new format wraps it in.
+  fileprivate var objectPropertyCore: ObjectSchema.Property.Core {
+    if let optionalType = self.as(OptionalTypeSyntax.self) {
+      return .optional(wrappedType: optionalType.wrappedType)
+    } else {
+      return .required(valueType: self)
+    }
+  }
+
+}
+
+// MARK: - Enumeration Schema Parsing
+
+extension EnumDeclSyntax {
+
+  fileprivate func enumerationSchema(
+    in context: SchemaCodableMacroContext
+  ) -> EnumerationSchema {
+    let (description, style, keyConversionStrategyArgument) = parseArguments(
+      ofAttribute: context.macroAttribute,
+      as: (
+        DescriptionArgument.self,
+        EnumStyleArgument.self,
+        KeyConversionStrategyArgument.self
+      ),
+      in: context.expansionContext
+    )
+    let keyConversionStrategy =
+      keyConversionStrategyArgument?.value ?? context.defaultKeyConversionStrategy
+
+    return EnumerationSchema(
+      namespace: context.namespace,
+      typeName: "Self",
+      keyConversionStrategy: keyConversionStrategy,
+      codingStyle: (style ?? context.defaultEnumStyle).codingStyle,
+      description: description?.expression,
+      cases: memberBlock
+        .members
+        .flatMap { member -> [EnumerationSchema.Case] in
+          guard let caseDecl = member.decl.as(EnumCaseDeclSyntax.self) else {
+            return []
+          }
+          // Validate: @SchemaProperty should not be used on enum cases
+          if caseDecl.hasAttribute("SchemaProperty") {
+            context.expansionContext.diagnose(
+              DiagnosticError(
+                node: caseDecl,
+                severity: .error,
+                message: "@SchemaProperty cannot be used on enum cases. Use @SchemaCase instead."
+              )
+            )
+          }
+
+          let description = caseDecl.parseArguments(
+            ofAttribute: "SchemaCase",
+            as: DescriptionArgument.self,
+            in: context.expansionContext
+          )
+
+          return caseDecl.elements.compactMap { element -> EnumerationSchema.Case? in
+            guard let name = element.name.identifier else {
+              context.expansionContext.diagnose(
+                DiagnosticError(
+                  node: element.name,
+                  severity: .error,
+                  message: "Missing Identifier"
+                )
+              )
+              return nil
+            }
+
+            return EnumerationSchema.Case(
+              name: IdentifiableToken(
+                identifier: name,
+                token: element.name
+              ),
+              associatedValue: element.associatedValue(
+                caseName: name,
+                keyConversionStrategy: keyConversionStrategy,
+                in: context
+              ),
+              description: description?.expression
+            )
+          }
+        }
+    )
+  }
+
+}
+
+extension EnumCaseElementSyntax {
+
+  /// Collapses a case's 0/1/N associated values onto the single type a
+  /// `StructuredEnumerationCase` wraps, following the rules in `AssociatedValue`.
+  fileprivate func associatedValue(
+    caseName: Identifier,
+    keyConversionStrategy: KeyConversionStrategy,
+    in context: SchemaCodableMacroContext
+  ) -> EnumerationSchema.Case.AssociatedValue {
+    let elements: [EnumerationSchema.Case.Element] =
+      parameterClause?.parameters.map { parameter in
+        let label: TokenSyntax?
+        if let firstName = parameter.firstName, firstName.tokenKind != .wildcard {
+          label = firstName
+        } else {
+          label = nil
+        }
+        return EnumerationSchema.Case.Element(label: label, type: parameter.type)
+      } ?? []
+
+    switch elements.count {
+    case 0:
+      return .none
+    case 1:
+      return .single(elements[0])
+    default:
+      if elements.allSatisfy({ $0.label != nil }) {
+        return .object(
+          synthesizedObject(
+            for: elements,
+            caseName: caseName,
+            keyConversionStrategy: keyConversionStrategy,
+            in: context
+          )
+        )
+      } else {
+        return .tuple(elements)
+      }
+    }
+  }
+
+  /// Builds the `StructuredObject` that stands in for an all-labeled multi-value
+  /// case, assigning it and each of its properties a unique macro-generated name.
+  private func synthesizedObject(
+    for elements: [EnumerationSchema.Case.Element],
+    caseName: Identifier,
+    keyConversionStrategy: KeyConversionStrategy,
+    in context: SchemaCodableMacroContext
+  ) -> ObjectSchema {
+    ObjectSchema(
+      namespace: context.namespace,
+      rootType: context.expansionContext.makeUniqueName(caseName.name),
+      isSynthesized: true,
+      keyConversionStrategy: keyConversionStrategy,
+      description: nil,
+      properties: elements.compactMap { element in
+        guard let label = element.label, let identifier = label.identifier else {
+          return nil
+        }
+        return ObjectSchema.Property(
+          name: IdentifiableToken(identifier: identifier, token: label),
+          definition: ObjectSchema.Property.Definition(
+            core: element.type.objectPropertyCore,
+            defaulting: .none
+          ),
+          propertyTypeAliasName: context.expansionContext.makeUniqueName(identifier.name),
+          description: nil
+        )
+      }
+    )
+  }
+
+}
+
+extension Optional where Wrapped == EnumStyleArgument {
+
+  /// Maps the parsed `@SchemaCodable(style:)` argument (or its absence) onto the
+  /// definition's coding style.
+  fileprivate var codingStyle: EnumerationSchema.CodingStyle {
+    switch self {
+    case .none, .object:
+      return .objectProperties
+    case .internallyTagged(let discriminatorPropertyName):
+      return .internallyTagged(discriminatorPropertyName: discriminatorPropertyName)
+    case .typeDiscriminated:
+      return .typeDiscriminated
+    }
+  }
+
 }
 
 // MARK: - Callable Schema Parsing
@@ -377,93 +553,6 @@ extension TypeSyntax {
       return TypeSyntax(member)
     }
     return self
-  }
-
-}
-
-extension EnumDeclSyntax {
-
-  fileprivate func schema(in context: SchemaCodableMacroContext) -> EnumSchema {
-    let (description, style, keyConversionStrategy) = parseArguments(
-      ofAttribute: context.macroAttribute,
-      as: (
-        DescriptionArgument.self,
-        EnumStyleArgument.self,
-        KeyConversionStrategyArgument.self
-      ),
-      in: context.expansionContext
-    )
-    return EnumSchema(
-      namespace: context.namespace,
-      typeName: "Self",
-      additionalArguments: .fromArguments(
-        (description, style ?? context.defaultEnumStyle)
-      ),
-      keyConversionStrategy: keyConversionStrategy?.value
-        ?? context.defaultKeyConversionStrategy,
-      cases: memberBlock
-        .members
-        .flatMap { member -> [EnumSchema.Case] in
-          guard let caseDecl = member.decl.as(EnumCaseDeclSyntax.self) else {
-            return []
-          }
-          // Validate: @SchemaProperty should not be used on enum cases
-          if caseDecl.hasAttribute("SchemaProperty") {
-            context.expansionContext.diagnose(
-              DiagnosticError(
-                node: caseDecl,
-                severity: .error,
-                message: "@SchemaProperty cannot be used on enum cases. Use @SchemaCase instead."
-              )
-            )
-          }
-
-          let additionalArguments: LabeledExprListSyntax = .fromArguments(
-            caseDecl.parseArguments(
-              ofAttribute: "SchemaCase",
-              as: DescriptionArgument.self,
-              in: context.expansionContext
-            )
-          )
-          return caseDecl.elements.compactMap { element -> EnumSchema.Case? in
-
-            guard let name = element.name.identifier else {
-              context.expansionContext.diagnose(
-                DiagnosticError(
-                  node: element.name,
-                  severity: .error,
-                  message: "Missing Identifier"
-                )
-              )
-              return nil
-            }
-
-            var associatedValues: [SchemaParameter] = []
-
-            if let parameterClause = element.parameterClause {
-              for (offset, parameter) in parameterClause.parameters.enumerated() {
-                associatedValues.append(
-                  SchemaParameter(
-                    firstName: parameter.firstName ?? .wildcardToken(),
-                    secondName: parameter.secondName,
-                    type: parameter.type.schemaType,
-                    bindingName: "__value_\(raw: offset)"
-                  )
-                )
-              }
-            }
-
-            return EnumSchema.Case(
-              name: IdentifiableToken(
-                identifier: name,
-                token: element.name
-              ),
-              additionalArguments: additionalArguments,
-              associatedValues: associatedValues
-            )
-          }
-        }
-    )
   }
 
 }
