@@ -55,24 +55,24 @@ let package = Package(
     ),
 
     .macro(
-      name: "SchemaCodingMacros",
+      name: "StructuredCodingMacros",
       dependencies: [
         .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
         .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
       ],
-      path: "Sources/Schema Coding Macros",
+      path: "Sources/Structured Coding Macros",
       exclude: ["Support/Convert To Snake Case/LICENSE.md"],
       swiftSettings: .projectDefaults
     ),
     .testTarget(
-      name: "SchemaCodingMacrosTests",
+      name: "StructuredCodingMacrosTests",
       dependencies: [
-        "SchemaCodingMacros",
+        "StructuredCodingMacros",
         .product(name: "SwiftSyntaxMacroExpansion", package: "swift-syntax"),
         .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
         .product(name: "SwiftSyntaxMacrosGenericTestSupport", package: "swift-syntax"),
       ],
-      path: "Tests/Schema Coding Macros Tests",
+      path: "Tests/Structured Coding Macros Tests",
       swiftSettings: .projectDefaults
     ),
 

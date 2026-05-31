@@ -4,7 +4,7 @@ import SwiftSyntaxMacros
 import SwiftSyntaxMacrosGenericTestSupport
 import Testing
 
-@testable import SchemaCodingMacros
+@testable import StructuredCodingMacros
 
 private let macroSpecs: [String: MacroSpec] = [
   "SchemaCodable": MacroSpec(type: SchemaCodableMacro.self),
