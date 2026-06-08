@@ -247,6 +247,18 @@ private final class BoxAccessor<Value>: StructuredAccessor, ValueProvider {
   private var stored: Value?
 }
 
+// MARK: - Encoding
+
+func test<Value: StructuredEncodable>(
+  _ value: Value,
+  encodesAs json: String,
+  sourceLocation: SourceLocation = #_sourceLocation
+) throws {
+  var encoder = StructuredEncoder()
+  try value.encode(to: &encoder)
+  #expect(encoder.stringValue == json, sourceLocation: sourceLocation)
+}
+
 // MARK: - JSON Fragments
 
 struct JSONFragments: ExpressibleByStringInterpolation, ExpressibleByArrayLiteral {

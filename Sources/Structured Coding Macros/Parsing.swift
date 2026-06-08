@@ -7,11 +7,11 @@ import SwiftSyntaxMacros
 
 extension DeclGroupSyntax {
 
-  func schemaCodableType(
-    in context: SchemaCodableMacroContext
-  ) -> SchemaCodableType? {
+  func structuredCodableType(
+    in context: StructuredCodableMacroContext
+  ) -> StructuredCodableType? {
     if let structDecl = self.as(StructDeclSyntax.self) {
-      return SchemaCodableType(
+      return StructuredCodableType(
         isPublic: structDecl.modifiers.contains(where: \.isPublic),
         typeSyntax: context.extendedType.bindingGenericParameters(
           structDecl.genericParameterClause
@@ -19,7 +19,7 @@ extension DeclGroupSyntax {
         kind: .object(structDecl.objectSchema(in: context))
       )
     } else if let classDecl = self.as(ClassDeclSyntax.self) {
-      return SchemaCodableType(
+      return StructuredCodableType(
         isPublic: classDecl.modifiers.contains(where: \.isPublic),
         typeSyntax: context.extendedType.bindingGenericParameters(
           classDecl.genericParameterClause
@@ -27,7 +27,7 @@ extension DeclGroupSyntax {
         kind: .object(classDecl.objectSchema(in: context))
       )
     } else if let enumDecl = self.as(EnumDeclSyntax.self) {
-      return SchemaCodableType(
+      return StructuredCodableType(
         isPublic: enumDecl.modifiers.contains(where: \.isPublic),
         typeSyntax: context.extendedType.bindingGenericParameters(
           enumDecl.genericParameterClause
@@ -53,16 +53,20 @@ extension DeclGroupSyntax {
 extension StructDeclSyntax {
 
   fileprivate func objectSchema(
-    in context: SchemaCodableMacroContext
+    in context: StructuredCodableMacroContext
   ) -> ObjectSchema {
-    let description = parseArguments(
+    let arguments = parseArguments(
       ofAttribute: context.macroAttribute,
-      as: (DescriptionArgument.self, KeyConversionStrategyArgument.self),
+      as: (
+        DescriptionArgument.self, KeyConversionStrategyArgument.self,
+        CompatibilityModeArgument.self
+      ),
       in: context.expansionContext
     )
     return memberBlock.objectSchema(
-      description: description.0,
-      keyConversionStrategy: description.1,
+      description: arguments.0,
+      keyConversionStrategy: arguments.1,
+      compatibilityMode: arguments.2,
       in: context
     )
   }
@@ -71,16 +75,20 @@ extension StructDeclSyntax {
 extension ClassDeclSyntax {
 
   fileprivate func objectSchema(
-    in context: SchemaCodableMacroContext
+    in context: StructuredCodableMacroContext
   ) -> ObjectSchema {
-    let description = parseArguments(
+    let arguments = parseArguments(
       ofAttribute: context.macroAttribute,
-      as: (DescriptionArgument.self, KeyConversionStrategyArgument.self),
+      as: (
+        DescriptionArgument.self, KeyConversionStrategyArgument.self,
+        CompatibilityModeArgument.self
+      ),
       in: context.expansionContext
     )
     return memberBlock.objectSchema(
-      description: description.0,
-      keyConversionStrategy: description.1,
+      description: arguments.0,
+      keyConversionStrategy: arguments.1,
+      compatibilityMode: arguments.2,
       in: context
     )
   }
@@ -91,7 +99,8 @@ extension MemberBlockSyntax {
   fileprivate func objectSchema(
     description: DescriptionArgument?,
     keyConversionStrategy: KeyConversionStrategyArgument?,
-    in context: SchemaCodableMacroContext
+    compatibilityMode: CompatibilityModeArgument?,
+    in context: StructuredCodableMacroContext
   ) -> ObjectSchema {
     ObjectSchema(
       namespace: context.namespace,
@@ -99,13 +108,14 @@ extension MemberBlockSyntax {
       isSynthesized: false,
       keyConversionStrategy: keyConversionStrategy?.value
         ?? context.defaultKeyConversionStrategy,
+      compatibilityModes: compatibilityMode?.modes ?? [],
       description: description?.expression,
       properties: parseObjectProperties(in: context)
     )
   }
 
   fileprivate func parseObjectProperties(
-    in context: SchemaCodableMacroContext
+    in context: StructuredCodableMacroContext
   ) -> [ObjectSchema.Property] {
     members.flatMap { member -> [ObjectSchema.Property] in
       guard let variable = member.decl.as(VariableDeclSyntax.self) else {
@@ -120,21 +130,21 @@ extension MemberBlockSyntax {
         return []
       }
 
-      // Validate: @SchemaCase should not be used on struct properties
-      if variable.hasAttribute("SchemaCase") {
+      // Validate: @StructuredCase should not be used on struct properties
+      if variable.hasAttribute("StructuredCase") {
         context.expansionContext.diagnose(
           DiagnosticError(
             node: variable,
             severity: .error,
             message:
-              "@SchemaCase cannot be used on struct properties. Use @SchemaProperty instead."
+              "@StructuredCase cannot be used on struct properties. Use @StructuredProperty instead."
           )
         )
       }
 
       let description =
         variable.parseArguments(
-          ofAttribute: "SchemaProperty",
+          ofAttribute: "StructuredProperty",
           as: DescriptionArgument.self,
           in: context.expansionContext
         )
@@ -231,24 +241,28 @@ extension TypeSyntax {
 extension EnumDeclSyntax {
 
   fileprivate func enumerationSchema(
-    in context: SchemaCodableMacroContext
+    in context: StructuredCodableMacroContext
   ) -> EnumerationSchema {
-    let (description, style, keyConversionStrategyArgument) = parseArguments(
-      ofAttribute: context.macroAttribute,
-      as: (
-        DescriptionArgument.self,
-        EnumStyleArgument.self,
-        KeyConversionStrategyArgument.self
-      ),
-      in: context.expansionContext
-    )
+    let (description, style, keyConversionStrategyArgument, compatibilityModeArgument) =
+      parseArguments(
+        ofAttribute: context.macroAttribute,
+        as: (
+          DescriptionArgument.self,
+          EnumStyleArgument.self,
+          KeyConversionStrategyArgument.self,
+          CompatibilityModeArgument.self
+        ),
+        in: context.expansionContext
+      )
     let keyConversionStrategy =
       keyConversionStrategyArgument?.value ?? context.defaultKeyConversionStrategy
+    let compatibilityModes = compatibilityModeArgument?.modes ?? []
 
     return EnumerationSchema(
       namespace: context.namespace,
       typeName: "Self",
       keyConversionStrategy: keyConversionStrategy,
+      compatibilityModes: compatibilityModes,
       codingStyle: (style ?? context.defaultEnumStyle).codingStyle,
       description: description?.expression,
       cases: memberBlock
@@ -257,19 +271,19 @@ extension EnumDeclSyntax {
           guard let caseDecl = member.decl.as(EnumCaseDeclSyntax.self) else {
             return []
           }
-          // Validate: @SchemaProperty should not be used on enum cases
-          if caseDecl.hasAttribute("SchemaProperty") {
+          // Validate: @StructuredProperty should not be used on enum cases
+          if caseDecl.hasAttribute("StructuredProperty") {
             context.expansionContext.diagnose(
               DiagnosticError(
                 node: caseDecl,
                 severity: .error,
-                message: "@SchemaProperty cannot be used on enum cases. Use @SchemaCase instead."
+                message: "@StructuredProperty cannot be used on enum cases. Use @StructuredCase instead."
               )
             )
           }
 
           let description = caseDecl.parseArguments(
-            ofAttribute: "SchemaCase",
+            ofAttribute: "StructuredCase",
             as: DescriptionArgument.self,
             in: context.expansionContext
           )
@@ -294,6 +308,7 @@ extension EnumDeclSyntax {
               associatedValue: element.associatedValue(
                 caseName: name,
                 keyConversionStrategy: keyConversionStrategy,
+                compatibilityModes: compatibilityModes,
                 in: context
               ),
               description: description?.expression
@@ -312,7 +327,8 @@ extension EnumCaseElementSyntax {
   fileprivate func associatedValue(
     caseName: Identifier,
     keyConversionStrategy: KeyConversionStrategy,
-    in context: SchemaCodableMacroContext
+    compatibilityModes: CompatibilityModes,
+    in context: StructuredCodableMacroContext
   ) -> EnumerationSchema.Case.AssociatedValue {
     let elements: [EnumerationSchema.Case.Element] =
       parameterClause?.parameters.map { parameter in
@@ -337,6 +353,7 @@ extension EnumCaseElementSyntax {
             for: elements,
             caseName: caseName,
             keyConversionStrategy: keyConversionStrategy,
+            compatibilityModes: compatibilityModes,
             in: context
           )
         )
@@ -352,13 +369,15 @@ extension EnumCaseElementSyntax {
     for elements: [EnumerationSchema.Case.Element],
     caseName: Identifier,
     keyConversionStrategy: KeyConversionStrategy,
-    in context: SchemaCodableMacroContext
+    compatibilityModes: CompatibilityModes,
+    in context: StructuredCodableMacroContext
   ) -> ObjectSchema {
     ObjectSchema(
       namespace: context.namespace,
       rootType: context.expansionContext.makeUniqueName(caseName.name),
       isSynthesized: true,
       keyConversionStrategy: keyConversionStrategy,
+      compatibilityModes: compatibilityModes,
       description: nil,
       properties: elements.compactMap { element in
         guard let label = element.label, let identifier = label.identifier else {
@@ -381,11 +400,11 @@ extension EnumCaseElementSyntax {
 
 extension Optional where Wrapped == EnumStyleArgument {
 
-  /// Maps the parsed `@SchemaCodable(style:)` argument (or its absence) onto the
+  /// Maps the parsed `@StructuredCodable(style:)` argument (or its absence) onto the
   /// definition's coding style.
   fileprivate var codingStyle: EnumerationSchema.CodingStyle {
     switch self {
-    case .none, .object:
+    case .none, .objectProperties:
       return .objectProperties
     case .internallyTagged(let discriminatorPropertyName):
       return .internallyTagged(discriminatorPropertyName: discriminatorPropertyName)
@@ -401,7 +420,7 @@ extension Optional where Wrapped == EnumStyleArgument {
 extension FunctionDeclSyntax {
 
   func callableSchema(
-    namespace: SchemaCodingNamespace,
+    namespace: StructuredCodingNamespace,
     additionalArguments: LabeledExprListSyntax,
     keyConversionStrategy: KeyConversionStrategy,
     in context: some MacroExpansionContext

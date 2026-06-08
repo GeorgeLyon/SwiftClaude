@@ -5,23 +5,23 @@ import SwiftSyntaxMacros
 
 // MARK: - Macro
 
-enum SchemaCodableMacro: SchemaCodableMacroProtocol {
-  static let schemaCodingNamespace: SchemaCodingNamespace = "SchemaCoding"
-  static let schemaCodableMacroAttribute: TypeSyntax = "SchemaCodable"
+enum StructuredCodableMacro: StructuredCodableMacroProtocol {
+  static let structuredCodingNamespace: StructuredCodingNamespace = "StructuredCoding"
+  static let structuredCodableMacroAttribute: TypeSyntax = "StructuredCodable"
   static let defaultKeyConversionStrategy: KeyConversionStrategy = .none
   static let defaultEnumStyle: EnumStyleArgument? = nil
 }
 
 // MARK: - Protocol
 
-protocol SchemaCodableMacroProtocol: ExtensionMacro {
-  static var schemaCodingNamespace: SchemaCodingNamespace { get }
-  static var schemaCodableMacroAttribute: TypeSyntax { get }
+protocol StructuredCodableMacroProtocol: ExtensionMacro {
+  static var structuredCodingNamespace: StructuredCodingNamespace { get }
+  static var structuredCodableMacroAttribute: TypeSyntax { get }
   static var defaultKeyConversionStrategy: KeyConversionStrategy { get }
   static var defaultEnumStyle: EnumStyleArgument? { get }
 }
 
-extension SchemaCodableMacroProtocol {
+extension StructuredCodableMacroProtocol {
   static func expansion(
     of node: AttributeSyntax,
     attachedTo declaration: some DeclGroupSyntax,
@@ -29,34 +29,34 @@ extension SchemaCodableMacroProtocol {
     conformingTo protocols: [TypeSyntax],
     in context: some MacroExpansionContext
   ) throws -> [ExtensionDeclSyntax] {
-    let context = SchemaCodableMacroContext(
-      namespace: Self.schemaCodingNamespace,
-      macroAttribute: Self.schemaCodableMacroAttribute,
+    let context = StructuredCodableMacroContext(
+      namespace: Self.structuredCodingNamespace,
+      macroAttribute: Self.structuredCodableMacroAttribute,
       defaultKeyConversionStrategy: Self.defaultKeyConversionStrategy,
       defaultEnumStyle: Self.defaultEnumStyle,
       extendedType: TypeSyntax(type),
       expansionContext: context
     )
-    guard let schemaCodableType = declaration.schemaCodableType(in: context) else {
+    guard let structuredCodableType = declaration.structuredCodableType(in: context) else {
       return []
     }
     return [
       ExtensionDeclSyntax(
         extendedType: type,
         inheritanceClause: InheritanceClauseSyntax {
-          InheritedTypeSyntax(type: schemaCodableType.conformanceType)
+          InheritedTypeSyntax(type: structuredCodableType.conformanceType)
         }
       ) {
-        schemaCodableType.members
+        structuredCodableType.members
       }
     ]
   }
 
 }
 
-// MARK: - Schema Property
+// MARK: - Structured Property
 
-enum SchemaPropertyMacro: PeerMacro {
+enum StructuredPropertyMacro: PeerMacro {
 
   static func expansion(
     of node: AttributeSyntax,
@@ -68,9 +68,9 @@ enum SchemaPropertyMacro: PeerMacro {
 
 }
 
-// MARK: - Schema Case
+// MARK: - Structured Case
 
-enum SchemaCaseMacro: PeerMacro {
+enum StructuredCaseMacro: PeerMacro {
 
   static func expansion(
     of node: AttributeSyntax,

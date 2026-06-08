@@ -44,7 +44,7 @@ enum SchemaCallableMacro: PeerMacro {
 
     let additionalArguments: LabeledExprListSyntax = .fromArguments(description)
 
-    let namespace: SchemaCodingNamespace = "SchemaCoding"
+    let namespace: StructuredCodingNamespace = "SchemaCoding"
 
     let callable = funcDecl.callableSchema(
       namespace: namespace,

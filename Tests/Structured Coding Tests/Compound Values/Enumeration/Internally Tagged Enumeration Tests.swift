@@ -199,6 +199,8 @@ struct InternallyTaggedEnumerationTests {
 /// by the `"type"` discriminator property.
 private enum Event: StructuredEnumeration, Equatable, Sendable {
 
+  typealias Schema = StructuredAnySchema
+
   case message(Message)
   case move(Move)
   case ping(Ping)
@@ -255,9 +257,10 @@ private struct Message: StructuredObject, Equatable, Sendable {
   typealias _BodyProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<String>
   >
-  typealias Properties = _BodyProperty
-  static func properties() -> Properties {
-    _BodyProperty(name: "body", keyPath: \.body)
+  typealias Schema = StructuredObjectSchema<Self, _BodyProperty.Definition>
+  typealias StructuredObjectProperties = _BodyProperty
+  static func properties() -> StructuredObjectProperties {
+    _BodyProperty(name: "body", keyPath: \.body, schema: _BodyProperty.CodingSchema())
   }
 
   typealias ObjectDecoderValues = _BodyProperty.ObjectDecoderValue
@@ -285,11 +288,12 @@ private struct Move: StructuredObject, Equatable, Sendable {
   typealias _YProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<Int>
   >
-  typealias Properties = (_XProperty, _YProperty)
-  static func properties() -> Properties {
+  typealias Schema = StructuredObjectSchema<Self, _XProperty.Definition, _YProperty.Definition>
+  typealias StructuredObjectProperties = (_XProperty, _YProperty)
+  static func properties() -> StructuredObjectProperties {
     (
-      _XProperty(name: "x", keyPath: \.x),
-      _YProperty(name: "y", keyPath: \.y)
+      _XProperty(name: "x", keyPath: \.x, schema: _XProperty.CodingSchema()),
+      _YProperty(name: "y", keyPath: \.y, schema: _YProperty.CodingSchema())
     )
   }
 
@@ -308,8 +312,9 @@ private struct Ping: StructuredObject, Equatable, Sendable {
 
   init() {}
 
-  typealias Properties = ()
-  static func properties() -> Properties { () }
+  typealias Schema = StructuredObjectSchema<Self>
+  typealias StructuredObjectProperties = ()
+  static func properties() -> StructuredObjectProperties { () }
 
   typealias ObjectDecoderValues = ()
   static func decode(from objectDecoder: sending StructuredObjectDecoder<ObjectDecoderValues>) -> sending Self

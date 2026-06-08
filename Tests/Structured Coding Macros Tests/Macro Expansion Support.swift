@@ -7,16 +7,16 @@ import Testing
 @testable import StructuredCodingMacros
 
 private let macroSpecs: [String: MacroSpec] = [
-  "SchemaCodable": MacroSpec(type: SchemaCodableMacro.self),
-  "SchemaProperty": MacroSpec(type: SchemaPropertyMacro.self),
-  "SchemaCase": MacroSpec(type: SchemaCaseMacro.self),
+  "StructuredCodable": MacroSpec(type: StructuredCodableMacro.self),
+  "StructuredProperty": MacroSpec(type: StructuredPropertyMacro.self),
+  "StructuredCase": MacroSpec(type: StructuredCaseMacro.self),
 ]
 
-/// Asserts that the `@SchemaCodable` family of macros expands `original` into
+/// Asserts that the `@StructuredCodable` family of macros expands `original` into
 /// `expanded`. Shared by the struct and enum expansion suites. The
 /// `__macro_local_…` names in the expected sources are the unique names the macro
 /// generates for the per-property / per-case type aliases.
-func assertSchemaCodableExpansion(_ original: String, _ expanded: String) {
+func assertStructuredCodableExpansion(_ original: String, _ expanded: String) {
   assertMacroExpansion(
     original,
     expandedSource: expanded,

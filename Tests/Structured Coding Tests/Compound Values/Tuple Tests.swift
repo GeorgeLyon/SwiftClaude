@@ -3,6 +3,121 @@ import Testing
 @testable import JavaScriptObjectNotation
 @testable import StructuredCoding
 
+/// An object with a tuple-typed property — instantiating its property
+/// descriptors forces `StructuredTuple`'s structural `Schema` witness, whose
+/// mangling contains a pack expansion (the same shape that crashes the runtime
+/// demangler for pack-generic object schemas, see
+/// `StructuredCodingCompatibilityMode.omitSchema`).
+@StructuredCodable
+private struct TuplePropertyObject {
+  var pair: StructuredTuple<Int, String>
+}
+
+/// Resolves `Schema` through the protocol witness, the way generic code does —
+/// this forces runtime demangling of the witness's mangled name.
+private func resolvedSchemaType<T: StructuredEncodable>(of _: T.Type) -> Any.Type {
+  T.Schema.self
+}
+
+/// Constructs a tuple's schema generically, without spelling the pack —
+/// usable for the empty tuple, which has no explicit generic-argument syntax.
+private func schema<each Element: StructuredDecodable>(
+  of _: StructuredTuple<repeat each Element>
+) -> StructuredTuple<repeat each Element>.Schema {
+  StructuredTuple<repeat each Element>.Schema()
+}
+
+@Suite("Tuple Schema")
+struct TupleSchemaTests {
+
+  @Test func encodesPrefixItems() throws {
+    try test(
+      StructuredTuple<Int, String>.Schema(),
+      encodesAs: #"{"prefixItems":[{"type":"integer"},{"type":"string"}]}"#
+    )
+  }
+
+  @Test func encodesDescription() throws {
+    try test(
+      StructuredTuple<Int, String>.Schema(description: "A labeled pair"),
+      encodesAs:
+        #"{"description":"A labeled pair","prefixItems":[{"type":"integer"},{"type":"string"}]}"#
+    )
+  }
+
+  @Test func encodesEmptyTupleSchema() throws {
+    try test(
+      schema(of: StructuredTuple()),
+      encodesAs: #"{"prefixItems":[]}"#
+    )
+  }
+
+  @Test func encodesNestedTupleSchema() throws {
+    try test(
+      StructuredTuple<Int, StructuredTuple<Bool, String>>.Schema(),
+      encodesAs:
+        #"{"prefixItems":[{"type":"integer"},{"prefixItems":[{"type":"boolean"},{"type":"string"}]}]}"#
+    )
+  }
+
+  /// The structural witness `StructuredTupleSchema<repeat (each Element).Schema>`
+  /// contains a pack expansion; resolving it through the runtime demangler is
+  /// exactly what aborts for pack-generic object schemas.
+  @Test func schemaWitnessResolves() throws {
+    #expect(
+      resolvedSchemaType(of: StructuredTuple<Int, String>.self)
+        is StructuredTupleSchema<Int.Schema, String.Schema>.Type
+    )
+  }
+
+  /// Instantiating the property descriptor forces
+  /// `Definition.CodingSchema == StructuredTuple<Int, String>.Schema`.
+  @Test func tuplePropertyMetadataInstantiates() throws {
+    _ = TuplePropertyObject.properties()
+  }
+
+  /// A tuple-typed property now contributes a structural schema rather than
+  /// the `StructuredAnySchema` fallback's `{}`.
+  @Test func tuplePropertySchemaEncodes() throws {
+    try test(
+      TuplePropertyObject.Schema(),
+      encodesAs:
+        #"{"properties":{"pair":{"prefixItems":[{"type":"integer"},{"type":"string"}]}},"required":["pair"]}"#
+    )
+  }
+
+  /// Schemas aren't `Equatable`, so decoding is verified by re-encoding —
+  /// this exercises `PrefixItems`' hand-written `decode`.
+  @Test func decodesByRoundTrip() throws {
+    let json =
+      #"{"description":"A labeled pair","prefixItems":[{"type":"integer"},{"type":"string"}]}"#
+    try test(
+      JSONFragments(stringLiteral: json),
+      decodesAs: .complete(StructuredTuple<Int, String>.Schema()),
+      testEquality: { decoded, _, sourceLocation in
+        let decoded = try #require(decoded, sourceLocation: sourceLocation)
+        var encoder = StructuredEncoder()
+        try decoded.encode(to: &encoder)
+        #expect(encoder.stringValue == json, sourceLocation: sourceLocation)
+      }
+    )
+  }
+
+}
+
+@Suite("Tuple Encoding")
+struct TupleEncodingTests {
+
+  @Test func encodesEmptyTupleAsEmptyArray() throws {
+    try test(StructuredTuple(), encodesAs: "[]")
+  }
+
+  @Test func encodesPairTuple() throws {
+    try test(StructuredTuple<Int, String>(1, "two"), encodesAs: #"[1,"two"]"#)
+  }
+
+}
+
 @Suite("Tuple Decoding")
 struct TupleDecodingTests {
 

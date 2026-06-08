@@ -3,7 +3,7 @@ import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 
-struct SchemaCodingNamespace: ExpressibleByStringLiteral {
+struct StructuredCodingNamespace: ExpressibleByStringLiteral {
 
   func member(name memberName: TokenSyntax) -> some ExprSyntaxProtocol {
     MemberAccessExprSyntax(

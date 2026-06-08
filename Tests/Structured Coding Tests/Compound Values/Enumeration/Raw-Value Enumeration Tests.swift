@@ -131,6 +131,8 @@ struct RawValueEnumerationTests {
 /// A `String`-backed raw-value enumeration whose raw values are its case names.
 /// It needs no `StructuredEnumeration` boilerplate: the raw type supplies everything.
 private enum Color: String, StructuredEnumeration, Equatable, Sendable {
+
+  typealias Schema = StructuredAnySchema
   case red
   case green
   case blue
@@ -139,6 +141,8 @@ private enum Color: String, StructuredEnumeration, Equatable, Sendable {
 /// A `String`-backed enumeration with explicit raw values distinct from the case
 /// labels, exercising the `rawValue`-to-case mapping.
 private enum Direction: String, StructuredEnumeration, Equatable, Sendable {
+
+  typealias Schema = StructuredAnySchema
   case north = "N"
   case south = "S"
   case east = "E"
@@ -147,6 +151,8 @@ private enum Direction: String, StructuredEnumeration, Equatable, Sendable {
 
 /// An integer-backed raw-value enumeration with small, contiguous raw values.
 private enum Priority: Int, StructuredEnumeration, Equatable, Sendable {
+
+  typealias Schema = StructuredAnySchema
   case low = 1
   case medium = 2
   case high = 3
@@ -155,6 +161,8 @@ private enum Priority: Int, StructuredEnumeration, Equatable, Sendable {
 /// An integer-backed enumeration with multi-digit raw values, exercising number
 /// decoding across chunk boundaries.
 private enum HTTPStatus: Int, StructuredEnumeration, Equatable, Sendable {
+
+  typealias Schema = StructuredAnySchema
   case ok = 200
   case notFound = 404
 }

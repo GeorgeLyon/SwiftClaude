@@ -4,7 +4,9 @@ extension DecodingStream {
 
   public struct Number: ~Copyable, ~Escapable {
 
-    public func decode<T: FixedWidthInteger & Sendable>(as _: T.Type = T.self) throws(DecodingError) -> sending T {
+    public func decode<T: FixedWidthInteger & Sendable>(as _: T.Type = T.self) throws(DecodingError)
+      -> sending T
+    {
       let fractionalPart = fractionalPart ?? .empty
       if let exponent {
         if fractionalPart.isAllZeroes, integerPart.isZero {

@@ -1,5 +1,20 @@
 private import JavaScriptObjectNotation
 
+// MARK: - Schema
+
+extension String {
+
+  @StructuredCodable
+  public struct Schema: StructuredCodingSchema {
+    public init(description: String?) {
+      self.description = description
+    }
+    private let description: String?
+    private let type = "string"
+  }
+
+}
+
 // MARK: - Encoding
 
 extension String: StructuredEncodable {

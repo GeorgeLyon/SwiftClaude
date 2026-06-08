@@ -70,6 +70,8 @@ struct EnumerationPropertyTests {
 
 private enum Choice: StructuredEnumeration, Equatable, Sendable {
 
+  typealias Schema = StructuredAnySchema
+
   case text(String)
   case number(Int)
 
@@ -117,11 +119,12 @@ private struct EnumHolder: StructuredObject, Equatable, Sendable {
   typealias _ChoiceProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<Choice>
   >
-  typealias Properties = (_XProperty, _ChoiceProperty)
-  static func properties() -> Properties {
+  typealias Schema = StructuredObjectSchema<Self, _XProperty.Definition, _ChoiceProperty.Definition>
+  typealias StructuredObjectProperties = (_XProperty, _ChoiceProperty)
+  static func properties() -> StructuredObjectProperties {
     (
-      _XProperty(name: "x", keyPath: \.x),
-      _ChoiceProperty(name: "choice", keyPath: \.choice)
+      _XProperty(name: "x", keyPath: \.x, schema: _XProperty.CodingSchema()),
+      _ChoiceProperty(name: "choice", keyPath: \.choice, schema: _ChoiceProperty.CodingSchema())
     )
   }
 
@@ -136,6 +139,8 @@ private struct EnumHolder: StructuredObject, Equatable, Sendable {
 /// An object-properties enumeration with a single case carrying an Optional
 /// payload, which initializes twice during its decode (seed, then wrapped value).
 private enum MaybeChoice: StructuredEnumeration, Equatable, Sendable {
+
+  typealias Schema = StructuredAnySchema
 
   case maybe(Int?)
 
@@ -170,11 +175,12 @@ private struct OptionalPayloadHolder: StructuredObject, Equatable, Sendable {
   typealias _ChoiceProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<MaybeChoice>
   >
-  typealias Properties = (_XProperty, _ChoiceProperty)
-  static func properties() -> Properties {
+  typealias Schema = StructuredObjectSchema<Self, _XProperty.Definition, _ChoiceProperty.Definition>
+  typealias StructuredObjectProperties = (_XProperty, _ChoiceProperty)
+  static func properties() -> StructuredObjectProperties {
     (
-      _XProperty(name: "x", keyPath: \.x),
-      _ChoiceProperty(name: "choice", keyPath: \.choice)
+      _XProperty(name: "x", keyPath: \.x, schema: _XProperty.CodingSchema()),
+      _ChoiceProperty(name: "choice", keyPath: \.choice, schema: _ChoiceProperty.CodingSchema())
     )
   }
 

@@ -39,9 +39,10 @@ private final class ReferenceObject: StructuredObject, @unchecked Sendable, Equa
   typealias _NameProperty = StructuredObjectProperty<
     ReferenceObject, StructuredRequiredObjectPropertyDefinition<String>
   >
-  typealias Properties = _NameProperty
-  static func properties() -> Properties {
-    _NameProperty(name: "name", keyPath: \.name)
+  typealias Schema = StructuredObjectSchema<ReferenceObject, _NameProperty.Definition>
+  typealias StructuredObjectProperties = _NameProperty
+  static func properties() -> StructuredObjectProperties {
+    _NameProperty(name: "name", keyPath: \.name, schema: _NameProperty.CodingSchema())
   }
 
   typealias ObjectDecoderValues = _NameProperty.ObjectDecoderValue

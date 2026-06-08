@@ -5,7 +5,7 @@ import SwiftSyntaxMacros
 
 // MARK: - Conformance Members
 
-extension SchemaCodableType {
+extension StructuredCodableType {
 
   /// The protocol the generated extension conforms the type to.
   var conformanceType: some TypeSyntaxProtocol {
@@ -57,10 +57,21 @@ extension ObjectSchema {
       )
     }
 
-    // typealias Properties = (<unique>, ...)
+    // typealias Schema = {ns}.StructuredObjectSchema<Self, <unique>.Definition, ...>
+    // Under the `omitSchema` compatibility mode the witness is instead the
+    // concrete {ns}.StructuredAnySchema, because the structural schema's
+    // witness mangling contains pack expansions for pack-generic types and
+    // crashes the runtime demangler.
     TypeAliasDeclSyntax(
       modifiers: .visibility(isPublic),
-      name: "Properties",
+      name: "Schema",
+      initializer: TypeInitializerClauseSyntax(value: schemaType())
+    )
+
+    // typealias StructuredObjectProperties = (<unique>, ...)
+    TypeAliasDeclSyntax(
+      modifiers: .visibility(isPublic),
+      name: "StructuredObjectProperties",
       initializer: TypeInitializerClauseSyntax(
         value: tupleOrSingle(properties.map { property in
           TypeSyntax(IdentifierTypeSyntax(name: property.propertyTypeAliasName))
@@ -68,18 +79,23 @@ extension ObjectSchema {
       )
     )
 
-    // static func properties() -> Properties { ... }
+    // static func properties() -> StructuredObjectProperties { ... }
     FunctionDeclSyntax(
       modifiers: .visibility(isPublic, static: true),
       name: "properties",
       signature: FunctionSignatureSyntax(
         parameterClause: FunctionParameterClauseSyntax(parameters: FunctionParameterListSyntax()),
-        returnClause: ReturnClauseSyntax(type: IdentifierTypeSyntax(name: "Properties"))
+        returnClause: ReturnClauseSyntax(type: IdentifierTypeSyntax(name: "StructuredObjectProperties"))
       ),
       body: CodeBlockSyntax {
         tupleOrSingleExpr(
           properties.map { property in
-            ExprSyntax(property.propertyExpr(keyConversionStrategy: keyConversionStrategy))
+            ExprSyntax(
+              property.propertyExpr(
+                keyConversionStrategy: keyConversionStrategy,
+                compatibilityModes: compatibilityModes
+              )
+            )
           }
         )
       }
@@ -168,6 +184,34 @@ extension ObjectSchema {
       }
       conformanceMembers(isPublic: isPublic)
     }
+  }
+
+  /// The `Schema` witness: `StructuredObjectSchema<Self, <unique>.Definition, ...>`,
+  /// or the concrete `StructuredAnySchema` under `omitSchema`.
+  private func schemaType() -> TypeSyntax {
+    guard !compatibilityModes.contains(.omitSchema) else {
+      return TypeSyntax(namespace.memberType(name: "StructuredAnySchema"))
+    }
+    return TypeSyntax(
+      namespace.memberType(
+        name: "StructuredObjectSchema",
+        genericArgumentClause: GenericArgumentClauseSyntax {
+          GenericArgumentSyntax(
+            argument: GenericArgumentSyntax.Argument(IdentifierTypeSyntax(name: "Self"))
+          )
+          for property in properties {
+            GenericArgumentSyntax(
+              argument: GenericArgumentSyntax.Argument(
+                MemberTypeSyntax(
+                  baseType: IdentifierTypeSyntax(name: property.propertyTypeAliasName),
+                  name: "Definition"
+                )
+              )
+            )
+          }
+        }
+      )
+    )
   }
 
   /// `Self(label0: objectDecoder.values.0, label2: objectDecoder.values.2 ?? <default>)`,
@@ -328,9 +372,12 @@ extension ObjectSchema {
 
 extension ObjectSchema.Property {
 
-  /// `<unique>(name: "json", keyPath: \.swiftName)`
+  /// `<unique>(name: "json", keyPath: \.swiftName, schema: <unique>.CodingSchema())`,
+  /// or with `.variadicGenerics` compatibility
+  /// `<unique>(name: "json", getter: { $0.swiftName }, schema: <unique>.CodingSchema())`.
   fileprivate func propertyExpr(
-    keyConversionStrategy: KeyConversionStrategy
+    keyConversionStrategy: KeyConversionStrategy,
+    compatibilityModes: CompatibilityModes
   ) -> FunctionCallExprSyntax {
     FunctionCallExprSyntax(
       calledExpression: DeclReferenceExprSyntax(baseName: propertyTypeAliasName),
@@ -344,20 +391,52 @@ extension ObjectSchema.Property {
           ),
           trailingComma: .commaToken(trailingTrivia: .newline)
         )
-        LabeledExprSyntax(
-          label: "keyPath",
-          colon: .colonToken(),
-          expression: KeyPathExprSyntax(
-            components: KeyPathComponentListSyntax {
-              KeyPathComponentSyntax(
-                period: .periodToken(),
-                component: .property(
-                  KeyPathPropertyComponentSyntax(
-                    declName: DeclReferenceExprSyntax(baseName: .identifier(name.name))
+        if compatibilityModes.contains(.variadicGenerics) {
+          // Key path literals rooted in a pack-generic type crash at runtime;
+          // see `StructuredCodingCompatibilityMode.variadicGenerics`.
+          LabeledExprSyntax(
+            label: "getter",
+            colon: .colonToken(),
+            expression: ClosureExprSyntax(
+              statements: CodeBlockItemListSyntax {
+                MemberAccessExprSyntax(
+                  base: DeclReferenceExprSyntax(baseName: .dollarIdentifier("$0")),
+                  declName: DeclReferenceExprSyntax(baseName: .identifier(name.name))
+                )
+              }
+            ),
+            trailingComma: .commaToken(trailingTrivia: .newline)
+          )
+        } else {
+          LabeledExprSyntax(
+            label: "keyPath",
+            colon: .colonToken(),
+            expression: KeyPathExprSyntax(
+              components: KeyPathComponentListSyntax {
+                KeyPathComponentSyntax(
+                  period: .periodToken(),
+                  component: .property(
+                    KeyPathPropertyComponentSyntax(
+                      declName: DeclReferenceExprSyntax(baseName: .identifier(name.name))
+                    )
                   )
                 )
-              )
-            }
+              }
+            ),
+            trailingComma: .commaToken(trailingTrivia: .newline)
+          )
+        }
+        LabeledExprSyntax(
+          label: "schema",
+          colon: .colonToken(),
+          expression: FunctionCallExprSyntax(
+            calledExpression: MemberAccessExprSyntax(
+              base: DeclReferenceExprSyntax(baseName: propertyTypeAliasName),
+              name: "CodingSchema"
+            ),
+            leftParen: .leftParenToken(),
+            arguments: LabeledExprListSyntax(),
+            rightParen: .rightParenToken()
           )
         )
       },
@@ -385,7 +464,7 @@ extension ObjectSchema.Property.Definition {
   /// The `Structured…ObjectPropertyDefinition` generic specialization for this
   /// property, e.g.
   /// `{ns}.StructuredMutableDefaultInitializedPropertyDefinition<{ns}.StructuredRequiredObjectPropertyDefinition<Int>>`.
-  func typeSyntax(in namespace: SchemaCodingNamespace) -> TypeSyntax {
+  func typeSyntax(in namespace: StructuredCodingNamespace) -> TypeSyntax {
     let coreType: TypeSyntax
     switch core {
     case .required(let valueType):
@@ -455,6 +534,15 @@ extension EnumerationSchema {
       codingStyleMember
     }
 
+    // typealias Schema = {ns}.Structured<Style>EnumerationSchema<Self, <associated>, ...>
+    // Styles without schema infrastructure (and the `omitSchema` compatibility
+    // mode) fall back to the concrete {ns}.StructuredAnySchema.
+    TypeAliasDeclSyntax(
+      modifiers: .visibility(isPublic),
+      name: "Schema",
+      initializer: TypeInitializerClauseSyntax(value: schemaType())
+    )
+
     // typealias Cases = ({ns}.StructuredEnumerationCase<Self, <associated>>, ...)
     TypeAliasDeclSyntax(
       modifiers: .visibility(isPublic),
@@ -503,6 +591,38 @@ extension EnumerationSchema {
     }
   }
 
+  /// The `Schema` witness: the style-specific enumeration schema where one
+  /// exists (currently only the object-properties style), or the concrete
+  /// `StructuredAnySchema` otherwise — including under `omitSchema`.
+  private func schemaType() -> TypeSyntax {
+    guard !compatibilityModes.contains(.omitSchema) else {
+      return TypeSyntax(namespace.memberType(name: "StructuredAnySchema"))
+    }
+    switch codingStyle {
+    case .objectProperties:
+      return TypeSyntax(
+        namespace.memberType(
+          name: "StructuredObjectPropertiesEnumerationSchema",
+          genericArgumentClause: GenericArgumentClauseSyntax {
+            GenericArgumentSyntax(
+              argument: GenericArgumentSyntax.Argument(IdentifierTypeSyntax(name: "Self"))
+            )
+            for `case` in cases {
+              GenericArgumentSyntax(
+                argument: GenericArgumentSyntax.Argument(
+                  `case`.associatedValue.typeSyntax(in: namespace)
+                )
+              )
+            }
+          }
+        )
+      )
+    case .internallyTagged, .typeDiscriminated:
+      // Placeholder until schema infrastructure for these styles exists.
+      return TypeSyntax(namespace.memberType(name: "StructuredAnySchema"))
+    }
+  }
+
 }
 
 extension EnumerationSchema.CodingStyle {
@@ -510,7 +630,7 @@ extension EnumerationSchema.CodingStyle {
   /// `static var codingStyle: <StyleType> { <expr> }`, or `nil` for the default
   /// object-properties style (which the protocol supplies).
   fileprivate func codingStyleMember(
-    in namespace: SchemaCodingNamespace,
+    in namespace: StructuredCodingNamespace,
     isPublic: Bool
   ) -> VariableDeclSyntax? {
     let styleTypeName: TokenSyntax
@@ -562,7 +682,7 @@ extension EnumerationSchema.Case {
 
   /// `{ns}.StructuredEnumerationCase(name: "...", accessor: { ... }, initializer: { ... })`
   fileprivate func caseExpr(
-    in namespace: SchemaCodingNamespace,
+    in namespace: StructuredCodingNamespace,
     keyConversionStrategy: KeyConversionStrategy
   ) -> FunctionCallExprSyntax {
     FunctionCallExprSyntax(
@@ -594,7 +714,7 @@ extension EnumerationSchema.Case {
   }
 
   /// `{ value in guard case .name(let v0, ...) = value else { return nil }; return <wrapper> }`
-  private func accessorClosure(in namespace: SchemaCodingNamespace) -> ClosureExprSyntax {
+  private func accessorClosure(in namespace: StructuredCodingNamespace) -> ClosureExprSyntax {
     let bindingNames = associatedValue.bindingNames
     let returnExpr = associatedValue.accessorReturnExpr(
       caseName: name, in: namespace, bindingNames: bindingNames)
@@ -751,7 +871,7 @@ extension EnumerationSchema.Case {
 extension EnumerationSchema.Case.AssociatedValue {
 
   /// The single type the `StructuredEnumerationCase` wraps.
-  func typeSyntax(in namespace: SchemaCodingNamespace) -> TypeSyntax {
+  func typeSyntax(in namespace: StructuredCodingNamespace) -> TypeSyntax {
     switch self {
     case .none:
       return TypeSyntax(namespace.memberType(name: "StructuredEmptyObject"))
@@ -790,7 +910,7 @@ extension EnumerationSchema.Case.AssociatedValue {
   /// The value returned from the accessor once the case has matched.
   fileprivate func accessorReturnExpr(
     caseName: IdentifiableToken,
-    in namespace: SchemaCodingNamespace,
+    in namespace: StructuredCodingNamespace,
     bindingNames: [TokenSyntax]
   ) -> ExprSyntax {
     switch self {
@@ -854,7 +974,7 @@ private func sendingType(_ base: some TypeSyntaxProtocol) -> AttributedTypeSynta
 
 /// A tuple type of `elements`, collapsing to the bare element when there is
 /// exactly one (Swift unwraps a single-element parenthesized type) and to `()`
-/// when empty — matching the fixtures' `Properties` / `Cases` / `ObjectDecoderValues`.
+/// when empty — matching the fixtures' `StructuredObjectProperties` / `Cases` / `ObjectDecoderValues`.
 private func tupleOrSingle(_ elements: [TypeSyntax]) -> TypeSyntax {
   if elements.count == 1 {
     return elements[0]
@@ -911,7 +1031,7 @@ extension SchemaParameter {
 
   /// Generates a `parameter(label: "...", schema: ...)` call
   func parameterCallExpr(
-    namespace: SchemaCodingNamespace,
+    namespace: StructuredCodingNamespace,
     keyConversionStrategy: KeyConversionStrategy
   ) -> FunctionCallExprSyntax {
     var arguments = LabeledExprListSyntax()
@@ -949,7 +1069,7 @@ extension SchemaParameter {
 extension ExprSyntaxProtocol where Self == FunctionCallExprSyntax {
 
   fileprivate static func schema(
-    namespace: SchemaCodingNamespace,
+    namespace: StructuredCodingNamespace,
     representing type: TypeSyntax,
     additionalArguments: LabeledExprListSyntax = LabeledExprListSyntax()
   ) -> Self {

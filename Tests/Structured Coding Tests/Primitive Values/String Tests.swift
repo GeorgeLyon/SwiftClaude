@@ -6,6 +6,21 @@ import StructuredCoding
 struct StringTests {
 
   @Test
+  func encodesSimpleString() throws {
+    try test("hello", encodesAs: #""hello""#)
+  }
+
+  @Test
+  func encodesEmptyString() throws {
+    try test("", encodesAs: #""""#)
+  }
+
+  @Test
+  func encodesEscapes() throws {
+    try test("line1\nline2", encodesAs: #""line1\nline2""#)
+  }
+
+  @Test
   func decodesSimpleString() throws {
     try test("\"hello\"", decodesAs: "hello")
   }

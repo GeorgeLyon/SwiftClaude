@@ -5,8 +5,8 @@ private import Synchronization
 
 public protocol StructuredObject: StructuredCodable {
 
-  associatedtype Properties
-  static func properties() -> Properties
+  associatedtype StructuredObjectProperties
+  static func properties() -> StructuredObjectProperties
 
   associatedtype ObjectDecoderValues
   static func decode(from objectDecoder: sending StructuredObjectDecoder<ObjectDecoderValues>)
@@ -32,6 +32,13 @@ public struct StructuredObjectDecoder<Values> {
   public let values: Values
 }
 
+// MARK: Empty Object
+
+@StructuredCodable
+public struct StructuredEmptyObject {
+
+}
+
 // MARK: Property
 
 /// Properties vary across a few axes:
@@ -41,55 +48,88 @@ public struct StructuredObjectDecoder<Values> {
 extension StructuredObjectProperty {
   public init<T>(
     name: StructuredCodingKey,
-    keyPath: KeyPath<Root, T> & Sendable
+    keyPath: KeyPath<Root, T> & Sendable,
+    schema: T.Schema
   ) where Definition == StructuredRequiredObjectPropertyDefinition<T> {
     self.name = name
     self.taggedKeyPath = .getOnly(keyPath)
     self.definition = Definition(name: name)
+    self.schema = schema
   }
   public init<T>(
     name: StructuredCodingKey,
-    keyPath: KeyPath<Root, T?> & Sendable
+    keyPath: KeyPath<Root, T?> & Sendable,
+    schema: T.Schema
   ) where Definition == StructuredOptionalObjectPropertyDefinition<T> {
     self.name = name
     self.taggedKeyPath = .getOnly(keyPath)
     self.definition = Definition()
+    self.schema = schema
   }
   public init<T>(
     name: StructuredCodingKey,
-    keyPath: WritableKeyPath<Root, T> & Sendable
+    getter: @escaping @Sendable (Root) -> T,
+    schema: T.Schema
+  ) where Definition == StructuredRequiredObjectPropertyDefinition<T> {
+    self.name = name
+    self.taggedKeyPath = .getOnlyClosure(getter)
+    self.definition = Definition(name: name)
+    self.schema = schema
+  }
+  public init<T>(
+    name: StructuredCodingKey,
+    getter: @escaping @Sendable (Root) -> T?,
+    schema: T.Schema
+  ) where Definition == StructuredOptionalObjectPropertyDefinition<T> {
+    self.name = name
+    self.taggedKeyPath = .getOnlyClosure(getter)
+    self.definition = Definition()
+    self.schema = schema
+  }
+  public init<T>(
+    name: StructuredCodingKey,
+    keyPath: WritableKeyPath<Root, T> & Sendable,
+    schema: T.Schema
   ) where Definition == StructuredRequiredObjectPropertyDefinition<T> {
     self.name = name
     self.taggedKeyPath = .writable(keyPath)
     self.definition = Definition(name: name)
+    self.schema = schema
   }
   public init<T>(
     name: StructuredCodingKey,
-    keyPath: WritableKeyPath<Root, T?> & Sendable
+    keyPath: WritableKeyPath<Root, T?> & Sendable,
+    schema: T.Schema
   ) where Definition == StructuredOptionalObjectPropertyDefinition<T> {
     self.name = name
     self.taggedKeyPath = .writable(keyPath)
     self.definition = Definition()
+    self.schema = schema
   }
   public init<T>(
     name: StructuredCodingKey,
-    keyPath: ReferenceWritableKeyPath<Root, T> & Sendable
+    keyPath: ReferenceWritableKeyPath<Root, T> & Sendable,
+    schema: T.Schema
   ) where Definition == StructuredRequiredObjectPropertyDefinition<T> {
     self.name = name
     self.taggedKeyPath = .referenceWritable(keyPath)
     self.definition = Definition(name: name)
+    self.schema = schema
   }
   public init<T>(
     name: StructuredCodingKey,
-    keyPath: ReferenceWritableKeyPath<Root, T?> & Sendable
+    keyPath: ReferenceWritableKeyPath<Root, T?> & Sendable,
+    schema: T.Schema
   ) where Definition == StructuredOptionalObjectPropertyDefinition<T> {
     self.name = name
     self.taggedKeyPath = .referenceWritable(keyPath)
     self.definition = Definition()
+    self.schema = schema
   }
   public init<T>(
     name: StructuredCodingKey,
     keyPath: KeyPath<Root, T> & Sendable,
+    schema: T.Schema,
   )
   where
     Definition == StructuredImmutableDefaultInitializedPropertyDefinition<
@@ -99,10 +139,12 @@ extension StructuredObjectProperty {
     self.name = name
     self.taggedKeyPath = .getOnly(keyPath)
     self.definition = Definition(name: name, base: .init(name: name))
+    self.schema = schema
   }
   public init<T>(
     name: StructuredCodingKey,
     keyPath: KeyPath<Root, T?> & Sendable,
+    schema: T.Schema,
   )
   where
     Definition == StructuredImmutableDefaultInitializedPropertyDefinition<
@@ -112,10 +154,42 @@ extension StructuredObjectProperty {
     self.name = name
     self.taggedKeyPath = .getOnly(keyPath)
     self.definition = Definition(name: name, base: .init())
+    self.schema = schema
+  }
+  public init<T>(
+    name: StructuredCodingKey,
+    getter: @escaping @Sendable (Root) -> T,
+    schema: T.Schema,
+  )
+  where
+    Definition == StructuredImmutableDefaultInitializedPropertyDefinition<
+      StructuredRequiredObjectPropertyDefinition<T>
+    >
+  {
+    self.name = name
+    self.taggedKeyPath = .getOnlyClosure(getter)
+    self.definition = Definition(name: name, base: .init(name: name))
+    self.schema = schema
+  }
+  public init<T>(
+    name: StructuredCodingKey,
+    getter: @escaping @Sendable (Root) -> T?,
+    schema: T.Schema,
+  )
+  where
+    Definition == StructuredImmutableDefaultInitializedPropertyDefinition<
+      StructuredOptionalObjectPropertyDefinition<T>
+    >
+  {
+    self.name = name
+    self.taggedKeyPath = .getOnlyClosure(getter)
+    self.definition = Definition(name: name, base: .init())
+    self.schema = schema
   }
   public init<T>(
     name: StructuredCodingKey,
     keyPath: WritableKeyPath<Root, T> & Sendable,
+    schema: T.Schema,
   )
   where
     Definition == StructuredMutableDefaultInitializedPropertyDefinition<
@@ -125,10 +199,12 @@ extension StructuredObjectProperty {
     self.name = name
     self.taggedKeyPath = .writable(keyPath)
     self.definition = Definition(base: .init(name: name))
+    self.schema = schema
   }
   public init<T>(
     name: StructuredCodingKey,
     keyPath: WritableKeyPath<Root, T?> & Sendable,
+    schema: T.Schema,
   )
   where
     Definition == StructuredMutableDefaultInitializedPropertyDefinition<
@@ -138,10 +214,12 @@ extension StructuredObjectProperty {
     self.name = name
     self.taggedKeyPath = .writable(keyPath)
     self.definition = Definition(base: .init())
+    self.schema = schema
   }
   public init<T>(
     name: StructuredCodingKey,
     keyPath: ReferenceWritableKeyPath<Root, T> & Sendable,
+    schema: T.Schema,
   )
   where
     Definition == StructuredMutableDefaultInitializedPropertyDefinition<
@@ -151,10 +229,12 @@ extension StructuredObjectProperty {
     self.name = name
     self.taggedKeyPath = .referenceWritable(keyPath)
     self.definition = Definition(base: .init(name: name))
+    self.schema = schema
   }
   public init<T>(
     name: StructuredCodingKey,
     keyPath: ReferenceWritableKeyPath<Root, T?> & Sendable,
+    schema: T.Schema,
   )
   where
     Definition == StructuredMutableDefaultInitializedPropertyDefinition<
@@ -164,27 +244,74 @@ extension StructuredObjectProperty {
     self.name = name
     self.taggedKeyPath = .referenceWritable(keyPath)
     self.definition = Definition(base: .init())
+    self.schema = schema
+  }
+  public init<T>(
+    name: StructuredCodingKey,
+    getter: @escaping @Sendable (Root) -> T,
+    schema: T.Schema,
+  )
+  where
+    Definition == StructuredMutableDefaultInitializedPropertyDefinition<
+      StructuredRequiredObjectPropertyDefinition<T>
+    >
+  {
+    self.name = name
+    self.taggedKeyPath = .getOnlyClosure(getter)
+    self.definition = Definition(base: .init(name: name))
+    self.schema = schema
+  }
+  public init<T>(
+    name: StructuredCodingKey,
+    getter: @escaping @Sendable (Root) -> T?,
+    schema: T.Schema,
+  )
+  where
+    Definition == StructuredMutableDefaultInitializedPropertyDefinition<
+      StructuredOptionalObjectPropertyDefinition<T>
+    >
+  {
+    self.name = name
+    self.taggedKeyPath = .getOnlyClosure(getter)
+    self.definition = Definition(base: .init())
+    self.schema = schema
   }
 }
 
-public struct StructuredObjectProperty<Root, Definition: StructuredObjectPropertyDefinition> {
+public struct StructuredObjectProperty<Root, _Definition: StructuredObjectPropertyDefinition> {
+  public typealias Definition = _Definition
   public typealias ObjectDecoderValue = Definition.ObjectDecoderValue
+  public typealias CodingSchema = Definition.CodingSchema
   fileprivate let name: StructuredCodingKey
   fileprivate let taggedKeyPath: TaggedKeyPath<Root, Definition.PropertyValue>
   fileprivate let definition: Definition
+  fileprivate let schema: CodingSchema
 }
 
 public protocol StructuredObjectPropertyDefinition: SendableMetatype {
-  associatedtype PropertyValue: SendableMetatype
+  /// The type of this property on a constructed object
+  associatedtype PropertyValue
+
+  /// The schema of this property when it is coded
+  /// For an optional, this will be `Wrapped.Schema`
+  associatedtype CodingSchema: StructuredCodable
+
+  /// The type of value we use during initialization
+  /// Default-initialized properties use `Void` when immutable and `PropertyValue?` when mutable
   associatedtype ObjectDecoderValue = PropertyValue
+
+  /// The type that is used to validate the property after streaming has completed
+  /// This is `PropertyValue` for immutable default-initialized properties
   associatedtype ValidationPayload = Void
+
   var isRequired: Bool { get }
-  static func shouldOmit(_ propertyValue: PropertyValue) -> Bool
+
   func encode(
     _ propertyValue: PropertyValue,
     forKey name: StructuredCodingKey,
     in encoder: inout StructuredObjectPropertiesEncoder
   ) throws
+
   func initialValueForDecoding(
     isMutable: Bool
   ) -> sending StructuredObjectPropertyDecodingValue<PropertyValue, ObjectDecoderValue>
@@ -218,12 +345,24 @@ public struct StructuredObjectPropertyDecodingValue<PropertyValue, ObjectDecoder
 }
 
 public struct StructuredRequiredObjectPropertyDefinition<
-  PropertyValue: StructuredCodable
+  Value: StructuredCodable
 >: StructuredObjectPropertyDefinition {
+
+  public typealias PropertyValue = Value
+  public typealias CodingSchema = Value.Schema
+
   public var isRequired: Bool { true }
-  public static func shouldOmit(_ propertyValue: PropertyValue) -> Bool {
-    false
+
+  public func encode(
+    _ propertyValue: PropertyValue,
+    forKey name: StructuredCodingKey,
+    in encoder: inout StructuredObjectPropertiesEncoder
+  ) throws {
+    try encoder.encodeProperty(named: name) { encoder in
+      try propertyValue.encode(to: &encoder)
+    }
   }
+
   public func initialValueForDecoding(
     isMutable: Bool
   ) -> sending StructuredObjectPropertyDecodingValue<PropertyValue, PropertyValue> {
@@ -234,22 +373,21 @@ public struct StructuredRequiredObjectPropertyDefinition<
         .map { .propertyValue($0) }
     )
   }
+
   public func objectDecoderValue(
     from propertyValue: sending PropertyValue
   ) -> sending ObjectDecoderValue {
     propertyValue
   }
+
   public func decodeValue<Accessor: StructuredAccessor & ~Escapable>(
     from decoder: inout StructuredDecoder,
     in context: borrowing StructuredDecodingContext,
     using accessor: Accessor
   ) async throws -> sending Void where Accessor.Value == PropertyValue {
-    if accessor.isMutable {
-      try await PropertyValue.decode(from: &decoder, in: context, using: accessor)
-    } else {
-      try await accessor.initializeValue(to: PropertyValue.decode(from: &decoder, in: context))
-    }
+    try await PropertyValue.decode(from: &decoder, in: context, using: accessor)
   }
+
   public func decodeOmitted<Accessor: StructuredAccessor & ~Escapable>(
     in context: borrowing StructuredDecodingContext,
     using accessor: Accessor
@@ -257,23 +395,38 @@ public struct StructuredRequiredObjectPropertyDefinition<
   where Accessor.Value == PropertyValue {
     throw ObjectDecodingError.propertyNotFound(name.stringValue)
   }
+
   public func validate<Accessor: StructuredAccessor & ~Escapable>(
     _ payload: sending (),
     using accessor: borrowing Accessor
   ) async throws where Accessor.Value == PropertyValue {
-    // No validation
+    /// No validation
   }
+
   fileprivate let name: StructuredCodingKey
+
 }
 
 public struct StructuredOptionalObjectPropertyDefinition<
   Wrapped: StructuredCodable
 >: StructuredObjectPropertyDefinition {
+
   public typealias PropertyValue = Wrapped?
+  public typealias CodingSchema = Wrapped.Schema
+
   public var isRequired: Bool { false }
-  public static func shouldOmit(_ propertyValue: PropertyValue) -> Bool {
-    propertyValue == nil
+
+  public func encode(
+    _ propertyValue: Wrapped?,
+    forKey name: StructuredCodingKey,
+    in encoder: inout StructuredObjectPropertiesEncoder
+  ) throws {
+    guard let propertyValue else { return }
+    try encoder.encodeProperty(named: name) { encoder in
+      try propertyValue.encode(to: &encoder)
+    }
   }
+
   public func initialValueForDecoding(
     isMutable: Bool
   ) -> sending StructuredObjectPropertyDecodingValue<Wrapped?, Wrapped?> {
@@ -322,12 +475,20 @@ where
   Base.ValidationPayload == Void
 {
   public typealias PropertyValue = Base.PropertyValue
+  public typealias CodingSchema = Base.CodingSchema
   public typealias ObjectDecoderValue = Void
   public typealias ValidationPayload = PropertyValue
+
   public var isRequired: Bool { base.isRequired }
-  public static func shouldOmit(_ propertyValue: PropertyValue) -> Bool {
-    Base.shouldOmit(propertyValue)
+
+  public func encode(
+    _ propertyValue: Base.PropertyValue,
+    forKey name: StructuredCodingKey,
+    in encoder: inout StructuredObjectPropertiesEncoder
+  ) throws {
+    try base.encode(propertyValue, forKey: name, in: &encoder)
   }
+
   public func initialValueForDecoding(
     isMutable: Bool
   ) -> sending StructuredObjectPropertyDecodingValue<Base.PropertyValue, Void> {
@@ -389,13 +550,22 @@ where
   Base.ValidationPayload == Void,
   Base.ObjectDecoderValue == Base.PropertyValue
 {
+
   public typealias PropertyValue = Base.PropertyValue
+  public typealias CodingSchema = Base.CodingSchema
   public typealias ObjectDecoderValue = PropertyValue?
   public typealias ValidationPayload = Void
+
   public var isRequired: Bool { base.isRequired }
-  public static func shouldOmit(_ propertyValue: PropertyValue) -> Bool {
-    Base.shouldOmit(propertyValue)
+
+  public func encode(
+    _ propertyValue: Base.PropertyValue,
+    forKey name: StructuredCodingKey,
+    in encoder: inout StructuredObjectPropertiesEncoder
+  ) throws {
+    try base.encode(propertyValue, forKey: name, in: &encoder)
   }
+
   public func initialValueForDecoding(
     isMutable: Bool
   ) -> sending StructuredObjectPropertyDecodingValue<Base.PropertyValue, PropertyValue?> {
@@ -461,6 +631,176 @@ where
   fileprivate let base: Base
 }
 
+// MARK: - Schema
+
+@StructuredCodable(compatibilityMode: [.variadicGenerics, .omitSchema])
+public struct StructuredObjectSchema<
+  Base: StructuredObject,
+  each PropertyDefinition
+>: StructuredCodingSchema
+where
+  Base.StructuredObjectProperties == (
+    repeat StructuredObjectProperty<Base, each PropertyDefinition>
+  )
+{
+
+  public init(description: String?) {
+    self.description = description
+    self.properties = Properties()
+    var required: [String] = []
+    for property in repeat each Base.properties() {
+      if property.definition.isRequired {
+        required.append(property.name.stringValue)
+      }
+    }
+    self.required = required.isEmpty ? nil : required
+  }
+
+  private let description: String?
+
+  public struct Properties: StructuredObject {
+
+    public typealias Schema = StructuredAnySchema
+
+    public typealias StructuredObjectProperties = (
+      repeat StructuredObjectProperty<
+        Self,
+        StructuredRequiredObjectPropertyDefinition<
+          (each PropertyDefinition).CodingSchema
+        >
+      >
+    )
+    public static func properties() -> StructuredObjectProperties {
+      let baseProperties = Base.properties()
+      let accessors = Storage.accessors()
+      return
+        (repeat StructuredObjectProperty(
+          name: (each baseProperties).name,
+          taggedKeyPath: .getOnlyClosure { root in root.storage[each accessors] },
+          definition: StructuredRequiredObjectPropertyDefinition(name: (each baseProperties).name),
+          schema: (each PropertyDefinition).CodingSchema.Schema(description: nil)))
+    }
+
+    public typealias ObjectDecoderValues = (
+      repeat (each PropertyDefinition).CodingSchema
+    )
+    public static func decode(
+      from objectDecoder: sending StructuredObjectDecoder<ObjectDecoderValues>
+    ) -> sending Self {
+      self.init(repeat each objectDecoder.values)
+    }
+
+    init(_ schemas: repeat (each PropertyDefinition).CodingSchema) {
+      self.storage = VariadicTuple(repeat each schemas)
+    }
+
+    init() {
+      let properties = Base.properties()
+      self.init(repeat (each properties).schema)
+    }
+
+    public static func initialValueForDecoding(isMutable: Bool) -> sending Self? {
+      nil
+    }
+
+    /// Decoding is hand-written rather than relying on the `StructuredObject`
+    /// extension witnesses: those materialize this conformance's pack
+    /// (`StructuredObjectProperties` is a genuine pack expansion here, unlike
+    /// the concrete property tuples the macro generates) inside `async`
+    /// witness thunks, whose task-allocated pack metadata is deallocated out
+    /// of order — aborting with "freed pointer was not the last allocation".
+    public static func decode<Accessor: StructuredAccessor & ~Escapable>(
+      from decoder: inout StructuredDecoder,
+      in context: borrowing StructuredDecodingContext,
+      using accessor: Accessor
+    ) async throws where Accessor.Value == Self {
+      try await context.withArena { arena in
+        let properties = Base.properties()
+        let stateRefs =
+          (repeat arena.push(
+            SchemaPropertyDecodingState<(each PropertyDefinition).CodingSchema>.pending
+          ).unsafePointer)
+
+        try await decoder.stream.decodeObject { objectDecoder in
+          for (property, stateRef) in repeat (each properties, each stateRefs) {
+            guard !objectDecoder.isAtEnd else {
+              throw ObjectDecodingError.propertyNotFound(property.name.stringValue)
+            }
+            try await objectDecoder.decodeProperty(
+              decodeValue: { name, stream in
+                /// Property schemas are decoded in declaration order — the
+                /// order `encodeProperties` writes them.
+                guard name == property.name.stringValue else {
+                  throw ObjectDecodingError.unknownProperty(name)
+                }
+                try await stream.withDecoder { decoder in
+                  try await stateRef.pointee.decode(from: &decoder, in: context)
+                }
+              }
+            )
+          }
+          if !objectDecoder.isAtEnd {
+            try await objectDecoder.decodeProperty(
+              decodeValue: { name, _ in
+                throw ObjectDecodingError.unknownProperty(name)
+              }
+            )
+          }
+        }
+
+        try await accessor.initializeValue(
+          to: Self(repeat try (each stateRefs).pointee.takeDecodedValue())
+        )
+      }
+    }
+
+    private typealias Storage = VariadicTuple<(repeat (each PropertyDefinition).CodingSchema)>
+    private let storage: Storage
+
+  }
+  private let properties: Properties
+
+  /// The names of the properties that may not be omitted, in declaration
+  /// order; `nil` (omitting the JSON key) when every property is omittable.
+  /// Mirrors each definition's `isRequired` and thereby the decoder, which
+  /// rejects omission exactly when the property's core is required — even for
+  /// default-initialized properties.
+  private let required: [String]?
+
+}
+
+/// The decoding state of a single property schema in
+/// `StructuredObjectSchema.Properties`' hand-written `decode`.
+private enum SchemaPropertyDecodingState<Value: StructuredDecodable>: ~Copyable {
+
+  /// The property schema has not been decoded yet.
+  case pending
+
+  /// The property schema has been fully decoded.
+  case decoded(Sending<Value>)
+
+  mutating func decode(
+    from decoder: inout StructuredDecoder,
+    in context: borrowing StructuredDecodingContext
+  ) async throws {
+    let value = try await Value.decode(from: &decoder, in: context)
+    self = .decoded(Sending(value))
+  }
+
+  /// Moves the decoded schema out, leaving the state `pending`.
+  mutating func takeDecodedValue() throws -> sending Value {
+    switch consume self {
+    case .pending:
+      self = .pending
+      throw ObjectDecodingError.invalidState
+    case .decoded(let value):
+      self = .pending
+      return value.send()
+    }
+  }
+
+}
+
 // MARK: - Encoding
 
 public struct StructuredObjectPropertiesEncoder: ~Copyable {
@@ -509,60 +849,14 @@ extension EncodingStream.ObjectEncoder {
 
 }
 
-extension StructuredRequiredObjectPropertyDefinition {
-  public func encode(
-    _ propertyValue: PropertyValue,
-    forKey name: StructuredCodingKey,
-    in encoder: inout StructuredObjectPropertiesEncoder
-  ) throws {
-    try encoder.encodeProperty(named: name) { encoder in
-      try propertyValue.encode(to: &encoder)
-    }
-  }
-}
-
-extension StructuredOptionalObjectPropertyDefinition {
-  public func encode(
-    _ propertyValue: Wrapped?,
-    forKey name: StructuredCodingKey,
-    in encoder: inout StructuredObjectPropertiesEncoder
-  ) throws {
-    /// `nil` simply means the property is absent; we omit it from the object.
-    guard let propertyValue else { return }
-    try encoder.encodeProperty(named: name) { encoder in
-      try propertyValue.encode(to: &encoder)
-    }
-  }
-}
-
-extension StructuredImmutableDefaultInitializedPropertyDefinition {
-  public func encode(
-    _ propertyValue: Base.PropertyValue,
-    forKey name: StructuredCodingKey,
-    in encoder: inout StructuredObjectPropertiesEncoder
-  ) throws {
-    if Self.shouldOmit(propertyValue) { return }
-    try base.encode(propertyValue, forKey: name, in: &encoder)
-  }
-}
-
-extension StructuredMutableDefaultInitializedPropertyDefinition {
-  public func encode(
-    _ propertyValue: Base.PropertyValue,
-    forKey name: StructuredCodingKey,
-    in encoder: inout StructuredObjectPropertiesEncoder
-  ) throws {
-    if Self.shouldOmit(propertyValue) { return }
-    try base.encode(propertyValue, forKey: name, in: &encoder)
-  }
-}
-
 extension StructuredObject {
 
   public func encode<each PropertyDefinition>(
     to encoder: inout StructuredEncoder
   ) throws
-  where Properties == (repeat StructuredObjectProperty<Self, each PropertyDefinition>) {
+  where
+    StructuredObjectProperties == (repeat StructuredObjectProperty<Self, each PropertyDefinition>)
+  {
     try encoder.stream.encodeObject { objectEncoder in
       try objectEncoder.withPropertiesEncoder { propertiesEncoder in
         try encodeProperties(to: &propertiesEncoder)
@@ -573,11 +867,13 @@ extension StructuredObject {
   public func encodeProperties<each PropertyDefinition>(
     to encoder: inout StructuredObjectPropertiesEncoder
   ) throws
-  where Properties == (repeat StructuredObjectProperty<Self, each PropertyDefinition>) {
+  where
+    StructuredObjectProperties == (repeat StructuredObjectProperty<Self, each PropertyDefinition>)
+  {
     let propertiesTuple = Self.properties()
     let properties = (repeat each propertiesTuple)
     for property in repeat (each properties) {
-      let propertyValue = self[keyPath: property.taggedKeyPath.keyPath]
+      let propertyValue = property.taggedKeyPath.accessValue(on: self)
       try property.definition.encode(propertyValue, forKey: property.name, in: &encoder)
     }
   }
@@ -592,7 +888,7 @@ extension StructuredObject {
     isMutable isBaseMutable: Bool
   ) -> sending Self?
   where
-    Properties == (repeat StructuredObjectProperty<Self, each PropertyDefinition>),
+    StructuredObjectProperties == (repeat StructuredObjectProperty<Self, each PropertyDefinition>),
     ObjectDecoderValues == (repeat (each PropertyDefinition).ObjectDecoderValue)
   {
     func initialObjectDecoderValue<Definition: StructuredObjectPropertyDefinition>(
@@ -600,7 +896,7 @@ extension StructuredObject {
     ) throws(ObjectInitialValueError) -> sending Definition.ObjectDecoderValue {
       let isMutable =
         switch property.taggedKeyPath {
-        case .getOnly:
+        case .getOnly, .getOnlyClosure:
           false
         case .writable:
           isBaseMutable
@@ -640,7 +936,7 @@ extension StructuredObject {
   ) async throws
   where
     Accessor.Value == Self,
-    Properties == (repeat StructuredObjectProperty<Self, each PropertyDefinition>),
+    StructuredObjectProperties == (repeat StructuredObjectProperty<Self, each PropertyDefinition>),
     ObjectDecoderValues == (repeat (each PropertyDefinition).ObjectDecoderValue)
   {
     try await context.withArena { arena in
@@ -666,7 +962,7 @@ extension StructuredObject {
   ) async throws
   where
     Accessor.Value == Self,
-    Properties == (repeat StructuredObjectProperty<Self, each PropertyDefinition>),
+    StructuredObjectProperties == (repeat StructuredObjectProperty<Self, each PropertyDefinition>),
     ObjectDecoderValues == (repeat (each PropertyDefinition).ObjectDecoderValue)
   {
     let properties = (repeat each properties())
@@ -708,7 +1004,7 @@ extension StructuredObject {
   ) async throws
   where
     Accessor.Value == Self,
-    Properties == (repeat StructuredObjectProperty<Self, each PropertyDefinition>),
+    StructuredObjectProperties == (repeat StructuredObjectProperty<Self, each PropertyDefinition>),
     ObjectDecoderValues == (repeat (each PropertyDefinition).ObjectDecoderValue)
   {
     let configurationState = configuration.prepareForDecoding(from: &propertiesDecoder)
@@ -783,7 +1079,7 @@ extension StructuredObject {
   ) async throws
   where
     Accessor.Value == Self,
-    Properties == (repeat StructuredObjectProperty<Self, each PropertyDefinition>),
+    StructuredObjectProperties == (repeat StructuredObjectProperty<Self, each PropertyDefinition>),
     ObjectDecoderValues == (repeat (each PropertyDefinition).ObjectDecoderValue)
   {
     let configurationState = configuration.prepareForDecoding(from: &propertiesDecoder)
@@ -893,7 +1189,7 @@ extension StructuredObject {
   }
 
   private static func propertyCount<each PropertyDefinition>() -> Int
-  where Properties == (repeat each PropertyDefinition) {
+  where StructuredObjectProperties == (repeat each PropertyDefinition) {
     var count = 0
     for _ in repeat each properties() {
       count += 1
@@ -912,7 +1208,7 @@ extension StructuredObject {
   ) async throws
   where
     Accessor.Value == Self,
-    Properties == (repeat StructuredObjectProperty<Self, each PropertyDefinition>),
+    StructuredObjectProperties == (repeat StructuredObjectProperty<Self, each PropertyDefinition>),
     ObjectDecoderValues == (repeat (each PropertyDefinition).ObjectDecoderValue)
   {
     let objectDecoder = StructuredObjectDecoder(
@@ -1372,7 +1668,8 @@ private struct PreInitializationAccessor<
 
   typealias Value = Definition.PropertyValue
 
-  var isMutable: Bool { true }
+  /// Even though this accesor is technically mutable, streaming doesn't buy us anything if we can't initialize the container yet so we prefer the all-at-once codepath.
+  var isMutable: Bool { false }
 
   func initializeValue(to value: consuming sending Value) async throws {
     stateRef.pointee = .available(Sending(value))
@@ -1405,7 +1702,9 @@ private struct InitializingAccessor<
 >: StructuredAccessor, ~Escapable
 where
   Base.Value: StructuredObject,
-  Base.Value.Properties == (repeat StructuredObjectProperty<Base.Value, each PropertyDefinition>),
+  Base.Value.StructuredObjectProperties == (
+    repeat StructuredObjectProperty<Base.Value, each PropertyDefinition>
+  ),
   Base.Value.ObjectDecoderValues == (repeat (each PropertyDefinition).ObjectDecoderValue)
 {
 
@@ -1495,7 +1794,7 @@ struct KeyPathAccessor<
 
   var isMutable: Bool {
     switch keyPath {
-    case .getOnly:
+    case .getOnly, .getOnlyClosure:
       false
     case .writable:
       base.isMutable
@@ -1508,15 +1807,15 @@ struct KeyPathAccessor<
     applying delta: sending Delta,
     apply: @Sendable (Value, sending Delta) async throws -> sending T
   ) async throws -> sending T {
-    let keyPath = keyPath.keyPath
+    let keyPath = keyPath
     return try await base.accessValue(applying: delta) { root, delta in
-      try await apply(root[keyPath: keyPath], delta)
+      try await apply(keyPath.accessValue(on: root), delta)
     }
   }
 
   func initializeValue(to value: sending Value) async throws {
     switch keyPath {
-    case .getOnly:
+    case .getOnly, .getOnlyClosure:
       throw AccessorError.valueIsImmutable
     case .writable(let keyPath):
       try await base.mutateValue(applying: value) { base, value in
@@ -1534,7 +1833,7 @@ struct KeyPathAccessor<
     apply: @Sendable (inout Value, sending Delta) async throws -> sending T
   ) async throws -> sending T {
     switch keyPath {
-    case .getOnly:
+    case .getOnly, .getOnlyClosure:
       throw AccessorError.valueIsImmutable
     case .writable(let keyPath):
       try await base.mutateValue(applying: delta) { base, delta in

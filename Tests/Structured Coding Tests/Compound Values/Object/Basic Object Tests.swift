@@ -3,6 +3,33 @@ import Testing
 @testable import JavaScriptObjectNotation
 @testable import StructuredCoding
 
+@Suite("Basic Object Encoding")
+struct BasicObjectEncodingTests {
+
+  @Test func encodesObjectWithBothProperties() throws {
+    try test(
+      MutableStringObject(first: "hello", second: "world"),
+      encodesAs: #"{"first":"hello","second":"world"}"#
+    )
+  }
+
+  @Test func omitsNilOptionalProperty() throws {
+    try test(
+      MutableStringObject(first: "hello", second: nil),
+      encodesAs: #"{"first":"hello"}"#
+    )
+  }
+
+  @Test func encodesEmptyObject() throws {
+    try test(EmptyObject(), encodesAs: "{}")
+  }
+
+  @Test func encodesAllOptionalAsEmpty() throws {
+    try test(OptionalMutableObject(a: nil, b: nil), encodesAs: "{}")
+  }
+
+}
+
 @Suite("Basic Object Decoding")
 struct BasicObjectTests {
 

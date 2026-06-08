@@ -167,6 +167,8 @@ struct TypeDiscriminatedEnumerationTests {
 /// case's `kind` is inferred from its associated value's type.
 private enum Node: StructuredEnumeration, Equatable, Sendable {
 
+  typealias Schema = StructuredAnySchema
+
   case string(String)
   case integer(Int)
   case boolean(Bool)
@@ -236,11 +238,12 @@ private struct Point: StructuredObject, Equatable, Sendable {
   typealias _YProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<Int>
   >
-  typealias Properties = (_XProperty, _YProperty)
-  static func properties() -> Properties {
+  typealias Schema = StructuredObjectSchema<Self, _XProperty.Definition, _YProperty.Definition>
+  typealias StructuredObjectProperties = (_XProperty, _YProperty)
+  static func properties() -> StructuredObjectProperties {
     (
-      _XProperty(name: "x", keyPath: \.x),
-      _YProperty(name: "y", keyPath: \.y)
+      _XProperty(name: "x", keyPath: \.x, schema: _XProperty.CodingSchema()),
+      _YProperty(name: "y", keyPath: \.y, schema: _YProperty.CodingSchema())
     )
   }
 

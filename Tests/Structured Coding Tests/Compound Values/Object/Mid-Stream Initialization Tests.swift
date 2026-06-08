@@ -65,6 +65,21 @@ struct MidStreamInitializationTests {
     )
   }
 
+  /// *Two* unavailable mutation-streamed (`String`) properties: while more than
+  /// one property is unavailable, the first decodes through
+  /// `PreInitializationAccessor` — which must also seed a value before the
+  /// mutation can land on it.
+  ///
+  /// Known issue: `PreInitializationAccessor` reports `isMutable == true` but
+  /// holds no value, so `String`'s mutation-streaming decode throws
+  /// `.uninitializedValue`.
+  @Test func twoUnavailableMutationStreamedPropertiesInitializeMidStream() async throws {
+    try test(
+      #"{"first":"a","second":"b"}"#,
+      decodesAs: DeferredStringObject(first: "a", second: "b")
+    )
+  }
+
   /// A required deferred property that never arrives must throw, not trap: `{}`
   /// leaves `value` uninitialized, so buffered (Branch B) validation must report
   /// the missing property rather than `fatalError`.
@@ -122,6 +137,44 @@ struct MidStreamInitializationTests {
 
 // MARK: - Fixtures
 
+/// Two required immutable `let String` properties: both are unavailable up front
+/// and both stream purely by mutation, so the first one decoded must be buffered
+/// through `PreInitializationAccessor`.
+private struct DeferredStringObject: StructuredObject, Equatable, Sendable {
+
+  let first: String
+  let second: String
+
+  init(first: String, second: String) {
+    self.first = first
+    self.second = second
+  }
+
+  typealias _FirstProperty = StructuredObjectProperty<
+    Self, StructuredRequiredObjectPropertyDefinition<String>
+  >
+  typealias _SecondProperty = StructuredObjectProperty<
+    Self, StructuredRequiredObjectPropertyDefinition<String>
+  >
+  typealias Schema = StructuredObjectSchema<Self, _FirstProperty.Definition, _SecondProperty.Definition>
+  typealias StructuredObjectProperties = (_FirstProperty, _SecondProperty)
+  static func properties() -> StructuredObjectProperties {
+    (
+      _FirstProperty(name: "first", keyPath: \.first, schema: _FirstProperty.CodingSchema()),
+      _SecondProperty(name: "second", keyPath: \.second, schema: _SecondProperty.CodingSchema())
+    )
+  }
+
+  typealias ObjectDecoderValues = (
+    _FirstProperty.ObjectDecoderValue, _SecondProperty.ObjectDecoderValue
+  )
+  static func decode(from objectDecoder: sending StructuredObjectDecoder<ObjectDecoderValues>)
+    -> sending Self
+  {
+    Self(first: objectDecoder.values.0, second: objectDecoder.values.1)
+  }
+}
+
 /// A single required immutable `let String` property. The get-only key path
 /// makes it unavailable up front, yet `String` streams purely by mutation —
 /// so construction must seed the buffered state before the mutation arrives.
@@ -136,9 +189,10 @@ private struct LetStringObject: StructuredObject, Equatable, Sendable {
   typealias _NameProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<String>
   >
-  typealias Properties = _NameProperty
-  static func properties() -> Properties {
-    _NameProperty(name: "name", keyPath: \.name)
+  typealias Schema = StructuredObjectSchema<Self, _NameProperty.Definition>
+  typealias StructuredObjectProperties = _NameProperty
+  static func properties() -> StructuredObjectProperties {
+    _NameProperty(name: "name", keyPath: \.name, schema: _NameProperty.CodingSchema())
   }
 
   typealias ObjectDecoderValues = _NameProperty.ObjectDecoderValue
@@ -169,11 +223,12 @@ private struct ProfileObject: StructuredObject, Equatable, Sendable {
   typealias _NameProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<String>
   >
-  typealias Properties = (_NicknameProperty, _NameProperty)
-  static func properties() -> Properties {
+  typealias Schema = StructuredObjectSchema<Self, _NicknameProperty.Definition, _NameProperty.Definition>
+  typealias StructuredObjectProperties = (_NicknameProperty, _NameProperty)
+  static func properties() -> StructuredObjectProperties {
     (
-      _NicknameProperty(name: "nickname", keyPath: \.nickname),
-      _NameProperty(name: "name", keyPath: \.name)
+      _NicknameProperty(name: "nickname", keyPath: \.nickname, schema: _NicknameProperty.CodingSchema()),
+      _NameProperty(name: "name", keyPath: \.name, schema: _NameProperty.CodingSchema())
     )
   }
 

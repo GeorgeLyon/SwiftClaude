@@ -24,11 +24,12 @@ struct MutableStringObject: StructuredObject, Equatable, Sendable {
   typealias _SecondProperty = StructuredObjectProperty<
     Self, StructuredOptionalObjectPropertyDefinition<String>
   >
-  typealias Properties = (_FirstProperty, _SecondProperty)
-  static func properties() -> Properties {
+  typealias Schema = StructuredObjectSchema<Self, _FirstProperty.Definition, _SecondProperty.Definition>
+  typealias StructuredObjectProperties = (_FirstProperty, _SecondProperty)
+  static func properties() -> StructuredObjectProperties {
     (
-      _FirstProperty(name: "first", keyPath: \.first),
-      _SecondProperty(name: "second", keyPath: \.second)
+      _FirstProperty(name: "first", keyPath: \.first, schema: _FirstProperty.CodingSchema()),
+      _SecondProperty(name: "second", keyPath: \.second, schema: _SecondProperty.CodingSchema())
     )
   }
 
@@ -58,11 +59,12 @@ struct OptionalMutableObject: StructuredObject, Equatable, Sendable {
   typealias _BProperty = StructuredObjectProperty<
     Self, StructuredOptionalObjectPropertyDefinition<String>
   >
-  typealias Properties = (_AProperty, _BProperty)
-  static func properties() -> Properties {
+  typealias Schema = StructuredObjectSchema<Self, _AProperty.Definition, _BProperty.Definition>
+  typealias StructuredObjectProperties = (_AProperty, _BProperty)
+  static func properties() -> StructuredObjectProperties {
     (
-      _AProperty(name: "a", keyPath: \.a),
-      _BProperty(name: "b", keyPath: \.b)
+      _AProperty(name: "a", keyPath: \.a, schema: _AProperty.CodingSchema()),
+      _BProperty(name: "b", keyPath: \.b, schema: _BProperty.CodingSchema())
     )
   }
 
@@ -79,8 +81,9 @@ struct EmptyObject: StructuredObject, Equatable, Sendable {
 
   init() {}
 
-  typealias Properties = ()
-  static func properties() -> Properties { () }
+  typealias Schema = StructuredObjectSchema<Self>
+  typealias StructuredObjectProperties = ()
+  static func properties() -> StructuredObjectProperties { () }
 
   typealias ObjectDecoderValues = ()
   static func decode(from objectDecoder: sending StructuredObjectDecoder<ObjectDecoderValues>) -> sending Self {
@@ -114,12 +117,13 @@ struct DeferredObject: StructuredObject, Equatable, Sendable {
   typealias _TailProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<String>
   >
-  typealias Properties = (_AProperty, _BProperty, _TailProperty)
-  static func properties() -> Properties {
+  typealias Schema = StructuredObjectSchema<Self, _AProperty.Definition, _BProperty.Definition, _TailProperty.Definition>
+  typealias StructuredObjectProperties = (_AProperty, _BProperty, _TailProperty)
+  static func properties() -> StructuredObjectProperties {
     (
-      _AProperty(name: "a", keyPath: \.a),
-      _BProperty(name: "b", keyPath: \.b),
-      _TailProperty(name: "tail", keyPath: \.tail)
+      _AProperty(name: "a", keyPath: \.a, schema: _AProperty.CodingSchema()),
+      _BProperty(name: "b", keyPath: \.b, schema: _BProperty.CodingSchema()),
+      _TailProperty(name: "tail", keyPath: \.tail, schema: _TailProperty.CodingSchema())
     )
   }
 
@@ -149,9 +153,10 @@ struct SingleScalarObject: StructuredObject, Equatable, Sendable {
   typealias _ValueProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<Int>
   >
-  typealias Properties = _ValueProperty
-  static func properties() -> Properties {
-    _ValueProperty(name: "value", keyPath: \.value)
+  typealias Schema = StructuredObjectSchema<Self, _ValueProperty.Definition>
+  typealias StructuredObjectProperties = _ValueProperty
+  static func properties() -> StructuredObjectProperties {
+    _ValueProperty(name: "value", keyPath: \.value, schema: _ValueProperty.CodingSchema())
   }
 
   typealias ObjectDecoderValues = _ValueProperty.ObjectDecoderValue

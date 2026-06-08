@@ -30,7 +30,7 @@ let package = Package(
       name: "StructuredCoding",
       dependencies: [
         "JavaScriptObjectNotation",
-        // "StructuredCodingMacros",
+        "StructuredCodingMacros",
         .product(name: "BasicContainers", package: "swift-collections"),
       ],
       path: "Sources/Structured Coding",

@@ -2,9 +2,35 @@ private import JavaScriptObjectNotation
 
 public import struct Foundation.Decimal
 
+// MARK: - Concrete Conformances
+
 extension Double: StructuredCodable {}
 extension Float: StructuredCodable {}
 extension Float16: StructuredCodable {}
+
+// MARK: - Schema
+
+@StructuredCodable
+public struct StructuredNumberSchema: StructuredCodingSchema {
+  public init(description: String?) {
+    self.description = description
+  }
+  private let description: String?
+  private let type = "number"
+}
+
+extension BinaryFloatingPoint
+where Self: StructuredCodable & Sendable & LosslessStringConvertible {
+
+  public typealias Schema = StructuredNumberSchema
+
+}
+
+extension Decimal {
+
+  public typealias Schema = StructuredNumberSchema
+
+}
 
 // MARK: - Encoding
 

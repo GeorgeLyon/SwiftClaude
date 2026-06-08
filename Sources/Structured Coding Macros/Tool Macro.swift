@@ -171,10 +171,10 @@ extension DeclGroupSyntax {
         }
       )
 
-      /// struct Input: SchemaCoding.SchemaCodable { … }
-      StructDeclSyntax.schemaCodableStruct(
+      /// struct Input: ToolInput.StructuredCodable { … }
+      StructDeclSyntax.structuredCodableStruct(
         name: "Input",
-        schemaCodingNamespace: "ToolInput",
+        structuredCodingNamespace: "ToolInput",
         keyConversionStrategy: .none,
         isPublic: isPublic,
         properties: storedProperties,

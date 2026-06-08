@@ -1,8 +1,22 @@
 private import JavaScriptObjectNotation
 
+// MARK: - Schema
+
+@StructuredCodable
+public struct StructuredArraySchema<ElementSchema: StructuredCodingSchema>: StructuredCodingSchema {
+  public init(description: String?) {
+    self.description = description
+    self.items = ElementSchema()
+  }
+  private let description: String?
+  private let items: ElementSchema
+}
+
 // MARK: - Encoding
 
 extension Array: StructuredEncodable where Element: StructuredEncodable {
+
+  public typealias Schema = StructuredArraySchema<Element.Schema>
 
   public func encode(to encoder: inout StructuredEncoder) throws {
     try encoder.stream.encodeArray { arrayEncoder in
@@ -22,11 +36,27 @@ extension Array: StructuredEncodable where Element: StructuredEncodable {
 
 extension Array: StructuredDecodable where Element: StructuredDecodable {
 
+  public typealias Schema = StructuredArraySchema<Element.Schema>
+
   public static func initialValueForDecoding(isMutable: Bool) -> sending [Element]? {
     isMutable ? [] : nil
   }
 
   public static func decode<Accessor: StructuredAccessor & ~Escapable>(
+    from decoder: inout StructuredDecoder,
+    in context: borrowing StructuredDecodingContext,
+    using accessor: Accessor
+  ) async throws where Accessor.Value == [Element] {
+    if accessor.isMutable {
+      try await decodeStreamed(from: &decoder, in: context, using: accessor)
+    } else {
+      try await decodeBuffered(from: &decoder, in: context, using: accessor)
+    }
+  }
+
+  /// Streams each decoded element into the already-initialized destination
+  /// (`initialValueForDecoding` returned `[]`) as it arrives.
+  private static func decodeStreamed<Accessor: StructuredAccessor & ~Escapable>(
     from decoder: inout StructuredDecoder,
     in context: borrowing StructuredDecodingContext,
     using accessor: Accessor
@@ -55,6 +85,30 @@ extension Array: StructuredDecodable where Element: StructuredDecodable {
         }
       }
     }
+  }
+
+  /// An immutable destination has no value to stream into
+  /// (`initialValueForDecoding` returned `nil`), so the elements are buffered
+  /// locally and the array is initialized all at once.
+  private static func decodeBuffered<Accessor: StructuredAccessor & ~Escapable>(
+    from decoder: inout StructuredDecoder,
+    in context: borrowing StructuredDecodingContext,
+    using accessor: Accessor
+  ) async throws where Accessor.Value == [Element] {
+    let elements = try await decoder.stream.decodeArray { arrayDecoder in
+      var elements: [Element] = []
+      while !arrayDecoder.isAtEnd {
+        elements.append(
+          try await arrayDecoder.decodeElement { stream in
+            try await stream.withDecoder { decoder in
+              try await Element.decode(from: &decoder, in: context)
+            }
+          }
+        )
+      }
+      return elements
+    }
+    try await accessor.initializeValue(to: elements)
   }
 
 }

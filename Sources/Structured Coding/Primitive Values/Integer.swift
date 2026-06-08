@@ -1,5 +1,7 @@
 private import JavaScriptObjectNotation
 
+// MARK: - Concrete Conformances
+
 extension Int: StructuredCodable {}
 extension Int8: StructuredCodable {}
 extension Int16: StructuredCodable {}
@@ -12,6 +14,23 @@ extension UInt16: StructuredCodable {}
 extension UInt32: StructuredCodable {}
 extension UInt64: StructuredCodable {}
 extension UInt128: StructuredCodable {}
+
+// MARK: - Schema
+
+@StructuredCodable
+public struct StructuredIntegerSchema: StructuredCodingSchema {
+  public init(description: String?) {
+    self.description = description
+  }
+  private let description: String?
+  private let type = "integer"
+}
+
+extension FixedWidthInteger where Self: StructuredCodable & Sendable {
+
+  public typealias Schema = StructuredIntegerSchema
+
+}
 
 // MARK: - Encoding
 

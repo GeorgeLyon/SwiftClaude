@@ -24,11 +24,30 @@ struct IdentifiableToken {
   }
 }
 
-// MARK: - Schema Codable Type
+/// Mirror of the library's public `StructuredCodingCompatibilityMode` option
+/// set, as parsed from `@StructuredCodable(compatibilityMode:)`.
+struct CompatibilityModes: OptionSet {
+  let rawValue: Int
+
+  /// Access stored properties through getter closures (`getter: { $0.x }`)
+  /// instead of key path literals (`keyPath: \.x`), which crash at runtime when
+  /// rooted in a pack-generic type. See the doc comment on
+  /// `StructuredCodingCompatibilityMode.variadicGenerics`.
+  static let variadicGenerics = Self(rawValue: 1 << 0)
+
+  /// Omit the `Schema` typealias so the conformance falls back to the
+  /// associated-type default (`StructuredAnySchema`). The structural schema's
+  /// witness mangling contains pack expansions for pack-generic types and
+  /// crashes the runtime demangler. See the doc comment on
+  /// `StructuredCodingCompatibilityMode.omitSchema`.
+  static let omitSchema = Self(rawValue: 1 << 1)
+}
+
+// MARK: - Structured Codable Type
 
 /// The top-level declaration the macro is attached to, resolved to one of the two
 /// `StructuredCoding` shapes it knows how to synthesize.
-struct SchemaCodableType {
+struct StructuredCodableType {
 
   let isPublic: Bool
 
@@ -44,7 +63,7 @@ struct SchemaCodableType {
   }
   let kind: Kind
 
-  var namespace: SchemaCodingNamespace {
+  var namespace: StructuredCodingNamespace {
     switch kind {
     case .object(let schema): schema.namespace
     case .enumeration(let schema): schema.namespace
@@ -57,12 +76,12 @@ struct SchemaCodableType {
 
 /// A `StructuredObject` conformance: a JSON object keyed by property name.
 ///
-/// Generation emits the `Properties` / `properties()` / `ObjectDecoderValues` /
+/// Generation emits the `StructuredObjectProperties` / `properties()` / `ObjectDecoderValues` /
 /// `decode(from:)` members; encoding, `initialValueForDecoding`, and the rest are
 /// supplied by the `StructuredObject` protocol extension and need no synthesis.
 struct ObjectSchema {
 
-  let namespace: SchemaCodingNamespace
+  let namespace: StructuredCodingNamespace
 
   /// The type the generated key paths are rooted in — `"Self"` for the decorated
   /// type, or the synthesized name when this object stands in for an all-labeled
@@ -77,7 +96,12 @@ struct ObjectSchema {
   /// Applied to each property's Swift name to produce its JSON key.
   let keyConversionStrategy: KeyConversionStrategy
 
-  /// Carried from `@SchemaCodable(description:)`. The `StructuredObject`
+  /// Carried from `@StructuredCodable(compatibilityMode:)`. With
+  /// `.variadicGenerics`, `properties()` accesses stored properties through
+  /// getter closures instead of key path literals.
+  let compatibilityModes: CompatibilityModes
+
+  /// Carried from `@StructuredCodable(description:)`. The `StructuredObject`
   /// conformance has no description channel, so this is currently unused by
   /// generation — retained losslessly pending JSON-schema support.
   let description: StringLiteralExprSyntax?
@@ -100,7 +124,7 @@ struct ObjectSchema {
     /// avoid collisions with user declarations.
     let propertyTypeAliasName: TokenSyntax
 
-    /// Carried from `@SchemaProperty(description:)`; see `ObjectSchema.description`.
+    /// Carried from `@StructuredProperty(description:)`; see `ObjectSchema.description`.
     let description: StringLiteralExprSyntax?
 
   }
@@ -157,13 +181,18 @@ extension ObjectSchema.Property {
 /// collapsed onto a single `AssociatedValue`.
 struct EnumerationSchema {
 
-  let namespace: SchemaCodingNamespace
+  let namespace: StructuredCodingNamespace
 
   /// The enum type — `"Self"`.
   let typeName: TokenSyntax
 
   /// Applied to each case's Swift name to produce its discriminator string.
   let keyConversionStrategy: KeyConversionStrategy
+
+  /// Carried from `@StructuredCodable(compatibilityMode:)`. `.omitSchema`
+  /// forces the `Schema` typealias to the concrete `StructuredAnySchema`; the
+  /// modes are also inherited by the synthesized associated-value objects.
+  let compatibilityModes: CompatibilityModes
 
   let codingStyle: CodingStyle
 
@@ -195,7 +224,7 @@ struct EnumerationSchema {
     /// The single type the case's associated values collapse onto.
     let associatedValue: AssociatedValue
 
-    /// Carried from `@SchemaCase(description:)`; see `ObjectSchema.description`.
+    /// Carried from `@StructuredCase(description:)`; see `ObjectSchema.description`.
     let description: StringLiteralExprSyntax?
 
   }
@@ -276,7 +305,7 @@ struct SchemaParameter {
 }
 
 struct CallableSchema {
-  let namespace: SchemaCodingNamespace
+  let namespace: StructuredCodingNamespace
   let name: TokenSyntax
   let fullName: String
   let additionalArguments: LabeledExprListSyntax

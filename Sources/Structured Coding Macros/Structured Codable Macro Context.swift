@@ -3,8 +3,8 @@ import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 
-struct SchemaCodableMacroContext {
-  let namespace: SchemaCodingNamespace
+struct StructuredCodableMacroContext {
+  let namespace: StructuredCodingNamespace
   let macroAttribute: TypeSyntax
   let defaultKeyConversionStrategy: KeyConversionStrategy
   let defaultEnumStyle: EnumStyleArgument?

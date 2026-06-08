@@ -457,10 +457,177 @@ private struct InternallyTaggedObjectPropertiesDecodingConfiguration:
   }
 }
 
+// MARK: - Schema
+
+/// The schema of an object-properties enumeration: a single object schema with
+/// one property per case — named for the case, valued with that case's
+/// associated-value schema. No case property is required (the value carries
+/// exactly one of them, which `maxProperties` expresses) —
+/// `{"properties":{"<case>":<schema>, …},"maxProperties":1}`.
+@StructuredCodable(compatibilityMode: [.variadicGenerics, .omitSchema])
+public struct StructuredObjectPropertiesEnumerationSchema<
+  Base: StructuredEnumeration,
+  each AssociatedValue: StructuredDecodable
+>: StructuredCodingSchema
+where
+  Base.CodingStyle == StructuredEnumerationCodingStyleObjectProperties,
+  Base.Cases == (repeat StructuredEnumerationCase<Base, each AssociatedValue>)
+{
+
+  public init(description: String?) {
+    self.description = description
+    self.properties = Properties()
+  }
+
+  private let description: String?
+
+  public struct Properties: StructuredCodable {
+
+    /// Like `StructuredObjectSchema.Properties`, this hand-written conformance
+    /// uses the concrete `StructuredAnySchema`; see
+    /// `StructuredCodingCompatibilityMode.omitSchema`.
+    public typealias Schema = StructuredAnySchema
+
+    private typealias CaseSchemas = StructuredTuple<repeat (each AssociatedValue).Schema>
+
+    /// One associated-value schema per case, in declaration order; the case
+    /// names come from `Base.cases()` rather than being stored.
+    private let caseSchemas: CaseSchemas
+
+    init() {
+      self.caseSchemas = StructuredTuple(repeat (each AssociatedValue).Schema())
+    }
+
+    public func encode(to encoder: inout StructuredEncoder) throws {
+      let cases = Base.cases()
+      try encoder.stream.encodeObject { objectEncoder in
+        for (`case`, schema) in repeat (each cases, each caseSchemas.values) {
+          try objectEncoder.encodeProperty(`case`.name.stringValue) { stream in
+            try stream.withEncoder { encoder in
+              try schema.encode(to: &encoder)
+            }
+          }
+        }
+      }
+    }
+
+    public static func initialValueForDecoding(isMutable: Bool) -> sending Self? {
+      nil
+    }
+
+    /// Decoding is hand-written for the same reason as
+    /// `StructuredObjectSchema.Properties`: the case properties are
+    /// dynamically named, and the `StructuredObject` extension witnesses abort
+    /// the task allocator for genuinely pack-expanded conformances.
+    public static func decode<Accessor: StructuredAccessor & ~Escapable>(
+      from decoder: inout StructuredDecoder,
+      in context: borrowing StructuredDecodingContext,
+      using accessor: Accessor
+    ) async throws where Accessor.Value == Self {
+      try await context.withArena { arena in
+        let cases = Base.cases()
+        let stateRefs =
+          (repeat arena.push(
+            CaseSchemaDecodingState<(each AssociatedValue).Schema>.pending
+          ).unsafePointer)
+
+        try await decoder.stream.decodeObject { objectDecoder in
+          for (`case`, stateRef) in repeat (each cases, each stateRefs) {
+            guard !objectDecoder.isAtEnd else {
+              throw EnumerationSchemaDecodingError.caseNotFound(`case`.name.stringValue)
+            }
+            try await objectDecoder.decodeProperty(
+              decodeValue: { name, stream in
+                /// Case schemas are decoded in declaration order — the order
+                /// `encode` writes them.
+                guard name == `case`.name.stringValue else {
+                  throw EnumerationSchemaDecodingError.unknownCase(name)
+                }
+                try await stream.withDecoder { decoder in
+                  try await stateRef.pointee.decode(from: &decoder, in: context)
+                }
+              }
+            )
+          }
+          if !objectDecoder.isAtEnd {
+            try await objectDecoder.decodeProperty(
+              decodeValue: { name, _ in
+                throw EnumerationSchemaDecodingError.unknownCase(name)
+              }
+            )
+          }
+        }
+
+        try await accessor.initializeValue(
+          to: Self(repeat try (each stateRefs).pointee.takeDecodedValue())
+        )
+      }
+    }
+
+    private init(_ caseSchemas: repeat (each AssociatedValue).Schema) {
+      self.caseSchemas = StructuredTuple(repeat each caseSchemas)
+    }
+
+  }
+  private let properties: Properties
+
+  /// The value is a single-property object: the one property names the case.
+  /// No case property is required, so the length constraint is the schema's
+  /// only structural hint.
+  private let maxProperties: Int = 1
+
+}
+
+/// The decoding state of a single case's associated-value schema in
+/// `StructuredObjectPropertiesEnumerationSchema.Properties`' hand-written
+/// `decode`.
+private enum CaseSchemaDecodingState<Value: StructuredDecodable>: ~Copyable {
+
+  /// The case schema has not been decoded yet.
+  case pending
+
+  /// The case schema has been fully decoded.
+  case decoded(Sending<Value>)
+
+  mutating func decode(
+    from decoder: inout StructuredDecoder,
+    in context: borrowing StructuredDecodingContext
+  ) async throws {
+    let value = try await Value.decode(from: &decoder, in: context)
+    self = .decoded(Sending(value))
+  }
+
+  /// Moves the decoded schema out, leaving the state `pending`.
+  mutating func takeDecodedValue() throws -> sending Value {
+    switch consume self {
+    case .pending:
+      self = .pending
+      throw EnumerationSchemaDecodingError.caseSchemaNotDecoded
+    case .decoded(let value):
+      self = .pending
+      return value.send()
+    }
+  }
+
+}
+
+private enum EnumerationSchemaDecodingError: Error {
+  case caseNotFound(String)
+  case unknownCase(String)
+  case caseSchemaNotDecoded
+}
+
 // MARK: - Coding Style
 
 public protocol StructuredEnumerationCodingStyle: Sendable {
 
+}
+
+extension StructuredEnumerationCodingStyle
+where Self == StructuredEnumerationCodingStyleObjectProperties {
+  /// The default style: each case is encoded as a single-property object whose
+  /// property name is the case name.
+  public static var objectProperties: Self { Self() }
 }
 
 public struct StructuredEnumerationCodingStyleObjectProperties: StructuredEnumerationCodingStyle {

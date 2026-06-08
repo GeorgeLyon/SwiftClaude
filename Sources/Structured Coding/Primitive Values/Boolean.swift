@@ -1,5 +1,20 @@
 private import JavaScriptObjectNotation
 
+// MARK: - Schema
+
+extension Bool {
+
+  @StructuredCodable
+  public struct Schema: StructuredCodingSchema {
+    public init(description: String?) {
+      self.description = description
+    }
+    private let description: String?
+    private let type = "boolean"
+  }
+
+}
+
 // MARK: - Encoding
 
 extension Bool: StructuredEncodable {

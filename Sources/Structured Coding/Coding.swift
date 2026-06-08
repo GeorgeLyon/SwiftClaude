@@ -4,36 +4,11 @@ public import JavaScriptObjectNotation
 
 public typealias StructuredCodable = StructuredDecodable & StructuredEncodable
 
-// MARK: - Coding Key
-
-public struct StructuredCodingKey: ExpressibleByStringLiteral, Sendable {
-
-  public init(stringLiteral value: StaticString) {
-    staticStringValue = value
-  }
-  let staticStringValue: StaticString
-
-  var stringValue: String {
-    "\(staticStringValue)"
-  }
-
-  static var description: Self { "description" }
-  static var properties: Self { "properties" }
-  static var required: Self { "required" }
-  static var items: Self { "items" }
-  static var prefixItems: Self { "prefixItems" }
-  static var `enum`: Self { "enum" }
-  static var oneOf: Self { "oneOf" }
-  static var type: Self { "type" }
-  static var value: Self { "value" }
-  static var const: Self { "const" }
-  static var not: Self { "not" }
-
-}
-
 // MARK: - Encoding
 
 public protocol StructuredEncodable: SendableMetatype {
+
+  associatedtype Schema: StructuredCodingSchema
 
   func encode(to encoder: inout StructuredEncoder) throws
 
@@ -80,7 +55,9 @@ extension EncodingStream {
 
 public protocol StructuredDecodable: SendableMetatype {
 
-  /// If non-`nil`, `decode` expects `accessor`` is already initialized with the returned value.
+  associatedtype Schema: StructuredCodingSchema
+
+  /// If non-`nil`, `decode` expects `accessor` is already initialized with the returned value.
   static func initialValueForDecoding(
     isMutable: Bool
   ) -> sending Self?
@@ -144,4 +121,39 @@ public struct StructuredDecodingContext: ~Copyable, ~Escapable {
 
 enum DecodingError: Swift.Error {
   case noValueDecoded
+}
+
+// MARK: - Schema
+
+public protocol StructuredCodingSchema: StructuredCodable {
+  init(description: String?)
+}
+
+extension StructuredCodingSchema {
+  public init() {
+    self.init(description: nil)
+  }
+}
+
+@StructuredCodable
+public struct StructuredAnySchema: StructuredCodingSchema {
+  public init(description: String?) {
+    self.description = description
+  }
+  private let description: String?
+}
+
+// MARK: - Coding Key
+
+public struct StructuredCodingKey: ExpressibleByStringLiteral, Sendable {
+
+  public init(stringLiteral value: StaticString) {
+    staticStringValue = value
+  }
+  let staticStringValue: StaticString
+
+  var stringValue: String {
+    "\(staticStringValue)"
+  }
+
 }
