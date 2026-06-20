@@ -26,7 +26,6 @@ struct StructuredCodableEnumTests {
       }
 
       extension E: StructuredCoding.StructuredEnumeration {
-        typealias Schema = StructuredCoding.StructuredObjectPropertiesEnumerationSchema<Self, String, Int, StructuredCoding.StructuredEmptyObject>
         typealias Cases = (StructuredCoding.StructuredEnumerationCase<Self, String>, StructuredCoding.StructuredEnumerationCase<Self, Int>, StructuredCoding.StructuredEnumerationCase<Self, StructuredCoding.StructuredEmptyObject>)
         static func cases() -> Cases {
           (StructuredCoding.StructuredEnumerationCase(
@@ -88,7 +87,6 @@ struct StructuredCodableEnumTests {
       }
 
       extension T: StructuredCoding.StructuredEnumeration {
-        typealias Schema = StructuredCoding.StructuredObjectPropertiesEnumerationSchema<Self, StructuredCoding.StructuredTuple<Int, String>, StructuredCoding.StructuredTuple<Int, String>>
         typealias Cases = (StructuredCoding.StructuredEnumerationCase<Self, StructuredCoding.StructuredTuple<Int, String>>, StructuredCoding.StructuredEnumerationCase<Self, StructuredCoding.StructuredTuple<Int, String>>)
         static func cases() -> Cases {
           (StructuredCoding.StructuredEnumerationCase(
@@ -137,7 +135,6 @@ struct StructuredCodableEnumTests {
       }
 
       extension O: StructuredCoding.StructuredEnumeration {
-        typealias Schema = StructuredCoding.StructuredObjectPropertiesEnumerationSchema<Self, __macro_local_5pointfMu_>
         typealias Cases = StructuredCoding.StructuredEnumerationCase<Self, __macro_local_5pointfMu_>
         static func cases() -> Cases {
           StructuredCoding.StructuredEnumerationCase(
@@ -164,11 +161,11 @@ struct StructuredCodableEnumTests {
             (__macro_local_1xfMu_(
                 name: "x",
                 keyPath: \.x,
-                schema: __macro_local_1xfMu_.CodingSchema()
+                schema: __macro_local_1xfMu_.Definition.CodingValue.schema(description: nil)
               ), __macro_local_1yfMu_(
                 name: "y",
                 keyPath: \.y,
-                schema: __macro_local_1yfMu_.CodingSchema()
+                schema: __macro_local_1yfMu_.Definition.CodingValue.schema(description: nil)
               ))
           }
           typealias ObjectDecoderValues = (__macro_local_1xfMu_.ObjectDecoderValue, __macro_local_1yfMu_.ObjectDecoderValue)
@@ -205,7 +202,6 @@ struct StructuredCodableEnumTests {
         static var codingStyle: StructuredCoding.StructuredEnumerationCodingStyleInternallyTagged {
           StructuredCoding.StructuredEnumerationCodingStyleInternallyTagged(discriminatorPropertyName: "type")
         }
-        typealias Schema = StructuredCoding.StructuredAnySchema
         typealias Cases = (StructuredCoding.StructuredEnumerationCase<Self, Message>, StructuredCoding.StructuredEnumerationCase<Self, __macro_local_4movefMu_>)
         static func cases() -> Cases {
           (StructuredCoding.StructuredEnumerationCase(
@@ -243,11 +239,11 @@ struct StructuredCodableEnumTests {
             (__macro_local_1xfMu_(
                 name: "x",
                 keyPath: \.x,
-                schema: __macro_local_1xfMu_.CodingSchema()
+                schema: __macro_local_1xfMu_.Definition.CodingValue.schema(description: nil)
               ), __macro_local_1yfMu_(
                 name: "y",
                 keyPath: \.y,
-                schema: __macro_local_1yfMu_.CodingSchema()
+                schema: __macro_local_1yfMu_.Definition.CodingValue.schema(description: nil)
               ))
           }
           typealias ObjectDecoderValues = (__macro_local_1xfMu_.ObjectDecoderValue, __macro_local_1yfMu_.ObjectDecoderValue)
@@ -284,7 +280,6 @@ struct StructuredCodableEnumTests {
         static var codingStyle: StructuredCoding.StructuredEnumerationCodingStyleTypeDiscriminated {
           .typeDiscriminated
         }
-        typealias Schema = StructuredCoding.StructuredAnySchema
         typealias Cases = (StructuredCoding.StructuredEnumerationCase<Self, String>, StructuredCoding.StructuredEnumerationCase<Self, __macro_local_5pointfMu_>)
         static func cases() -> Cases {
           (StructuredCoding.StructuredEnumerationCase(
@@ -322,11 +317,11 @@ struct StructuredCodableEnumTests {
             (__macro_local_1xfMu_(
                 name: "x",
                 keyPath: \.x,
-                schema: __macro_local_1xfMu_.CodingSchema()
+                schema: __macro_local_1xfMu_.Definition.CodingValue.schema(description: nil)
               ), __macro_local_1yfMu_(
                 name: "y",
                 keyPath: \.y,
-                schema: __macro_local_1yfMu_.CodingSchema()
+                schema: __macro_local_1yfMu_.Definition.CodingValue.schema(description: nil)
               ))
           }
           typealias ObjectDecoderValues = (__macro_local_1xfMu_.ObjectDecoderValue, __macro_local_1yfMu_.ObjectDecoderValue)
@@ -358,7 +353,6 @@ struct StructuredCodableEnumTests {
       }
 
       extension Maybe: StructuredCoding.StructuredEnumeration {
-        typealias Schema = StructuredCoding.StructuredObjectPropertiesEnumerationSchema<Self, Int?>
         typealias Cases = StructuredCoding.StructuredEnumerationCase<Self, Int?>
         static func cases() -> Cases {
           StructuredCoding.StructuredEnumerationCase(

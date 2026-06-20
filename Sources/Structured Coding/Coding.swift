@@ -8,9 +8,18 @@ public typealias StructuredCodable = StructuredDecodable & StructuredEncodable
 
 public protocol StructuredEncodable: SendableMetatype {
 
-  associatedtype Schema: StructuredCodingSchema
+  associatedtype Schema: StructuredCodable
+  static func schema(description: String?) -> Schema
 
   func encode(to encoder: inout StructuredEncoder) throws
+
+}
+
+extension StructuredEncodable {
+
+  public static func schema() -> Schema {
+    schema(description: nil)
+  }
 
 }
 
@@ -55,7 +64,8 @@ extension EncodingStream {
 
 public protocol StructuredDecodable: SendableMetatype {
 
-  associatedtype Schema: StructuredCodingSchema
+  associatedtype Schema: StructuredCodable
+  static func schema(description: String?) -> Schema
 
   /// If non-`nil`, `decode` expects `accessor` is already initialized with the returned value.
   static func initialValueForDecoding(
@@ -71,6 +81,10 @@ public protocol StructuredDecodable: SendableMetatype {
 }
 
 extension StructuredDecodable {
+
+  public static func schema() -> Schema {
+    schema(description: nil)
+  }
 
   static func decode(
     from decoder: inout StructuredDecoder,
@@ -125,18 +139,8 @@ enum DecodingError: Swift.Error {
 
 // MARK: - Schema
 
-public protocol StructuredCodingSchema: StructuredCodable {
-  init(description: String?)
-}
-
-extension StructuredCodingSchema {
-  public init() {
-    self.init(description: nil)
-  }
-}
-
 @StructuredCodable
-public struct StructuredAnySchema: StructuredCodingSchema {
+public struct StructuredAnySchema: StructuredCodable {
   public init(description: String?) {
     self.description = description
   }

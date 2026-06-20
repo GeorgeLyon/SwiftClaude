@@ -18,7 +18,7 @@ extension UInt128: StructuredCodable {}
 // MARK: - Schema
 
 @StructuredCodable
-public struct StructuredIntegerSchema: StructuredCodingSchema {
+public struct StructuredIntegerSchema: StructuredCodable {
   public init(description: String?) {
     self.description = description
   }
@@ -29,6 +29,9 @@ public struct StructuredIntegerSchema: StructuredCodingSchema {
 extension FixedWidthInteger where Self: StructuredCodable & Sendable {
 
   public typealias Schema = StructuredIntegerSchema
+  public static func schema(description: String?) -> StructuredIntegerSchema {
+    StructuredIntegerSchema(description: description)
+  }
 
 }
 

@@ -137,11 +137,11 @@ extension PrivateInitObject: StructuredObject {
   typealias StructuredObjectProperties = (_IDProperty, _NameProperty, _NoteProperty, _KindProperty, _CountProperty)
   static func properties() -> StructuredObjectProperties {
     (
-      _IDProperty(name: "id", keyPath: \.id, schema: _IDProperty.CodingSchema()),
-      _NameProperty(name: "name", keyPath: \.name, schema: _NameProperty.CodingSchema()),
-      _NoteProperty(name: "note", keyPath: \.note, schema: _NoteProperty.CodingSchema()),
-      _KindProperty(name: "kind", keyPath: \.kind, schema: _KindProperty.CodingSchema()),
-      _CountProperty(name: "count", keyPath: \.count, schema: _CountProperty.CodingSchema())
+      _IDProperty(name: "id", keyPath: \.id, schema: _IDProperty.Definition.CodingValue.schema(description: nil)),
+      _NameProperty(name: "name", keyPath: \.name, schema: _NameProperty.Definition.CodingValue.schema(description: nil)),
+      _NoteProperty(name: "note", keyPath: \.note, schema: _NoteProperty.Definition.CodingValue.schema(description: nil)),
+      _KindProperty(name: "kind", keyPath: \.kind, schema: _KindProperty.Definition.CodingValue.schema(description: nil)),
+      _CountProperty(name: "count", keyPath: \.count, schema: _CountProperty.Definition.CodingValue.schema(description: nil))
     )
   }
 
@@ -192,8 +192,8 @@ extension StreamingObject: StructuredObject {
   typealias StructuredObjectProperties = (_FirstProperty, _SecondProperty)
   static func properties() -> StructuredObjectProperties {
     (
-      _FirstProperty(name: "first", keyPath: \.first, schema: _FirstProperty.CodingSchema()),
-      _SecondProperty(name: "second", keyPath: \.second, schema: _SecondProperty.CodingSchema())
+      _FirstProperty(name: "first", keyPath: \.first, schema: _FirstProperty.Definition.CodingValue.schema(description: nil)),
+      _SecondProperty(name: "second", keyPath: \.second, schema: _SecondProperty.Definition.CodingValue.schema(description: nil))
     )
   }
 
@@ -243,8 +243,8 @@ extension DefaultStreamingObject: StructuredObject {
   typealias StructuredObjectProperties = (_CountProperty, _NoteProperty)
   static func properties() -> StructuredObjectProperties {
     (
-      _CountProperty(name: "count", keyPath: \.count, schema: _CountProperty.CodingSchema()),
-      _NoteProperty(name: "note", keyPath: \.note, schema: _NoteProperty.CodingSchema())
+      _CountProperty(name: "count", keyPath: \.count, schema: _CountProperty.Definition.CodingValue.schema(description: nil)),
+      _NoteProperty(name: "note", keyPath: \.note, schema: _NoteProperty.Definition.CodingValue.schema(description: nil))
     )
   }
 

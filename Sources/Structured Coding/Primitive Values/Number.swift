@@ -11,7 +11,7 @@ extension Float16: StructuredCodable {}
 // MARK: - Schema
 
 @StructuredCodable
-public struct StructuredNumberSchema: StructuredCodingSchema {
+public struct StructuredNumberSchema: StructuredCodable {
   public init(description: String?) {
     self.description = description
   }
@@ -22,13 +22,17 @@ public struct StructuredNumberSchema: StructuredCodingSchema {
 extension BinaryFloatingPoint
 where Self: StructuredCodable & Sendable & LosslessStringConvertible {
 
-  public typealias Schema = StructuredNumberSchema
+  public static func schema(description: String?) -> StructuredNumberSchema {
+    StructuredNumberSchema(description: description)
+  }
 
 }
 
 extension Decimal {
 
-  public typealias Schema = StructuredNumberSchema
+  public static func schema(description: String?) -> StructuredNumberSchema {
+    StructuredNumberSchema(description: description)
+  }
 
 }
 

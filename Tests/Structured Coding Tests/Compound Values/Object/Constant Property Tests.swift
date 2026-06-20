@@ -90,8 +90,8 @@ private struct ConstantObject: StructuredObject, Equatable, Sendable {
   typealias StructuredObjectProperties = (_KindProperty, _OptProperty)
   static func properties() -> StructuredObjectProperties {
     (
-      _KindProperty(name: "kind", keyPath: \.kind, schema: _KindProperty.CodingSchema()),
-      _OptProperty(name: "opt", keyPath: \.opt, schema: _OptProperty.CodingSchema())
+      _KindProperty(name: "kind", keyPath: \.kind, schema: _KindProperty.Definition.CodingValue.schema(description: nil)),
+      _OptProperty(name: "opt", keyPath: \.opt, schema: _OptProperty.Definition.CodingValue.schema(description: nil))
     )
   }
 
@@ -131,8 +131,8 @@ private struct TaggedConstantObject: StructuredObject, Equatable, Sendable {
   typealias StructuredObjectProperties = (_IDProperty, _KindProperty)
   static func properties() -> StructuredObjectProperties {
     (
-      _IDProperty(name: "id", keyPath: \.id, schema: _IDProperty.CodingSchema()),
-      _KindProperty(name: "kind", keyPath: \.kind, schema: _KindProperty.CodingSchema())
+      _IDProperty(name: "id", keyPath: \.id, schema: _IDProperty.Definition.CodingValue.schema(description: nil)),
+      _KindProperty(name: "kind", keyPath: \.kind, schema: _KindProperty.Definition.CodingValue.schema(description: nil))
     )
   }
 

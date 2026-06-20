@@ -123,8 +123,8 @@ private struct EnumHolder: StructuredObject, Equatable, Sendable {
   typealias StructuredObjectProperties = (_XProperty, _ChoiceProperty)
   static func properties() -> StructuredObjectProperties {
     (
-      _XProperty(name: "x", keyPath: \.x, schema: _XProperty.CodingSchema()),
-      _ChoiceProperty(name: "choice", keyPath: \.choice, schema: _ChoiceProperty.CodingSchema())
+      _XProperty(name: "x", keyPath: \.x, schema: _XProperty.Definition.CodingValue.schema(description: nil)),
+      _ChoiceProperty(name: "choice", keyPath: \.choice, schema: _ChoiceProperty.Definition.CodingValue.schema(description: nil))
     )
   }
 
@@ -179,8 +179,8 @@ private struct OptionalPayloadHolder: StructuredObject, Equatable, Sendable {
   typealias StructuredObjectProperties = (_XProperty, _ChoiceProperty)
   static func properties() -> StructuredObjectProperties {
     (
-      _XProperty(name: "x", keyPath: \.x, schema: _XProperty.CodingSchema()),
-      _ChoiceProperty(name: "choice", keyPath: \.choice, schema: _ChoiceProperty.CodingSchema())
+      _XProperty(name: "x", keyPath: \.x, schema: _XProperty.Definition.CodingValue.schema(description: nil)),
+      _ChoiceProperty(name: "choice", keyPath: \.choice, schema: _ChoiceProperty.Definition.CodingValue.schema(description: nil))
     )
   }
 

@@ -26,7 +26,7 @@ struct EnumerationSchemaEncodingTests {
 
   @Test func encodesCaseProperties() throws {
     try test(
-      Reaction.Schema(),
+      Reaction.schema(description: nil),
       encodesAs:
         #"{"properties":{"text":{"type":"string"},"point":{"properties":{"x":{"type":"integer"},"y":{"type":"integer"}},"required":["x","y"]},"ping":{"properties":{}}},"maxProperties":1}"#
     )
@@ -34,7 +34,7 @@ struct EnumerationSchemaEncodingTests {
 
   @Test func encodesDescription() throws {
     try test(
-      Reaction.Schema(description: "A reaction"),
+      Reaction.schema(description: "A reaction"),
       encodesAs:
         #"{"description":"A reaction","properties":{"text":{"type":"string"},"point":{"properties":{"x":{"type":"integer"},"y":{"type":"integer"}},"required":["x","y"]},"ping":{"properties":{}}},"maxProperties":1}"#
     )
@@ -45,7 +45,7 @@ struct EnumerationSchemaEncodingTests {
   /// instantiation resolves the enumeration's `Schema` witness).
   @Test func encodesAsObjectProperty() throws {
     try test(
-      Container.Schema(),
+      Container.schema(description: nil),
       encodesAs:
         #"{"properties":{"reaction":{"properties":{"text":{"type":"string"},"point":{"properties":{"x":{"type":"integer"},"y":{"type":"integer"}},"required":["x","y"]},"ping":{"properties":{}}},"maxProperties":1}},"required":["reaction"]}"#
     )
@@ -58,7 +58,7 @@ struct EnumerationSchemaEncodingTests {
       #"{"description":"A reaction","properties":{"text":{"type":"string"},"point":{"properties":{"x":{"type":"integer"},"y":{"type":"integer"}},"required":["x","y"]},"ping":{"properties":{}}},"maxProperties":1}"#
     try test(
       JSONFragments(stringLiteral: json),
-      decodesAs: .complete(Reaction.Schema()),
+      decodesAs: .complete(Reaction.schema(description: nil)),
       testEquality: { decoded, _, sourceLocation in
         let decoded = try #require(decoded, sourceLocation: sourceLocation)
         var encoder = StructuredEncoder()

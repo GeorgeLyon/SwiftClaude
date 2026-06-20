@@ -31,59 +31,9 @@ extension StructuredTuple: Equatable where repeat each Element: Equatable {
 
 extension StructuredTuple {
 
-  public typealias Schema = StructuredTupleSchema<repeat (each Element).Schema>
-
-}
-
-@StructuredCodable(compatibilityMode: [.variadicGenerics, .omitSchema])
-public struct StructuredTupleSchema<
-  each ElementSchema: StructuredCodingSchema
->: StructuredCodingSchema {
-
-  public init(description: String?) {
-    self.description = description
-    self.prefixItems = PrefixItems()
+  public static func schema(description: String?) -> StructuredAnySchema {
+    StructuredAnySchema(description: description)
   }
-
-  private let description: String?
-
-  public struct PrefixItems: StructuredCodable {
-
-    public typealias Schema = StructuredAnySchema
-
-    private let schemas: StructuredTuple<repeat each ElementSchema>
-
-    init() {
-      self.schemas = StructuredTuple(repeat (each ElementSchema)())
-    }
-
-    public func encode(to encoder: inout StructuredEncoder) throws {
-      try schemas.encode(to: &encoder)
-    }
-
-    public static func initialValueForDecoding(isMutable: Bool) -> sending Self? {
-      nil
-    }
-
-    public static func decode<Accessor: StructuredAccessor & ~Escapable>(
-      from decoder: inout StructuredDecoder,
-      in context: borrowing StructuredDecodingContext,
-      using accessor: Accessor
-    ) async throws where Accessor.Value == Self {
-      try await accessor.initializeValue(
-        to: Self(
-          schemas: StructuredTuple<repeat each ElementSchema>
-            .decode(from: &decoder, in: context)
-        )
-      )
-    }
-
-    private init(schemas: sending StructuredTuple<repeat each ElementSchema>) {
-      self.schemas = schemas
-    }
-
-  }
-  private let prefixItems: PrefixItems
 
 }
 

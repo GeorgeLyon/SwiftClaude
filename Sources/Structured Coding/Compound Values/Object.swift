@@ -281,7 +281,7 @@ extension StructuredObjectProperty {
 public struct StructuredObjectProperty<Root, _Definition: StructuredObjectPropertyDefinition> {
   public typealias Definition = _Definition
   public typealias ObjectDecoderValue = Definition.ObjectDecoderValue
-  public typealias CodingSchema = Definition.CodingSchema
+  public typealias CodingSchema = Definition.CodingValue.Schema
   fileprivate let name: StructuredCodingKey
   fileprivate let taggedKeyPath: TaggedKeyPath<Root, Definition.PropertyValue>
   fileprivate let definition: Definition
@@ -292,9 +292,9 @@ public protocol StructuredObjectPropertyDefinition: SendableMetatype {
   /// The type of this property on a constructed object
   associatedtype PropertyValue
 
-  /// The schema of this property when it is coded
-  /// For an optional, this will be `Wrapped.Schema`
-  associatedtype CodingSchema: StructuredCodable
+  /// The value of this property when it is coded
+  /// For an optional, this will be `Wrapped`
+  associatedtype CodingValue: StructuredCodable
 
   /// The type of value we use during initialization
   /// Default-initialized properties use `Void` when immutable and `PropertyValue?` when mutable
@@ -349,7 +349,7 @@ public struct StructuredRequiredObjectPropertyDefinition<
 >: StructuredObjectPropertyDefinition {
 
   public typealias PropertyValue = Value
-  public typealias CodingSchema = Value.Schema
+  public typealias CodingValue = Value
 
   public var isRequired: Bool { true }
 
@@ -412,7 +412,7 @@ public struct StructuredOptionalObjectPropertyDefinition<
 >: StructuredObjectPropertyDefinition {
 
   public typealias PropertyValue = Wrapped?
-  public typealias CodingSchema = Wrapped.Schema
+  public typealias CodingValue = Wrapped
 
   public var isRequired: Bool { false }
 
@@ -475,7 +475,7 @@ where
   Base.ValidationPayload == Void
 {
   public typealias PropertyValue = Base.PropertyValue
-  public typealias CodingSchema = Base.CodingSchema
+  public typealias CodingValue = Base.CodingValue
   public typealias ObjectDecoderValue = Void
   public typealias ValidationPayload = PropertyValue
 
@@ -552,7 +552,7 @@ where
 {
 
   public typealias PropertyValue = Base.PropertyValue
-  public typealias CodingSchema = Base.CodingSchema
+  public typealias CodingValue = Base.CodingValue
   public typealias ObjectDecoderValue = PropertyValue?
   public typealias ValidationPayload = Void
 
@@ -633,40 +633,47 @@ where
 
 // MARK: - Schema
 
-@StructuredCodable(compatibilityMode: [.variadicGenerics, .omitSchema])
+extension StructuredObject {
+
+  public static func schema<each PropertyDefinition>(
+    description: String?
+  ) -> StructuredObjectSchema<Self, repeat each PropertyDefinition>
+  where
+    StructuredObjectProperties == (
+      repeat StructuredObjectProperty<Self, each PropertyDefinition>
+    )
+  {
+    StructuredObjectSchema(description: description)
+  }
+
+}
+
+@StructuredCodable(compatibilityMode: .variadicGenerics)
 public struct StructuredObjectSchema<
   Base: StructuredObject,
   each PropertyDefinition
->: StructuredCodingSchema
+>: StructuredCodable
 where
   Base.StructuredObjectProperties == (
     repeat StructuredObjectProperty<Base, each PropertyDefinition>
   )
 {
 
-  public init(description: String?) {
-    self.description = description
-    self.properties = Properties()
-    var required: [String] = []
-    for property in repeat each Base.properties() {
-      if property.definition.isRequired {
-        required.append(property.name.stringValue)
-      }
-    }
-    self.required = required.isEmpty ? nil : required
-  }
+  public typealias Schema = StructuredAnySchema
 
   private let description: String?
 
   public struct Properties: StructuredObject {
 
-    public typealias Schema = StructuredAnySchema
+    public static func schema(description: String?) -> StructuredAnySchema {
+      StructuredAnySchema(description: description)
+    }
 
     public typealias StructuredObjectProperties = (
       repeat StructuredObjectProperty<
         Self,
         StructuredRequiredObjectPropertyDefinition<
-          (each PropertyDefinition).CodingSchema
+          (each PropertyDefinition).CodingValue.Schema
         >
       >
     )
@@ -678,11 +685,11 @@ where
           name: (each baseProperties).name,
           taggedKeyPath: .getOnlyClosure { root in root.storage[each accessors] },
           definition: StructuredRequiredObjectPropertyDefinition(name: (each baseProperties).name),
-          schema: (each PropertyDefinition).CodingSchema.Schema(description: nil)))
+          schema: (each PropertyDefinition).CodingValue.Schema.schema(description: nil)))
     }
 
     public typealias ObjectDecoderValues = (
-      repeat (each PropertyDefinition).CodingSchema
+      repeat (each PropertyDefinition).CodingValue.Schema
     )
     public static func decode(
       from objectDecoder: sending StructuredObjectDecoder<ObjectDecoderValues>
@@ -690,7 +697,7 @@ where
       self.init(repeat each objectDecoder.values)
     }
 
-    init(_ schemas: repeat (each PropertyDefinition).CodingSchema) {
+    init(_ schemas: repeat (each PropertyDefinition).CodingValue.Schema) {
       self.storage = VariadicTuple(repeat each schemas)
     }
 
@@ -703,68 +710,24 @@ where
       nil
     }
 
-    /// Decoding is hand-written rather than relying on the `StructuredObject`
-    /// extension witnesses: those materialize this conformance's pack
-    /// (`StructuredObjectProperties` is a genuine pack expansion here, unlike
-    /// the concrete property tuples the macro generates) inside `async`
-    /// witness thunks, whose task-allocated pack metadata is deallocated out
-    /// of order — aborting with "freed pointer was not the last allocation".
-    public static func decode<Accessor: StructuredAccessor & ~Escapable>(
-      from decoder: inout StructuredDecoder,
-      in context: borrowing StructuredDecodingContext,
-      using accessor: Accessor
-    ) async throws where Accessor.Value == Self {
-      try await context.withArena { arena in
-        let properties = Base.properties()
-        let stateRefs =
-          (repeat arena.push(
-            SchemaPropertyDecodingState<(each PropertyDefinition).CodingSchema>.pending
-          ).unsafePointer)
-
-        try await decoder.stream.decodeObject { objectDecoder in
-          for (property, stateRef) in repeat (each properties, each stateRefs) {
-            guard !objectDecoder.isAtEnd else {
-              throw ObjectDecodingError.propertyNotFound(property.name.stringValue)
-            }
-            try await objectDecoder.decodeProperty(
-              decodeValue: { name, stream in
-                /// Property schemas are decoded in declaration order — the
-                /// order `encodeProperties` writes them.
-                guard name == property.name.stringValue else {
-                  throw ObjectDecodingError.unknownProperty(name)
-                }
-                try await stream.withDecoder { decoder in
-                  try await stateRef.pointee.decode(from: &decoder, in: context)
-                }
-              }
-            )
-          }
-          if !objectDecoder.isAtEnd {
-            try await objectDecoder.decodeProperty(
-              decodeValue: { name, _ in
-                throw ObjectDecodingError.unknownProperty(name)
-              }
-            )
-          }
-        }
-
-        try await accessor.initializeValue(
-          to: Self(repeat try (each stateRefs).pointee.takeDecodedValue())
-        )
-      }
-    }
-
-    private typealias Storage = VariadicTuple<(repeat (each PropertyDefinition).CodingSchema)>
+    private typealias Storage = VariadicTuple<(repeat (each PropertyDefinition).CodingValue.Schema)>
     private let storage: Storage
 
   }
-  private let properties: Properties
 
-  /// The names of the properties that may not be omitted, in declaration
-  /// order; `nil` (omitting the JSON key) when every property is omittable.
-  /// Mirrors each definition's `isRequired` and thereby the decoder, which
-  /// rejects omission exactly when the property's core is required — even for
-  /// default-initialized properties.
+  fileprivate init(description: String?) {
+    self.description = description
+    self.properties = Properties()
+    var required: [String] = []
+    for property in repeat each Base.properties() {
+      if property.definition.isRequired {
+        required.append(property.name.stringValue)
+      }
+    }
+    self.required = required.isEmpty ? nil : required
+  }
+
+  private let properties: Properties
   private let required: [String]?
 
 }
@@ -1263,13 +1226,13 @@ public struct StructuredObjectPropertiesDecoder: ~Copyable, ~Escapable {
     fileprivate var value: Int
   }
 
-  @_lifetime(copy objectDecoder, copy arena)
+  @_lifetime(&objectDecoder, copy arena)
   fileprivate init(
     firstPropertyName: String?,
-    objectDecoder: consuming DecodingStream.ObjectDecoder,
+    objectDecoder: inout DecodingStream.ObjectDecoder,
     arena: borrowing Arena
   ) {
-    self.objectDecoder = objectDecoder
+    self.objectDecoder = objectDecoder.mutate()
     self._propertyName = arena.push(firstPropertyName)
     self._nextCheckpoint = arena.push(Self.firstCheckpoint.value + 1)
     self._terminationCheckpoint = arena.push(nil)
@@ -1374,7 +1337,7 @@ extension DecodingStream.ObjectDecoder {
       }
     var propertiesDecoder = StructuredObjectPropertiesDecoder(
       firstPropertyName: firstPropertyName,
-      objectDecoder: self,
+      objectDecoder: &self,
       arena: arena
     )
     do {
@@ -1384,7 +1347,6 @@ extension DecodingStream.ObjectDecoder {
       self = propertiesDecoder.objectDecoder
       throw error
     }
-
   }
 
 }

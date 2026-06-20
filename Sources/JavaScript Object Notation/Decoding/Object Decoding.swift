@@ -99,6 +99,11 @@ extension DecodingStream {
       return nil
     }
 
+    @_lifetime(&self)
+    public mutating func mutate() -> ObjectDecoder {
+      ObjectDecoder(other: &self)
+    }
+
     @_lifetime(&stream)
     fileprivate init(stream: inout DecodingStream) async throws(DecodingError) {
       try await stream.readWhitespace()

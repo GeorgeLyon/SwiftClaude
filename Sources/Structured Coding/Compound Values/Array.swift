@@ -3,20 +3,22 @@ private import JavaScriptObjectNotation
 // MARK: - Schema
 
 @StructuredCodable
-public struct StructuredArraySchema<ElementSchema: StructuredCodingSchema>: StructuredCodingSchema {
+public struct StructuredArraySchema<Element: StructuredCodable>: StructuredCodable {
   public init(description: String?) {
     self.description = description
-    self.items = ElementSchema()
+    self.items = Element.schema(description: nil)
   }
   private let description: String?
-  private let items: ElementSchema
+  private let items: Element.Schema
 }
 
 // MARK: - Encoding
 
-extension Array: StructuredEncodable where Element: StructuredEncodable {
+extension Array: StructuredEncodable where Element: StructuredCodable {
 
-  public typealias Schema = StructuredArraySchema<Element.Schema>
+  public static func schema(description: String?) -> StructuredArraySchema<Element.Schema> {
+    StructuredArraySchema(description: description)
+  }
 
   public func encode(to encoder: inout StructuredEncoder) throws {
     try encoder.stream.encodeArray { arrayEncoder in
@@ -34,7 +36,7 @@ extension Array: StructuredEncodable where Element: StructuredEncodable {
 
 // MARK: - Decoding
 
-extension Array: StructuredDecodable where Element: StructuredDecodable {
+extension Array: StructuredDecodable where Element: StructuredCodable {
 
   public typealias Schema = StructuredArraySchema<Element.Schema>
 

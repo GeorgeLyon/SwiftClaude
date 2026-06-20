@@ -242,8 +242,8 @@ private struct Point: StructuredObject, Equatable, Sendable {
   typealias StructuredObjectProperties = (_XProperty, _YProperty)
   static func properties() -> StructuredObjectProperties {
     (
-      _XProperty(name: "x", keyPath: \.x, schema: _XProperty.CodingSchema()),
-      _YProperty(name: "y", keyPath: \.y, schema: _YProperty.CodingSchema())
+      _XProperty(name: "x", keyPath: \.x, schema: _XProperty.Definition.CodingValue.schema(description: nil)),
+      _YProperty(name: "y", keyPath: \.y, schema: _YProperty.Definition.CodingValue.schema(description: nil))
     )
   }
 

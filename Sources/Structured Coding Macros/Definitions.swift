@@ -34,13 +34,6 @@ struct CompatibilityModes: OptionSet {
   /// rooted in a pack-generic type. See the doc comment on
   /// `StructuredCodingCompatibilityMode.variadicGenerics`.
   static let variadicGenerics = Self(rawValue: 1 << 0)
-
-  /// Omit the `Schema` typealias so the conformance falls back to the
-  /// associated-type default (`StructuredAnySchema`). The structural schema's
-  /// witness mangling contains pack expansions for pack-generic types and
-  /// crashes the runtime demangler. See the doc comment on
-  /// `StructuredCodingCompatibilityMode.omitSchema`.
-  static let omitSchema = Self(rawValue: 1 << 1)
 }
 
 // MARK: - Structured Codable Type
@@ -189,9 +182,10 @@ struct EnumerationSchema {
   /// Applied to each case's Swift name to produce its discriminator string.
   let keyConversionStrategy: KeyConversionStrategy
 
-  /// Carried from `@StructuredCodable(compatibilityMode:)`. `.omitSchema`
-  /// forces the `Schema` typealias to the concrete `StructuredAnySchema`; the
-  /// modes are also inherited by the synthesized associated-value objects.
+  /// Carried from `@StructuredCodable(compatibilityMode:)`. With
+  /// `.variadicGenerics`, the synthesized associated-value objects (which
+  /// inherit these modes) access their properties through getter closures
+  /// instead of key path literals.
   let compatibilityModes: CompatibilityModes
 
   let codingStyle: CodingStyle

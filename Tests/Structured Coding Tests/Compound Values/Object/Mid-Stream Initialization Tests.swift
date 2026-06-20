@@ -160,8 +160,8 @@ private struct DeferredStringObject: StructuredObject, Equatable, Sendable {
   typealias StructuredObjectProperties = (_FirstProperty, _SecondProperty)
   static func properties() -> StructuredObjectProperties {
     (
-      _FirstProperty(name: "first", keyPath: \.first, schema: _FirstProperty.CodingSchema()),
-      _SecondProperty(name: "second", keyPath: \.second, schema: _SecondProperty.CodingSchema())
+      _FirstProperty(name: "first", keyPath: \.first, schema: _FirstProperty.Definition.CodingValue.schema(description: nil)),
+      _SecondProperty(name: "second", keyPath: \.second, schema: _SecondProperty.Definition.CodingValue.schema(description: nil))
     )
   }
 
@@ -192,7 +192,7 @@ private struct LetStringObject: StructuredObject, Equatable, Sendable {
   typealias Schema = StructuredObjectSchema<Self, _NameProperty.Definition>
   typealias StructuredObjectProperties = _NameProperty
   static func properties() -> StructuredObjectProperties {
-    _NameProperty(name: "name", keyPath: \.name, schema: _NameProperty.CodingSchema())
+    _NameProperty(name: "name", keyPath: \.name, schema: _NameProperty.Definition.CodingValue.schema(description: nil))
   }
 
   typealias ObjectDecoderValues = _NameProperty.ObjectDecoderValue
@@ -227,8 +227,8 @@ private struct ProfileObject: StructuredObject, Equatable, Sendable {
   typealias StructuredObjectProperties = (_NicknameProperty, _NameProperty)
   static func properties() -> StructuredObjectProperties {
     (
-      _NicknameProperty(name: "nickname", keyPath: \.nickname, schema: _NicknameProperty.CodingSchema()),
-      _NameProperty(name: "name", keyPath: \.name, schema: _NameProperty.CodingSchema())
+      _NicknameProperty(name: "nickname", keyPath: \.nickname, schema: _NicknameProperty.Definition.CodingValue.schema(description: nil)),
+      _NameProperty(name: "name", keyPath: \.name, schema: _NameProperty.Definition.CodingValue.schema(description: nil))
     )
   }
 

@@ -69,8 +69,6 @@ struct CompatibilityModeArgument: ParsableArgument {
       switch rawValue.text {
       case "variadicGenerics":
         modes.insert(.variadicGenerics)
-      case "omitSchema":
-        modes.insert(.omitSchema)
       default:
         context.diagnose(
           DiagnosticError(
@@ -92,11 +90,6 @@ struct CompatibilityModeArgument: ParsableArgument {
       if modes.contains(.variadicGenerics) {
         ArrayElementSyntax(
           expression: MemberAccessExprSyntax(name: "variadicGenerics")
-        )
-      }
-      if modes.contains(.omitSchema) {
-        ArrayElementSyntax(
-          expression: MemberAccessExprSyntax(name: "omitSchema")
         )
       }
     }

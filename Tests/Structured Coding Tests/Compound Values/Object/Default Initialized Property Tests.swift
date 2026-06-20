@@ -78,8 +78,8 @@ private struct DefaultObject: StructuredObject, Equatable, Sendable {
   typealias StructuredObjectProperties = (_CountProperty, _NoteProperty)
   static func properties() -> StructuredObjectProperties {
     (
-      _CountProperty(name: "count", keyPath: \.count, schema: _CountProperty.CodingSchema()),
-      _NoteProperty(name: "note", keyPath: \.note, schema: _NoteProperty.CodingSchema())
+      _CountProperty(name: "count", keyPath: \.count, schema: _CountProperty.Definition.CodingValue.schema(description: nil)),
+      _NoteProperty(name: "note", keyPath: \.note, schema: _NoteProperty.Definition.CodingValue.schema(description: nil))
     )
   }
 

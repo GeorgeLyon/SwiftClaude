@@ -4,13 +4,14 @@ import Testing
 @testable import StructuredCoding
 
 /// A pack-generic object — exercises
-/// `@StructuredCodable(compatibilityMode: [.variadicGenerics, .omitSchema])`:
-/// `.variadicGenerics` accesses properties through getter closures because key
-/// path literals rooted in a pack-generic type crash at runtime, and
-/// `.omitSchema` falls back to `StructuredAnySchema` because the structural
-/// schema's witness mangling contains pack expansions the runtime demangler
-/// cannot resolve (see `StructuredCodingCompatibilityMode`).
-@StructuredCodable(compatibilityMode: [.variadicGenerics, .omitSchema])
+/// `@StructuredCodable(compatibilityMode: .variadicGenerics)`, which accesses
+/// properties through getter closures because key path literals rooted in a
+/// pack-generic type crash at runtime (see `StructuredCodingCompatibilityMode`).
+/// Instead of a structural `Schema`, the macro emits a type-erased
+/// `schema(description:) -> StructuredAnySchema`, so `Schema` is inferred as
+/// `StructuredAnySchema` — a structural schema's witness mangling would contain
+/// a pack expansion the runtime demangler cannot resolve.
+@StructuredCodable(compatibilityMode: .variadicGenerics)
 private struct PackGenericObject<each T>: Equatable {
   var first: String
   var second: String?
@@ -32,15 +33,22 @@ struct VariadicGenericObjectTests {
     _ = PackGenericObject<Int, String>.properties()
   }
 
-  /// `.omitSchema` makes the witness the concrete associated-type default.
+  /// The macro emits a type-erased `schema(description:)`, so `Schema` is
+  /// inferred as `StructuredAnySchema`.
   @Test func schemaWitnessResolves() throws {
     #expect(resolvedSchemaType(of: PackGenericObject<Int, String>.self) is StructuredAnySchema.Type)
   }
 
-  /// The `.omitSchema` trade-off: the type's JSON schema degrades to
-  /// "any value" — an empty schema — rather than a structural description.
+  /// The trade-off of not emitting a structural schema: the type's JSON schema
+  /// degrades to "any value" — an empty schema — rather than a structural
+  /// description.
   @Test func schemaEncodesAsAny() throws {
-    try test(PackGenericObject<Int, String>.Schema(), encodesAs: "{}")
+    // `.variadicGenerics` resolves `schema(description:)` to the type-erased
+    // overload; the explicit `Schema` type selects it over the structural
+    // `StructuredObject.schema` extension.
+    let schema: PackGenericObject<Int, String>.Schema =
+      PackGenericObject<Int, String>.schema(description: nil)
+    try test(schema, encodesAs: "{}")
   }
 
   @Test func encodes() throws {
@@ -60,13 +68,13 @@ struct VariadicGenericObjectTests {
 }
 
 /// `StructuredObjectSchema` is itself pack-generic, so the schema of a
-/// concrete type exercises both compatibility modes plus the hand-applied
-/// `omitSchema` fallback on its nested `Properties` type.
+/// concrete type exercises `.variadicGenerics` plus the `StructuredAnySchema`
+/// default that stands in for its (and its nested `Properties`') schema.
 @Suite("Object Schema Metadata")
 struct ObjectSchemaMetadataTests {
 
   @Test func constructsSchema() throws {
-    _ = MutableStringObject.Schema()
+    _ = MutableStringObject.schema(description: nil)
   }
 
   /// Crashed twice historically: first instantiating the macro-generated key

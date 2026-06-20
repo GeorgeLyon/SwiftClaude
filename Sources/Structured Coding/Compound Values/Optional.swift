@@ -2,17 +2,17 @@
 
 @StructuredCodable
 public struct StructuredOptionalSchema<
-  WrappedSchema: StructuredCodingSchema
->: StructuredCodingSchema {
+  Wrapped: StructuredCodable
+>: StructuredCodable {
   public init(description: String?) {
     self.description = description
-    self.properties = Properties(value: WrappedSchema())
+    self.properties = Properties(value: Wrapped.schema(description: nil))
   }
   private let description: String?
 
   @StructuredCodable
   public struct Properties {
-    let value: WrappedSchema
+    let value: Wrapped.Schema
   }
   private let properties: Properties
 }
@@ -28,7 +28,9 @@ private struct OptionalStorage<Wrapped: StructuredCodable> {
 
 extension Optional: StructuredEncodable where Wrapped: StructuredCodable {
 
-  public typealias Schema = StructuredOptionalSchema<Wrapped.Schema>
+  public static func schema(description: String?) -> StructuredOptionalSchema<Wrapped.Schema> {
+    StructuredOptionalSchema(description: description)
+  }
 
   public func encode(to encoder: inout StructuredEncoder) throws {
     try OptionalStorage(value: self).encode(to: &encoder)

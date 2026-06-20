@@ -32,11 +32,11 @@ struct StructuredCodableStructTests {
           (__macro_local_1xfMu_(
               name: "x",
               keyPath: \.x,
-              schema: __macro_local_1xfMu_.CodingSchema()
+              schema: __macro_local_1xfMu_.Definition.CodingValue.schema(description: nil)
             ), __macro_local_1yfMu_(
               name: "y",
               keyPath: \.y,
-              schema: __macro_local_1yfMu_.CodingSchema()
+              schema: __macro_local_1yfMu_.Definition.CodingValue.schema(description: nil)
             ))
         }
         typealias ObjectDecoderValues = (__macro_local_1xfMu_.ObjectDecoderValue, __macro_local_1yfMu_.ObjectDecoderValue)
@@ -85,19 +85,19 @@ struct StructuredCodableStructTests {
           (__macro_local_5firstfMu_(
               name: "first",
               keyPath: \.first,
-              schema: __macro_local_5firstfMu_.CodingSchema()
+              schema: __macro_local_5firstfMu_.Definition.CodingValue.schema(description: nil)
             ), __macro_local_6secondfMu_(
               name: "second",
               keyPath: \.second,
-              schema: __macro_local_6secondfMu_.CodingSchema()
+              schema: __macro_local_6secondfMu_.Definition.CodingValue.schema(description: nil)
             ), __macro_local_4kindfMu_(
               name: "kind",
               keyPath: \.kind,
-              schema: __macro_local_4kindfMu_.CodingSchema()
+              schema: __macro_local_4kindfMu_.Definition.CodingValue.schema(description: nil)
             ), __macro_local_5countfMu_(
               name: "count",
               keyPath: \.count,
-              schema: __macro_local_5countfMu_.CodingSchema()
+              schema: __macro_local_5countfMu_.Definition.CodingValue.schema(description: nil)
             ))
         }
         typealias ObjectDecoderValues = (__macro_local_5firstfMu_.ObjectDecoderValue, __macro_local_6secondfMu_.ObjectDecoderValue, __macro_local_4kindfMu_.ObjectDecoderValue, __macro_local_5countfMu_.ObjectDecoderValue)
@@ -141,7 +141,7 @@ struct StructuredCodableStructTests {
           __macro_local_5valuefMu_(
             name: "value",
             keyPath: \.value,
-            schema: __macro_local_5valuefMu_.CodingSchema()
+            schema: __macro_local_5valuefMu_.Definition.CodingValue.schema(description: nil)
           )
         }
         typealias ObjectDecoderValues = __macro_local_5valuefMu_.ObjectDecoderValue
@@ -180,7 +180,9 @@ struct StructuredCodableStructTests {
       extension PackBox: StructuredCoding.StructuredObject {
         typealias __macro_local_5firstfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredRequiredObjectPropertyDefinition<String>>
         typealias __macro_local_6secondfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredOptionalObjectPropertyDefinition<String>>
-        typealias Schema = StructuredCoding.StructuredObjectSchema<Self, __macro_local_5firstfMu_.Definition, __macro_local_6secondfMu_.Definition>
+        static func schema(description: String?) -> StructuredCoding.StructuredAnySchema {
+          StructuredCoding.StructuredAnySchema(description: description)
+        }
         typealias StructuredObjectProperties = (__macro_local_5firstfMu_, __macro_local_6secondfMu_)
         static func properties() -> StructuredObjectProperties {
           (__macro_local_5firstfMu_(
@@ -188,13 +190,13 @@ struct StructuredCodableStructTests {
               getter: {
                 $0.first
               },
-              schema: __macro_local_5firstfMu_.CodingSchema()
+              schema: __macro_local_5firstfMu_.Definition.CodingValue.schema(description: nil)
             ), __macro_local_6secondfMu_(
               name: "second",
               getter: {
                 $0.second
               },
-              schema: __macro_local_6secondfMu_.CodingSchema()
+              schema: __macro_local_6secondfMu_.Definition.CodingValue.schema(description: nil)
             ))
         }
         typealias ObjectDecoderValues = (__macro_local_5firstfMu_.ObjectDecoderValue, __macro_local_6secondfMu_.ObjectDecoderValue)
@@ -210,15 +212,14 @@ struct StructuredCodableStructTests {
     )
   }
 
-  /// `.omitSchema` makes the `Schema` typealias the concrete
-  /// `StructuredAnySchema` instead of a structural schema — the structural
-  /// schema's witness mangling crashes the runtime demangler for pack-generic
-  /// types. Also covers the array-literal form of `compatibilityMode:`.
+  /// Covers the array-literal form of `compatibilityMode:` (`[.variadicGenerics]`
+  /// rather than the bare `.variadicGenerics`). A type-erased
+  /// `schema(description:)` is emitted instead of a structural `Schema` typealias.
   @Test
-  func structWithOmitSchemaCompatibilityMode() {
+  func structWithArrayLiteralCompatibilityMode() {
     assertStructuredCodableExpansion(
       """
-      @StructuredCodable(compatibilityMode: [.variadicGenerics, .omitSchema])
+      @StructuredCodable(compatibilityMode: [.variadicGenerics])
       struct PackBox<each T> {
         var first: String
       }
@@ -230,7 +231,9 @@ struct StructuredCodableStructTests {
 
       extension PackBox: StructuredCoding.StructuredObject {
         typealias __macro_local_5firstfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredRequiredObjectPropertyDefinition<String>>
-        typealias Schema = StructuredCoding.StructuredAnySchema
+        static func schema(description: String?) -> StructuredCoding.StructuredAnySchema {
+          StructuredCoding.StructuredAnySchema(description: description)
+        }
         typealias StructuredObjectProperties = __macro_local_5firstfMu_
         static func properties() -> StructuredObjectProperties {
           __macro_local_5firstfMu_(
@@ -238,7 +241,7 @@ struct StructuredCodableStructTests {
             getter: {
               $0.first
             },
-            schema: __macro_local_5firstfMu_.CodingSchema()
+            schema: __macro_local_5firstfMu_.Definition.CodingValue.schema(description: nil)
           )
         }
         typealias ObjectDecoderValues = __macro_local_5firstfMu_.ObjectDecoderValue

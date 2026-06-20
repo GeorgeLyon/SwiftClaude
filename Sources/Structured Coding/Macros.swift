@@ -4,6 +4,12 @@
 /// a `StructuredObject` conformance for a `struct` or `class`, or a
 /// `StructuredEnumeration` conformance for an `enum`.
 ///
+/// An object conformance declares a structural `Schema` typealias
+/// (`StructuredObjectSchema<Self, …>`); pack-generic objects
+/// (`.variadicGenerics`) and enumerations instead type-erase to
+/// `StructuredAnySchema`, because naming a structural schema for a pack-generic
+/// type crashes the runtime demangler.
+///
 /// - Parameters:
 ///   - description: A human-readable description of the type.
 ///   - style: How an enumeration's cases are represented; ignored for objects.
@@ -16,6 +22,7 @@
   conformances: StructuredObject, StructuredEnumeration,
   names:
     named(Schema),
+    named(schema),
     named(StructuredObjectProperties),
     named(properties),
     named(ObjectDecoderValues),
@@ -96,30 +103,6 @@ public struct StructuredCodingCompatibilityMode: OptionSet, Sendable {
   /// their generic signature; remove it once the Swift runtime supports key
   /// paths rooted in pack-generic types.
   public static let variadicGenerics = Self(rawValue: 1 << 0)
-
-  /// Generates `Schema` as the concrete `StructuredAnySchema` instead of a
-  /// structural schema, erasing the type's JSON-schema description.
-  ///
-  /// A `@StructuredCodable` type's `Schema` witness normally references
-  /// `StructuredObjectSchema<Self, …>`. When `Self` is pack-generic, that
-  /// witness is stored as a mangled name containing a pack expansion, and
-  /// resolving it at runtime — e.g. when this type appears as the property of
-  /// another structured object and the property descriptor's metadata is
-  /// instantiated, which forces the `Definition.CodingSchema` associated-type
-  /// witness — aborts in the runtime demangler with the same "Pack expansion
-  /// count type should be a pack" error described under `variadicGenerics`.
-  ///
-  /// With this option set, the macro instead generates
-  /// `typealias Schema = StructuredAnySchema`, whose concrete, non-generic
-  /// witness resolves trivially. Encoding and decoding *values* of the type
-  /// are unaffected (they go through `properties()`); the trade-off is that
-  /// anything asking for this type's JSON schema gets "any value" rather than
-  /// a structural description.
-  ///
-  /// Like `variadicGenerics`, only set this on types involved with parameter
-  /// packs, and remove it once the runtime demangler supports pack expansions
-  /// in associated-type witnesses.
-  public static let omitSchema = Self(rawValue: 1 << 1)
 
   public init(rawValue: Int) {
     self.rawValue = rawValue

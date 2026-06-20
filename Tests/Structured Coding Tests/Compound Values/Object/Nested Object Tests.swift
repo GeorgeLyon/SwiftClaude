@@ -87,8 +87,8 @@ private struct NestingObject: StructuredObject, Equatable, Sendable {
   typealias StructuredObjectProperties = (_LabelProperty, _InnerProperty)
   static func properties() -> StructuredObjectProperties {
     (
-      _LabelProperty(name: "label", keyPath: \.label, schema: _LabelProperty.CodingSchema()),
-      _InnerProperty(name: "inner", keyPath: \.inner, schema: _InnerProperty.CodingSchema())
+      _LabelProperty(name: "label", keyPath: \.label, schema: _LabelProperty.Definition.CodingValue.schema(description: nil)),
+      _InnerProperty(name: "inner", keyPath: \.inner, schema: _InnerProperty.Definition.CodingValue.schema(description: nil))
     )
   }
 
@@ -115,7 +115,7 @@ private struct DeferredParent: StructuredObject, Equatable, Sendable {
   typealias Schema = StructuredObjectSchema<Self, _InnerProperty.Definition>
   typealias StructuredObjectProperties = _InnerProperty
   static func properties() -> StructuredObjectProperties {
-    _InnerProperty(name: "inner", keyPath: \.inner, schema: _InnerProperty.CodingSchema())
+    _InnerProperty(name: "inner", keyPath: \.inner, schema: _InnerProperty.Definition.CodingValue.schema(description: nil))
   }
 
   typealias ObjectDecoderValues = _InnerProperty.ObjectDecoderValue
