@@ -515,9 +515,9 @@ extension EnumerationSchema {
     }
 
     // No `Schema` / `schema(description:)` is generated: enumerations resolve
-    // both through the {ns}.StructuredEnumeration extensions, which type-erase
-    // the JSON schema to {ns}.StructuredAnySchema. A structural enumeration-schema
-    // witness would crash the runtime demangler for pack-generic types.
+    // both through the style-constrained {ns}.StructuredEnumeration extensions
+    // (the structural {ns}.StructuredObjectSchema for object properties, the
+    // type-erased {ns}.StructuredAnySchema for the other styles).
 
     // typealias Cases = ({ns}.StructuredEnumerationCase<Self, <associated>>, ...)
     TypeAliasDeclSyntax(

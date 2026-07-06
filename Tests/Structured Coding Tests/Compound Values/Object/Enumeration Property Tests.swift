@@ -70,8 +70,6 @@ struct EnumerationPropertyTests {
 
 private enum Choice: StructuredEnumeration, Equatable, Sendable {
 
-  typealias Schema = StructuredAnySchema
-
   case text(String)
   case number(Int)
 
@@ -122,15 +120,20 @@ private struct EnumHolder: StructuredObject, Equatable, Sendable {
   typealias StructuredObjectProperties = (_XProperty, _ChoiceProperty)
   static func properties() -> StructuredObjectProperties {
     (
-      _XProperty(name: "x", keyPath: \.x, schema: _XProperty.Definition.CodingValue.schema(description: nil)),
-      _ChoiceProperty(name: "choice", keyPath: \.choice, schema: _ChoiceProperty.Definition.CodingValue.schema(description: nil))
+      _XProperty(
+        name: "x", keyPath: \.x, schema: _XProperty.Definition.CodingValue.schema(description: nil)),
+      _ChoiceProperty(
+        name: "choice", keyPath: \.choice,
+        schema: _ChoiceProperty.Definition.CodingValue.schema(description: nil))
     )
   }
 
   typealias ObjectDecoderValues = (
     _XProperty.ObjectDecoderValue, _ChoiceProperty.ObjectDecoderValue
   )
-  static func decode(from objectDecoder: sending StructuredObjectDecoder<ObjectDecoderValues>) -> sending Self {
+  static func decode(from objectDecoder: sending StructuredObjectDecoder<ObjectDecoderValues>)
+    -> sending Self
+  {
     Self(x: objectDecoder.values.0, choice: objectDecoder.values.1)
   }
 }
@@ -138,8 +141,6 @@ private struct EnumHolder: StructuredObject, Equatable, Sendable {
 /// An object-properties enumeration with a single case carrying an Optional
 /// payload, which initializes twice during its decode (seed, then wrapped value).
 private enum MaybeChoice: StructuredEnumeration, Equatable, Sendable {
-
-  typealias Schema = StructuredAnySchema
 
   case maybe(Int?)
 
@@ -177,15 +178,20 @@ private struct OptionalPayloadHolder: StructuredObject, Equatable, Sendable {
   typealias StructuredObjectProperties = (_XProperty, _ChoiceProperty)
   static func properties() -> StructuredObjectProperties {
     (
-      _XProperty(name: "x", keyPath: \.x, schema: _XProperty.Definition.CodingValue.schema(description: nil)),
-      _ChoiceProperty(name: "choice", keyPath: \.choice, schema: _ChoiceProperty.Definition.CodingValue.schema(description: nil))
+      _XProperty(
+        name: "x", keyPath: \.x, schema: _XProperty.Definition.CodingValue.schema(description: nil)),
+      _ChoiceProperty(
+        name: "choice", keyPath: \.choice,
+        schema: _ChoiceProperty.Definition.CodingValue.schema(description: nil))
     )
   }
 
   typealias ObjectDecoderValues = (
     _XProperty.ObjectDecoderValue, _ChoiceProperty.ObjectDecoderValue
   )
-  static func decode(from objectDecoder: sending StructuredObjectDecoder<ObjectDecoderValues>) -> sending Self {
+  static func decode(from objectDecoder: sending StructuredObjectDecoder<ObjectDecoderValues>)
+    -> sending Self
+  {
     Self(x: objectDecoder.values.0, choice: objectDecoder.values.1)
   }
 }

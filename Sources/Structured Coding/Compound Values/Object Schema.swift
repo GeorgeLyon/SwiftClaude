@@ -12,6 +12,7 @@ public struct StructuredObjectSchema {
     >
   ) {
     self.description = description
+    self.maxProperties = nil
 
     do {
       var mutableProperties: [Property] = []
@@ -34,6 +35,33 @@ public struct StructuredObjectSchema {
     }
   }
 
+  /// The schema of an enumeration coded as object properties: one property per
+  /// case, none required, with `maxProperties: 1` enforcing that exactly one
+  /// case is present.
+  init<each CaseSchema: StructuredEncodable>(
+    description: String?,
+    caseSchemas: repeat (StructuredCodingKey, each CaseSchema)
+  ) {
+    self.description = description
+    self.maxProperties = 1
+
+    do {
+      var mutableProperties: [Property] = []
+      for (name, schema) in repeat each caseSchemas {
+        mutableProperties.append(
+          Property(
+            name: name.stringValue,
+            schemaEncodingResult: Result {
+              try OpaqueValue(schema)
+            }
+          )
+        )
+      }
+      self.properties = mutableProperties
+      self.required = []
+    }
+  }
+
   private let description: String?
 
   /// The name is a `String` rather than a `StructuredCodingKey` because
@@ -45,6 +73,8 @@ public struct StructuredObjectSchema {
   private let properties: [Property]
 
   private let required: [String]
+
+  private let maxProperties: Int?
 
 }
 
@@ -92,6 +122,11 @@ extension StructuredObjectSchema: StructuredEncodable {
           }
         }
       }
+      if let maxProperties {
+        objectEncoder.encodeProperty(.maxProperties) { stream in
+          stream.encode(maxProperties)
+        }
+      }
     }
   }
 
@@ -125,6 +160,7 @@ extension StructuredObjectSchema: StructuredDecodable {
       var description: String?
       var properties: [Property]?
       var required: [String]?
+      var maxProperties: Int?
       while !objectDecoder.isAtEnd {
         try await objectDecoder.decodeSchemaProperty { name, stream in
           switch name {
@@ -162,6 +198,11 @@ extension StructuredObjectSchema: StructuredDecodable {
               throw ObjectSchemaDecodingError.emptyRequiredArray
             }
             required = decoded
+          case .maxProperties:
+            guard maxProperties == nil else {
+              throw ObjectSchemaDecodingError.duplicateProperty(name.rawValue)
+            }
+            maxProperties = try await stream.decodeNumber().decode(as: Int.self)
           }
         }
       }
@@ -171,16 +212,23 @@ extension StructuredObjectSchema: StructuredDecodable {
       return StructuredObjectSchema(
         description: description,
         properties: properties,
-        required: required ?? []
+        required: required ?? [],
+        maxProperties: maxProperties
       )
     }
     try await accessor.initializeValue(to: schema)
   }
 
-  private init(description: String?, properties: [Property], required: [String]) {
+  private init(
+    description: String?,
+    properties: [Property],
+    required: [String],
+    maxProperties: Int?
+  ) {
     self.description = description
     self.properties = properties
     self.required = required
+    self.maxProperties = maxProperties
   }
 
 }
@@ -217,4 +265,5 @@ private enum SchemaPropertyName: String {
   case description
   case properties
   case required
+  case maxProperties
 }

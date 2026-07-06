@@ -4,10 +4,10 @@ import Testing
 @testable import StructuredCoding
 
 /// An object with a tuple-typed property — instantiating its property
-/// descriptors forces `StructuredTuple`'s structural `Schema` witness, whose
-/// mangling contains a pack expansion (the same shape that crashes the runtime
-/// demangler for pack-generic object schemas, which is why `@StructuredCodable`
-/// no longer emits a structural `Schema` and falls back to `StructuredAnySchema`).
+/// descriptors forces `StructuredTuple`'s `Schema` witness. The witness is
+/// safe to demangle because `StructuredTupleSchema` is non-generic: a schema
+/// type parameterized by the element pack would put a pack expansion in the
+/// witness mangling, which crashes the runtime demangler.
 @StructuredCodable
 private struct TuplePropertyObject {
   var pair: StructuredTuple<Int, String>

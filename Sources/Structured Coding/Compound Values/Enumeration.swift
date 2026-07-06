@@ -32,14 +32,60 @@ extension StructuredEnumeration where Self: RawRepresentable {
 
 // MARK: - Schema
 
-extension StructuredEnumeration {
+/// Exactly one `schema(description:)` witness applies per coding style. The
+/// erased witnesses must not be collapsed into one unconstrained overload: it
+/// would be non-generic and win overload resolution over the structural
+/// (pack-generic) object-properties witness everywhere.
 
-  /// Enumerations type-erase their JSON schema to `StructuredAnySchema`; a
-  /// structural enumeration schema would crash the runtime demangler for
-  /// pack-generic types. The `Schema` associated type is inferred from the
-  /// return type.
+extension StructuredEnumeration
+where CodingStyle == StructuredEnumerationCodingStyleRawValue {
+
+  /// Raw-value enumerations type-erase their JSON schema to
+  /// `StructuredAnySchema`; they have no structural schema yet.
   public static func schema(description: String?) -> StructuredAnySchema {
     StructuredAnySchema(description: description)
+  }
+
+}
+
+extension StructuredEnumeration
+where CodingStyle == StructuredEnumerationCodingStyleInternallyTagged {
+
+  /// Internally-tagged enumerations type-erase their JSON schema to
+  /// `StructuredAnySchema`; they have no structural schema yet.
+  public static func schema(description: String?) -> StructuredAnySchema {
+    StructuredAnySchema(description: description)
+  }
+
+}
+
+extension StructuredEnumeration
+where CodingStyle == StructuredEnumerationCodingStyleTypeDiscriminated {
+
+  /// Type-discriminated enumerations type-erase their JSON schema to
+  /// `StructuredAnySchema`; they have no structural schema yet.
+  public static func schema(description: String?) -> StructuredAnySchema {
+    StructuredAnySchema(description: description)
+  }
+
+}
+
+extension StructuredEnumeration
+where CodingStyle == StructuredEnumerationCodingStyleObjectProperties {
+
+  /// An object-properties enumeration is coded as an object with exactly one
+  /// property, so its schema is the non-generic `StructuredObjectSchema`: one
+  /// property per case carrying that case's associated-value schema, with
+  /// `maxProperties: 1` standing in for case exclusivity.
+  public static func schema<each AssociatedValue: StructuredDecodable>(
+    description: String?
+  ) -> StructuredObjectSchema
+  where Cases == (repeat StructuredEnumerationCase<Self, each AssociatedValue>) {
+    let cases = cases()
+    return StructuredObjectSchema(
+      description: description,
+      caseSchemas: repeat ((each cases).name, (each AssociatedValue).schema())
+    )
   }
 
 }
