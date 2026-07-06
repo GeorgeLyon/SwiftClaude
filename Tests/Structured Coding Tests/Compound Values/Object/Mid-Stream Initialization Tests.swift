@@ -156,7 +156,6 @@ private struct DeferredStringObject: StructuredObject, Equatable, Sendable {
   typealias _SecondProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<String>
   >
-  typealias Schema = StructuredObjectSchema<Self, _FirstProperty.Definition, _SecondProperty.Definition>
   typealias StructuredObjectProperties = (_FirstProperty, _SecondProperty)
   static func properties() -> StructuredObjectProperties {
     (
@@ -189,7 +188,6 @@ private struct LetStringObject: StructuredObject, Equatable, Sendable {
   typealias _NameProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<String>
   >
-  typealias Schema = StructuredObjectSchema<Self, _NameProperty.Definition>
   typealias StructuredObjectProperties = _NameProperty
   static func properties() -> StructuredObjectProperties {
     _NameProperty(name: "name", keyPath: \.name, schema: _NameProperty.Definition.CodingValue.schema(description: nil))
@@ -223,7 +221,6 @@ private struct ProfileObject: StructuredObject, Equatable, Sendable {
   typealias _NameProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<String>
   >
-  typealias Schema = StructuredObjectSchema<Self, _NicknameProperty.Definition, _NameProperty.Definition>
   typealias StructuredObjectProperties = (_NicknameProperty, _NameProperty)
   static func properties() -> StructuredObjectProperties {
     (

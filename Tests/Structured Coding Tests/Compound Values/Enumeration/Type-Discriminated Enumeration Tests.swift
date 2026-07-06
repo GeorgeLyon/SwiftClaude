@@ -238,7 +238,6 @@ private struct Point: StructuredObject, Equatable, Sendable {
   typealias _YProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<Int>
   >
-  typealias Schema = StructuredObjectSchema<Self, _XProperty.Definition, _YProperty.Definition>
   typealias StructuredObjectProperties = (_XProperty, _YProperty)
   static func properties() -> StructuredObjectProperties {
     (

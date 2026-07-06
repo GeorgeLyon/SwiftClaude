@@ -24,7 +24,6 @@ struct MutableStringObject: StructuredObject, Equatable, Sendable {
   typealias _SecondProperty = StructuredObjectProperty<
     Self, StructuredOptionalObjectPropertyDefinition<String>
   >
-  typealias Schema = StructuredObjectSchema<Self, _FirstProperty.Definition, _SecondProperty.Definition>
   typealias StructuredObjectProperties = (_FirstProperty, _SecondProperty)
   static func properties() -> StructuredObjectProperties {
     (
@@ -59,7 +58,6 @@ struct OptionalMutableObject: StructuredObject, Equatable, Sendable {
   typealias _BProperty = StructuredObjectProperty<
     Self, StructuredOptionalObjectPropertyDefinition<String>
   >
-  typealias Schema = StructuredObjectSchema<Self, _AProperty.Definition, _BProperty.Definition>
   typealias StructuredObjectProperties = (_AProperty, _BProperty)
   static func properties() -> StructuredObjectProperties {
     (
@@ -81,7 +79,6 @@ struct EmptyObject: StructuredObject, Equatable, Sendable {
 
   init() {}
 
-  typealias Schema = StructuredObjectSchema<Self>
   typealias StructuredObjectProperties = ()
   static func properties() -> StructuredObjectProperties { () }
 
@@ -117,7 +114,6 @@ struct DeferredObject: StructuredObject, Equatable, Sendable {
   typealias _TailProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<String>
   >
-  typealias Schema = StructuredObjectSchema<Self, _AProperty.Definition, _BProperty.Definition, _TailProperty.Definition>
   typealias StructuredObjectProperties = (_AProperty, _BProperty, _TailProperty)
   static func properties() -> StructuredObjectProperties {
     (
@@ -153,7 +149,6 @@ struct SingleScalarObject: StructuredObject, Equatable, Sendable {
   typealias _ValueProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<Int>
   >
-  typealias Schema = StructuredObjectSchema<Self, _ValueProperty.Definition>
   typealias StructuredObjectProperties = _ValueProperty
   static func properties() -> StructuredObjectProperties {
     _ValueProperty(name: "value", keyPath: \.value, schema: _ValueProperty.Definition.CodingValue.schema(description: nil))

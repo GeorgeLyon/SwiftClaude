@@ -74,7 +74,6 @@ private struct DefaultObject: StructuredObject, Equatable, Sendable {
       StructuredOptionalObjectPropertyDefinition<String>
     >
   >
-  typealias Schema = StructuredObjectSchema<Self, _CountProperty.Definition, _NoteProperty.Definition>
   typealias StructuredObjectProperties = (_CountProperty, _NoteProperty)
   static func properties() -> StructuredObjectProperties {
     (

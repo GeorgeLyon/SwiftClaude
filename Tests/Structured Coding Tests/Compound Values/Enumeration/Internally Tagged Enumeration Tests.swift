@@ -257,7 +257,6 @@ private struct Message: StructuredObject, Equatable, Sendable {
   typealias _BodyProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<String>
   >
-  typealias Schema = StructuredObjectSchema<Self, _BodyProperty.Definition>
   typealias StructuredObjectProperties = _BodyProperty
   static func properties() -> StructuredObjectProperties {
     _BodyProperty(name: "body", keyPath: \.body, schema: _BodyProperty.Definition.CodingValue.schema(description: nil))
@@ -288,7 +287,6 @@ private struct Move: StructuredObject, Equatable, Sendable {
   typealias _YProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<Int>
   >
-  typealias Schema = StructuredObjectSchema<Self, _XProperty.Definition, _YProperty.Definition>
   typealias StructuredObjectProperties = (_XProperty, _YProperty)
   static func properties() -> StructuredObjectProperties {
     (
@@ -312,7 +310,6 @@ private struct Ping: StructuredObject, Equatable, Sendable {
 
   init() {}
 
-  typealias Schema = StructuredObjectSchema<Self>
   typealias StructuredObjectProperties = ()
   static func properties() -> StructuredObjectProperties { () }
 

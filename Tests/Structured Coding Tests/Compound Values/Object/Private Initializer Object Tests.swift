@@ -133,7 +133,6 @@ extension PrivateInitObject: StructuredObject {
       StructuredRequiredObjectPropertyDefinition<Int>
     >
   >
-  typealias Schema = StructuredObjectSchema<Self, _IDProperty.Definition, _NameProperty.Definition, _NoteProperty.Definition, _KindProperty.Definition, _CountProperty.Definition>
   typealias StructuredObjectProperties = (_IDProperty, _NameProperty, _NoteProperty, _KindProperty, _CountProperty)
   static func properties() -> StructuredObjectProperties {
     (
@@ -188,7 +187,6 @@ extension StreamingObject: StructuredObject {
   typealias _SecondProperty = StructuredObjectProperty<
     Self, StructuredOptionalObjectPropertyDefinition<String>
   >
-  typealias Schema = StructuredObjectSchema<Self, _FirstProperty.Definition, _SecondProperty.Definition>
   typealias StructuredObjectProperties = (_FirstProperty, _SecondProperty)
   static func properties() -> StructuredObjectProperties {
     (
@@ -239,7 +237,6 @@ extension DefaultStreamingObject: StructuredObject {
       StructuredOptionalObjectPropertyDefinition<String>
     >
   >
-  typealias Schema = StructuredObjectSchema<Self, _CountProperty.Definition, _NoteProperty.Definition>
   typealias StructuredObjectProperties = (_CountProperty, _NoteProperty)
   static func properties() -> StructuredObjectProperties {
     (

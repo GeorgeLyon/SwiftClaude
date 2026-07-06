@@ -155,7 +155,6 @@ struct StructuredCodableEnumTests {
           var y: Int
           typealias __macro_local_1xfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredRequiredObjectPropertyDefinition<Int>>
           typealias __macro_local_1yfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredRequiredObjectPropertyDefinition<Int>>
-          typealias Schema = StructuredCoding.StructuredObjectSchema<Self, __macro_local_1xfMu_.Definition, __macro_local_1yfMu_.Definition>
           typealias StructuredObjectProperties = (__macro_local_1xfMu_, __macro_local_1yfMu_)
           static func properties() -> StructuredObjectProperties {
             (__macro_local_1xfMu_(
@@ -233,7 +232,6 @@ struct StructuredCodableEnumTests {
           var y: Int
           typealias __macro_local_1xfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredRequiredObjectPropertyDefinition<Int>>
           typealias __macro_local_1yfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredRequiredObjectPropertyDefinition<Int>>
-          typealias Schema = StructuredCoding.StructuredObjectSchema<Self, __macro_local_1xfMu_.Definition, __macro_local_1yfMu_.Definition>
           typealias StructuredObjectProperties = (__macro_local_1xfMu_, __macro_local_1yfMu_)
           static func properties() -> StructuredObjectProperties {
             (__macro_local_1xfMu_(
@@ -311,7 +309,6 @@ struct StructuredCodableEnumTests {
           var y: Int
           typealias __macro_local_1xfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredRequiredObjectPropertyDefinition<Int>>
           typealias __macro_local_1yfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredRequiredObjectPropertyDefinition<Int>>
-          typealias Schema = StructuredCoding.StructuredObjectSchema<Self, __macro_local_1xfMu_.Definition, __macro_local_1yfMu_.Definition>
           typealias StructuredObjectProperties = (__macro_local_1xfMu_, __macro_local_1yfMu_)
           static func properties() -> StructuredObjectProperties {
             (__macro_local_1xfMu_(

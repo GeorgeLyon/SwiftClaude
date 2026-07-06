@@ -119,7 +119,6 @@ private struct EnumHolder: StructuredObject, Equatable, Sendable {
   typealias _ChoiceProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<Choice>
   >
-  typealias Schema = StructuredObjectSchema<Self, _XProperty.Definition, _ChoiceProperty.Definition>
   typealias StructuredObjectProperties = (_XProperty, _ChoiceProperty)
   static func properties() -> StructuredObjectProperties {
     (
@@ -175,7 +174,6 @@ private struct OptionalPayloadHolder: StructuredObject, Equatable, Sendable {
   typealias _ChoiceProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<MaybeChoice>
   >
-  typealias Schema = StructuredObjectSchema<Self, _XProperty.Definition, _ChoiceProperty.Definition>
   typealias StructuredObjectProperties = (_XProperty, _ChoiceProperty)
   static func properties() -> StructuredObjectProperties {
     (

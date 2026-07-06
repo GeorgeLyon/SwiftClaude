@@ -26,7 +26,6 @@ struct StructuredCodableStructTests {
       extension Point: StructuredCoding.StructuredObject {
         typealias __macro_local_1xfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredRequiredObjectPropertyDefinition<Int>>
         typealias __macro_local_1yfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredRequiredObjectPropertyDefinition<Int>>
-        typealias Schema = StructuredCoding.StructuredObjectSchema<Self, __macro_local_1xfMu_.Definition, __macro_local_1yfMu_.Definition>
         typealias StructuredObjectProperties = (__macro_local_1xfMu_, __macro_local_1yfMu_)
         static func properties() -> StructuredObjectProperties {
           (__macro_local_1xfMu_(
@@ -79,7 +78,6 @@ struct StructuredCodableStructTests {
         typealias __macro_local_6secondfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredOptionalObjectPropertyDefinition<String>>
         typealias __macro_local_4kindfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredImmutableDefaultInitializedPropertyDefinition<StructuredCoding.StructuredRequiredObjectPropertyDefinition<String>>>
         typealias __macro_local_5countfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredMutableDefaultInitializedPropertyDefinition<StructuredCoding.StructuredRequiredObjectPropertyDefinition<Int>>>
-        typealias Schema = StructuredCoding.StructuredObjectSchema<Self, __macro_local_5firstfMu_.Definition, __macro_local_6secondfMu_.Definition, __macro_local_4kindfMu_.Definition, __macro_local_5countfMu_.Definition>
         typealias StructuredObjectProperties = (__macro_local_5firstfMu_, __macro_local_6secondfMu_, __macro_local_4kindfMu_, __macro_local_5countfMu_)
         static func properties() -> StructuredObjectProperties {
           (__macro_local_5firstfMu_(
@@ -135,7 +133,6 @@ struct StructuredCodableStructTests {
 
       extension Single: StructuredCoding.StructuredObject {
         typealias __macro_local_5valuefMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredRequiredObjectPropertyDefinition<Int>>
-        typealias Schema = StructuredCoding.StructuredObjectSchema<Self, __macro_local_5valuefMu_.Definition>
         typealias StructuredObjectProperties = __macro_local_5valuefMu_
         static func properties() -> StructuredObjectProperties {
           __macro_local_5valuefMu_(
@@ -180,9 +177,6 @@ struct StructuredCodableStructTests {
       extension PackBox: StructuredCoding.StructuredObject {
         typealias __macro_local_5firstfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredRequiredObjectPropertyDefinition<String>>
         typealias __macro_local_6secondfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredOptionalObjectPropertyDefinition<String>>
-        static func schema(description: String?) -> StructuredCoding.StructuredAnySchema {
-          StructuredCoding.StructuredAnySchema(description: description)
-        }
         typealias StructuredObjectProperties = (__macro_local_5firstfMu_, __macro_local_6secondfMu_)
         static func properties() -> StructuredObjectProperties {
           (__macro_local_5firstfMu_(
@@ -231,9 +225,6 @@ struct StructuredCodableStructTests {
 
       extension PackBox: StructuredCoding.StructuredObject {
         typealias __macro_local_5firstfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredRequiredObjectPropertyDefinition<String>>
-        static func schema(description: String?) -> StructuredCoding.StructuredAnySchema {
-          StructuredCoding.StructuredAnySchema(description: description)
-        }
         typealias StructuredObjectProperties = __macro_local_5firstfMu_
         static func properties() -> StructuredObjectProperties {
           __macro_local_5firstfMu_(
@@ -269,7 +260,6 @@ struct StructuredCodableStructTests {
       }
 
       extension Empty: StructuredCoding.StructuredObject {
-        typealias Schema = StructuredCoding.StructuredObjectSchema<Self>
         typealias StructuredObjectProperties = ()
         static func properties() -> StructuredObjectProperties {
           ()

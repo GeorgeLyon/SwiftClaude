@@ -83,7 +83,6 @@ private struct NestingObject: StructuredObject, Equatable, Sendable {
   typealias _InnerProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<MutableStringObject>
   >
-  typealias Schema = StructuredObjectSchema<Self, _LabelProperty.Definition, _InnerProperty.Definition>
   typealias StructuredObjectProperties = (_LabelProperty, _InnerProperty)
   static func properties() -> StructuredObjectProperties {
     (
@@ -112,7 +111,6 @@ private struct DeferredParent: StructuredObject, Equatable, Sendable {
   typealias _InnerProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<SingleScalarObject>
   >
-  typealias Schema = StructuredObjectSchema<Self, _InnerProperty.Definition>
   typealias StructuredObjectProperties = _InnerProperty
   static func properties() -> StructuredObjectProperties {
     _InnerProperty(name: "inner", keyPath: \.inner, schema: _InnerProperty.Definition.CodingValue.schema(description: nil))
