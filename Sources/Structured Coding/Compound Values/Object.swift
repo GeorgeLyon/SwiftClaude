@@ -282,10 +282,11 @@ public struct StructuredObjectProperty<Root, _Definition: StructuredObjectProper
   public typealias Definition = _Definition
   public typealias ObjectDecoderValue = Definition.ObjectDecoderValue
   public typealias CodingSchema = Definition.CodingValue.Schema
-  fileprivate let name: StructuredCodingKey
+  let name: StructuredCodingKey
+  let schema: CodingSchema
+  var isRequired: Bool { definition.isRequired }
   fileprivate let taggedKeyPath: TaggedKeyPath<Root, Definition.PropertyValue>
   fileprivate let definition: Definition
-  fileprivate let schema: CodingSchema
 }
 
 public protocol StructuredObjectPropertyDefinition: SendableMetatype {
@@ -637,129 +638,16 @@ extension StructuredObject {
 
   public static func schema<each PropertyDefinition>(
     description: String?
-  ) -> StructuredObjectSchema<Self, repeat each PropertyDefinition>
+  ) -> StructuredObjectSchema
   where
     StructuredObjectProperties == (
       repeat StructuredObjectProperty<Self, each PropertyDefinition>
     )
   {
-    StructuredObjectSchema(description: description)
-  }
-
-}
-
-@StructuredCodable(compatibilityMode: .variadicGenerics)
-public struct StructuredObjectSchema<
-  Base: StructuredObject,
-  each PropertyDefinition
->: StructuredCodable
-where
-  Base.StructuredObjectProperties == (
-    repeat StructuredObjectProperty<Base, each PropertyDefinition>
-  )
-{
-
-  public typealias Schema = StructuredAnySchema
-
-  private let description: String?
-
-  public struct Properties: StructuredObject {
-
-    public static func schema(description: String?) -> StructuredAnySchema {
-      StructuredAnySchema(description: description)
-    }
-
-    public typealias StructuredObjectProperties = (
-      repeat StructuredObjectProperty<
-        Self,
-        StructuredRequiredObjectPropertyDefinition<
-          (each PropertyDefinition).CodingValue.Schema
-        >
-      >
+    StructuredObjectSchema(
+      description: description,
+      valueProperties: repeat each properties()
     )
-    public static func properties() -> StructuredObjectProperties {
-      let baseProperties = Base.properties()
-      let accessors = Storage.accessors()
-      return
-        (repeat StructuredObjectProperty(
-          name: (each baseProperties).name,
-          taggedKeyPath: .getOnlyClosure { root in root.storage[each accessors] },
-          definition: StructuredRequiredObjectPropertyDefinition(name: (each baseProperties).name),
-          schema: (each PropertyDefinition).CodingValue.Schema.schema(description: nil)))
-    }
-
-    public typealias ObjectDecoderValues = (
-      repeat (each PropertyDefinition).CodingValue.Schema
-    )
-    public static func decode(
-      from objectDecoder: sending StructuredObjectDecoder<ObjectDecoderValues>
-    ) -> sending Self {
-      self.init(repeat each objectDecoder.values)
-    }
-
-    init(_ schemas: repeat (each PropertyDefinition).CodingValue.Schema) {
-      self.storage = VariadicTuple(repeat each schemas)
-    }
-
-    init() {
-      let properties = Base.properties()
-      self.init(repeat (each properties).schema)
-    }
-
-    public static func initialValueForDecoding(isMutable: Bool) -> sending Self? {
-      nil
-    }
-
-    private typealias Storage = VariadicTuple<(repeat (each PropertyDefinition).CodingValue.Schema)>
-    private let storage: Storage
-
-  }
-
-  fileprivate init(description: String?) {
-    self.description = description
-    self.properties = Properties()
-    var required: [String] = []
-    for property in repeat each Base.properties() {
-      if property.definition.isRequired {
-        required.append(property.name.stringValue)
-      }
-    }
-    self.required = required.isEmpty ? nil : required
-  }
-
-  private let properties: Properties
-  private let required: [String]?
-
-}
-
-/// The decoding state of a single property schema in
-/// `StructuredObjectSchema.Properties`' hand-written `decode`.
-private enum SchemaPropertyDecodingState<Value: StructuredDecodable>: ~Copyable {
-
-  /// The property schema has not been decoded yet.
-  case pending
-
-  /// The property schema has been fully decoded.
-  case decoded(Sending<Value>)
-
-  mutating func decode(
-    from decoder: inout StructuredDecoder,
-    in context: borrowing StructuredDecodingContext
-  ) async throws {
-    let value = try await Value.decode(from: &decoder, in: context)
-    self = .decoded(Sending(value))
-  }
-
-  /// Moves the decoded schema out, leaving the state `pending`.
-  mutating func takeDecodedValue() throws -> sending Value {
-    switch consume self {
-    case .pending:
-      self = .pending
-      throw ObjectDecodingError.invalidState
-    case .decoded(let value):
-      self = .pending
-      return value.send()
-    }
   }
 
 }

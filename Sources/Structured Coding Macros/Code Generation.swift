@@ -57,17 +57,12 @@ extension ObjectSchema {
       )
     }
 
-    // The type's JSON schema. A pack-generic type cannot name its structural
-    // `StructuredObjectSchema<Self, …>` schema — the mangled name carries a pack
-    // expansion that crashes the runtime demangler — so `.variadicGenerics`
-    // erases it to {ns}.StructuredAnySchema via a concrete `schema(description:)`.
-    // Every other type uses its structural schema as the `Schema` typealias and
-    // witnesses `schema(description:)` through the {ns}.StructuredObject extension.
-    if compatibilityModes.contains(.variadicGenerics) {
-      schemaFunction(isPublic: isPublic)
-    } else {
-      schemaTypeAlias(isPublic: isPublic)
-    }
+    // No `Schema` / `schema(description:)` is generated: objects resolve both
+    // through the {ns}.StructuredObject extension, which builds the non-generic
+    // {ns}.StructuredObjectSchema from `properties()` (`Schema` is inferred from
+    // its return type). The schema type must stay non-generic: naming a schema
+    // type parameterized by the property-definition pack crashes the runtime
+    // demangler.
 
     // typealias StructuredObjectProperties = (<unique>, ...)
     TypeAliasDeclSyntax(
@@ -159,70 +154,6 @@ extension ObjectSchema {
     if !isSynthesized {
       decoderInitializer()
     }
-  }
-
-  /// `typealias Schema = {ns}.StructuredObjectSchema<Self, <unique0>.Definition, …>`
-  /// — the structural object schema, parameterized by each property's definition.
-  /// `schema(description:)` is witnessed by the {ns}.StructuredObject extension.
-  private func schemaTypeAlias(isPublic: Bool) -> TypeAliasDeclSyntax {
-    TypeAliasDeclSyntax(
-      modifiers: .visibility(isPublic),
-      name: "Schema",
-      initializer: TypeInitializerClauseSyntax(
-        value: namespace.memberType(
-          name: "StructuredObjectSchema",
-          genericArgumentClause: GenericArgumentClauseSyntax {
-            GenericArgumentSyntax(
-              argument: GenericArgumentSyntax.Argument(IdentifierTypeSyntax(name: "Self"))
-            )
-            for property in properties {
-              GenericArgumentSyntax(
-                argument: GenericArgumentSyntax.Argument(
-                  MemberTypeSyntax(
-                    baseType: IdentifierTypeSyntax(name: property.propertyTypeAliasName),
-                    name: "Definition"
-                  )
-                )
-              )
-            }
-          }
-        )
-      )
-    )
-  }
-
-  /// `static func schema(description: String?) -> {ns}.StructuredAnySchema { … }`
-  /// — the type-erased schema for pack-generic types, whose structural schema
-  /// cannot be named (see `conformanceMembers`). `Schema` is inferred from the
-  /// return type.
-  private func schemaFunction(isPublic: Bool) -> FunctionDeclSyntax {
-    FunctionDeclSyntax(
-      modifiers: .visibility(isPublic, static: true),
-      name: "schema",
-      signature: FunctionSignatureSyntax(
-        parameterClause: FunctionParameterClauseSyntax {
-          FunctionParameterSyntax(
-            firstName: "description",
-            type: OptionalTypeSyntax(wrappedType: IdentifierTypeSyntax(name: "String"))
-          )
-        },
-        returnClause: ReturnClauseSyntax(type: namespace.memberType(name: "StructuredAnySchema"))
-      ),
-      body: CodeBlockSyntax {
-        FunctionCallExprSyntax(
-          calledExpression: namespace.member(name: "StructuredAnySchema"),
-          leftParen: .leftParenToken(),
-          arguments: LabeledExprListSyntax {
-            LabeledExprSyntax(
-              label: "description",
-              colon: .colonToken(),
-              expression: DeclReferenceExprSyntax(baseName: "description")
-            )
-          },
-          rightParen: .rightParenToken()
-        )
-      }
-    )
   }
 
   /// The full nested type declaration synthesized for an all-labeled enum case:

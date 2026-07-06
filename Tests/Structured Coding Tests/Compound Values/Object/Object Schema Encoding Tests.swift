@@ -80,9 +80,7 @@ struct ObjectSchemaEncodingTests {
 
   // MARK: - Decoding
 
-  /// Schemas aren't `Equatable`, so decoding is verified by re-encoding — this
-  /// exercises `Properties`' hand-written pack decoding (the extension-witness
-  /// path aborts the task allocator; see `Properties.decode`).
+  /// Schemas aren't `Equatable`, so decoding is verified by re-encoding.
   @Test func decodesByRoundTrip() throws {
     let json =
       #"{"properties":{"first":{"type":"string"},"second":{"type":"string"}},"required":["first"]}"#

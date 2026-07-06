@@ -4,11 +4,13 @@
 /// a `StructuredObject` conformance for a `struct` or `class`, or a
 /// `StructuredEnumeration` conformance for an `enum`.
 ///
-/// An object conformance declares a structural `Schema` typealias
-/// (`StructuredObjectSchema<Self, …>`); pack-generic objects
-/// (`.variadicGenerics`) and enumerations instead type-erase to
-/// `StructuredAnySchema`, because naming a structural schema for a pack-generic
-/// type crashes the runtime demangler.
+/// An object's JSON schema is the non-generic `StructuredObjectSchema`, built
+/// from `properties()` by the `schema(description:)` witness in the
+/// `StructuredObject` extension. Enumerations still type-erase their schema to
+/// `StructuredAnySchema`. In both cases `Schema` is inferred from the witness's
+/// return type; naming a structural schema parameterized by a
+/// property-definition pack crashes the runtime demangler, so the schema types
+/// stay non-generic.
 ///
 /// - Parameters:
 ///   - description: A human-readable description of the type.

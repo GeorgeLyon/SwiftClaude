@@ -160,4 +160,7 @@ public struct StructuredCodingKey: ExpressibleByStringLiteral, Sendable {
     "\(staticStringValue)"
   }
 
+  static let description: Self = "description"
+  static let properties: Self = "properties"
+
 }

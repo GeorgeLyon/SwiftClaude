@@ -81,6 +81,10 @@ struct Bytes {
     fileprivate let storage: Storage.SubSequence
   }
 
+  var array: [UInt8] {
+    SubSequence(storage: storage[...]).array
+  }
+
   var string: String {
     String(decoding: storage, as: UTF8.self)
   }

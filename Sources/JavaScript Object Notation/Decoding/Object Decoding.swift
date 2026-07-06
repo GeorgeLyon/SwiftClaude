@@ -2,6 +2,8 @@ extension DecodingStream {
 
   public struct ObjectDecoder: ~Copyable, ~Escapable {
 
+    /// Decodes the next property name, leaving the stream ready to decode the subsequent value.
+    /// The caller is responsible for calling `finishDecodingProperty` once the value is decoded
     public mutating func startDecodingProperty() async throws -> String {
       try await startDecodingProperty { try await $0.decodeString() }
     }
