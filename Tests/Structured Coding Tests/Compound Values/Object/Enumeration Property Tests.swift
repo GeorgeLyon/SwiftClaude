@@ -155,6 +155,7 @@ private enum MaybeChoice: StructuredEnumeration, Equatable, Sendable {
       initializer: { .maybe($0) }
     )
   }
+
 }
 
 /// Branch-B holder whose last unavailable property is an enumeration with an

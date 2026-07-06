@@ -14,8 +14,8 @@ private enum Reaction: Equatable {
 }
 
 /// An object with an enumeration-typed property — its schema embeds the
-/// enumeration's `anyOf` schema. Instantiating its property descriptors also
-/// forces the enumeration's structural `Schema` witness.
+/// enumeration's `maxProperties: 1` object schema. Instantiating its property
+/// descriptors also forces the enumeration's structural `Schema` witness.
 @StructuredCodable
 private struct Container: Equatable {
   var reaction: Reaction

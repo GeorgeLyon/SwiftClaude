@@ -199,14 +199,13 @@ struct InternallyTaggedEnumerationTests {
 /// by the `"type"` discriminator property.
 private enum Event: StructuredEnumeration, Equatable, Sendable {
 
-  typealias Schema = StructuredAnySchema
 
   case message(Message)
   case move(Move)
   case ping(Ping)
 
   static var codingStyle: StructuredEnumerationCodingStyleInternallyTagged {
-    StructuredEnumerationCodingStyleInternallyTagged(discriminatorPropertyName: "type")
+    .internallyTagged(discriminatorPropertyName: "type")
   }
 
   typealias Cases = (

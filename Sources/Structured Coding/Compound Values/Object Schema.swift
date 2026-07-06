@@ -35,9 +35,6 @@ public struct StructuredObjectSchema {
     }
   }
 
-  /// The schema of an enumeration coded as object properties: one property per
-  /// case, none required, with `maxProperties: 1` enforcing that exactly one
-  /// case is present.
   init<each CaseSchema: StructuredEncodable>(
     description: String?,
     caseSchemas: repeat (StructuredCodingKey, each CaseSchema)

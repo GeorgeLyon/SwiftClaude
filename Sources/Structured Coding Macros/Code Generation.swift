@@ -586,7 +586,7 @@ extension EnumerationSchema.CodingStyle {
       styleTypeName = "StructuredEnumerationCodingStyleInternallyTagged"
       valueExpr = ExprSyntax(
         FunctionCallExprSyntax(
-          calledExpression: namespace.member(name: styleTypeName),
+          calledExpression: MemberAccessExprSyntax(name: "internallyTagged"),
           leftParen: .leftParenToken(),
           arguments: LabeledExprListSyntax {
             LabeledExprSyntax(

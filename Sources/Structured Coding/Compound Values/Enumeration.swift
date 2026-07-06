@@ -32,18 +32,18 @@ extension StructuredEnumeration where Self: RawRepresentable {
 
 // MARK: - Schema
 
-/// Exactly one `schema(description:)` witness applies per coding style. The
-/// erased witnesses must not be collapsed into one unconstrained overload: it
-/// would be non-generic and win overload resolution over the structural
-/// (pack-generic) object-properties witness everywhere.
-
 extension StructuredEnumeration
-where CodingStyle == StructuredEnumerationCodingStyleRawValue {
+where CodingStyle == StructuredEnumerationCodingStyleObjectProperties {
 
-  /// Raw-value enumerations type-erase their JSON schema to
-  /// `StructuredAnySchema`; they have no structural schema yet.
-  public static func schema(description: String?) -> StructuredAnySchema {
-    StructuredAnySchema(description: description)
+  public static func schema<each AssociatedValue: StructuredDecodable>(
+    description: String?
+  ) -> CodingStyle.Schema
+  where Cases == (repeat StructuredEnumerationCase<Self, each AssociatedValue>) {
+    let cases = cases()
+    return StructuredObjectSchema(
+      description: description,
+      caseSchemas: repeat ((each cases).name, (each AssociatedValue).schema())
+    )
   }
 
 }
@@ -51,9 +51,7 @@ where CodingStyle == StructuredEnumerationCodingStyleRawValue {
 extension StructuredEnumeration
 where CodingStyle == StructuredEnumerationCodingStyleInternallyTagged {
 
-  /// Internally-tagged enumerations type-erase their JSON schema to
-  /// `StructuredAnySchema`; they have no structural schema yet.
-  public static func schema(description: String?) -> StructuredAnySchema {
+  public static func schema(description: String?) -> CodingStyle.Schema {
     StructuredAnySchema(description: description)
   }
 
@@ -64,28 +62,19 @@ where CodingStyle == StructuredEnumerationCodingStyleTypeDiscriminated {
 
   /// Type-discriminated enumerations type-erase their JSON schema to
   /// `StructuredAnySchema`; they have no structural schema yet.
-  public static func schema(description: String?) -> StructuredAnySchema {
+  public static func schema(description: String?) -> CodingStyle.Schema {
     StructuredAnySchema(description: description)
   }
 
 }
 
 extension StructuredEnumeration
-where CodingStyle == StructuredEnumerationCodingStyleObjectProperties {
+where CodingStyle == StructuredEnumerationCodingStyleRawValue {
 
-  /// An object-properties enumeration is coded as an object with exactly one
-  /// property, so its schema is the non-generic `StructuredObjectSchema`: one
-  /// property per case carrying that case's associated-value schema, with
-  /// `maxProperties: 1` standing in for case exclusivity.
-  public static func schema<each AssociatedValue: StructuredDecodable>(
-    description: String?
-  ) -> StructuredObjectSchema
-  where Cases == (repeat StructuredEnumerationCase<Self, each AssociatedValue>) {
-    let cases = cases()
-    return StructuredObjectSchema(
-      description: description,
-      caseSchemas: repeat ((each cases).name, (each AssociatedValue).schema())
-    )
+  /// Raw-value enumerations type-erase their JSON schema to
+  /// `StructuredAnySchema`; they have no structural schema yet.
+  public static func schema(description: String?) -> CodingStyle.Schema {
+    StructuredAnySchema(description: description)
   }
 
 }
@@ -528,32 +517,31 @@ private struct InternallyTaggedObjectPropertiesDecodingConfiguration:
 // MARK: - Coding Style
 
 public protocol StructuredEnumerationCodingStyle: Sendable {
-
+  associatedtype Schema: StructuredCodable
 }
 
 extension StructuredEnumerationCodingStyle
 where Self == StructuredEnumerationCodingStyleObjectProperties {
-  /// The default style: each case is encoded as a single-property object whose
-  /// property name is the case name.
   public static var objectProperties: Self { Self() }
 }
 
 public struct StructuredEnumerationCodingStyleObjectProperties: StructuredEnumerationCodingStyle {
+  public typealias Schema = StructuredObjectSchema
 }
 
 extension StructuredEnumerationCodingStyle
 where Self == StructuredEnumerationCodingStyleInternallyTagged {
   public static func internallyTagged(discriminatorPropertyName: StructuredCodingKey) -> Self {
-    StructuredEnumerationCodingStyleInternallyTagged(
-      discriminatorPropertyName: discriminatorPropertyName)
+    Self(discriminatorPropertyName: discriminatorPropertyName)
   }
 }
 
 public struct StructuredEnumerationCodingStyleInternallyTagged: StructuredEnumerationCodingStyle {
-  public init(discriminatorPropertyName: StructuredCodingKey) {
+  public typealias Schema = StructuredAnySchema
+  fileprivate init(discriminatorPropertyName: StructuredCodingKey) {
     self.discriminatorPropertyName = discriminatorPropertyName
   }
-  let discriminatorPropertyName: StructuredCodingKey
+  fileprivate let discriminatorPropertyName: StructuredCodingKey
 }
 
 extension StructuredEnumerationCodingStyle
@@ -562,32 +550,15 @@ where Self == StructuredEnumerationCodingStyleTypeDiscriminated {
 }
 
 public struct StructuredEnumerationCodingStyleTypeDiscriminated: StructuredEnumerationCodingStyle {
-  public init() {}
+  public typealias Schema = StructuredAnySchema
 }
 
 extension StructuredEnumerationCodingStyle where Self == StructuredEnumerationCodingStyleRawValue {
   static var rawValue: Self { Self() }
 }
 
-/// A raw-value enumeration is encoded as a bare JSON scalar — the case's
-/// `rawValue` — with no wrapper: a `String`-backed enum encodes as a JSON string
-/// (`"red"`) and an integer-backed enum as a JSON number (`2`). Decoding reads the
-/// whole scalar and maps it back to a case with `init(rawValue:)`; a scalar of the
-/// wrong JSON kind, or one that names no case, is rejected.
-///
-/// This is the style for `RawRepresentable` enumerations. Such an enum needs no
-/// boilerplate beyond declaring the raw type — the coding style, `cases()`, and
-/// the decoding itself are all supplied for it:
-///
-/// ```swift
-/// enum Color: String, StructuredEnumeration {
-///   case red, green, blue
-/// }
-/// ```
-///
-/// Because the case is unknown until the entire scalar has been read and matched,
-/// a raw-value enumeration has no observable partial value mid-stream.
 public struct StructuredEnumerationCodingStyleRawValue: StructuredEnumerationCodingStyle {
+  public typealias Schema = StructuredAnySchema
 }
 
 // MARK: - Accessor

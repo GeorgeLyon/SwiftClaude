@@ -167,7 +167,6 @@ struct TypeDiscriminatedEnumerationTests {
 /// case's `kind` is inferred from its associated value's type.
 private enum Node: StructuredEnumeration, Equatable, Sendable {
 
-  typealias Schema = StructuredAnySchema
 
   case string(String)
   case integer(Int)

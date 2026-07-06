@@ -1,24 +1,5 @@
 // MARK: - Structured Codable
 
-/// Synthesizes structured-coding conformance for the attached declaration:
-/// a `StructuredObject` conformance for a `struct` or `class`, or a
-/// `StructuredEnumeration` conformance for an `enum`.
-///
-/// An object's JSON schema is the non-generic `StructuredObjectSchema`, built
-/// from `properties()` by the `schema(description:)` witness in the
-/// `StructuredObject` extension. Enumerations still type-erase their schema to
-/// `StructuredAnySchema`. In both cases `Schema` is inferred from the witness's
-/// return type; naming a structural schema parameterized by a
-/// property-definition pack crashes the runtime demangler, so the schema types
-/// stay non-generic.
-///
-/// - Parameters:
-///   - description: A human-readable description of the type.
-///   - style: How an enumeration's cases are represented; ignored for objects.
-///   - keyConversionStrategy: How Swift property and case names are converted
-///     into JSON keys.
-///   - compatibilityMode: Workarounds for Swift toolchain limitations to apply
-///     when generating the conformance; see `StructuredCodingCompatibilityMode`.
 @attached(
   extension,
   conformances: StructuredObject, StructuredEnumeration,

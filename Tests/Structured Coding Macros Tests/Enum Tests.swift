@@ -199,7 +199,7 @@ struct StructuredCodableEnumTests {
 
       extension Event: StructuredCoding.StructuredEnumeration {
         static var codingStyle: StructuredCoding.StructuredEnumerationCodingStyleInternallyTagged {
-          StructuredCoding.StructuredEnumerationCodingStyleInternallyTagged(discriminatorPropertyName: "type")
+          .internallyTagged(discriminatorPropertyName: "type")
         }
         typealias Cases = (StructuredCoding.StructuredEnumerationCase<Self, Message>, StructuredCoding.StructuredEnumerationCase<Self, __macro_local_4movefMu_>)
         static func cases() -> Cases {
