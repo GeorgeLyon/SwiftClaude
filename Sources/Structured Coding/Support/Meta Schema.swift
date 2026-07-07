@@ -12,6 +12,7 @@ struct MetaSchema {
 
   private let description: String?
   private let type: String?
+  private let `enum`: [SchemaCodable]?
   private let items: SchemaCodable?
   private let prefixItems: [SchemaCodable]?
   private let properties: PropertyMap?
@@ -22,6 +23,7 @@ struct MetaSchema {
   private init(
     description: String? = nil,
     type: String? = nil,
+    `enum`: [SchemaCodable]? = nil,
     items: SchemaCodable? = nil,
     prefixItems: [SchemaCodable]? = nil,
     properties: PropertyMap? = nil,
@@ -31,6 +33,7 @@ struct MetaSchema {
   ) {
     self.description = description
     self.type = type
+    self.enum = `enum`
     self.items = items
     self.prefixItems = prefixItems
     self.properties = properties
@@ -64,6 +67,20 @@ extension MetaSchema {
 
   static func number(description: String?) -> MetaSchema {
     MetaSchema(description: description, type: "number")
+  }
+
+  /// The `enum` keyword: the value must equal one of `values`. The values are
+  /// arbitrary JSON values rather than schemas, but `SchemaCodable`'s deferred
+  /// encoding erases them just the same. No `type` keyword accompanies them —
+  /// the members already pin down the permitted values.
+  static func enumeration<Value: StructuredEncodable>(
+    description: String?,
+    values: [Value]
+  ) -> MetaSchema {
+    MetaSchema(
+      description: description,
+      enum: values.map { SchemaCodable($0) }
+    )
   }
 
   static func array(

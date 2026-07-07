@@ -12,8 +12,8 @@ import Testing
 /// Because the case is unknown until the entire scalar has been read and matched,
 /// a raw-value enumeration has no observable partial value: it stays unobservable
 /// until decoding completes. Conforming enums need no boilerplate beyond the raw
-/// type — the coding style, `cases()`, and decoding are all supplied by the
-/// library.
+/// type and `CaseIterable` (which lets the schema enumerate the raw values) —
+/// the coding style, `cases()`, and decoding are all supplied by the library.
 @Suite("Raw-Value Enumeration")
 struct RawValueEnumerationTests {
 
@@ -129,8 +129,9 @@ struct RawValueEnumerationTests {
 // MARK: - Fixtures
 
 /// A `String`-backed raw-value enumeration whose raw values are its case names.
-/// It needs no `StructuredEnumeration` boilerplate: the raw type supplies everything.
-private enum Color: String, StructuredEnumeration, Equatable, Sendable {
+/// It needs no `StructuredEnumeration` boilerplate: the raw type and
+/// `CaseIterable` supply everything.
+private enum Color: String, CaseIterable, StructuredEnumeration, Equatable, Sendable {
 
   case red
   case green
@@ -139,7 +140,7 @@ private enum Color: String, StructuredEnumeration, Equatable, Sendable {
 
 /// A `String`-backed enumeration with explicit raw values distinct from the case
 /// labels, exercising the `rawValue`-to-case mapping.
-private enum Direction: String, StructuredEnumeration, Equatable, Sendable {
+private enum Direction: String, CaseIterable, StructuredEnumeration, Equatable, Sendable {
 
   case north = "N"
   case south = "S"
@@ -148,7 +149,7 @@ private enum Direction: String, StructuredEnumeration, Equatable, Sendable {
 }
 
 /// An integer-backed raw-value enumeration with small, contiguous raw values.
-private enum Priority: Int, StructuredEnumeration, Equatable, Sendable {
+private enum Priority: Int, CaseIterable, StructuredEnumeration, Equatable, Sendable {
 
   case low = 1
   case medium = 2
@@ -157,7 +158,7 @@ private enum Priority: Int, StructuredEnumeration, Equatable, Sendable {
 
 /// An integer-backed enumeration with multi-digit raw values, exercising number
 /// decoding across chunk boundaries.
-private enum HTTPStatus: Int, StructuredEnumeration, Equatable, Sendable {
+private enum HTTPStatus: Int, CaseIterable, StructuredEnumeration, Equatable, Sendable {
 
   case ok = 200
   case notFound = 404

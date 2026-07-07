@@ -20,12 +20,13 @@ where CodingStyle == StructuredEnumerationCodingStyleObjectProperties {
 
 }
 
-extension StructuredEnumeration where Self: RawRepresentable {
+extension StructuredEnumeration where Self: RawRepresentable & CaseIterable {
 
   public static var codingStyle: StructuredEnumerationCodingStyleRawValue { .rawValue }
 
   /// Raw-value enumerations carry no per-case associated values, so there are no
   /// `StructuredEnumerationCase`s to enumerate; the case is determined by `init(rawValue:)`.
+  /// `CaseIterable` is required so the schema can enumerate the raw values.
   public static func cases() { () }
 
 }
@@ -79,12 +80,20 @@ where CodingStyle == StructuredEnumerationCodingStyleTypeDiscriminated {
 }
 
 extension StructuredEnumeration
-where CodingStyle == StructuredEnumerationCodingStyleRawValue {
+where
+  Self: RawRepresentable & CaseIterable,
+  CodingStyle == StructuredEnumerationCodingStyleRawValue,
+  RawValue: StructuredEncodable
+{
 
-  /// Raw-value enumerations type-erase their JSON schema to the `{}`
-  /// any-schema; they have no structural schema yet.
+  /// A raw-value enumeration's structural schema is the `enum` keyword listing
+  /// every case's raw value in declaration order, which is why the style
+  /// requires `CaseIterable`.
   public static func _schema(description: String?) -> some StructuredCodable {
-    MetaSchema.any(description: description)
+    MetaSchema.enumeration(
+      description: description,
+      values: allCases.map(\.rawValue)
+    )
   }
 
   /// `_schema` is non-generic for this style, so the extension can provide the
