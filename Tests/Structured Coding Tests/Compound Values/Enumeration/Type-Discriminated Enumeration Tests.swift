@@ -20,6 +20,34 @@ import Testing
 @Suite("Type-Discriminated Enumeration")
 struct TypeDiscriminatedEnumerationTests {
 
+  // MARK: - Schema
+
+  /// The schema is a `oneOf` of the cases' associated-value schemas — the
+  /// value's JSON kind is the discriminator, so the cases need no wrapper.
+  @Test func encodesSchema() throws {
+    try test(
+      Node.schema(description: nil),
+      encodesAs:
+        #"{"oneOf":[{"type":"string"},{"type":"integer"},{"type":"boolean"},{"properties":{"x":{"type":"integer"},"y":{"type":"integer"}},"required":["x","y"]}]}"#
+    )
+  }
+
+  /// Schemas aren't `Equatable`, so decoding is verified by re-encoding.
+  @Test func decodesSchemaByRoundTrip() throws {
+    let json =
+      #"{"description":"A JSON node","oneOf":[{"type":"string"},{"type":"integer"},{"type":"boolean"},{"properties":{"x":{"type":"integer"},"y":{"type":"integer"}},"required":["x","y"]}]}"#
+    try test(
+      JSONFragments(stringLiteral: json),
+      decodesAs: .complete(Node.schema(description: nil)),
+      testEquality: { decoded, _, sourceLocation in
+        let decoded = try #require(decoded, sourceLocation: sourceLocation)
+        var encoder = StructuredEncoder()
+        try decoded.encode(to: &encoder)
+        #expect(encoder.stringValue == json, sourceLocation: sourceLocation)
+      }
+    )
+  }
+
   // MARK: - Happy path
 
   @Test func decodesStringCase() throws {

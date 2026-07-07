@@ -1,6 +1,6 @@
 // MARK: - Protocol
 
-public protocol StructuredAccessor<Value>: ~Escapable {
+public protocol StructuredAccessor<Value>: SendableMetatype, ~Escapable {
 
   associatedtype Value
 

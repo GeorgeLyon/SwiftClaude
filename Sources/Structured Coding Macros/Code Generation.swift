@@ -516,8 +516,9 @@ extension EnumerationSchema {
 
     // No `Schema` / `schema(description:)` is generated: enumerations resolve
     // both through the style-constrained {ns}.StructuredEnumeration extensions
-    // (the structural {ns}.StructuredObjectSchema for object properties, the
-    // type-erased {ns}.StructuredAnySchema for the other styles).
+    // (the structural {ns}.StructuredObjectSchema for object properties, a
+    // {ns}.StructuredOneOfSchema for type-discriminated, and the type-erased
+    // {ns}.StructuredAnySchema for the remaining styles).
 
     // typealias Cases = ({ns}.StructuredEnumerationCase<Self, <associated>>, ...)
     TypeAliasDeclSyntax(

@@ -60,10 +60,14 @@ where CodingStyle == StructuredEnumerationCodingStyleInternallyTagged {
 extension StructuredEnumeration
 where CodingStyle == StructuredEnumerationCodingStyleTypeDiscriminated {
 
-  /// Type-discriminated enumerations type-erase their JSON schema to
-  /// `StructuredAnySchema`; they have no structural schema yet.
-  public static func schema(description: String?) -> CodingStyle.Schema {
-    StructuredAnySchema(description: description)
+  public static func schema<each AssociatedValue: StructuredDecodable>(
+    description: String?
+  ) -> CodingStyle.Schema
+  where Cases == (repeat StructuredEnumerationCase<Self, each AssociatedValue>) {
+    StructuredOneOfSchema(
+      description: description,
+      subschemas: repeat (each AssociatedValue).schema()
+    )
   }
 
 }
@@ -550,7 +554,7 @@ where Self == StructuredEnumerationCodingStyleTypeDiscriminated {
 }
 
 public struct StructuredEnumerationCodingStyleTypeDiscriminated: StructuredEnumerationCodingStyle {
-  public typealias Schema = StructuredAnySchema
+  public typealias Schema = StructuredOneOfSchema
 }
 
 extension StructuredEnumerationCodingStyle where Self == StructuredEnumerationCodingStyleRawValue {
