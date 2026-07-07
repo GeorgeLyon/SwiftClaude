@@ -195,9 +195,35 @@ struct ObjectPropertiesEnumerationTests {
       decodesAs: .partial(Value.move(Move(x: 1, y: 2)))
     )
   }
+
+  // MARK: - Macro-synthesized payloads
+
+  /// A single labeled value is macro-synthesized into a one-property payload
+  /// object, so the label survives as a property name in the JSON.
+  @Test func encodesSingleLabeledValueCase() throws {
+    try test(
+      Feedback.rating(stars: 5),
+      encodesAs: #"{"rating":{"stars":5}}"#
+    )
+  }
+
+  @Test func decodesSingleLabeledValueCase() throws {
+    try test(
+      #"{"rating":{"stars":5}}"#,
+      decodesAs: Feedback.rating(stars: 5)
+    )
+  }
 }
 
 // MARK: - Fixtures
+
+/// A macro-expanded object-properties enumeration whose `rating` case carries
+/// a single labeled value, synthesized into a one-property payload object.
+@StructuredCodable
+private enum Feedback: Equatable, Sendable {
+  case rating(stars: Int)
+  case comment(String)
+}
 
 /// An object-properties enumeration spanning every associated-value shape: a
 /// Branch-A primitive (`text`), a Branch-B primitive (`count`), a Branch-A object

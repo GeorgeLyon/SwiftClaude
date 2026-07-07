@@ -275,6 +275,71 @@ struct StructuredCodableEnumTests {
     )
   }
 
+  /// A case with a single labeled value synthesizes a one-property payload
+  /// object in every style — here internally tagged, where the object is what
+  /// gives the discriminator a place to live.
+  @Test
+  func enumInternallyTaggedSingleLabeledValue() {
+    assertStructuredCodableExpansion(
+      """
+      @StructuredCodable(style: .internallyTagged(discriminatorPropertyName: "kind"))
+      enum Shape {
+        case circle(radius: Double)
+      }
+      """,
+      #"""
+      enum Shape {
+        case circle(radius: Double)
+      }
+
+      extension Shape: StructuredCoding.StructuredEnumeration {
+        static var codingStyle: StructuredCoding.StructuredEnumerationCodingStyleInternallyTagged {
+          .internallyTagged(discriminatorPropertyName: "kind")
+        }
+        static func schema(description: String?) -> some StructuredCoding.StructuredCodable {
+          _schema(description: description)
+        }
+        typealias Cases = StructuredCoding.StructuredEnumerationCase<Self, __macro_local_6circlefMu_>
+        static func cases() -> Cases {
+          StructuredCoding.StructuredEnumerationCase(
+            name: "circle",
+            accessor: { value in
+              guard case .circle(let v0) = value else {
+                return nil
+              }
+              return __macro_local_6circlefMu_(radius: v0)
+            },
+            initializer: {
+              .circle(radius: $0.radius)
+            }
+          )
+        }
+        struct __macro_local_6circlefMu_: StructuredCoding.StructuredObject {
+          var radius: Double
+          typealias __macro_local_6radiusfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredRequiredObjectPropertyDefinition<Double>>
+          static func schema(description: String?) -> some StructuredCoding.StructuredCodable {
+            _schema(description: description)
+          }
+          typealias StructuredObjectProperties = __macro_local_6radiusfMu_
+          static func properties() -> StructuredObjectProperties {
+            __macro_local_6radiusfMu_(
+              name: "radius",
+              keyPath: \.radius,
+              schema: __macro_local_6radiusfMu_.Definition.CodingValue.schema(description: nil)
+            )
+          }
+          typealias ObjectDecoderValues = __macro_local_6radiusfMu_.ObjectDecoderValue
+          static func decode(from objectDecoder: sending StructuredCoding.StructuredObjectDecoder<ObjectDecoderValues>) -> sending Self {
+            Self(
+              radius: objectDecoder.values
+            )
+          }
+        }
+      }
+      """#
+    )
+  }
+
   /// `typeDiscriminated` emits a `codingStyle` member.
   @Test
   func enumTypeDiscriminated() {

@@ -345,6 +345,21 @@ extension EnumCaseElementSyntax {
     case 0:
       return .none
     case 1:
+      // A label names an object property, so a labeled value synthesizes a
+      // one-property object exactly as labels do on multi-value cases (and
+      // an internally-tagged payload must be an object for the discriminator
+      // to live alongside its properties).
+      if elements[0].label != nil {
+        return .object(
+          synthesizedObject(
+            for: elements,
+            caseName: caseName,
+            keyConversionStrategy: keyConversionStrategy,
+            compatibilityModes: compatibilityModes,
+            in: context
+          )
+        )
+      }
       return .single(elements[0])
     default:
       if elements.allSatisfy({ $0.label != nil }) {
@@ -363,8 +378,8 @@ extension EnumCaseElementSyntax {
     }
   }
 
-  /// Builds the `StructuredObject` that stands in for an all-labeled multi-value
-  /// case, assigning it and each of its properties a unique macro-generated name.
+  /// Builds the `StructuredObject` that stands in for an all-labeled case,
+  /// assigning it and each of its properties a unique macro-generated name.
   private func synthesizedObject(
     for elements: [EnumerationSchema.Case.Element],
     caseName: Identifier,

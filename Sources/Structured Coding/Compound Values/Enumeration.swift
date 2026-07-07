@@ -58,8 +58,27 @@ where CodingStyle == StructuredEnumerationCodingStyleObjectProperties {
 extension StructuredEnumeration
 where CodingStyle == StructuredEnumerationCodingStyleInternallyTagged {
 
-  public static func _schema(description: String?) -> some StructuredCodable {
-    MetaSchema.any(description: description)
+  /// An internally-tagged value is one of its cases' objects with the
+  /// discriminator property added, so the schema is a `oneOf` whose branches
+  /// are the case object schemas, each with the discriminator spliced in as
+  /// its first required property, pinned to the case's name.
+  public static func _schema<each AssociatedValue: StructuredObject>(
+    description: String?
+  ) -> some StructuredCodable
+  where Cases == (repeat StructuredEnumerationCase<Self, each AssociatedValue>) {
+    let discriminatorPropertyName = codingStyle.discriminatorPropertyName
+    var branches: [MetaSchema.SchemaCodable] = []
+    for `case` in repeat each cases() {
+      branches.append(
+        `case`.internallyTaggedBranchSchema(
+          discriminatorPropertyName: discriminatorPropertyName
+        )
+      )
+    }
+    return MetaSchema.oneOf(
+      description: description,
+      subschemas: branches
+    )
   }
 
 }
@@ -477,6 +496,16 @@ public struct StructuredEnumerationCase<Enumeration, AssociatedValue: Structured
         )
       }
     }
+  }
+
+  fileprivate func internallyTaggedBranchSchema(
+    discriminatorPropertyName: StructuredCodingKey
+  ) -> MetaSchema.SchemaCodable where AssociatedValue: StructuredObject {
+    MetaSchema.internallyTaggedBranch(
+      discriminatorPropertyName: discriminatorPropertyName,
+      caseName: name,
+      caseSchema: AssociatedValue.schema(description: nil)
+    )
   }
 
   fileprivate func decodeProperties<Accessor: StructuredAccessor & ~Escapable>(

@@ -242,9 +242,8 @@ extension EnumerationSchema.Case {
     /// `StructuredEmptyObject` so the case still codes as an (empty) object.
     case none
 
-    /// Exactly one associated value (`case text(String)`, `case maybe(Int?)`) —
-    /// its type is used directly. The label is retained for reconstruction
-    /// (`.text(value: $0)`).
+    /// Exactly one unlabeled associated value (`case text(String)`,
+    /// `case maybe(Int?)`) — its type is used directly.
     case single(Element)
 
     /// Two or more values with at least one unlabeled (`case pair(Int, String)`,
@@ -252,9 +251,12 @@ extension EnumerationSchema.Case {
     /// are dropped from the wrapper but kept here for reconstruction.
     case tuple([Element])
 
-    /// Two or more values, all labeled (`case point(x: Int, y: Int)`) — wrapped in
-    /// a synthesized `StructuredObject` whose `rootType` is a unique
-    /// macro-generated name and whose properties are these labeled values.
+    /// One or more values, all labeled (`case circle(radius: Double)`,
+    /// `case point(x: Int, y: Int)`) — wrapped in a synthesized
+    /// `StructuredObject` whose `rootType` is a unique macro-generated name and
+    /// whose properties are these labeled values. A label names an object
+    /// property, so a labeled value always codes as an object (which is also
+    /// what lets an internally-tagged discriminator live alongside it).
     case object(ObjectSchema)
 
   }

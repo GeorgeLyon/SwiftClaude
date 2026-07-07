@@ -191,9 +191,35 @@ struct InternallyTaggedEnumerationTests {
       decodesAs: .partial(Event.move(Move(x: 1, y: 2)))
     )
   }
+
+  // MARK: - Macro-synthesized payloads
+
+  /// A single labeled value is synthesized into a one-property payload object,
+  /// so it codes exactly like a multi-value case.
+  @Test func encodesSingleLabeledValueCase() throws {
+    try test(
+      Shape.circle(radius: 1.5),
+      encodesAs: #"{"kind":"circle","radius":1.5}"#
+    )
+  }
+
+  @Test func decodesSingleLabeledValueCase() throws {
+    try test(
+      #"{"kind":"circle","radius":1.5}"#,
+      decodesAs: Shape.circle(radius: 1.5)
+    )
+  }
 }
 
 // MARK: - Fixtures
+
+/// A macro-expanded internally-tagged enumeration whose `circle` case carries
+/// a single labeled value, synthesized into a one-property payload object.
+@StructuredCodable(style: .internallyTagged(discriminatorPropertyName: "kind"))
+private enum Shape: Equatable, Sendable {
+  case circle(radius: Double)
+  case rectangle(width: Double, height: Double)
+}
 
 /// An internally-tagged enumeration: each case wraps an `StructuredObject`, distinguished
 /// by the `"type"` discriminator property.

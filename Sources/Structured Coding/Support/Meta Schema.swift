@@ -13,10 +13,13 @@ struct MetaSchema {
   private let description: String?
   private let type: String?
   private let `enum`: [SchemaCodable]?
+  private let const: SchemaCodable?
   private let items: SchemaCodable?
   private let prefixItems: [SchemaCodable]?
-  private let properties: PropertyMap?
-  private let required: [String]?
+  /// `var` so `internallyTaggedBranch(discriminatorPropertyName:caseName:caseSchema:)`
+  /// can splice the discriminator property into a case's object schema.
+  private var properties: PropertyMap?
+  private var required: [String]?
   private let maxProperties: Int?
   private let oneOf: [SchemaCodable]?
 
@@ -24,6 +27,7 @@ struct MetaSchema {
     description: String? = nil,
     type: String? = nil,
     `enum`: [SchemaCodable]? = nil,
+    const: SchemaCodable? = nil,
     items: SchemaCodable? = nil,
     prefixItems: [SchemaCodable]? = nil,
     properties: PropertyMap? = nil,
@@ -34,6 +38,7 @@ struct MetaSchema {
     self.description = description
     self.type = type
     self.enum = `enum`
+    self.const = const
     self.items = items
     self.prefixItems = prefixItems
     self.properties = properties
@@ -80,6 +85,18 @@ extension MetaSchema {
     MetaSchema(
       description: description,
       enum: values.map { SchemaCodable($0) }
+    )
+  }
+
+  /// The `const` keyword: the value must equal `value` exactly. As with
+  /// `enum`, no `type` keyword accompanies it.
+  static func const<Value: StructuredEncodable>(
+    description: String?,
+    value: Value
+  ) -> MetaSchema {
+    MetaSchema(
+      description: description,
+      const: SchemaCodable(value)
     )
   }
 
@@ -151,6 +168,48 @@ extension MetaSchema {
     )
   }
 
+  static func oneOf(
+    description: String?,
+    subschemas: [SchemaCodable]
+  ) -> MetaSchema {
+    MetaSchema(
+      description: description,
+      oneOf: subschemas
+    )
+  }
+
+  /// One branch of an internally-tagged enumeration's `oneOf` schema: the
+  /// case's object schema with the discriminator property spliced in as the
+  /// first required property, pinned to the case's name by `const`. A case
+  /// schema is only ever the `MetaSchema` the object machinery builds, but
+  /// the cast (and so the splice) is deferred to encoding, where a
+  /// hand-written case schema of some other type can surface as an error.
+  static func internallyTaggedBranch(
+    discriminatorPropertyName: StructuredCodingKey,
+    caseName: StructuredCodingKey,
+    caseSchema: some StructuredEncodable
+  ) -> SchemaCodable {
+    SchemaCodable { encoder in
+      guard var branch = caseSchema as? MetaSchema else {
+        throw MetaSchemaEncodingError.internallyTaggedCaseSchemaIsNotAnObjectSchema
+      }
+      let discriminator = PropertyMap.Property(
+        name: discriminatorPropertyName.stringValue,
+        schema: SchemaCodable(
+          MetaSchema.const(
+            description: nil,
+            value: caseName.stringValue
+          )
+        )
+      )
+      branch.properties = PropertyMap(
+        properties: [discriminator] + (branch.properties?.properties ?? [])
+      )
+      branch.required = [discriminatorPropertyName.stringValue] + (branch.required ?? [])
+      try branch.encode(to: &encoder)
+    }
+  }
+
 }
 
 // MARK: - Subschemas
@@ -175,6 +234,12 @@ extension MetaSchema {
       encodeSchema = { encoder in
         encoder.stream.encode(decoded)
       }
+    }
+
+    fileprivate init(
+      encodeSchema: @escaping (inout StructuredEncoder) throws -> Void
+    ) {
+      self.encodeSchema = encodeSchema
     }
 
     fileprivate let encodeSchema: (inout StructuredEncoder) throws -> Void
@@ -208,6 +273,12 @@ extension MetaSchema.SchemaCodable: StructuredCodable {
     )
   }
 
+}
+
+// MARK: - Errors
+
+private enum MetaSchemaEncodingError: Error {
+  case internallyTaggedCaseSchemaIsNotAnObjectSchema
 }
 
 // MARK: - Property Map
