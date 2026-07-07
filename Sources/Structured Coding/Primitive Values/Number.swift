@@ -10,28 +10,19 @@ extension Float16: StructuredCodable {}
 
 // MARK: - Schema
 
-@StructuredCodable
-public struct StructuredNumberSchema: StructuredCodable {
-  public init(description: String?) {
-    self.description = description
-  }
-  private let description: String?
-  private let type = "number"
-}
-
 extension BinaryFloatingPoint
 where Self: StructuredCodable & Sendable & LosslessStringConvertible {
 
-  public static func schema(description: String?) -> StructuredNumberSchema {
-    StructuredNumberSchema(description: description)
+  public static func schema(description: String?) -> some StructuredCodable {
+    MetaSchema.number(description: description)
   }
 
 }
 
 extension Decimal {
 
-  public static func schema(description: String?) -> StructuredNumberSchema {
-    StructuredNumberSchema(description: description)
+  public static func schema(description: String?) -> some StructuredCodable {
+    MetaSchema.number(description: description)
   }
 
 }

@@ -137,16 +137,6 @@ enum DecodingError: Swift.Error {
   case noValueDecoded
 }
 
-// MARK: - Schema
-
-@StructuredCodable
-public struct StructuredAnySchema: StructuredCodable {
-  public init(description: String?) {
-    self.description = description
-  }
-  private let description: String?
-}
-
 // MARK: - Coding Key
 
 public struct StructuredCodingKey: ExpressibleByStringLiteral, Sendable {
@@ -159,8 +149,5 @@ public struct StructuredCodingKey: ExpressibleByStringLiteral, Sendable {
   var stringValue: String {
     "\(staticStringValue)"
   }
-
-  static let description: Self = "description"
-  static let properties: Self = "properties"
 
 }

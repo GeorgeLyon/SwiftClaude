@@ -212,6 +212,9 @@ private enum Value: StructuredEnumeration, Equatable, Sendable {
   case move(Move)
   case ping(Ping)
 
+  static func schema(description: String?) -> some StructuredCodable {
+    _schema(description: description)
+  }
   typealias Cases = (
     StructuredEnumerationCase<Self, String>,
     StructuredEnumerationCase<Self, Int>,
@@ -278,6 +281,9 @@ private struct Message: StructuredObject, Equatable, Sendable {
   typealias _BodyProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<String>
   >
+  static func schema(description: String?) -> some StructuredCodable {
+    _schema(description: description)
+  }
   typealias StructuredObjectProperties = _BodyProperty
   static func properties() -> StructuredObjectProperties {
     _BodyProperty(name: "body", keyPath: \.body, schema: _BodyProperty.Definition.CodingValue.schema(description: nil))
@@ -309,6 +315,9 @@ private struct Move: StructuredObject, Equatable, Sendable {
   typealias _YProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<Int>
   >
+  static func schema(description: String?) -> some StructuredCodable {
+    _schema(description: description)
+  }
   typealias StructuredObjectProperties = (_XProperty, _YProperty)
   static func properties() -> StructuredObjectProperties {
     (
@@ -332,6 +341,9 @@ private struct Ping: StructuredObject, Equatable, Sendable {
 
   init() {}
 
+  static func schema(description: String?) -> some StructuredCodable {
+    _schema(description: description)
+  }
   typealias StructuredObjectProperties = ()
   static func properties() -> StructuredObjectProperties { () }
 

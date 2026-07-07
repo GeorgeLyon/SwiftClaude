@@ -24,6 +24,9 @@ struct MutableStringObject: StructuredObject, Equatable, Sendable {
   typealias _SecondProperty = StructuredObjectProperty<
     Self, StructuredOptionalObjectPropertyDefinition<String>
   >
+  static func schema(description: String?) -> some StructuredCodable {
+    _schema(description: description)
+  }
   typealias StructuredObjectProperties = (_FirstProperty, _SecondProperty)
   static func properties() -> StructuredObjectProperties {
     (
@@ -58,6 +61,9 @@ struct OptionalMutableObject: StructuredObject, Equatable, Sendable {
   typealias _BProperty = StructuredObjectProperty<
     Self, StructuredOptionalObjectPropertyDefinition<String>
   >
+  static func schema(description: String?) -> some StructuredCodable {
+    _schema(description: description)
+  }
   typealias StructuredObjectProperties = (_AProperty, _BProperty)
   static func properties() -> StructuredObjectProperties {
     (
@@ -79,6 +85,9 @@ struct EmptyObject: StructuredObject, Equatable, Sendable {
 
   init() {}
 
+  static func schema(description: String?) -> some StructuredCodable {
+    _schema(description: description)
+  }
   typealias StructuredObjectProperties = ()
   static func properties() -> StructuredObjectProperties { () }
 
@@ -114,6 +123,9 @@ struct DeferredObject: StructuredObject, Equatable, Sendable {
   typealias _TailProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<String>
   >
+  static func schema(description: String?) -> some StructuredCodable {
+    _schema(description: description)
+  }
   typealias StructuredObjectProperties = (_AProperty, _BProperty, _TailProperty)
   static func properties() -> StructuredObjectProperties {
     (
@@ -149,6 +161,9 @@ struct SingleScalarObject: StructuredObject, Equatable, Sendable {
   typealias _ValueProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<Int>
   >
+  static func schema(description: String?) -> some StructuredCodable {
+    _schema(description: description)
+  }
   typealias StructuredObjectProperties = _ValueProperty
   static func properties() -> StructuredObjectProperties {
     _ValueProperty(name: "value", keyPath: \.value, schema: _ValueProperty.Definition.CodingValue.schema(description: nil))

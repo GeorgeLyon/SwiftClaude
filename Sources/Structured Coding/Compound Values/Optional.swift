@@ -1,22 +1,3 @@
-// MARK: - Schema
-
-@StructuredCodable
-public struct StructuredOptionalSchema<
-  Wrapped: StructuredCodable
->: StructuredCodable {
-  public init(description: String?) {
-    self.description = description
-    self.properties = Properties(value: Wrapped.schema(description: nil))
-  }
-  private let description: String?
-
-  @StructuredCodable
-  public struct Properties {
-    let value: Wrapped.Schema
-  }
-  private let properties: Properties
-}
-
 // MARK: - Storage
 
 @StructuredCodable
@@ -28,8 +9,11 @@ private struct OptionalStorage<Wrapped: StructuredCodable> {
 
 extension Optional: StructuredEncodable where Wrapped: StructuredCodable {
 
-  public static func schema(description: String?) -> StructuredOptionalSchema<Wrapped.Schema> {
-    StructuredOptionalSchema(description: description)
+  public static func schema(description: String?) -> some StructuredCodable {
+    MetaSchema.object(
+      description: description,
+      properties: ("value", Wrapped.schema(description: nil), false)
+    )
   }
 
   public func encode(to encoder: inout StructuredEncoder) throws {

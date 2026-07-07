@@ -86,6 +86,9 @@ private struct ConstantObject: StructuredObject, Equatable, Sendable {
       StructuredOptionalObjectPropertyDefinition<String>
     >
   >
+  static func schema(description: String?) -> some StructuredCodable {
+    _schema(description: description)
+  }
   typealias StructuredObjectProperties = (_KindProperty, _OptProperty)
   static func properties() -> StructuredObjectProperties {
     (
@@ -126,6 +129,9 @@ private struct TaggedConstantObject: StructuredObject, Equatable, Sendable {
       StructuredRequiredObjectPropertyDefinition<String>
     >
   >
+  static func schema(description: String?) -> some StructuredCodable {
+    _schema(description: description)
+  }
   typealias StructuredObjectProperties = (_IDProperty, _KindProperty)
   static func properties() -> StructuredObjectProperties {
     (

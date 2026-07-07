@@ -4,16 +4,8 @@ private import JavaScriptObjectNotation
 
 extension Bool {
 
-  @StructuredCodable
-  public struct Schema: StructuredCodable {
-    fileprivate init(description: String?) {
-      self.description = description
-    }
-    private let description: String?
-    private let type = "boolean"
-  }
-  public static func schema(description: String?) -> Schema {
-    Schema(description: description)
+  public static func schema(description: String?) -> some StructuredCodable {
+    MetaSchema.boolean(description: description)
   }
 
 }

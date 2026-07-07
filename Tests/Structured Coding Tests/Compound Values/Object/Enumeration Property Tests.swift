@@ -73,6 +73,9 @@ private enum Choice: StructuredEnumeration, Equatable, Sendable {
   case text(String)
   case number(Int)
 
+  static func schema(description: String?) -> some StructuredCodable {
+    _schema(description: description)
+  }
   typealias Cases = (
     StructuredEnumerationCase<Self, String>,
     StructuredEnumerationCase<Self, Int>
@@ -117,6 +120,9 @@ private struct EnumHolder: StructuredObject, Equatable, Sendable {
   typealias _ChoiceProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<Choice>
   >
+  static func schema(description: String?) -> some StructuredCodable {
+    _schema(description: description)
+  }
   typealias StructuredObjectProperties = (_XProperty, _ChoiceProperty)
   static func properties() -> StructuredObjectProperties {
     (
@@ -144,6 +150,9 @@ private enum MaybeChoice: StructuredEnumeration, Equatable, Sendable {
 
   case maybe(Int?)
 
+  static func schema(description: String?) -> some StructuredCodable {
+    _schema(description: description)
+  }
   typealias Cases = StructuredEnumerationCase<Self, Int?>
   static func cases() -> Cases {
     StructuredEnumerationCase(
@@ -176,6 +185,9 @@ private struct OptionalPayloadHolder: StructuredObject, Equatable, Sendable {
   typealias _ChoiceProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<MaybeChoice>
   >
+  static func schema(description: String?) -> some StructuredCodable {
+    _schema(description: description)
+  }
   typealias StructuredObjectProperties = (_XProperty, _ChoiceProperty)
   static func properties() -> StructuredObjectProperties {
     (

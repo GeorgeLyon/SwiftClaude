@@ -636,17 +636,27 @@ where
 
 extension StructuredObject {
 
-  public static func schema<each PropertyDefinition>(
+  /// The shared implementation behind every object's `schema(description:)`
+  /// witness. The witness itself must be a non-generic member of the concrete
+  /// type (the `@StructuredCodable` macro generates a trampoline calling this
+  /// function): an opaque result type on a generic function cannot infer the
+  /// `Schema` associated type.
+  public static func _schema<each PropertyDefinition>(
     description: String?
-  ) -> StructuredObjectSchema
+  ) -> some StructuredCodable
   where
     StructuredObjectProperties == (
       repeat StructuredObjectProperty<Self, each PropertyDefinition>
     )
   {
-    StructuredObjectSchema(
+    let properties = self.properties()
+    return MetaSchema.object(
       description: description,
-      valueProperties: repeat each properties()
+      properties: repeat (
+        (each properties).name,
+        (each properties).schema,
+        (each properties).isRequired
+      )
     )
   }
 

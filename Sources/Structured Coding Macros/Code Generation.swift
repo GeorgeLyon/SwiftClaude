@@ -57,12 +57,15 @@ extension ObjectSchema {
       )
     }
 
-    // No `Schema` / `schema(description:)` is generated: objects resolve both
-    // through the {ns}.StructuredObject extension, which builds the non-generic
-    // {ns}.StructuredObjectSchema from `properties()` (`Schema` is inferred from
-    // its return type). The schema type must stay non-generic: naming a schema
-    // type parameterized by the property-definition pack crashes the runtime
-    // demangler.
+    // static func schema(description:) -> some {ns}.StructuredCodable { _schema(…) }
+    // The shared {ns}.StructuredObject._schema implementation is generic over
+    // the property-definition pack, and an opaque result type on a generic
+    // function cannot witness the `Schema` associated type — so each concrete
+    // type gets this non-generic trampoline. (`Schema` is inferred from its
+    // opaque return; the underlying schema type stays non-generic because
+    // naming a schema type parameterized by the property-definition pack
+    // crashes the runtime demangler.)
+    schemaTrampoline(in: namespace, isPublic: isPublic)
 
     // typealias StructuredObjectProperties = (<unique>, ...)
     TypeAliasDeclSyntax(
@@ -514,11 +517,12 @@ extension EnumerationSchema {
       codingStyleMember
     }
 
-    // No `Schema` / `schema(description:)` is generated: enumerations resolve
-    // both through the style-constrained {ns}.StructuredEnumeration extensions
-    // (the structural {ns}.StructuredObjectSchema for object properties, a
-    // {ns}.StructuredOneOfSchema for type-discriminated, and the type-erased
-    // {ns}.StructuredAnySchema for the remaining styles).
+    // static func schema(description:) -> some {ns}.StructuredCodable { _schema(…) }
+    // The style-constrained {ns}.StructuredEnumeration._schema implementations
+    // are generic over the associated-value pack, and an opaque result type on
+    // a generic function cannot witness the `Schema` associated type — so each
+    // concrete enumeration gets this non-generic trampoline.
+    schemaTrampoline(in: namespace, isPublic: isPublic)
 
     // typealias Cases = ({ns}.StructuredEnumerationCase<Self, <associated>>, ...)
     TypeAliasDeclSyntax(
@@ -906,6 +910,47 @@ extension EnumerationSchema.Case.AssociatedValue {
 }
 
 // MARK: - Generation Helpers
+
+/// `static func schema(description: String?) -> some {ns}.StructuredCodable { _schema(description: description) }`
+/// — the non-generic `Schema` witness emitted into every object and
+/// enumeration; see the call sites for why the trampoline is required.
+private func schemaTrampoline(
+  in namespace: StructuredCodingNamespace,
+  isPublic: Bool
+) -> FunctionDeclSyntax {
+  FunctionDeclSyntax(
+    modifiers: .visibility(isPublic, static: true),
+    name: "schema",
+    signature: FunctionSignatureSyntax(
+      parameterClause: FunctionParameterClauseSyntax {
+        FunctionParameterSyntax(
+          firstName: "description",
+          type: OptionalTypeSyntax(wrappedType: IdentifierTypeSyntax(name: "String"))
+        )
+      },
+      returnClause: ReturnClauseSyntax(
+        type: SomeOrAnyTypeSyntax(
+          someOrAnySpecifier: .keyword(.some),
+          constraint: namespace.memberType(name: "StructuredCodable")
+        )
+      )
+    ),
+    body: CodeBlockSyntax {
+      FunctionCallExprSyntax(
+        calledExpression: DeclReferenceExprSyntax(baseName: "_schema"),
+        leftParen: .leftParenToken(),
+        arguments: LabeledExprListSyntax {
+          LabeledExprSyntax(
+            label: "description",
+            colon: .colonToken(),
+            expression: DeclReferenceExprSyntax(baseName: "description")
+          )
+        },
+        rightParen: .rightParenToken()
+      )
+    }
+  )
+}
 
 /// Wraps a type in the `sending` parameter/result specifier.
 private func sendingType(_ base: some TypeSyntaxProtocol) -> AttributedTypeSyntax {

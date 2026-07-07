@@ -203,6 +203,9 @@ private enum Node: StructuredEnumeration, Equatable, Sendable {
 
   static var codingStyle: StructuredEnumerationCodingStyleTypeDiscriminated { .typeDiscriminated }
 
+  static func schema(description: String?) -> some StructuredCodable {
+    _schema(description: description)
+  }
   typealias Cases = (
     StructuredEnumerationCase<Self, String>,
     StructuredEnumerationCase<Self, Int>,
@@ -265,6 +268,9 @@ private struct Point: StructuredObject, Equatable, Sendable {
   typealias _YProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<Int>
   >
+  static func schema(description: String?) -> some StructuredCodable {
+    _schema(description: description)
+  }
   typealias StructuredObjectProperties = (_XProperty, _YProperty)
   static func properties() -> StructuredObjectProperties {
     (

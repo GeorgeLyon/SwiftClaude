@@ -74,6 +74,9 @@ private struct DefaultObject: StructuredObject, Equatable, Sendable {
       StructuredOptionalObjectPropertyDefinition<String>
     >
   >
+  static func schema(description: String?) -> some StructuredCodable {
+    _schema(description: description)
+  }
   typealias StructuredObjectProperties = (_CountProperty, _NoteProperty)
   static func properties() -> StructuredObjectProperties {
     (

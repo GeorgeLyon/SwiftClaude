@@ -26,8 +26,8 @@ extension OpaqueValue {
 
 extension OpaqueValue {
 
-  public static func schema(description: String?) -> StructuredAnySchema {
-    StructuredAnySchema(description: description)
+  public static func schema(description: String?) -> some StructuredCodable {
+    MetaSchema.any(description: description)
   }
 
 }

@@ -7,9 +7,9 @@ import Testing
 /// `@StructuredCodable(compatibilityMode: .variadicGenerics)`, which accesses
 /// properties through getter closures because key path literals rooted in a
 /// pack-generic type crash at runtime (see `StructuredCodingCompatibilityMode`).
-/// The JSON schema is the shared non-generic `StructuredObjectSchema` built by
-/// the `StructuredObject` extension — because the schema type carries no pack,
-/// its witness mangling is safe to demangle even for pack-generic objects.
+/// The JSON schema is built by the shared `StructuredObject._schema`
+/// extension — because the underlying schema type carries no pack, its
+/// witness mangling is safe to demangle even for pack-generic objects.
 @StructuredCodable(compatibilityMode: .variadicGenerics)
 private struct PackGenericObject<each T>: Equatable {
   var first: String
@@ -32,10 +32,12 @@ struct VariadicGenericObjectTests {
     _ = PackGenericObject<Int, String>.properties()
   }
 
-  /// `Schema` is inferred as the non-generic `StructuredObjectSchema` from the
-  /// `StructuredObject` extension's `schema(description:)` witness.
+  /// `Schema` is inferred as the opaque type of the macro-generated
+  /// `schema(description:)` trampoline; resolving it through the witness
+  /// exercises the runtime demangling that pack-parameterized schema types
+  /// used to crash. (The underlying type is deliberately not pinned.)
   @Test func schemaWitnessResolves() throws {
-    #expect(resolvedSchemaType(of: PackGenericObject<Int, String>.self) is StructuredObjectSchema.Type)
+    _ = resolvedSchemaType(of: PackGenericObject<Int, String>.self)
   }
 
   /// `.variadicGenerics` no longer degrades the schema: pack-generic objects
@@ -64,18 +66,14 @@ struct VariadicGenericObjectTests {
 
 }
 
-/// `StructuredObjectSchema` must stay non-generic — naming a schema type
-/// parameterized by the property-definition pack crashes the runtime
-/// demangler — so its own meta-schema erases to `StructuredAnySchema`.
+/// The schema type behind the witnesses must stay non-generic — naming a
+/// schema type parameterized by the property-definition pack crashes the
+/// runtime demangler.
 @Suite("Object Schema Metadata")
 struct ObjectSchemaMetadataTests {
 
   @Test func constructsSchema() throws {
     _ = MutableStringObject.schema(description: nil)
-  }
-
-  @Test func metaSchemaWitnessResolves() throws {
-    #expect(resolvedSchemaType(of: StructuredObjectSchema.self) is StructuredAnySchema.Type)
   }
 
 }

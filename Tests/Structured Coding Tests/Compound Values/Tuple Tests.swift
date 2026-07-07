@@ -5,9 +5,9 @@ import Testing
 
 /// An object with a tuple-typed property — instantiating its property
 /// descriptors forces `StructuredTuple`'s `Schema` witness. The witness is
-/// safe to demangle because `StructuredTupleSchema` is non-generic: a schema
-/// type parameterized by the element pack would put a pack expansion in the
-/// witness mangling, which crashes the runtime demangler.
+/// safe to demangle because the underlying schema type is non-generic: a
+/// schema type parameterized by the element pack would put a pack expansion
+/// in the witness mangling, which crashes the runtime demangler.
 @StructuredCodable
 private struct TuplePropertyObject {
   var pair: StructuredTuple<Int, String>
@@ -67,7 +67,7 @@ struct TupleSchemaTests {
   }
 
   /// A tuple-typed property now contributes a structural schema rather than
-  /// the `StructuredAnySchema` fallback's `{}`.
+  /// the any-schema fallback's `{}`.
   @Test func tuplePropertySchemaEncodes() throws {
     try test(
       TuplePropertyObject.schema(description: nil),

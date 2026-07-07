@@ -32,17 +32,23 @@ extension StructuredEnumeration where Self: RawRepresentable {
 
 // MARK: - Schema
 
+/// The style-specific implementations behind every enumeration's
+/// `schema(description:)` witness. As with objects, the witness itself must be
+/// a non-generic member of the concrete type (the `@StructuredCodable` macro
+/// generates a trampoline calling `_schema`): an opaque result type on a
+/// generic function cannot infer the `Schema` associated type.
 extension StructuredEnumeration
 where CodingStyle == StructuredEnumerationCodingStyleObjectProperties {
 
-  public static func schema<each AssociatedValue: StructuredDecodable>(
+  public static func _schema<each AssociatedValue: StructuredDecodable>(
     description: String?
-  ) -> CodingStyle.Schema
+  ) -> some StructuredCodable
   where Cases == (repeat StructuredEnumerationCase<Self, each AssociatedValue>) {
     let cases = cases()
-    return StructuredObjectSchema(
+    return MetaSchema.object(
       description: description,
-      caseSchemas: repeat ((each cases).name, (each AssociatedValue).schema())
+      maxProperties: 1,
+      properties: repeat ((each cases).name, (each AssociatedValue).schema(), false)
     )
   }
 
@@ -51,8 +57,8 @@ where CodingStyle == StructuredEnumerationCodingStyleObjectProperties {
 extension StructuredEnumeration
 where CodingStyle == StructuredEnumerationCodingStyleInternallyTagged {
 
-  public static func schema(description: String?) -> CodingStyle.Schema {
-    StructuredAnySchema(description: description)
+  public static func _schema(description: String?) -> some StructuredCodable {
+    MetaSchema.any(description: description)
   }
 
 }
@@ -60,11 +66,11 @@ where CodingStyle == StructuredEnumerationCodingStyleInternallyTagged {
 extension StructuredEnumeration
 where CodingStyle == StructuredEnumerationCodingStyleTypeDiscriminated {
 
-  public static func schema<each AssociatedValue: StructuredDecodable>(
+  public static func _schema<each AssociatedValue: StructuredDecodable>(
     description: String?
-  ) -> CodingStyle.Schema
+  ) -> some StructuredCodable
   where Cases == (repeat StructuredEnumerationCase<Self, each AssociatedValue>) {
-    StructuredOneOfSchema(
+    MetaSchema.oneOf(
       description: description,
       subschemas: repeat (each AssociatedValue).schema()
     )
@@ -75,10 +81,16 @@ where CodingStyle == StructuredEnumerationCodingStyleTypeDiscriminated {
 extension StructuredEnumeration
 where CodingStyle == StructuredEnumerationCodingStyleRawValue {
 
-  /// Raw-value enumerations type-erase their JSON schema to
-  /// `StructuredAnySchema`; they have no structural schema yet.
-  public static func schema(description: String?) -> CodingStyle.Schema {
-    StructuredAnySchema(description: description)
+  /// Raw-value enumerations type-erase their JSON schema to the `{}`
+  /// any-schema; they have no structural schema yet.
+  public static func _schema(description: String?) -> some StructuredCodable {
+    MetaSchema.any(description: description)
+  }
+
+  /// `_schema` is non-generic for this style, so the extension can provide the
+  /// witness directly — raw-value enumerations keep needing no boilerplate.
+  public static func schema(description: String?) -> some StructuredCodable {
+    _schema(description: description)
   }
 
 }
@@ -520,9 +532,7 @@ private struct InternallyTaggedObjectPropertiesDecodingConfiguration:
 
 // MARK: - Coding Style
 
-public protocol StructuredEnumerationCodingStyle: Sendable {
-  associatedtype Schema: StructuredCodable
-}
+public protocol StructuredEnumerationCodingStyle: Sendable {}
 
 extension StructuredEnumerationCodingStyle
 where Self == StructuredEnumerationCodingStyleObjectProperties {
@@ -530,7 +540,6 @@ where Self == StructuredEnumerationCodingStyleObjectProperties {
 }
 
 public struct StructuredEnumerationCodingStyleObjectProperties: StructuredEnumerationCodingStyle {
-  public typealias Schema = StructuredObjectSchema
 }
 
 extension StructuredEnumerationCodingStyle
@@ -541,7 +550,6 @@ where Self == StructuredEnumerationCodingStyleInternallyTagged {
 }
 
 public struct StructuredEnumerationCodingStyleInternallyTagged: StructuredEnumerationCodingStyle {
-  public typealias Schema = StructuredAnySchema
   fileprivate init(discriminatorPropertyName: StructuredCodingKey) {
     self.discriminatorPropertyName = discriminatorPropertyName
   }
@@ -554,7 +562,6 @@ where Self == StructuredEnumerationCodingStyleTypeDiscriminated {
 }
 
 public struct StructuredEnumerationCodingStyleTypeDiscriminated: StructuredEnumerationCodingStyle {
-  public typealias Schema = StructuredOneOfSchema
 }
 
 extension StructuredEnumerationCodingStyle where Self == StructuredEnumerationCodingStyleRawValue {
@@ -562,7 +569,6 @@ extension StructuredEnumerationCodingStyle where Self == StructuredEnumerationCo
 }
 
 public struct StructuredEnumerationCodingStyleRawValue: StructuredEnumerationCodingStyle {
-  public typealias Schema = StructuredAnySchema
 }
 
 // MARK: - Accessor
