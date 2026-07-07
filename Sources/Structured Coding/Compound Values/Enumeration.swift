@@ -49,7 +49,11 @@ where CodingStyle == StructuredEnumerationCodingStyleObjectProperties {
     return MetaSchema.object(
       description: description,
       maxProperties: 1,
-      properties: repeat ((each cases).name, (each AssociatedValue).schema(), false)
+      properties: repeat (
+        (each cases).name,
+        (each AssociatedValue).schema(description: (each cases).description),
+        false
+      )
     )
   }
 
@@ -90,9 +94,10 @@ where CodingStyle == StructuredEnumerationCodingStyleTypeDiscriminated {
     description: String?
   ) -> some StructuredCodable
   where Cases == (repeat StructuredEnumerationCase<Self, each AssociatedValue>) {
-    MetaSchema.oneOf(
+    let cases = cases()
+    return MetaSchema.oneOf(
       description: description,
-      subschemas: repeat (each AssociatedValue).schema()
+      subschemas: repeat (each AssociatedValue).schema(description: (each cases).description)
     )
   }
 
@@ -404,6 +409,9 @@ where
 public struct StructuredEnumerationCase<Enumeration, AssociatedValue: StructuredDecodable> {
 
   let name: StructuredCodingKey
+  /// Carried into the case's slot in the enumeration's schema — the property
+  /// schema in the object-properties style, the `oneOf` branch otherwise.
+  let description: String?
   let accessor: @Sendable (Enumeration) -> AssociatedValue?
   let initializer: @Sendable (AssociatedValue) -> sending Enumeration
 
@@ -411,67 +419,90 @@ public struct StructuredEnumerationCase<Enumeration, AssociatedValue: Structured
 
   public init(
     name: StructuredCodingKey,
+    description: String? = nil,
     accessor: @escaping @Sendable (Enumeration) -> AssociatedValue?,
     initializer: @escaping @Sendable (AssociatedValue) -> sending Enumeration
   ) {
-    self.init(name: name, accessor: accessor, initializer: initializer, kind: nil)
+    self.init(
+      name: name, description: description,
+      accessor: accessor, initializer: initializer, kind: nil)
   }
 
   public init(
     name: StructuredCodingKey,
+    description: String? = nil,
     accessor: @escaping @Sendable (Enumeration) -> AssociatedValue?,
     initializer: @escaping @Sendable (AssociatedValue) -> sending Enumeration
   ) where AssociatedValue == String {
-    self.init(name: name, accessor: accessor, initializer: initializer, kind: .string)
+    self.init(
+      name: name, description: description,
+      accessor: accessor, initializer: initializer, kind: .string)
   }
 
   public init(
     name: StructuredCodingKey,
+    description: String? = nil,
     accessor: @escaping @Sendable (Enumeration) -> AssociatedValue?,
     initializer: @escaping @Sendable (AssociatedValue) -> sending Enumeration
   ) where AssociatedValue == Bool {
-    self.init(name: name, accessor: accessor, initializer: initializer, kind: .boolean)
+    self.init(
+      name: name, description: description,
+      accessor: accessor, initializer: initializer, kind: .boolean)
   }
 
   public init(
     name: StructuredCodingKey,
+    description: String? = nil,
     accessor: @escaping @Sendable (Enumeration) -> AssociatedValue?,
     initializer: @escaping @Sendable (AssociatedValue) -> sending Enumeration
   ) where AssociatedValue: FixedWidthInteger {
-    self.init(name: name, accessor: accessor, initializer: initializer, kind: .number)
+    self.init(
+      name: name, description: description,
+      accessor: accessor, initializer: initializer, kind: .number)
   }
 
   public init(
     name: StructuredCodingKey,
+    description: String? = nil,
     accessor: @escaping @Sendable (Enumeration) -> AssociatedValue?,
     initializer: @escaping @Sendable (AssociatedValue) -> sending Enumeration
   ) where AssociatedValue: BinaryFloatingPoint {
-    self.init(name: name, accessor: accessor, initializer: initializer, kind: .number)
+    self.init(
+      name: name, description: description,
+      accessor: accessor, initializer: initializer, kind: .number)
   }
 
   public init(
     name: StructuredCodingKey,
+    description: String? = nil,
     accessor: @escaping @Sendable (Enumeration) -> AssociatedValue?,
     initializer: @escaping @Sendable (AssociatedValue) -> sending Enumeration
   ) where AssociatedValue == Decimal {
-    self.init(name: name, accessor: accessor, initializer: initializer, kind: .number)
+    self.init(
+      name: name, description: description,
+      accessor: accessor, initializer: initializer, kind: .number)
   }
 
   public init(
     name: StructuredCodingKey,
+    description: String? = nil,
     accessor: @escaping @Sendable (Enumeration) -> AssociatedValue?,
     initializer: @escaping @Sendable (AssociatedValue) -> sending Enumeration
   ) where AssociatedValue: StructuredObject {
-    self.init(name: name, accessor: accessor, initializer: initializer, kind: .object)
+    self.init(
+      name: name, description: description,
+      accessor: accessor, initializer: initializer, kind: .object)
   }
 
   private init(
     name: StructuredCodingKey,
+    description: String?,
     accessor: @escaping @Sendable (Enumeration) -> AssociatedValue?,
     initializer: @escaping @Sendable (AssociatedValue) -> sending Enumeration,
     kind: JavaScriptObjectNotation.DecodingStream.ValueKind?
   ) {
     self.name = name
+    self.description = description
     self.accessor = accessor
     self.initializer = initializer
     self.kind = kind
@@ -504,7 +535,7 @@ public struct StructuredEnumerationCase<Enumeration, AssociatedValue: Structured
     MetaSchema.internallyTaggedBranch(
       discriminatorPropertyName: discriminatorPropertyName,
       caseName: name,
-      caseSchema: AssociatedValue.schema(description: nil)
+      caseSchema: AssociatedValue.schema(description: description)
     )
   }
 

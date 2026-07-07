@@ -346,6 +346,8 @@ extension ObjectSchema.Property {
   /// `<unique>(name: "json", keyPath: \.swiftName, schema: <unique>.Definition.CodingValue.schema(description: nil))`,
   /// or with `.variadicGenerics` compatibility
   /// `<unique>(name: "json", getter: { $0.swiftName }, schema: <unique>.Definition.CodingValue.schema(description: nil))`.
+  /// A `@StructuredProperty(description:)` annotation replaces the `nil`
+  /// description with its string literal.
   fileprivate func propertyExpr(
     keyConversionStrategy: KeyConversionStrategy,
     compatibilityModes: CompatibilityModes
@@ -416,7 +418,8 @@ extension ObjectSchema.Property {
               LabeledExprSyntax(
                 label: "description",
                 colon: .colonToken(),
-                expression: NilLiteralExprSyntax()
+                expression: description.map { ExprSyntax($0.trimmed) }
+                  ?? ExprSyntax(NilLiteralExprSyntax())
               )
             },
             rightParen: .rightParenToken()
@@ -629,7 +632,10 @@ extension EnumerationSchema.CodingStyle {
 
 extension EnumerationSchema.Case {
 
-  /// `{ns}.StructuredEnumerationCase(name: "...", accessor: { ... }, initializer: { ... })`
+  /// `{ns}.StructuredEnumerationCase(name: "...", accessor: { ... }, initializer: { ... })`.
+  /// A `@StructuredCase(description:)` annotation adds `description: "..."`
+  /// after the name; without one the argument is omitted and the initializer's
+  /// `nil` default applies.
   fileprivate func caseExpr(
     in namespace: StructuredCodingNamespace,
     keyConversionStrategy: KeyConversionStrategy
@@ -646,6 +652,14 @@ extension EnumerationSchema.Case {
           ),
           trailingComma: .commaToken(trailingTrivia: .newline)
         )
+        if let description {
+          LabeledExprSyntax(
+            label: "description",
+            colon: .colonToken(),
+            expression: description.trimmed,
+            trailingComma: .commaToken(trailingTrivia: .newline)
+          )
+        }
         LabeledExprSyntax(
           label: "accessor",
           colon: .colonToken(),

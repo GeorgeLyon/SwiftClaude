@@ -423,6 +423,61 @@ struct StructuredCodableEnumTests {
     )
   }
 
+  /// `@StructuredCase(description:)` adds a `description:` argument to the
+  /// generated `StructuredEnumerationCase`; unannotated cases omit it.
+  @Test
+  func enumCaseDescription() {
+    assertStructuredCodableExpansion(
+      """
+      @StructuredCodable
+      enum E {
+        @StructuredCase(description: "A text message")
+        case text(String)
+        case ping
+      }
+      """,
+      #"""
+      enum E {
+        case text(String)
+        case ping
+      }
+
+      extension E: StructuredCoding.StructuredEnumeration {
+        static func schema(description: String?) -> some StructuredCoding.StructuredCodable {
+          _schema(description: description)
+        }
+        typealias Cases = (StructuredCoding.StructuredEnumerationCase<Self, String>, StructuredCoding.StructuredEnumerationCase<Self, StructuredCoding.StructuredEmptyObject>)
+        static func cases() -> Cases {
+          (StructuredCoding.StructuredEnumerationCase(
+              name: "text",
+              description: "A text message",
+              accessor: { value in
+                guard case .text(let v0) = value else {
+                  return nil
+                }
+                return v0
+              },
+              initializer: {
+                .text($0)
+              }
+            ), StructuredCoding.StructuredEnumerationCase(
+              name: "ping",
+              accessor: { value in
+                guard case .ping = value else {
+                  return nil
+                }
+                return StructuredCoding.StructuredEmptyObject()
+              },
+              initializer: { _ in
+                .ping
+              }
+            ))
+        }
+      }
+      """#
+    )
+  }
+
   /// A single case collapses `Cases` to the bare `StructuredEnumerationCase`.
   @Test
   func singleCaseEnum() {

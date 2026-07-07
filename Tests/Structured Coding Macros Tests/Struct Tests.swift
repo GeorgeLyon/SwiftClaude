@@ -262,6 +262,56 @@ struct StructuredCodableStructTests {
     )
   }
 
+  /// `@StructuredProperty(description:)` threads its description into the
+  /// property's `schema(description:)` call; unannotated properties keep `nil`.
+  @Test
+  func structWithPropertyDescription() {
+    assertStructuredCodableExpansion(
+      """
+      @StructuredCodable
+      struct Point {
+        @StructuredProperty(description: "The horizontal coordinate")
+        let x: Int
+        let y: Int
+      }
+      """,
+      #"""
+      struct Point {
+        let x: Int
+        let y: Int
+      }
+
+      extension Point: StructuredCoding.StructuredObject {
+        typealias __macro_local_1xfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredRequiredObjectPropertyDefinition<Int>>
+        typealias __macro_local_1yfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredRequiredObjectPropertyDefinition<Int>>
+        static func schema(description: String?) -> some StructuredCoding.StructuredCodable {
+          _schema(description: description)
+        }
+        typealias StructuredObjectProperties = (__macro_local_1xfMu_, __macro_local_1yfMu_)
+        static func properties() -> StructuredObjectProperties {
+          (__macro_local_1xfMu_(
+              name: "x",
+              keyPath: \.x,
+              schema: __macro_local_1xfMu_.Definition.CodingValue.schema(description: "The horizontal coordinate")
+            ), __macro_local_1yfMu_(
+              name: "y",
+              keyPath: \.y,
+              schema: __macro_local_1yfMu_.Definition.CodingValue.schema(description: nil)
+            ))
+        }
+        typealias ObjectDecoderValues = (__macro_local_1xfMu_.ObjectDecoderValue, __macro_local_1yfMu_.ObjectDecoderValue)
+        static func decode(from objectDecoder: sending StructuredCoding.StructuredObjectDecoder<ObjectDecoderValues>) -> sending Self {
+          Self(from: objectDecoder)
+        }
+        private init(from objectDecoder: sending StructuredCoding.StructuredObjectDecoder<ObjectDecoderValues>) {
+          self.x = objectDecoder.values.0
+          self.y = objectDecoder.values.1
+        }
+      }
+      """#
+    )
+  }
+
   @Test
   func emptyStruct() {
     assertStructuredCodableExpansion(

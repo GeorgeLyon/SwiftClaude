@@ -101,6 +101,22 @@ struct StructuredCodableMacroIntegrationTests {
     try test(#"{"text":"hi"}"#, decodesAs: MacroAnnotatedEnum.text("hi"))
   }
 
+  /// The attached descriptions surface in the generated schema: on the
+  /// property's schema for `@StructuredProperty`, and on the case's slot in
+  /// the object-properties schema for `@StructuredCase`.
+  @Test func annotatedMembersDescribeSchema() throws {
+    try test(
+      MacroAnnotatedObject.schema(description: nil),
+      encodesAs:
+        #"{"properties":{"x":{"description":"The horizontal coordinate","type":"integer"}},"required":["x"]}"#
+    )
+    try test(
+      MacroAnnotatedEnum.schema(description: nil),
+      encodesAs:
+        #"{"properties":{"text":{"description":"A text message","type":"string"}},"maxProperties":1}"#
+    )
+  }
+
 }
 
 // MARK: - Fixtures

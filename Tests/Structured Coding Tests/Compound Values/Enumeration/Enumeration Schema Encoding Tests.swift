@@ -40,6 +40,38 @@ private enum Shape: Equatable {
   case rectangle(width: Double, height: Double)
 }
 
+/// Case descriptions across the associated-value shapes of the
+/// object-properties style: a primitive case, an object case, and a
+/// value-less case. `rating` is left undescribed.
+@StructuredCodable
+private enum DescribedFeedback: Equatable {
+  @StructuredCase(description: "A free-form comment")
+  case comment(String)
+  case rating(stars: Int)
+  @StructuredCase(description: "A 2D point")
+  case point(x: Int, y: Int)
+  @StructuredCase(description: "An empty ping")
+  case ping
+}
+
+/// A described case of an internally-tagged enumeration — the description
+/// lands on the case's `oneOf` branch.
+@StructuredCodable(style: .internallyTagged(discriminatorPropertyName: "kind"))
+private enum DescribedShape: Equatable {
+  @StructuredCase(description: "A circle")
+  case circle(radius: Double)
+  case rectangle(width: Double, height: Double)
+}
+
+/// A described case of a type-discriminated enumeration — the description
+/// lands on the case's `oneOf` branch.
+@StructuredCodable(style: .typeDiscriminated)
+private enum DescribedNode: Equatable {
+  @StructuredCase(description: "A leaf string")
+  case string(String)
+  case point(x: Int, y: Int)
+}
+
 /// A `String`-backed raw-value enumeration, whose `enum` members encode as
 /// JSON strings.
 private enum Alignment: String, CaseIterable, StructuredEnumeration, Sendable {
@@ -96,6 +128,17 @@ struct EnumerationSchemaEncodingTests {
     )
   }
 
+  /// A `@StructuredCase` description becomes the description of the case's
+  /// property schema, whatever the associated-value shape; undescribed cases
+  /// are unchanged.
+  @Test func encodesCaseDescriptions() throws {
+    try test(
+      DescribedFeedback.schema(description: nil),
+      encodesAs:
+        #"{"properties":{"comment":{"description":"A free-form comment","type":"string"},"rating":{"properties":{"stars":{"type":"integer"}},"required":["stars"]},"point":{"description":"A 2D point","properties":{"x":{"type":"integer"},"y":{"type":"integer"}},"required":["x","y"]},"ping":{"description":"An empty ping","properties":{}}},"maxProperties":1}"#
+    )
+  }
+
   // MARK: - Internally Tagged
 
   /// Each `oneOf` branch is the case's object schema with the discriminator
@@ -115,6 +158,28 @@ struct EnumerationSchemaEncodingTests {
       Shape.schema(description: "A shape"),
       encodesAs:
         #"{"description":"A shape","oneOf":[{"properties":{"kind":{"const":"circle"},"radius":{"type":"number"}},"required":["kind","radius"]},{"properties":{"kind":{"const":"rectangle"},"width":{"type":"number"},"height":{"type":"number"}},"required":["kind","width","height"]}]}"#
+    )
+  }
+
+  /// A `@StructuredCase` description becomes the description of the case's
+  /// `oneOf` branch, alongside the spliced-in discriminator.
+  @Test func encodesInternallyTaggedCaseDescriptions() throws {
+    try test(
+      DescribedShape.schema(description: nil),
+      encodesAs:
+        #"{"oneOf":[{"description":"A circle","properties":{"kind":{"const":"circle"},"radius":{"type":"number"}},"required":["kind","radius"]},{"properties":{"kind":{"const":"rectangle"},"width":{"type":"number"},"height":{"type":"number"}},"required":["kind","width","height"]}]}"#
+    )
+  }
+
+  // MARK: - Type Discriminated
+
+  /// A `@StructuredCase` description becomes the description of the case's
+  /// `oneOf` branch.
+  @Test func encodesTypeDiscriminatedCaseDescriptions() throws {
+    try test(
+      DescribedNode.schema(description: nil),
+      encodesAs:
+        #"{"oneOf":[{"description":"A leaf string","type":"string"},{"properties":{"x":{"type":"integer"},"y":{"type":"integer"}},"required":["x","y"]}]}"#
     )
   }
 

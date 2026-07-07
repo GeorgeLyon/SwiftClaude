@@ -117,7 +117,8 @@ struct ObjectSchema {
     /// avoid collisions with user declarations.
     let propertyTypeAliasName: TokenSyntax
 
-    /// Carried from `@StructuredProperty(description:)`; see `ObjectSchema.description`.
+    /// Carried from `@StructuredProperty(description:)`; emitted as the
+    /// `description:` argument of the property's `schema(description:)` call.
     let description: StringLiteralExprSyntax?
 
   }
@@ -218,7 +219,8 @@ struct EnumerationSchema {
     /// The single type the case's associated values collapse onto.
     let associatedValue: AssociatedValue
 
-    /// Carried from `@StructuredCase(description:)`; see `ObjectSchema.description`.
+    /// Carried from `@StructuredCase(description:)`; emitted as the
+    /// `description:` argument of the generated `StructuredEnumerationCase`.
     let description: StringLiteralExprSyntax?
 
   }
