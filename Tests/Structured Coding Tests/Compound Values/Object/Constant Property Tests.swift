@@ -86,14 +86,14 @@ private struct ConstantObject: StructuredObject, Equatable, Sendable {
       StructuredOptionalObjectPropertyDefinition<String>
     >
   >
-  static func schema(description: String?) -> some StructuredCodable {
-    _schema(description: description)
+  static var schema: some StructuredCodingSchema {
+    _schema()
   }
   typealias StructuredObjectProperties = (_KindProperty, _OptProperty)
   static func properties() -> StructuredObjectProperties {
     (
-      _KindProperty(name: "kind", keyPath: \.kind, schema: _KindProperty.Definition.CodingValue.schema(description: nil)),
-      _OptProperty(name: "opt", keyPath: \.opt, schema: _OptProperty.Definition.CodingValue.schema(description: nil))
+      _KindProperty(name: "kind", keyPath: \.kind, schema: _KindProperty.Definition.CodingValue.schema),
+      _OptProperty(name: "opt", keyPath: \.opt, schema: _OptProperty.Definition.CodingValue.schema)
     )
   }
 
@@ -129,14 +129,14 @@ private struct TaggedConstantObject: StructuredObject, Equatable, Sendable {
       StructuredRequiredObjectPropertyDefinition<String>
     >
   >
-  static func schema(description: String?) -> some StructuredCodable {
-    _schema(description: description)
+  static var schema: some StructuredCodingSchema {
+    _schema()
   }
   typealias StructuredObjectProperties = (_IDProperty, _KindProperty)
   static func properties() -> StructuredObjectProperties {
     (
-      _IDProperty(name: "id", keyPath: \.id, schema: _IDProperty.Definition.CodingValue.schema(description: nil)),
-      _KindProperty(name: "kind", keyPath: \.kind, schema: _KindProperty.Definition.CodingValue.schema(description: nil))
+      _IDProperty(name: "id", keyPath: \.id, schema: _IDProperty.Definition.CodingValue.schema),
+      _KindProperty(name: "kind", keyPath: \.kind, schema: _KindProperty.Definition.CodingValue.schema)
     )
   }
 

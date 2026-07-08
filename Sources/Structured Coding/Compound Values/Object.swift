@@ -48,86 +48,95 @@ public struct StructuredEmptyObject {
 extension StructuredObjectProperty {
   public init<T>(
     name: StructuredCodingKey,
+    description: String? = nil,
     keyPath: KeyPath<Root, T> & Sendable,
     schema: T.Schema
   ) where Definition == StructuredRequiredObjectPropertyDefinition<T> {
     self.name = name
     self.taggedKeyPath = .getOnly(keyPath)
     self.definition = Definition(name: name)
-    self.schema = schema
+    self.schema = schema.prependDescription(description)
   }
   public init<T>(
     name: StructuredCodingKey,
+    description: String? = nil,
     keyPath: KeyPath<Root, T?> & Sendable,
     schema: T.Schema
   ) where Definition == StructuredOptionalObjectPropertyDefinition<T> {
     self.name = name
     self.taggedKeyPath = .getOnly(keyPath)
     self.definition = Definition()
-    self.schema = schema
+    self.schema = schema.prependDescription(description)
   }
   public init<T>(
     name: StructuredCodingKey,
+    description: String? = nil,
     getter: @escaping @Sendable (Root) -> T,
     schema: T.Schema
   ) where Definition == StructuredRequiredObjectPropertyDefinition<T> {
     self.name = name
     self.taggedKeyPath = .getOnlyClosure(getter)
     self.definition = Definition(name: name)
-    self.schema = schema
+    self.schema = schema.prependDescription(description)
   }
   public init<T>(
     name: StructuredCodingKey,
+    description: String? = nil,
     getter: @escaping @Sendable (Root) -> T?,
     schema: T.Schema
   ) where Definition == StructuredOptionalObjectPropertyDefinition<T> {
     self.name = name
     self.taggedKeyPath = .getOnlyClosure(getter)
     self.definition = Definition()
-    self.schema = schema
+    self.schema = schema.prependDescription(description)
   }
   public init<T>(
     name: StructuredCodingKey,
+    description: String? = nil,
     keyPath: WritableKeyPath<Root, T> & Sendable,
     schema: T.Schema
   ) where Definition == StructuredRequiredObjectPropertyDefinition<T> {
     self.name = name
     self.taggedKeyPath = .writable(keyPath)
     self.definition = Definition(name: name)
-    self.schema = schema
+    self.schema = schema.prependDescription(description)
   }
   public init<T>(
     name: StructuredCodingKey,
+    description: String? = nil,
     keyPath: WritableKeyPath<Root, T?> & Sendable,
     schema: T.Schema
   ) where Definition == StructuredOptionalObjectPropertyDefinition<T> {
     self.name = name
     self.taggedKeyPath = .writable(keyPath)
     self.definition = Definition()
-    self.schema = schema
+    self.schema = schema.prependDescription(description)
   }
   public init<T>(
     name: StructuredCodingKey,
+    description: String? = nil,
     keyPath: ReferenceWritableKeyPath<Root, T> & Sendable,
     schema: T.Schema
   ) where Definition == StructuredRequiredObjectPropertyDefinition<T> {
     self.name = name
     self.taggedKeyPath = .referenceWritable(keyPath)
     self.definition = Definition(name: name)
-    self.schema = schema
+    self.schema = schema.prependDescription(description)
   }
   public init<T>(
     name: StructuredCodingKey,
+    description: String? = nil,
     keyPath: ReferenceWritableKeyPath<Root, T?> & Sendable,
     schema: T.Schema
   ) where Definition == StructuredOptionalObjectPropertyDefinition<T> {
     self.name = name
     self.taggedKeyPath = .referenceWritable(keyPath)
     self.definition = Definition()
-    self.schema = schema
+    self.schema = schema.prependDescription(description)
   }
   public init<T>(
     name: StructuredCodingKey,
+    description: String? = nil,
     keyPath: KeyPath<Root, T> & Sendable,
     schema: T.Schema,
   )
@@ -139,10 +148,11 @@ extension StructuredObjectProperty {
     self.name = name
     self.taggedKeyPath = .getOnly(keyPath)
     self.definition = Definition(name: name, base: .init(name: name))
-    self.schema = schema
+    self.schema = schema.prependDescription(description)
   }
   public init<T>(
     name: StructuredCodingKey,
+    description: String? = nil,
     keyPath: KeyPath<Root, T?> & Sendable,
     schema: T.Schema,
   )
@@ -154,10 +164,11 @@ extension StructuredObjectProperty {
     self.name = name
     self.taggedKeyPath = .getOnly(keyPath)
     self.definition = Definition(name: name, base: .init())
-    self.schema = schema
+    self.schema = schema.prependDescription(description)
   }
   public init<T>(
     name: StructuredCodingKey,
+    description: String? = nil,
     getter: @escaping @Sendable (Root) -> T,
     schema: T.Schema,
   )
@@ -169,10 +180,11 @@ extension StructuredObjectProperty {
     self.name = name
     self.taggedKeyPath = .getOnlyClosure(getter)
     self.definition = Definition(name: name, base: .init(name: name))
-    self.schema = schema
+    self.schema = schema.prependDescription(description)
   }
   public init<T>(
     name: StructuredCodingKey,
+    description: String? = nil,
     getter: @escaping @Sendable (Root) -> T?,
     schema: T.Schema,
   )
@@ -184,10 +196,11 @@ extension StructuredObjectProperty {
     self.name = name
     self.taggedKeyPath = .getOnlyClosure(getter)
     self.definition = Definition(name: name, base: .init())
-    self.schema = schema
+    self.schema = schema.prependDescription(description)
   }
   public init<T>(
     name: StructuredCodingKey,
+    description: String? = nil,
     keyPath: WritableKeyPath<Root, T> & Sendable,
     schema: T.Schema,
   )
@@ -199,10 +212,11 @@ extension StructuredObjectProperty {
     self.name = name
     self.taggedKeyPath = .writable(keyPath)
     self.definition = Definition(base: .init(name: name))
-    self.schema = schema
+    self.schema = schema.prependDescription(description)
   }
   public init<T>(
     name: StructuredCodingKey,
+    description: String? = nil,
     keyPath: WritableKeyPath<Root, T?> & Sendable,
     schema: T.Schema,
   )
@@ -214,10 +228,11 @@ extension StructuredObjectProperty {
     self.name = name
     self.taggedKeyPath = .writable(keyPath)
     self.definition = Definition(base: .init())
-    self.schema = schema
+    self.schema = schema.prependDescription(description)
   }
   public init<T>(
     name: StructuredCodingKey,
+    description: String? = nil,
     keyPath: ReferenceWritableKeyPath<Root, T> & Sendable,
     schema: T.Schema,
   )
@@ -229,10 +244,11 @@ extension StructuredObjectProperty {
     self.name = name
     self.taggedKeyPath = .referenceWritable(keyPath)
     self.definition = Definition(base: .init(name: name))
-    self.schema = schema
+    self.schema = schema.prependDescription(description)
   }
   public init<T>(
     name: StructuredCodingKey,
+    description: String? = nil,
     keyPath: ReferenceWritableKeyPath<Root, T?> & Sendable,
     schema: T.Schema,
   )
@@ -244,10 +260,11 @@ extension StructuredObjectProperty {
     self.name = name
     self.taggedKeyPath = .referenceWritable(keyPath)
     self.definition = Definition(base: .init())
-    self.schema = schema
+    self.schema = schema.prependDescription(description)
   }
   public init<T>(
     name: StructuredCodingKey,
+    description: String? = nil,
     getter: @escaping @Sendable (Root) -> T,
     schema: T.Schema,
   )
@@ -259,10 +276,11 @@ extension StructuredObjectProperty {
     self.name = name
     self.taggedKeyPath = .getOnlyClosure(getter)
     self.definition = Definition(base: .init(name: name))
-    self.schema = schema
+    self.schema = schema.prependDescription(description)
   }
   public init<T>(
     name: StructuredCodingKey,
+    description: String? = nil,
     getter: @escaping @Sendable (Root) -> T?,
     schema: T.Schema,
   )
@@ -274,7 +292,7 @@ extension StructuredObjectProperty {
     self.name = name
     self.taggedKeyPath = .getOnlyClosure(getter)
     self.definition = Definition(base: .init())
-    self.schema = schema
+    self.schema = schema.prependDescription(description)
   }
 }
 
@@ -636,14 +654,18 @@ where
 
 extension StructuredObject {
 
-  /// The shared implementation behind every object's `schema(description:)`
-  /// witness. The witness itself must be a non-generic member of the concrete
-  /// type (the `@StructuredCodable` macro generates a trampoline calling this
-  /// function): an opaque result type on a generic function cannot infer the
-  /// `Schema` associated type.
+  /// The shared implementation behind every object's `schema` witness. The
+  /// witness itself must be a non-generic member of the concrete type (the
+  /// `@StructuredCodable` macro generates a trampoline calling this function):
+  /// an opaque result type on a generic function cannot infer the `Schema`
+  /// associated type.
+  ///
+  /// `typeDescription` is the type's own `@StructuredCodable(description:)`,
+  /// passed by the generated trampoline; use-site descriptions are prepended
+  /// onto the returned schema with `prependDescription(_:)`.
   public static func _schema<each PropertyDefinition>(
-    description: String?
-  ) -> some StructuredCodable
+    typeDescription: String? = nil
+  ) -> some StructuredCodingSchema
   where
     StructuredObjectProperties == (
       repeat StructuredObjectProperty<Self, each PropertyDefinition>
@@ -651,7 +673,7 @@ extension StructuredObject {
   {
     let properties = self.properties()
     return MetaSchema.object(
-      description: description,
+      description: typeDescription,
       properties: repeat (
         (each properties).name,
         (each properties).schema,

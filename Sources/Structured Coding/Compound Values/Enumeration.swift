@@ -33,25 +33,27 @@ extension StructuredEnumeration where Self: RawRepresentable & CaseIterable {
 
 // MARK: - Schema
 
-/// The style-specific implementations behind every enumeration's
-/// `schema(description:)` witness. As with objects, the witness itself must be
-/// a non-generic member of the concrete type (the `@StructuredCodable` macro
-/// generates a trampoline calling `_schema`): an opaque result type on a
-/// generic function cannot infer the `Schema` associated type.
+/// The style-specific implementations behind every enumeration's `schema`
+/// witness. As with objects, the witness itself must be a non-generic member
+/// of the concrete type (the `@StructuredCodable` macro generates a trampoline
+/// calling `_schema`): an opaque result type on a generic function cannot
+/// infer the `Schema` associated type.
+/// `typeDescription` is the enumeration's own `@StructuredCodable(description:)`;
+/// see `StructuredObject._schema`.
 extension StructuredEnumeration
 where CodingStyle == StructuredEnumerationCodingStyleObjectProperties {
 
   public static func _schema<each AssociatedValue: StructuredDecodable>(
-    description: String?
-  ) -> some StructuredCodable
+    typeDescription: String? = nil
+  ) -> some StructuredCodingSchema
   where Cases == (repeat StructuredEnumerationCase<Self, each AssociatedValue>) {
     let cases = cases()
     return MetaSchema.object(
-      description: description,
+      description: typeDescription,
       maxProperties: 1,
       properties: repeat (
         (each cases).name,
-        (each AssociatedValue).schema(description: (each cases).description),
+        (each AssociatedValue).schema.prependDescription((each cases).description),
         false
       )
     )
@@ -67,8 +69,8 @@ where CodingStyle == StructuredEnumerationCodingStyleInternallyTagged {
   /// are the case object schemas, each with the discriminator spliced in as
   /// its first required property, pinned to the case's name.
   public static func _schema<each AssociatedValue: StructuredObject>(
-    description: String?
-  ) -> some StructuredCodable
+    typeDescription: String? = nil
+  ) -> some StructuredCodingSchema
   where Cases == (repeat StructuredEnumerationCase<Self, each AssociatedValue>) {
     let discriminatorPropertyName = codingStyle.discriminatorPropertyName
     var branches: [MetaSchema.SchemaCodable] = []
@@ -80,7 +82,7 @@ where CodingStyle == StructuredEnumerationCodingStyleInternallyTagged {
       )
     }
     return MetaSchema.oneOf(
-      description: description,
+      description: typeDescription,
       subschemas: branches
     )
   }
@@ -91,13 +93,13 @@ extension StructuredEnumeration
 where CodingStyle == StructuredEnumerationCodingStyleTypeDiscriminated {
 
   public static func _schema<each AssociatedValue: StructuredDecodable>(
-    description: String?
-  ) -> some StructuredCodable
+    typeDescription: String? = nil
+  ) -> some StructuredCodingSchema
   where Cases == (repeat StructuredEnumerationCase<Self, each AssociatedValue>) {
     let cases = cases()
     return MetaSchema.oneOf(
-      description: description,
-      subschemas: repeat (each AssociatedValue).schema(description: (each cases).description)
+      description: typeDescription,
+      subschemas: repeat (each AssociatedValue).schema.prependDescription((each cases).description)
     )
   }
 
@@ -113,17 +115,17 @@ where
   /// A raw-value enumeration's structural schema is the `enum` keyword listing
   /// every case's raw value in declaration order, which is why the style
   /// requires `CaseIterable`.
-  public static func _schema(description: String?) -> some StructuredCodable {
+  public static func _schema(typeDescription: String? = nil) -> some StructuredCodingSchema {
     MetaSchema.enumeration(
-      description: description,
+      description: typeDescription,
       values: allCases.map(\.rawValue)
     )
   }
 
   /// `_schema` is non-generic for this style, so the extension can provide the
   /// witness directly — raw-value enumerations keep needing no boilerplate.
-  public static func schema(description: String?) -> some StructuredCodable {
-    _schema(description: description)
+  public static var schema: some StructuredCodingSchema {
+    _schema()
   }
 
 }
@@ -535,7 +537,7 @@ public struct StructuredEnumerationCase<Enumeration, AssociatedValue: Structured
     MetaSchema.internallyTaggedBranch(
       discriminatorPropertyName: discriminatorPropertyName,
       caseName: name,
-      caseSchema: AssociatedValue.schema(description: description)
+      caseSchema: AssociatedValue.schema.prependDescription(description)
     )
   }
 

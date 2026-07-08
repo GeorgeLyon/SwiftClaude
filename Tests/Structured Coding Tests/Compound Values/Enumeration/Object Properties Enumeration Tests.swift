@@ -26,7 +26,7 @@ struct ObjectPropertiesEnumerationTests {
   /// schema explicitly, covering every associated-value shape.
   @Test func encodesSchema() throws {
     try test(
-      Value.schema(description: nil),
+      Value.schema,
       encodesAs:
         #"{"properties":{"text":{"type":"string"},"count":{"type":"integer"},"message":{"properties":{"body":{"type":"string"}},"required":["body"]},"move":{"properties":{"x":{"type":"integer"},"y":{"type":"integer"}},"required":["x","y"]},"ping":{"properties":{}}},"maxProperties":1}"#
     )
@@ -238,8 +238,8 @@ private enum Value: StructuredEnumeration, Equatable, Sendable {
   case move(Move)
   case ping(Ping)
 
-  static func schema(description: String?) -> some StructuredCodable {
-    _schema(description: description)
+  static var schema: some StructuredCodingSchema {
+    _schema()
   }
   typealias Cases = (
     StructuredEnumerationCase<Self, String>,
@@ -307,12 +307,12 @@ private struct Message: StructuredObject, Equatable, Sendable {
   typealias _BodyProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<String>
   >
-  static func schema(description: String?) -> some StructuredCodable {
-    _schema(description: description)
+  static var schema: some StructuredCodingSchema {
+    _schema()
   }
   typealias StructuredObjectProperties = _BodyProperty
   static func properties() -> StructuredObjectProperties {
-    _BodyProperty(name: "body", keyPath: \.body, schema: _BodyProperty.Definition.CodingValue.schema(description: nil))
+    _BodyProperty(name: "body", keyPath: \.body, schema: _BodyProperty.Definition.CodingValue.schema)
   }
 
   typealias ObjectDecoderValues = _BodyProperty.ObjectDecoderValue
@@ -341,14 +341,14 @@ private struct Move: StructuredObject, Equatable, Sendable {
   typealias _YProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<Int>
   >
-  static func schema(description: String?) -> some StructuredCodable {
-    _schema(description: description)
+  static var schema: some StructuredCodingSchema {
+    _schema()
   }
   typealias StructuredObjectProperties = (_XProperty, _YProperty)
   static func properties() -> StructuredObjectProperties {
     (
-      _XProperty(name: "x", keyPath: \.x, schema: _XProperty.Definition.CodingValue.schema(description: nil)),
-      _YProperty(name: "y", keyPath: \.y, schema: _YProperty.Definition.CodingValue.schema(description: nil))
+      _XProperty(name: "x", keyPath: \.x, schema: _XProperty.Definition.CodingValue.schema),
+      _YProperty(name: "y", keyPath: \.y, schema: _YProperty.Definition.CodingValue.schema)
     )
   }
 
@@ -367,8 +367,8 @@ private struct Ping: StructuredObject, Equatable, Sendable {
 
   init() {}
 
-  static func schema(description: String?) -> some StructuredCodable {
-    _schema(description: description)
+  static var schema: some StructuredCodingSchema {
+    _schema()
   }
   typealias StructuredObjectProperties = ()
   static func properties() -> StructuredObjectProperties { () }

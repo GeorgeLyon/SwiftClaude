@@ -19,8 +19,8 @@ extension UInt128: StructuredCodable {}
 
 extension FixedWidthInteger where Self: StructuredCodable & Sendable {
 
-  public static func schema(description: String?) -> some StructuredCodable {
-    MetaSchema.integer(description: description)
+  public static var schema: some StructuredCodingSchema {
+    MetaSchema.integer(description: nil)
   }
 
 }

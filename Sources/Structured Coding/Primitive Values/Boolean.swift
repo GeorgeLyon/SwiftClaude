@@ -4,8 +4,8 @@ private import JavaScriptObjectNotation
 
 extension Bool {
 
-  public static func schema(description: String?) -> some StructuredCodable {
-    MetaSchema.boolean(description: description)
+  public static var schema: some StructuredCodingSchema {
+    MetaSchema.boolean(description: nil)
   }
 
 }

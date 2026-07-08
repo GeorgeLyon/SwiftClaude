@@ -13,16 +13,16 @@ extension Float16: StructuredCodable {}
 extension BinaryFloatingPoint
 where Self: StructuredCodable & Sendable & LosslessStringConvertible {
 
-  public static func schema(description: String?) -> some StructuredCodable {
-    MetaSchema.number(description: description)
+  public static var schema: some StructuredCodingSchema {
+    MetaSchema.number(description: nil)
   }
 
 }
 
 extension Decimal {
 
-  public static func schema(description: String?) -> some StructuredCodable {
-    MetaSchema.number(description: description)
+  public static var schema: some StructuredCodingSchema {
+    MetaSchema.number(description: nil)
   }
 
 }

@@ -133,17 +133,17 @@ extension PrivateInitObject: StructuredObject {
       StructuredRequiredObjectPropertyDefinition<Int>
     >
   >
-  static func schema(description: String?) -> some StructuredCodable {
-    _schema(description: description)
+  static var schema: some StructuredCodingSchema {
+    _schema()
   }
   typealias StructuredObjectProperties = (_IDProperty, _NameProperty, _NoteProperty, _KindProperty, _CountProperty)
   static func properties() -> StructuredObjectProperties {
     (
-      _IDProperty(name: "id", keyPath: \.id, schema: _IDProperty.Definition.CodingValue.schema(description: nil)),
-      _NameProperty(name: "name", keyPath: \.name, schema: _NameProperty.Definition.CodingValue.schema(description: nil)),
-      _NoteProperty(name: "note", keyPath: \.note, schema: _NoteProperty.Definition.CodingValue.schema(description: nil)),
-      _KindProperty(name: "kind", keyPath: \.kind, schema: _KindProperty.Definition.CodingValue.schema(description: nil)),
-      _CountProperty(name: "count", keyPath: \.count, schema: _CountProperty.Definition.CodingValue.schema(description: nil))
+      _IDProperty(name: "id", keyPath: \.id, schema: _IDProperty.Definition.CodingValue.schema),
+      _NameProperty(name: "name", keyPath: \.name, schema: _NameProperty.Definition.CodingValue.schema),
+      _NoteProperty(name: "note", keyPath: \.note, schema: _NoteProperty.Definition.CodingValue.schema),
+      _KindProperty(name: "kind", keyPath: \.kind, schema: _KindProperty.Definition.CodingValue.schema),
+      _CountProperty(name: "count", keyPath: \.count, schema: _CountProperty.Definition.CodingValue.schema)
     )
   }
 
@@ -190,14 +190,14 @@ extension StreamingObject: StructuredObject {
   typealias _SecondProperty = StructuredObjectProperty<
     Self, StructuredOptionalObjectPropertyDefinition<String>
   >
-  static func schema(description: String?) -> some StructuredCodable {
-    _schema(description: description)
+  static var schema: some StructuredCodingSchema {
+    _schema()
   }
   typealias StructuredObjectProperties = (_FirstProperty, _SecondProperty)
   static func properties() -> StructuredObjectProperties {
     (
-      _FirstProperty(name: "first", keyPath: \.first, schema: _FirstProperty.Definition.CodingValue.schema(description: nil)),
-      _SecondProperty(name: "second", keyPath: \.second, schema: _SecondProperty.Definition.CodingValue.schema(description: nil))
+      _FirstProperty(name: "first", keyPath: \.first, schema: _FirstProperty.Definition.CodingValue.schema),
+      _SecondProperty(name: "second", keyPath: \.second, schema: _SecondProperty.Definition.CodingValue.schema)
     )
   }
 
@@ -243,14 +243,14 @@ extension DefaultStreamingObject: StructuredObject {
       StructuredOptionalObjectPropertyDefinition<String>
     >
   >
-  static func schema(description: String?) -> some StructuredCodable {
-    _schema(description: description)
+  static var schema: some StructuredCodingSchema {
+    _schema()
   }
   typealias StructuredObjectProperties = (_CountProperty, _NoteProperty)
   static func properties() -> StructuredObjectProperties {
     (
-      _CountProperty(name: "count", keyPath: \.count, schema: _CountProperty.Definition.CodingValue.schema(description: nil)),
-      _NoteProperty(name: "note", keyPath: \.note, schema: _NoteProperty.Definition.CodingValue.schema(description: nil))
+      _CountProperty(name: "count", keyPath: \.count, schema: _CountProperty.Definition.CodingValue.schema),
+      _NoteProperty(name: "note", keyPath: \.note, schema: _NoteProperty.Definition.CodingValue.schema)
     )
   }
 

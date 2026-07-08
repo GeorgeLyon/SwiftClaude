@@ -156,14 +156,14 @@ private struct DeferredStringObject: StructuredObject, Equatable, Sendable {
   typealias _SecondProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<String>
   >
-  static func schema(description: String?) -> some StructuredCodable {
-    _schema(description: description)
+  static var schema: some StructuredCodingSchema {
+    _schema()
   }
   typealias StructuredObjectProperties = (_FirstProperty, _SecondProperty)
   static func properties() -> StructuredObjectProperties {
     (
-      _FirstProperty(name: "first", keyPath: \.first, schema: _FirstProperty.Definition.CodingValue.schema(description: nil)),
-      _SecondProperty(name: "second", keyPath: \.second, schema: _SecondProperty.Definition.CodingValue.schema(description: nil))
+      _FirstProperty(name: "first", keyPath: \.first, schema: _FirstProperty.Definition.CodingValue.schema),
+      _SecondProperty(name: "second", keyPath: \.second, schema: _SecondProperty.Definition.CodingValue.schema)
     )
   }
 
@@ -191,12 +191,12 @@ private struct LetStringObject: StructuredObject, Equatable, Sendable {
   typealias _NameProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<String>
   >
-  static func schema(description: String?) -> some StructuredCodable {
-    _schema(description: description)
+  static var schema: some StructuredCodingSchema {
+    _schema()
   }
   typealias StructuredObjectProperties = _NameProperty
   static func properties() -> StructuredObjectProperties {
-    _NameProperty(name: "name", keyPath: \.name, schema: _NameProperty.Definition.CodingValue.schema(description: nil))
+    _NameProperty(name: "name", keyPath: \.name, schema: _NameProperty.Definition.CodingValue.schema)
   }
 
   typealias ObjectDecoderValues = _NameProperty.ObjectDecoderValue
@@ -227,14 +227,14 @@ private struct ProfileObject: StructuredObject, Equatable, Sendable {
   typealias _NameProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<String>
   >
-  static func schema(description: String?) -> some StructuredCodable {
-    _schema(description: description)
+  static var schema: some StructuredCodingSchema {
+    _schema()
   }
   typealias StructuredObjectProperties = (_NicknameProperty, _NameProperty)
   static func properties() -> StructuredObjectProperties {
     (
-      _NicknameProperty(name: "nickname", keyPath: \.nickname, schema: _NicknameProperty.Definition.CodingValue.schema(description: nil)),
-      _NameProperty(name: "name", keyPath: \.name, schema: _NameProperty.Definition.CodingValue.schema(description: nil))
+      _NicknameProperty(name: "nickname", keyPath: \.nickname, schema: _NicknameProperty.Definition.CodingValue.schema),
+      _NameProperty(name: "name", keyPath: \.name, schema: _NameProperty.Definition.CodingValue.schema)
     )
   }
 

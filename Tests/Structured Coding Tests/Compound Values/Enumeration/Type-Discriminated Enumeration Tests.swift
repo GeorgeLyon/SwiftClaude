@@ -26,7 +26,7 @@ struct TypeDiscriminatedEnumerationTests {
   /// value's JSON kind is the discriminator, so the cases need no wrapper.
   @Test func encodesSchema() throws {
     try test(
-      Node.schema(description: nil),
+      Node.schema,
       encodesAs:
         #"{"oneOf":[{"type":"string"},{"type":"integer"},{"type":"boolean"},{"properties":{"x":{"type":"integer"},"y":{"type":"integer"}},"required":["x","y"]}]}"#
     )
@@ -38,7 +38,7 @@ struct TypeDiscriminatedEnumerationTests {
       #"{"description":"A JSON node","oneOf":[{"type":"string"},{"type":"integer"},{"type":"boolean"},{"properties":{"x":{"type":"integer"},"y":{"type":"integer"}},"required":["x","y"]}]}"#
     try test(
       JSONFragments(stringLiteral: json),
-      decodesAs: .complete(Node.schema(description: nil)),
+      decodesAs: .complete(Node.schema),
       testEquality: { decoded, _, sourceLocation in
         let decoded = try #require(decoded, sourceLocation: sourceLocation)
         var encoder = StructuredEncoder()
@@ -203,8 +203,8 @@ private enum Node: StructuredEnumeration, Equatable, Sendable {
 
   static var codingStyle: StructuredEnumerationCodingStyleTypeDiscriminated { .typeDiscriminated }
 
-  static func schema(description: String?) -> some StructuredCodable {
-    _schema(description: description)
+  static var schema: some StructuredCodingSchema {
+    _schema()
   }
   typealias Cases = (
     StructuredEnumerationCase<Self, String>,
@@ -268,14 +268,14 @@ private struct Point: StructuredObject, Equatable, Sendable {
   typealias _YProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<Int>
   >
-  static func schema(description: String?) -> some StructuredCodable {
-    _schema(description: description)
+  static var schema: some StructuredCodingSchema {
+    _schema()
   }
   typealias StructuredObjectProperties = (_XProperty, _YProperty)
   static func properties() -> StructuredObjectProperties {
     (
-      _XProperty(name: "x", keyPath: \.x, schema: _XProperty.Definition.CodingValue.schema(description: nil)),
-      _YProperty(name: "y", keyPath: \.y, schema: _YProperty.Definition.CodingValue.schema(description: nil))
+      _XProperty(name: "x", keyPath: \.x, schema: _XProperty.Definition.CodingValue.schema),
+      _YProperty(name: "y", keyPath: \.y, schema: _YProperty.Definition.CodingValue.schema)
     )
   }
 

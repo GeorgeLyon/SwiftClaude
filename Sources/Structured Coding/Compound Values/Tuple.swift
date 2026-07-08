@@ -31,10 +31,10 @@ extension StructuredTuple: Equatable where repeat each Element: Equatable {
 
 extension StructuredTuple {
 
-  public static func schema(description: String?) -> some StructuredCodable {
+  public static var schema: some StructuredCodingSchema {
     MetaSchema.tuple(
-      description: description,
-      prefixItems: repeat (each Element).schema()
+      description: nil,
+      prefixItems: repeat (each Element).schema
     )
   }
 

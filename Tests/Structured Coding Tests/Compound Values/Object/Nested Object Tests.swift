@@ -83,14 +83,14 @@ private struct NestingObject: StructuredObject, Equatable, Sendable {
   typealias _InnerProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<MutableStringObject>
   >
-  static func schema(description: String?) -> some StructuredCodable {
-    _schema(description: description)
+  static var schema: some StructuredCodingSchema {
+    _schema()
   }
   typealias StructuredObjectProperties = (_LabelProperty, _InnerProperty)
   static func properties() -> StructuredObjectProperties {
     (
-      _LabelProperty(name: "label", keyPath: \.label, schema: _LabelProperty.Definition.CodingValue.schema(description: nil)),
-      _InnerProperty(name: "inner", keyPath: \.inner, schema: _InnerProperty.Definition.CodingValue.schema(description: nil))
+      _LabelProperty(name: "label", keyPath: \.label, schema: _LabelProperty.Definition.CodingValue.schema),
+      _InnerProperty(name: "inner", keyPath: \.inner, schema: _InnerProperty.Definition.CodingValue.schema)
     )
   }
 
@@ -114,12 +114,12 @@ private struct DeferredParent: StructuredObject, Equatable, Sendable {
   typealias _InnerProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<SingleScalarObject>
   >
-  static func schema(description: String?) -> some StructuredCodable {
-    _schema(description: description)
+  static var schema: some StructuredCodingSchema {
+    _schema()
   }
   typealias StructuredObjectProperties = _InnerProperty
   static func properties() -> StructuredObjectProperties {
-    _InnerProperty(name: "inner", keyPath: \.inner, schema: _InnerProperty.Definition.CodingValue.schema(description: nil))
+    _InnerProperty(name: "inner", keyPath: \.inner, schema: _InnerProperty.Definition.CodingValue.schema)
   }
 
   typealias ObjectDecoderValues = _InnerProperty.ObjectDecoderValue

@@ -33,7 +33,7 @@ struct VariadicGenericObjectTests {
   }
 
   /// `Schema` is inferred as the opaque type of the macro-generated
-  /// `schema(description:)` trampoline; resolving it through the witness
+  /// `schema` trampoline; resolving it through the witness
   /// exercises the runtime demangling that pack-parameterized schema types
   /// used to crash. (The underlying type is deliberately not pinned.)
   @Test func schemaWitnessResolves() throws {
@@ -44,7 +44,7 @@ struct VariadicGenericObjectTests {
   /// get the same structural description as ordinary objects.
   @Test func schemaEncodesStructurally() throws {
     try test(
-      PackGenericObject<Int, String>.schema(description: nil),
+      PackGenericObject<Int, String>.schema,
       encodesAs:
         #"{"properties":{"first":{"type":"string"},"second":{"type":"string"}},"required":["first"]}"#
     )
@@ -73,7 +73,7 @@ struct VariadicGenericObjectTests {
 struct ObjectSchemaMetadataTests {
 
   @Test func constructsSchema() throws {
-    _ = MutableStringObject.schema(description: nil)
+    _ = MutableStringObject.schema
   }
 
 }

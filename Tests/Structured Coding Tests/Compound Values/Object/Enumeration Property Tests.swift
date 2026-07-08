@@ -73,8 +73,8 @@ private enum Choice: StructuredEnumeration, Equatable, Sendable {
   case text(String)
   case number(Int)
 
-  static func schema(description: String?) -> some StructuredCodable {
-    _schema(description: description)
+  static var schema: some StructuredCodingSchema {
+    _schema()
   }
   typealias Cases = (
     StructuredEnumerationCase<Self, String>,
@@ -120,17 +120,17 @@ private struct EnumHolder: StructuredObject, Equatable, Sendable {
   typealias _ChoiceProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<Choice>
   >
-  static func schema(description: String?) -> some StructuredCodable {
-    _schema(description: description)
+  static var schema: some StructuredCodingSchema {
+    _schema()
   }
   typealias StructuredObjectProperties = (_XProperty, _ChoiceProperty)
   static func properties() -> StructuredObjectProperties {
     (
       _XProperty(
-        name: "x", keyPath: \.x, schema: _XProperty.Definition.CodingValue.schema(description: nil)),
+        name: "x", keyPath: \.x, schema: _XProperty.Definition.CodingValue.schema),
       _ChoiceProperty(
         name: "choice", keyPath: \.choice,
-        schema: _ChoiceProperty.Definition.CodingValue.schema(description: nil))
+        schema: _ChoiceProperty.Definition.CodingValue.schema)
     )
   }
 
@@ -150,8 +150,8 @@ private enum MaybeChoice: StructuredEnumeration, Equatable, Sendable {
 
   case maybe(Int?)
 
-  static func schema(description: String?) -> some StructuredCodable {
-    _schema(description: description)
+  static var schema: some StructuredCodingSchema {
+    _schema()
   }
   typealias Cases = StructuredEnumerationCase<Self, Int?>
   static func cases() -> Cases {
@@ -185,17 +185,17 @@ private struct OptionalPayloadHolder: StructuredObject, Equatable, Sendable {
   typealias _ChoiceProperty = StructuredObjectProperty<
     Self, StructuredRequiredObjectPropertyDefinition<MaybeChoice>
   >
-  static func schema(description: String?) -> some StructuredCodable {
-    _schema(description: description)
+  static var schema: some StructuredCodingSchema {
+    _schema()
   }
   typealias StructuredObjectProperties = (_XProperty, _ChoiceProperty)
   static func properties() -> StructuredObjectProperties {
     (
       _XProperty(
-        name: "x", keyPath: \.x, schema: _XProperty.Definition.CodingValue.schema(description: nil)),
+        name: "x", keyPath: \.x, schema: _XProperty.Definition.CodingValue.schema),
       _ChoiceProperty(
         name: "choice", keyPath: \.choice,
-        schema: _ChoiceProperty.Definition.CodingValue.schema(description: nil))
+        schema: _ChoiceProperty.Definition.CodingValue.schema)
     )
   }
 

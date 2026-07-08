@@ -26,19 +26,19 @@ struct StructuredCodableStructTests {
       extension Point: StructuredCoding.StructuredObject {
         typealias __macro_local_1xfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredRequiredObjectPropertyDefinition<Int>>
         typealias __macro_local_1yfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredRequiredObjectPropertyDefinition<Int>>
-        static func schema(description: String?) -> some StructuredCoding.StructuredCodable {
-          _schema(description: description)
+        static var schema: some StructuredCoding.StructuredCodingSchema {
+          _schema()
         }
         typealias StructuredObjectProperties = (__macro_local_1xfMu_, __macro_local_1yfMu_)
         static func properties() -> StructuredObjectProperties {
           (__macro_local_1xfMu_(
               name: "x",
               keyPath: \.x,
-              schema: __macro_local_1xfMu_.Definition.CodingValue.schema(description: nil)
+              schema: __macro_local_1xfMu_.Definition.CodingValue.schema
             ), __macro_local_1yfMu_(
               name: "y",
               keyPath: \.y,
-              schema: __macro_local_1yfMu_.Definition.CodingValue.schema(description: nil)
+              schema: __macro_local_1yfMu_.Definition.CodingValue.schema
             ))
         }
         typealias ObjectDecoderValues = (__macro_local_1xfMu_.ObjectDecoderValue, __macro_local_1yfMu_.ObjectDecoderValue)
@@ -81,27 +81,27 @@ struct StructuredCodableStructTests {
         typealias __macro_local_6secondfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredOptionalObjectPropertyDefinition<String>>
         typealias __macro_local_4kindfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredImmutableDefaultInitializedPropertyDefinition<StructuredCoding.StructuredRequiredObjectPropertyDefinition<String>>>
         typealias __macro_local_5countfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredMutableDefaultInitializedPropertyDefinition<StructuredCoding.StructuredRequiredObjectPropertyDefinition<Int>>>
-        static func schema(description: String?) -> some StructuredCoding.StructuredCodable {
-          _schema(description: description)
+        static var schema: some StructuredCoding.StructuredCodingSchema {
+          _schema()
         }
         typealias StructuredObjectProperties = (__macro_local_5firstfMu_, __macro_local_6secondfMu_, __macro_local_4kindfMu_, __macro_local_5countfMu_)
         static func properties() -> StructuredObjectProperties {
           (__macro_local_5firstfMu_(
               name: "first",
               keyPath: \.first,
-              schema: __macro_local_5firstfMu_.Definition.CodingValue.schema(description: nil)
+              schema: __macro_local_5firstfMu_.Definition.CodingValue.schema
             ), __macro_local_6secondfMu_(
               name: "second",
               keyPath: \.second,
-              schema: __macro_local_6secondfMu_.Definition.CodingValue.schema(description: nil)
+              schema: __macro_local_6secondfMu_.Definition.CodingValue.schema
             ), __macro_local_4kindfMu_(
               name: "kind",
               keyPath: \.kind,
-              schema: __macro_local_4kindfMu_.Definition.CodingValue.schema(description: nil)
+              schema: __macro_local_4kindfMu_.Definition.CodingValue.schema
             ), __macro_local_5countfMu_(
               name: "count",
               keyPath: \.count,
-              schema: __macro_local_5countfMu_.Definition.CodingValue.schema(description: nil)
+              schema: __macro_local_5countfMu_.Definition.CodingValue.schema
             ))
         }
         typealias ObjectDecoderValues = (__macro_local_5firstfMu_.ObjectDecoderValue, __macro_local_6secondfMu_.ObjectDecoderValue, __macro_local_4kindfMu_.ObjectDecoderValue, __macro_local_5countfMu_.ObjectDecoderValue)
@@ -139,15 +139,15 @@ struct StructuredCodableStructTests {
 
       extension Single: StructuredCoding.StructuredObject {
         typealias __macro_local_5valuefMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredRequiredObjectPropertyDefinition<Int>>
-        static func schema(description: String?) -> some StructuredCoding.StructuredCodable {
-          _schema(description: description)
+        static var schema: some StructuredCoding.StructuredCodingSchema {
+          _schema()
         }
         typealias StructuredObjectProperties = __macro_local_5valuefMu_
         static func properties() -> StructuredObjectProperties {
           __macro_local_5valuefMu_(
             name: "value",
             keyPath: \.value,
-            schema: __macro_local_5valuefMu_.Definition.CodingValue.schema(description: nil)
+            schema: __macro_local_5valuefMu_.Definition.CodingValue.schema
           )
         }
         typealias ObjectDecoderValues = __macro_local_5valuefMu_.ObjectDecoderValue
@@ -186,8 +186,8 @@ struct StructuredCodableStructTests {
       extension PackBox: StructuredCoding.StructuredObject {
         typealias __macro_local_5firstfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredRequiredObjectPropertyDefinition<String>>
         typealias __macro_local_6secondfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredOptionalObjectPropertyDefinition<String>>
-        static func schema(description: String?) -> some StructuredCoding.StructuredCodable {
-          _schema(description: description)
+        static var schema: some StructuredCoding.StructuredCodingSchema {
+          _schema()
         }
         typealias StructuredObjectProperties = (__macro_local_5firstfMu_, __macro_local_6secondfMu_)
         static func properties() -> StructuredObjectProperties {
@@ -196,13 +196,13 @@ struct StructuredCodableStructTests {
               getter: {
                 $0.first
               },
-              schema: __macro_local_5firstfMu_.Definition.CodingValue.schema(description: nil)
+              schema: __macro_local_5firstfMu_.Definition.CodingValue.schema
             ), __macro_local_6secondfMu_(
               name: "second",
               getter: {
                 $0.second
               },
-              schema: __macro_local_6secondfMu_.Definition.CodingValue.schema(description: nil)
+              schema: __macro_local_6secondfMu_.Definition.CodingValue.schema
             ))
         }
         typealias ObjectDecoderValues = (__macro_local_5firstfMu_.ObjectDecoderValue, __macro_local_6secondfMu_.ObjectDecoderValue)
@@ -220,7 +220,7 @@ struct StructuredCodableStructTests {
 
   /// Covers the array-literal form of `compatibilityMode:` (`[.variadicGenerics]`
   /// rather than the bare `.variadicGenerics`). A type-erased
-  /// `schema(description:)` is emitted instead of a structural `Schema` typealias.
+  /// `schema` witness is emitted instead of a structural `Schema` typealias.
   @Test
   func structWithArrayLiteralCompatibilityMode() {
     assertStructuredCodableExpansion(
@@ -237,8 +237,8 @@ struct StructuredCodableStructTests {
 
       extension PackBox: StructuredCoding.StructuredObject {
         typealias __macro_local_5firstfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredRequiredObjectPropertyDefinition<String>>
-        static func schema(description: String?) -> some StructuredCoding.StructuredCodable {
-          _schema(description: description)
+        static var schema: some StructuredCoding.StructuredCodingSchema {
+          _schema()
         }
         typealias StructuredObjectProperties = __macro_local_5firstfMu_
         static func properties() -> StructuredObjectProperties {
@@ -247,7 +247,7 @@ struct StructuredCodableStructTests {
             getter: {
               $0.first
             },
-            schema: __macro_local_5firstfMu_.Definition.CodingValue.schema(description: nil)
+            schema: __macro_local_5firstfMu_.Definition.CodingValue.schema
           )
         }
         typealias ObjectDecoderValues = __macro_local_5firstfMu_.ObjectDecoderValue
@@ -262,8 +262,50 @@ struct StructuredCodableStructTests {
     )
   }
 
-  /// `@StructuredProperty(description:)` threads its description into the
-  /// property's `schema(description:)` call; unannotated properties keep `nil`.
+  /// `@StructuredCodable(description:)` passes its description to `_schema`
+  /// as `typeDescription:`; use sites prepend theirs onto the resulting schema.
+  @Test
+  func structWithTypeDescription() {
+    assertStructuredCodableExpansion(
+      """
+      @StructuredCodable(description: "A 2D point")
+      struct Point {
+        let x: Int
+      }
+      """,
+      #"""
+      struct Point {
+        let x: Int
+      }
+
+      extension Point: StructuredCoding.StructuredObject {
+        typealias __macro_local_1xfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredRequiredObjectPropertyDefinition<Int>>
+        static var schema: some StructuredCoding.StructuredCodingSchema {
+          _schema(typeDescription: "A 2D point")
+        }
+        typealias StructuredObjectProperties = __macro_local_1xfMu_
+        static func properties() -> StructuredObjectProperties {
+          __macro_local_1xfMu_(
+            name: "x",
+            keyPath: \.x,
+            schema: __macro_local_1xfMu_.Definition.CodingValue.schema
+          )
+        }
+        typealias ObjectDecoderValues = __macro_local_1xfMu_.ObjectDecoderValue
+        static func decode(from objectDecoder: sending StructuredCoding.StructuredObjectDecoder<ObjectDecoderValues>) -> sending Self {
+          Self(from: objectDecoder)
+        }
+        private init(from objectDecoder: sending StructuredCoding.StructuredObjectDecoder<ObjectDecoderValues>) {
+          self.x = objectDecoder.values
+        }
+      }
+      """#
+    )
+  }
+
+  /// `@StructuredProperty(description:)` becomes a `description:` argument on
+  /// the property descriptor, whose initializer prepends it onto the
+  /// property's schema; unannotated properties omit the argument.
   @Test
   func structWithPropertyDescription() {
     assertStructuredCodableExpansion(
@@ -284,19 +326,20 @@ struct StructuredCodableStructTests {
       extension Point: StructuredCoding.StructuredObject {
         typealias __macro_local_1xfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredRequiredObjectPropertyDefinition<Int>>
         typealias __macro_local_1yfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredRequiredObjectPropertyDefinition<Int>>
-        static func schema(description: String?) -> some StructuredCoding.StructuredCodable {
-          _schema(description: description)
+        static var schema: some StructuredCoding.StructuredCodingSchema {
+          _schema()
         }
         typealias StructuredObjectProperties = (__macro_local_1xfMu_, __macro_local_1yfMu_)
         static func properties() -> StructuredObjectProperties {
           (__macro_local_1xfMu_(
               name: "x",
+              description: "The horizontal coordinate",
               keyPath: \.x,
-              schema: __macro_local_1xfMu_.Definition.CodingValue.schema(description: "The horizontal coordinate")
+              schema: __macro_local_1xfMu_.Definition.CodingValue.schema
             ), __macro_local_1yfMu_(
               name: "y",
               keyPath: \.y,
-              schema: __macro_local_1yfMu_.Definition.CodingValue.schema(description: nil)
+              schema: __macro_local_1yfMu_.Definition.CodingValue.schema
             ))
         }
         typealias ObjectDecoderValues = (__macro_local_1xfMu_.ObjectDecoderValue, __macro_local_1yfMu_.ObjectDecoderValue)
@@ -325,8 +368,8 @@ struct StructuredCodableStructTests {
       }
 
       extension Empty: StructuredCoding.StructuredObject {
-        static func schema(description: String?) -> some StructuredCoding.StructuredCodable {
-          _schema(description: description)
+        static var schema: some StructuredCoding.StructuredCodingSchema {
+          _schema()
         }
         typealias StructuredObjectProperties = ()
         static func properties() -> StructuredObjectProperties {

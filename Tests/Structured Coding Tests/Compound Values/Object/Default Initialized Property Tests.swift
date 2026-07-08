@@ -74,14 +74,14 @@ private struct DefaultObject: StructuredObject, Equatable, Sendable {
       StructuredOptionalObjectPropertyDefinition<String>
     >
   >
-  static func schema(description: String?) -> some StructuredCodable {
-    _schema(description: description)
+  static var schema: some StructuredCodingSchema {
+    _schema()
   }
   typealias StructuredObjectProperties = (_CountProperty, _NoteProperty)
   static func properties() -> StructuredObjectProperties {
     (
-      _CountProperty(name: "count", keyPath: \.count, schema: _CountProperty.Definition.CodingValue.schema(description: nil)),
-      _NoteProperty(name: "note", keyPath: \.note, schema: _NoteProperty.Definition.CodingValue.schema(description: nil))
+      _CountProperty(name: "count", keyPath: \.count, schema: _CountProperty.Definition.CodingValue.schema),
+      _NoteProperty(name: "note", keyPath: \.note, schema: _NoteProperty.Definition.CodingValue.schema)
     )
   }
 

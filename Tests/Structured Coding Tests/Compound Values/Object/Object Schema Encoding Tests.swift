@@ -29,7 +29,7 @@ struct ObjectSchemaEncodingTests {
 
   @Test func encodesPropertiesAndRequired() throws {
     try test(
-      MutableStringObject.schema(description: nil),
+      MutableStringObject.schema,
       encodesAs:
         #"{"properties":{"first":{"type":"string"},"second":{"type":"string"}},"required":["first"]}"#
     )
@@ -37,7 +37,7 @@ struct ObjectSchemaEncodingTests {
 
   @Test func encodesDescription() throws {
     try test(
-      MutableStringObject.schema(description: "A mutable pair of strings"),
+      MutableStringObject.schema.prependDescription("A mutable pair of strings"),
       encodesAs:
         #"{"description":"A mutable pair of strings","properties":{"first":{"type":"string"},"second":{"type":"string"}},"required":["first"]}"#
     )
@@ -46,7 +46,7 @@ struct ObjectSchemaEncodingTests {
   /// Every property is omittable, so the `required` key is omitted entirely.
   @Test func omitsEmptyRequired() throws {
     try test(
-      OptionalMutableObject.schema(description: nil),
+      OptionalMutableObject.schema,
       encodesAs:
         #"{"properties":{"a":{"type":"string"},"b":{"type":"string"}}}"#
     )
@@ -54,7 +54,7 @@ struct ObjectSchemaEncodingTests {
 
   @Test func encodesEmptyObjectSchema() throws {
     try test(
-      EmptyObject.schema(description: nil),
+      EmptyObject.schema,
       encodesAs: #"{"properties":{}}"#
     )
   }
@@ -64,7 +64,7 @@ struct ObjectSchemaEncodingTests {
   /// (`second`, `note`) may.
   @Test func requiredReflectsDefaultedProperties() throws {
     try test(
-      DefaultedObject.schema(description: nil),
+      DefaultedObject.schema,
       encodesAs:
         #"{"properties":{"first":{"type":"string"},"second":{"type":"string"},"kind":{"type":"string"},"count":{"type":"integer"},"note":{"type":"string"}},"required":["first","kind","count"]}"#
     )
@@ -72,7 +72,7 @@ struct ObjectSchemaEncodingTests {
 
   @Test func encodesNestedObjectSchema() throws {
     try test(
-      ParentObject.schema(description: nil),
+      ParentObject.schema,
       encodesAs:
         #"{"properties":{"label":{"type":"string"},"child":{"properties":{"first":{"type":"string"},"second":{"type":"string"}},"required":["first"]}},"required":["label","child"]}"#
     )
@@ -86,7 +86,7 @@ struct ObjectSchemaEncodingTests {
       #"{"properties":{"first":{"type":"string"},"second":{"type":"string"}},"required":["first"]}"#
     try test(
       JSONFragments(stringLiteral: json),
-      decodesAs: .complete(MutableStringObject.schema(description: nil)),
+      decodesAs: .complete(MutableStringObject.schema),
       testEquality: { decoded, _, sourceLocation in
         let decoded = try #require(decoded, sourceLocation: sourceLocation)
         var encoder = StructuredEncoder()
@@ -101,7 +101,7 @@ struct ObjectSchemaEncodingTests {
     let json = #"{"properties":{}}"#
     try test(
       JSONFragments(stringLiteral: json),
-      decodesAs: .complete(EmptyObject.schema(description: nil)),
+      decodesAs: .complete(EmptyObject.schema),
       testEquality: { decoded, _, sourceLocation in
         let decoded = try #require(decoded, sourceLocation: sourceLocation)
         var encoder = StructuredEncoder()

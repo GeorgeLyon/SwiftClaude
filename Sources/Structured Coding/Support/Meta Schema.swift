@@ -2,15 +2,15 @@ internal import JavaScriptObjectNotation
 
 // MARK: - Definition
 
-/// The single concrete type behind every `schema(description:)` witness in the
-/// module. Public API only ever exposes it as `some StructuredCodable`; which
+/// The single concrete type behind every `schema` witness in the
+/// module. Public API only ever exposes it as `some StructuredCodingSchema`; which
 /// JSON-schema keywords a value carries is determined by the factory that
 /// built it. Kept non-generic so witness manglings never contain pack
 /// expansions (which crash the runtime demangler).
 @StructuredCodable
 struct MetaSchema {
 
-  private let description: String?
+  private var description: String?
   private let type: String?
   private let `enum`: [SchemaCodable]?
   private let const: SchemaCodable?
@@ -45,6 +45,18 @@ struct MetaSchema {
     self.required = required
     self.maxProperties = maxProperties
     self.oneOf = oneOf
+  }
+
+}
+
+extension MetaSchema: StructuredCodingSchema {
+
+  /// `description` is a stored (and coded) property rather than living inside
+  /// a stored metadata value because it is part of the schema's coded
+  /// representation; the metadata view is reconstituted around it.
+  var metadata: StructuredCodingSchemaMetadata {
+    get { StructuredCodingSchemaMetadata(description: description) }
+    set { description = newValue.description }
   }
 
 }
@@ -124,10 +136,6 @@ extension MetaSchema {
     )
   }
 
-  /// The unified object schema: value properties and enumeration cases both
-  /// lower to `(name, schema, isRequired)` triples — a case is simply a
-  /// property that is never required (with `maxProperties: 1` limiting the
-  /// object to a single case).
   static func object<each PropertySchema: StructuredEncodable>(
     description: String?,
     maxProperties: Int? = nil,
@@ -217,7 +225,7 @@ extension MetaSchema {
 extension MetaSchema {
 
   /// An arbitrary schema value whose encoding is deferred to `encode(to:)`
-  /// (which is where errors can surface — `schema(description:)` cannot
+  /// (which is where errors can surface — `schema` cannot
   /// throw). The capture must be lazy: encoding a `MetaSchema` runs the
   /// generated object machinery, whose `properties()` builds subschemas like
   /// `[SchemaCodable].schema()` — capturing those eagerly would encode a
@@ -251,8 +259,8 @@ extension MetaSchema {
 extension MetaSchema.SchemaCodable: StructuredCodable {
 
   /// A captured schema's own schema erases to the `{}` any-schema.
-  static func schema(description: String?) -> some StructuredCodable {
-    MetaSchema.any(description: description)
+  static var schema: some StructuredCodingSchema {
+    MetaSchema.any(description: nil)
   }
 
   func encode(to encoder: inout StructuredEncoder) throws {
@@ -304,8 +312,8 @@ extension MetaSchema {
 extension MetaSchema.PropertyMap: StructuredCodable {
 
   /// The property map's own schema erases to the `{}` any-schema.
-  static func schema(description: String?) -> some StructuredCodable {
-    MetaSchema.any(description: description)
+  static var schema: some StructuredCodingSchema {
+    MetaSchema.any(description: nil)
   }
 
   func encode(to encoder: inout StructuredEncoder) throws {

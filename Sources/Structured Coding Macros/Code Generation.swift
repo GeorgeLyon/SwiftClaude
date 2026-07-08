@@ -57,7 +57,7 @@ extension ObjectSchema {
       )
     }
 
-    // static func schema(description:) -> some {ns}.StructuredCodable { _schema(…) }
+    // static var schema: some {ns}.StructuredCodingSchema { _schema(…) }
     // The shared {ns}.StructuredObject._schema implementation is generic over
     // the property-definition pack, and an opaque result type on a generic
     // function cannot witness the `Schema` associated type — so each concrete
@@ -65,7 +65,7 @@ extension ObjectSchema {
     // opaque return; the underlying schema type stays non-generic because
     // naming a schema type parameterized by the property-definition pack
     // crashes the runtime demangler.)
-    schemaTrampoline(in: namespace, isPublic: isPublic)
+    schemaTrampoline(in: namespace, isPublic: isPublic, typeDescription: description)
 
     // typealias StructuredObjectProperties = (<unique>, ...)
     TypeAliasDeclSyntax(
@@ -343,11 +343,11 @@ extension ObjectSchema {
 
 extension ObjectSchema.Property {
 
-  /// `<unique>(name: "json", keyPath: \.swiftName, schema: <unique>.Definition.CodingValue.schema(description: nil))`,
+  /// `<unique>(name: "json", keyPath: \.swiftName, schema: <unique>.Definition.CodingValue.schema)`,
   /// or with `.variadicGenerics` compatibility
-  /// `<unique>(name: "json", getter: { $0.swiftName }, schema: <unique>.Definition.CodingValue.schema(description: nil))`.
-  /// A `@StructuredProperty(description:)` annotation replaces the `nil`
-  /// description with its string literal.
+  /// `<unique>(name: "json", getter: { $0.swiftName }, schema: <unique>.Definition.CodingValue.schema)`.
+  /// A `@StructuredProperty(description:)` annotation adds `description: "..."`
+  /// after the name; the initializer prepends it onto the property's schema.
   fileprivate func propertyExpr(
     keyConversionStrategy: KeyConversionStrategy,
     compatibilityModes: CompatibilityModes
@@ -364,6 +364,14 @@ extension ObjectSchema.Property {
           ),
           trailingComma: .commaToken(trailingTrivia: .newline)
         )
+        if let description {
+          LabeledExprSyntax(
+            label: "description",
+            colon: .colonToken(),
+            expression: description.trimmed,
+            trailingComma: .commaToken(trailingTrivia: .newline)
+          )
+        }
         if compatibilityModes.contains(.variadicGenerics) {
           // Key path literals rooted in a pack-generic type crash at runtime;
           // see `StructuredCodingCompatibilityMode.variadicGenerics`.
@@ -402,27 +410,15 @@ extension ObjectSchema.Property {
         LabeledExprSyntax(
           label: "schema",
           colon: .colonToken(),
-          expression: FunctionCallExprSyntax(
-            calledExpression: MemberAccessExprSyntax(
+          expression: MemberAccessExprSyntax(
+            base: MemberAccessExprSyntax(
               base: MemberAccessExprSyntax(
-                base: MemberAccessExprSyntax(
-                  base: DeclReferenceExprSyntax(baseName: propertyTypeAliasName),
-                  name: "Definition"
-                ),
-                name: "CodingValue"
+                base: DeclReferenceExprSyntax(baseName: propertyTypeAliasName),
+                name: "Definition"
               ),
-              name: "schema"
+              name: "CodingValue"
             ),
-            leftParen: .leftParenToken(),
-            arguments: LabeledExprListSyntax {
-              LabeledExprSyntax(
-                label: "description",
-                colon: .colonToken(),
-                expression: description.map { ExprSyntax($0.trimmed) }
-                  ?? ExprSyntax(NilLiteralExprSyntax())
-              )
-            },
-            rightParen: .rightParenToken()
+            name: "schema"
           )
         )
       },
@@ -520,12 +516,12 @@ extension EnumerationSchema {
       codingStyleMember
     }
 
-    // static func schema(description:) -> some {ns}.StructuredCodable { _schema(…) }
+    // static var schema: some {ns}.StructuredCodingSchema { _schema(…) }
     // The style-constrained {ns}.StructuredEnumeration._schema implementations
     // are generic over the associated-value pack, and an opaque result type on
     // a generic function cannot witness the `Schema` associated type — so each
     // concrete enumeration gets this non-generic trampoline.
-    schemaTrampoline(in: namespace, isPublic: isPublic)
+    schemaTrampoline(in: namespace, isPublic: isPublic, typeDescription: description)
 
     // typealias Cases = ({ns}.StructuredEnumerationCase<Self, <associated>>, ...)
     TypeAliasDeclSyntax(
@@ -925,45 +921,50 @@ extension EnumerationSchema.Case.AssociatedValue {
 
 // MARK: - Generation Helpers
 
-/// `static func schema(description: String?) -> some {ns}.StructuredCodable { _schema(description: description) }`
-/// — the non-generic `Schema` witness emitted into every object and
-/// enumeration; see the call sites for why the trampoline is required.
+/// `static var schema: some {ns}.StructuredCodingSchema { _schema() }` — the
+/// non-generic `Schema` witness emitted into every object and enumeration;
+/// see the call sites for why the trampoline is required.
+/// A `@StructuredCodable(description:)` annotation adds its string literal as
+/// `_schema`'s `typeDescription:` argument.
 private func schemaTrampoline(
   in namespace: StructuredCodingNamespace,
-  isPublic: Bool
-) -> FunctionDeclSyntax {
-  FunctionDeclSyntax(
+  isPublic: Bool,
+  typeDescription: StringLiteralExprSyntax?
+) -> VariableDeclSyntax {
+  VariableDeclSyntax(
     modifiers: .visibility(isPublic, static: true),
-    name: "schema",
-    signature: FunctionSignatureSyntax(
-      parameterClause: FunctionParameterClauseSyntax {
-        FunctionParameterSyntax(
-          firstName: "description",
-          type: OptionalTypeSyntax(wrappedType: IdentifierTypeSyntax(name: "String"))
-        )
-      },
-      returnClause: ReturnClauseSyntax(
+    bindingSpecifier: .keyword(.var)
+  ) {
+    PatternBindingSyntax(
+      pattern: IdentifierPatternSyntax(identifier: "schema"),
+      typeAnnotation: TypeAnnotationSyntax(
         type: SomeOrAnyTypeSyntax(
           someOrAnySpecifier: .keyword(.some),
-          constraint: namespace.memberType(name: "StructuredCodable")
+          constraint: namespace.memberType(name: "StructuredCodingSchema")
+        )
+      ),
+      accessorBlock: AccessorBlockSyntax(
+        accessors: .getter(
+          CodeBlockItemListSyntax {
+            FunctionCallExprSyntax(
+              calledExpression: DeclReferenceExprSyntax(baseName: "_schema"),
+              leftParen: .leftParenToken(),
+              arguments: LabeledExprListSyntax {
+                if let typeDescription {
+                  LabeledExprSyntax(
+                    label: "typeDescription",
+                    colon: .colonToken(),
+                    expression: typeDescription.trimmed
+                  )
+                }
+              },
+              rightParen: .rightParenToken()
+            )
+          }
         )
       )
-    ),
-    body: CodeBlockSyntax {
-      FunctionCallExprSyntax(
-        calledExpression: DeclReferenceExprSyntax(baseName: "_schema"),
-        leftParen: .leftParenToken(),
-        arguments: LabeledExprListSyntax {
-          LabeledExprSyntax(
-            label: "description",
-            colon: .colonToken(),
-            expression: DeclReferenceExprSyntax(baseName: "description")
-          )
-        },
-        rightParen: .rightParenToken()
-      )
-    }
-  )
+    )
+  }
 }
 
 /// Wraps a type in the `sending` parameter/result specifier.

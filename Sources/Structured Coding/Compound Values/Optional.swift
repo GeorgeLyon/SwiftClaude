@@ -9,10 +9,10 @@ private struct OptionalStorage<Wrapped: StructuredCodable> {
 
 extension Optional: StructuredEncodable where Wrapped: StructuredCodable {
 
-  public static func schema(description: String?) -> some StructuredCodable {
+  public static var schema: some StructuredCodingSchema {
     MetaSchema.object(
-      description: description,
-      properties: ("value", Wrapped.schema(description: nil), false)
+      description: nil,
+      properties: ("value" as StructuredCodingKey, Wrapped.schema, false)
     )
   }
 

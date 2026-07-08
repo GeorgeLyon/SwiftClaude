@@ -24,7 +24,7 @@ private func resolvedSchemaType<T: StructuredEncodable>(of _: T.Type) -> Any.Typ
 private func schema<each Element: StructuredDecodable>(
   of _: StructuredTuple<repeat each Element>
 ) -> StructuredTuple<repeat each Element>.Schema {
-  StructuredTuple<repeat each Element>.schema(description: nil)
+  StructuredTuple<repeat each Element>.schema
 }
 
 @Suite("Tuple Schema")
@@ -32,14 +32,14 @@ struct TupleSchemaTests {
 
   @Test func encodesPrefixItems() throws {
     try test(
-      StructuredTuple<Int, String>.schema(description: nil),
+      StructuredTuple<Int, String>.schema,
       encodesAs: #"{"prefixItems":[{"type":"integer"},{"type":"string"}]}"#
     )
   }
 
   @Test func encodesDescription() throws {
     try test(
-      StructuredTuple<Int, String>.schema(description: "A labeled pair"),
+      StructuredTuple<Int, String>.schema.prependDescription("A labeled pair"),
       encodesAs:
         #"{"description":"A labeled pair","prefixItems":[{"type":"integer"},{"type":"string"}]}"#
     )
@@ -54,7 +54,7 @@ struct TupleSchemaTests {
 
   @Test func encodesNestedTupleSchema() throws {
     try test(
-      StructuredTuple<Int, StructuredTuple<Bool, String>>.schema(description: nil),
+      StructuredTuple<Int, StructuredTuple<Bool, String>>.schema,
       encodesAs:
         #"{"prefixItems":[{"type":"integer"},{"prefixItems":[{"type":"boolean"},{"type":"string"}]}]}"#
     )
@@ -70,7 +70,7 @@ struct TupleSchemaTests {
   /// the any-schema fallback's `{}`.
   @Test func tuplePropertySchemaEncodes() throws {
     try test(
-      TuplePropertyObject.schema(description: nil),
+      TuplePropertyObject.schema,
       encodesAs:
         #"{"properties":{"pair":{"prefixItems":[{"type":"integer"},{"type":"string"}]}},"required":["pair"]}"#
     )
@@ -83,7 +83,7 @@ struct TupleSchemaTests {
       #"{"description":"A labeled pair","prefixItems":[{"type":"integer"},{"type":"string"}]}"#
     try test(
       JSONFragments(stringLiteral: json),
-      decodesAs: .complete(StructuredTuple<Int, String>.schema(description: nil)),
+      decodesAs: .complete(StructuredTuple<Int, String>.schema),
       testEquality: { decoded, _, sourceLocation in
         let decoded = try #require(decoded, sourceLocation: sourceLocation)
         var encoder = StructuredEncoder()

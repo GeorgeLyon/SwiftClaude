@@ -4,8 +4,8 @@ private import JavaScriptObjectNotation
 
 extension Array: StructuredEncodable where Element: StructuredCodable {
 
-  public static func schema(description: String?) -> some StructuredCodable {
-    MetaSchema.array(description: description, items: Element.schema(description: nil))
+  public static var schema: some StructuredCodingSchema {
+    MetaSchema.array(description: nil, items: Element.schema)
   }
 
   public func encode(to encoder: inout StructuredEncoder) throws {

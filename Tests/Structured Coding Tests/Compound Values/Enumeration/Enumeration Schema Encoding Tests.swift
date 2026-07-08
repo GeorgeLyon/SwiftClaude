@@ -93,7 +93,7 @@ struct EnumerationSchemaEncodingTests {
 
   @Test func encodesCaseProperties() throws {
     try test(
-      Reaction.schema(description: nil),
+      Reaction.schema,
       encodesAs:
         #"{"properties":{"text":{"type":"string"},"point":{"properties":{"x":{"type":"integer"},"y":{"type":"integer"}},"required":["x","y"]},"ping":{"properties":{}}},"maxProperties":1}"#
     )
@@ -101,7 +101,7 @@ struct EnumerationSchemaEncodingTests {
 
   @Test func encodesDescription() throws {
     try test(
-      Reaction.schema(description: "A reaction"),
+      Reaction.schema.prependDescription("A reaction"),
       encodesAs:
         #"{"description":"A reaction","properties":{"text":{"type":"string"},"point":{"properties":{"x":{"type":"integer"},"y":{"type":"integer"}},"required":["x","y"]},"ping":{"properties":{}}},"maxProperties":1}"#
     )
@@ -112,7 +112,7 @@ struct EnumerationSchemaEncodingTests {
   /// instantiation resolves the enumeration's `Schema` witness).
   @Test func encodesAsObjectProperty() throws {
     try test(
-      Container.schema(description: nil),
+      Container.schema,
       encodesAs:
         #"{"properties":{"reaction":{"properties":{"text":{"type":"string"},"point":{"properties":{"x":{"type":"integer"},"y":{"type":"integer"}},"required":["x","y"]},"ping":{"properties":{}}},"maxProperties":1}},"required":["reaction"]}"#
     )
@@ -122,7 +122,7 @@ struct EnumerationSchemaEncodingTests {
   /// default style too, so the label survives as a schema property name.
   @Test func encodesSingleLabeledValueAsObject() throws {
     try test(
-      Feedback.schema(description: nil),
+      Feedback.schema,
       encodesAs:
         #"{"properties":{"rating":{"properties":{"stars":{"type":"integer"}},"required":["stars"]},"comment":{"type":"string"}},"maxProperties":1}"#
     )
@@ -133,7 +133,7 @@ struct EnumerationSchemaEncodingTests {
   /// are unchanged.
   @Test func encodesCaseDescriptions() throws {
     try test(
-      DescribedFeedback.schema(description: nil),
+      DescribedFeedback.schema,
       encodesAs:
         #"{"properties":{"comment":{"description":"A free-form comment","type":"string"},"rating":{"properties":{"stars":{"type":"integer"}},"required":["stars"]},"point":{"description":"A 2D point","properties":{"x":{"type":"integer"},"y":{"type":"integer"}},"required":["x","y"]},"ping":{"description":"An empty ping","properties":{}}},"maxProperties":1}"#
     )
@@ -147,7 +147,7 @@ struct EnumerationSchemaEncodingTests {
   /// a one-property payload object just as multi-value cases do.
   @Test func encodesInternallyTaggedBranches() throws {
     try test(
-      Shape.schema(description: nil),
+      Shape.schema,
       encodesAs:
         #"{"oneOf":[{"properties":{"kind":{"const":"circle"},"radius":{"type":"number"}},"required":["kind","radius"]},{"properties":{"kind":{"const":"rectangle"},"width":{"type":"number"},"height":{"type":"number"}},"required":["kind","width","height"]}]}"#
     )
@@ -155,7 +155,7 @@ struct EnumerationSchemaEncodingTests {
 
   @Test func encodesInternallyTaggedDescription() throws {
     try test(
-      Shape.schema(description: "A shape"),
+      Shape.schema.prependDescription("A shape"),
       encodesAs:
         #"{"description":"A shape","oneOf":[{"properties":{"kind":{"const":"circle"},"radius":{"type":"number"}},"required":["kind","radius"]},{"properties":{"kind":{"const":"rectangle"},"width":{"type":"number"},"height":{"type":"number"}},"required":["kind","width","height"]}]}"#
     )
@@ -165,7 +165,7 @@ struct EnumerationSchemaEncodingTests {
   /// `oneOf` branch, alongside the spliced-in discriminator.
   @Test func encodesInternallyTaggedCaseDescriptions() throws {
     try test(
-      DescribedShape.schema(description: nil),
+      DescribedShape.schema,
       encodesAs:
         #"{"oneOf":[{"description":"A circle","properties":{"kind":{"const":"circle"},"radius":{"type":"number"}},"required":["kind","radius"]},{"properties":{"kind":{"const":"rectangle"},"width":{"type":"number"},"height":{"type":"number"}},"required":["kind","width","height"]}]}"#
     )
@@ -177,7 +177,7 @@ struct EnumerationSchemaEncodingTests {
   /// `oneOf` branch.
   @Test func encodesTypeDiscriminatedCaseDescriptions() throws {
     try test(
-      DescribedNode.schema(description: nil),
+      DescribedNode.schema,
       encodesAs:
         #"{"oneOf":[{"description":"A leaf string","type":"string"},{"properties":{"x":{"type":"integer"},"y":{"type":"integer"}},"required":["x","y"]}]}"#
     )
@@ -189,21 +189,21 @@ struct EnumerationSchemaEncodingTests {
   /// listing every case's raw value in declaration order — no `type` keyword.
   @Test func encodesStringRawValues() throws {
     try test(
-      Alignment.schema(description: nil),
+      Alignment.schema,
       encodesAs: #"{"enum":["left","center","right"]}"#
     )
   }
 
   @Test func encodesIntegerRawValues() throws {
     try test(
-      Level.schema(description: nil),
+      Level.schema,
       encodesAs: #"{"enum":[1,2,3]}"#
     )
   }
 
   @Test func encodesRawValueDescription() throws {
     try test(
-      Alignment.schema(description: "Text alignment"),
+      Alignment.schema.prependDescription("Text alignment"),
       encodesAs: #"{"description":"Text alignment","enum":["left","center","right"]}"#
     )
   }
@@ -217,7 +217,7 @@ struct EnumerationSchemaEncodingTests {
       #"{"description":"A reaction","properties":{"text":{"type":"string"},"point":{"properties":{"x":{"type":"integer"},"y":{"type":"integer"}},"required":["x","y"]},"ping":{"properties":{}}},"maxProperties":1}"#
     try test(
       JSONFragments(stringLiteral: json),
-      decodesAs: .complete(Reaction.schema(description: nil)),
+      decodesAs: .complete(Reaction.schema),
       testEquality: { decoded, _, sourceLocation in
         let decoded = try #require(decoded, sourceLocation: sourceLocation)
         var encoder = StructuredEncoder()

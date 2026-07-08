@@ -94,9 +94,9 @@ struct ObjectSchema {
   /// getter closures instead of key path literals.
   let compatibilityModes: CompatibilityModes
 
-  /// Carried from `@StructuredCodable(description:)`. The `StructuredObject`
-  /// conformance has no description channel, so this is currently unused by
-  /// generation — retained losslessly pending JSON-schema support.
+  /// Carried from `@StructuredCodable(description:)`. The generated `schema`
+  /// witness passes it as `_schema`'s `typeDescription:`; use sites prepend
+  /// theirs onto the resulting schema.
   let description: StringLiteralExprSyntax?
 
   var properties: [Property]
@@ -118,7 +118,8 @@ struct ObjectSchema {
     let propertyTypeAliasName: TokenSyntax
 
     /// Carried from `@StructuredProperty(description:)`; emitted as the
-    /// `description:` argument of the property's `schema(description:)` call.
+    /// `description:` argument of the generated property descriptor, whose
+    /// initializer prepends it onto the property's schema.
     let description: StringLiteralExprSyntax?
 
   }

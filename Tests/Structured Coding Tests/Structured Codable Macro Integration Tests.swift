@@ -101,19 +101,41 @@ struct StructuredCodableMacroIntegrationTests {
     try test(#"{"text":"hi"}"#, decodesAs: MacroAnnotatedEnum.text("hi"))
   }
 
-  /// The attached descriptions surface in the generated schema: on the
-  /// property's schema for `@StructuredProperty`, and on the case's slot in
-  /// the object-properties schema for `@StructuredCase`.
+  /// The attached descriptions surface in the generated schema: the
+  /// `@StructuredCodable` description on the type's own schema, the
+  /// `@StructuredProperty` description on the property's schema, and the
+  /// `@StructuredCase` description on the case's slot in the
+  /// object-properties schema.
   @Test func annotatedMembersDescribeSchema() throws {
     try test(
-      MacroAnnotatedObject.schema(description: nil),
+      MacroAnnotatedObject.schema,
       encodesAs:
-        #"{"properties":{"x":{"description":"The horizontal coordinate","type":"integer"}},"required":["x"]}"#
+        #"{"description":"An object with annotated members","properties":{"x":{"description":"The horizontal coordinate","type":"integer"}},"required":["x"]}"#
     )
     try test(
-      MacroAnnotatedEnum.schema(description: nil),
+      MacroAnnotatedEnum.schema,
       encodesAs:
-        #"{"properties":{"text":{"description":"A text message","type":"string"}},"maxProperties":1}"#
+        #"{"description":"An enumeration with annotated cases","properties":{"text":{"description":"A text message","type":"string"}},"maxProperties":1}"#
+    )
+  }
+
+  /// A description prepended by a use site lands before the type's own,
+  /// separated by a blank line.
+  @Test func useSiteAndTypeDescriptionsConcatenate() throws {
+    try test(
+      MacroAnnotatedObject.schema.prependDescription("As used here"),
+      encodesAs:
+        #"{"description":"As used here\n\nAn object with annotated members","properties":{"x":{"description":"The horizontal coordinate","type":"integer"}},"required":["x"]}"#
+    )
+  }
+
+  /// The same concatenation applies when the use-site description comes from
+  /// a `@StructuredProperty` annotation on a property of the described type.
+  @Test func propertyAndTypeDescriptionsConcatenate() throws {
+    try test(
+      MacroAnnotatedContainer.schema,
+      encodesAs:
+        #"{"properties":{"object":{"description":"The annotated object\n\nAn object with annotated members","properties":{"x":{"description":"The horizontal coordinate","type":"integer"}},"required":["x"]}},"required":["object"]}"#
     )
   }
 
@@ -172,6 +194,12 @@ private struct MacroAnnotatedObject: Equatable, Sendable {
 private enum MacroAnnotatedEnum: Equatable, Sendable {
   @StructuredCase(description: "A text message")
   case text(String)
+}
+
+@StructuredCodable
+private struct MacroAnnotatedContainer: Equatable, Sendable {
+  @StructuredProperty(description: "The annotated object")
+  var object: MacroAnnotatedObject
 }
 
 // MARK: - Helper

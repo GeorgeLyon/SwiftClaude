@@ -4,8 +4,8 @@ private import JavaScriptObjectNotation
 
 extension String {
 
-  public static func schema(description: String?) -> some StructuredCodable {
-    MetaSchema.string(description: description)
+  public static var schema: some StructuredCodingSchema {
+    MetaSchema.string(description: nil)
   }
 
 }
