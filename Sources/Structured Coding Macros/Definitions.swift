@@ -144,6 +144,68 @@ extension ObjectSchema.Property {
     /// The property's declared type, emitted verbatim.
     let valueType: TypeSyntax
     let defaulting: Defaulting
+    /// Present when the declared type is (an optional of) a tuple, which
+    /// generation codes through `StructuredTuple`.
+    let tupleUpgrade: TupleUpgrade?
+
+    init(valueType: TypeSyntax, defaulting: Defaulting) {
+      self.valueType = valueType
+      self.defaulting = defaulting
+      self.tupleUpgrade = TupleUpgrade(upgrading: valueType)
+    }
+  }
+
+  /// A property whose declared type is a tuple, possibly wrapped in optional
+  /// sugar. A bare tuple is not a nominal type, so it can neither conform to
+  /// the coding protocols nor carry the `_StructuredObjectPropertyDefinition`
+  /// member the property machinery resolves through — generation instead
+  /// codes the property through `StructuredTuple`, wrapping in the property
+  /// getter and unwrapping (`.values`) in `decode`. Like the `T?` handling,
+  /// detection is syntactic but sound: a literal tuple type *is* a tuple by
+  /// language definition. A typealias hiding a tuple is not upgraded (and
+  /// fails to compile, exactly as it would have without the upgrade).
+  struct TupleUpgrade {
+
+    /// `true` for `(Int, Int)?` — the wrap and unwrap lift over the optional
+    /// and the property codes through `StructuredTuple<Int, Int>?`.
+    let isOptional: Bool
+
+    /// `StructuredTuple`'s generic arguments: the element types with any
+    /// labels dropped (tuple values code positionally), or the single pack
+    /// expansion of a pack tuple.
+    let genericArguments: [TypeSyntax]
+
+    /// `true` for `(repeat each T)`, whose values are wrapped and unwrapped
+    /// by pack expansion (`repeat each`) rather than by element index.
+    let isPack: Bool
+
+    init?(upgrading declaredType: TypeSyntax) {
+      var isOptional = false
+      var coreType = declaredType.trimmed
+      if let optionalType = coreType.as(OptionalTypeSyntax.self) {
+        isOptional = true
+        coreType = optionalType.wrappedType
+      }
+      guard let tupleType = coreType.as(TupleTypeSyntax.self) else {
+        return nil
+      }
+      let elementTypes = tupleType.elements.map { TypeSyntax($0.type.trimmed) }
+      let packElementCount = elementTypes.count(where: { $0.is(PackExpansionTypeSyntax.self) })
+      switch (elementTypes.count, packElementCount) {
+      case (1, 1):
+        self.isPack = true
+      case (2..., 0):
+        self.isPack = false
+      default:
+        /// `()` is `Void`, `(T)` is just `T` parenthesized, and a tuple
+        /// mixing fixed elements with pack expansions cannot be rebuilt
+        /// element-wise — none are upgraded.
+        return nil
+      }
+      self.isOptional = isOptional
+      self.genericArguments = elementTypes
+    }
+
   }
 
   /// Whether the property carries a default, and what generation does with it in

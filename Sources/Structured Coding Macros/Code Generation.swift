@@ -93,6 +93,7 @@ extension ObjectSchema {
           properties.map { property in
             ExprSyntax(
               property.propertyExpr(
+                in: namespace,
                 keyConversionStrategy: keyConversionStrategy,
                 compatibilityModes: compatibilityModes
               )
@@ -200,11 +201,13 @@ extension ObjectSchema {
         // Omitted — the initializer's own default supplies the constant.
         continue
       case .none:
-        expression = property.decoderValueExpr(index: index, isSingle: isSingle)
+        expression = property.definition.unwrappedValueExpr(
+          property.decoderValueExpr(index: index, isSingle: isSingle)
+        )
       case .mutable(let defaultValue):
         expression = ExprSyntax(
           InfixOperatorExprSyntax(
-            leftOperand: property.decoderValueExpr(index: index, isSingle: isSingle),
+            leftOperand: property.decodedValueOrNilExpr(index: index, isSingle: isSingle),
             operator: BinaryOperatorExprSyntax(
               operator: .binaryOperator("??", leadingTrivia: .space, trailingTrivia: .space)
             ),
@@ -297,7 +300,9 @@ extension ObjectSchema {
           InfixOperatorExprSyntax(
             leftOperand: storedProperty,
             operator: AssignmentExprSyntax(),
-            rightOperand: property.decoderValueExpr(index: index, isSingle: isSingle)
+            rightOperand: property.definition.unwrappedValueExpr(
+              property.decoderValueExpr(index: index, isSingle: isSingle)
+            )
           )
         )
       case .mutable:
@@ -321,7 +326,9 @@ extension ObjectSchema {
               InfixOperatorExprSyntax(
                 leftOperand: storedProperty,
                 operator: AssignmentExprSyntax(),
-                rightOperand: DeclReferenceExprSyntax(baseName: property.name.token)
+                rightOperand: property.definition.unwrappedValueExpr(
+                  ExprSyntax(DeclReferenceExprSyntax(baseName: property.name.token))
+                )
               )
             }
           )
@@ -348,9 +355,12 @@ extension ObjectSchema.Property {
   /// `<unique>(name: "json", keyPath: \.swiftName, schema: <unique>.Definition.CodingValue.schema)`,
   /// or with `.variadicGenerics` compatibility
   /// `<unique>(name: "json", getter: { $0.swiftName }, schema: <unique>.Definition.CodingValue.schema)`.
+  /// A tuple-upgraded property always uses a getter — one that wraps the
+  /// stored tuple in `StructuredTuple`, which no key path can produce.
   /// A `@StructuredProperty(description:)` annotation adds `description: "..."`
   /// after the name; the initializer prepends it onto the property's schema.
   fileprivate func propertyExpr(
+    in namespace: StructuredCodingNamespace,
     keyConversionStrategy: KeyConversionStrategy,
     compatibilityModes: CompatibilityModes
   ) -> FunctionCallExprSyntax {
@@ -374,7 +384,14 @@ extension ObjectSchema.Property {
             trailingComma: .commaToken(trailingTrivia: .newline)
           )
         }
-        if compatibilityModes.contains(.variadicGenerics) {
+        if let tupleUpgrade = definition.tupleUpgrade {
+          LabeledExprSyntax(
+            label: "getter",
+            colon: .colonToken(),
+            expression: tupleGetterClosure(for: tupleUpgrade, in: namespace),
+            trailingComma: .commaToken(trailingTrivia: .newline)
+          )
+        } else if compatibilityModes.contains(.variadicGenerics) {
           // Key path literals rooted in a pack-generic type crash at runtime;
           // see `StructuredCodingCompatibilityMode.variadicGenerics`.
           LabeledExprSyntax(
@@ -428,6 +445,100 @@ extension ObjectSchema.Property {
     )
   }
 
+  /// The wrapping getter for a tuple-upgraded property:
+  /// `{ {ns}.StructuredTuple($0.x.0, $0.x.1) }` — expanding a pack tuple with
+  /// `repeat each` instead of by index — or, through an optional,
+  /// `{ $0.x.map { {ns}.StructuredTuple($0.0, $0.1) } }` (the inner `$0` is
+  /// `map`'s tuple argument).
+  private func tupleGetterClosure(
+    for tupleUpgrade: ObjectSchema.Property.TupleUpgrade,
+    in namespace: StructuredCodingNamespace
+  ) -> ClosureExprSyntax {
+    func wrapExpr(tuple: ExprSyntax) -> FunctionCallExprSyntax {
+      FunctionCallExprSyntax(
+        calledExpression: namespace.member(name: "StructuredTuple"),
+        leftParen: .leftParenToken(),
+        arguments: LabeledExprListSyntax {
+          if tupleUpgrade.isPack {
+            LabeledExprSyntax(
+              expression: PackExpansionExprSyntax(
+                repeatKeyword: .keyword(.repeat, trailingTrivia: .space),
+                repetitionPattern: PackElementExprSyntax(
+                  eachKeyword: .keyword(.each, trailingTrivia: .space),
+                  pack: tuple
+                )
+              )
+            )
+          } else {
+            for index in tupleUpgrade.genericArguments.indices {
+              LabeledExprSyntax(
+                expression: MemberAccessExprSyntax(base: tuple, name: "\(raw: index)")
+              )
+            }
+          }
+        },
+        rightParen: .rightParenToken()
+      )
+    }
+
+    let storedTuple = ExprSyntax(
+      MemberAccessExprSyntax(
+        base: DeclReferenceExprSyntax(baseName: .dollarIdentifier("$0")),
+        declName: DeclReferenceExprSyntax(baseName: .identifier(name.name))
+      )
+    )
+
+    guard tupleUpgrade.isOptional else {
+      return ClosureExprSyntax(
+        statements: CodeBlockItemListSyntax {
+          wrapExpr(tuple: storedTuple)
+        }
+      )
+    }
+    return ClosureExprSyntax(
+      statements: CodeBlockItemListSyntax {
+        FunctionCallExprSyntax(
+          calledExpression: MemberAccessExprSyntax(base: storedTuple, name: "map"),
+          leftParen: nil,
+          arguments: LabeledExprListSyntax(),
+          rightParen: nil,
+          trailingClosure: ClosureExprSyntax(
+            statements: CodeBlockItemListSyntax {
+              wrapExpr(tuple: ExprSyntax(DeclReferenceExprSyntax(baseName: .dollarIdentifier("$0"))))
+            }
+          )
+        )
+      }
+    )
+  }
+
+  /// The decoded value for a default-initialized property, `nil` when the
+  /// property was omitted (`objectDecoder.values.N`, whose value is
+  /// `PropertyValue?`); a tuple-upgraded property unwraps the wrapper inside
+  /// the optional (`objectDecoder.values.N.map { $0.values }`), leaving the
+  /// omitted case `nil` for the caller's `?? <default>`.
+  fileprivate func decodedValueOrNilExpr(index: Int, isSingle: Bool) -> ExprSyntax {
+    let decoderValue = decoderValueExpr(index: index, isSingle: isSingle)
+    guard definition.tupleUpgrade != nil else {
+      return decoderValue
+    }
+    return ExprSyntax(
+      FunctionCallExprSyntax(
+        calledExpression: MemberAccessExprSyntax(base: decoderValue, name: "map"),
+        leftParen: nil,
+        arguments: LabeledExprListSyntax(),
+        rightParen: nil,
+        trailingClosure: ClosureExprSyntax(
+          statements: CodeBlockItemListSyntax {
+            definition.unwrappedValueExpr(
+              ExprSyntax(DeclReferenceExprSyntax(baseName: .dollarIdentifier("$0")))
+            )
+          }
+        )
+      )
+    )
+  }
+
   /// `objectDecoder.values` (single property) or `objectDecoder.values.N`.
   fileprivate func decoderValueExpr(index: Int, isSingle: Bool) -> ExprSyntax {
     let values = MemberAccessExprSyntax(
@@ -453,7 +564,7 @@ extension ObjectSchema.Property.Definition {
   func typeSyntax(in namespace: StructuredCodingNamespace) -> TypeSyntax {
     let coreType = TypeSyntax(
       MemberTypeSyntax(
-        baseType: declaredType,
+        baseType: codingType(in: namespace),
         name: "_StructuredObjectPropertyDefinition"
       )
     )
@@ -485,6 +596,45 @@ extension ObjectSchema.Property.Definition {
   /// a synthesized associated-value object.
   var declaredType: TypeSyntax {
     valueType.trimmed
+  }
+
+  /// The type the property codes through: the declared type, except tuples
+  /// are upgraded to `{ns}.StructuredTuple` (preserving optional sugar) —
+  /// see `TupleUpgrade`.
+  private func codingType(in namespace: StructuredCodingNamespace) -> TypeSyntax {
+    guard let tupleUpgrade else {
+      return declaredType
+    }
+    let tupleType = TypeSyntax(
+      namespace.memberType(
+        name: "StructuredTuple",
+        genericArgumentClause: GenericArgumentClauseSyntax {
+          for argument in tupleUpgrade.genericArguments {
+            GenericArgumentSyntax(argument: GenericArgumentSyntax.Argument(argument))
+          }
+        }
+      )
+    )
+    guard tupleUpgrade.isOptional else {
+      return tupleType
+    }
+    return TypeSyntax(OptionalTypeSyntax(wrappedType: tupleType))
+  }
+
+  /// Converts an expression of the property's *coded* type back to the
+  /// declared type: for a tuple-upgraded property this unwraps the
+  /// `StructuredTuple` (`.values`, chaining through an optional as
+  /// `?.values`); every other property's coded value already is the
+  /// declared value.
+  func unwrappedValueExpr(_ codedValue: ExprSyntax) -> ExprSyntax {
+    guard let tupleUpgrade else {
+      return codedValue
+    }
+    let base: ExprSyntax =
+      tupleUpgrade.isOptional
+      ? ExprSyntax(OptionalChainingExprSyntax(expression: codedValue))
+      : codedValue
+    return ExprSyntax(MemberAccessExprSyntax(base: base, name: "values"))
   }
 
 }

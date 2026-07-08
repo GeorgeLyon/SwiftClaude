@@ -218,6 +218,76 @@ struct StructuredCodableStructTests {
     )
   }
 
+  /// Tuple-typed properties are coded through `StructuredTuple` — a bare
+  /// tuple is not nominal, so it cannot carry the coding conformances. The
+  /// definition names the upgraded type (preserving optional sugar), the
+  /// getter wraps the stored tuple (labels are dropped; values code
+  /// positionally), and `decode` unwraps with `.values` / `?.values`.
+  @Test
+  func structWithTupleProperties() {
+    assertStructuredCodableExpansion(
+      """
+      @StructuredCodable
+      struct Line {
+        let endpoints: (Int, Int)
+        var label: (x: Int, name: String)?
+        var origin: (Int, Int) = (0, 0)
+      }
+      """,
+      #"""
+      struct Line {
+        let endpoints: (Int, Int)
+        var label: (x: Int, name: String)?
+        var origin: (Int, Int) = (0, 0)
+      }
+
+      extension Line: StructuredCoding.StructuredObject {
+        typealias __macro_local_9endpointsfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredTuple<Int, Int>._StructuredObjectPropertyDefinition>
+        typealias __macro_local_5labelfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredTuple<Int, String>?._StructuredObjectPropertyDefinition>
+        typealias __macro_local_6originfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredMutableDefaultInitializedPropertyDefinition<StructuredCoding.StructuredTuple<Int, Int>._StructuredObjectPropertyDefinition>>
+        static var schema: some StructuredCoding.StructuredCodingSchema {
+          _schema()
+        }
+        typealias StructuredObjectProperties = (__macro_local_9endpointsfMu_, __macro_local_5labelfMu_, __macro_local_6originfMu_)
+        static func properties() -> StructuredObjectProperties {
+          (__macro_local_9endpointsfMu_(
+              name: "endpoints",
+              getter: {
+                StructuredCoding.StructuredTuple($0.endpoints.0, $0.endpoints.1)
+              },
+              schema: __macro_local_9endpointsfMu_.Definition.CodingValue.schema
+            ), __macro_local_5labelfMu_(
+              name: "label",
+              getter: {
+                $0.label.map {
+                  StructuredCoding.StructuredTuple($0.0, $0.1)
+                }
+              },
+              schema: __macro_local_5labelfMu_.Definition.CodingValue.schema
+            ), __macro_local_6originfMu_(
+              name: "origin",
+              getter: {
+                StructuredCoding.StructuredTuple($0.origin.0, $0.origin.1)
+              },
+              schema: __macro_local_6originfMu_.Definition.CodingValue.schema
+            ))
+        }
+        typealias ObjectDecoderValues = (__macro_local_9endpointsfMu_.ObjectDecoderValue, __macro_local_5labelfMu_.ObjectDecoderValue, __macro_local_6originfMu_.ObjectDecoderValue)
+        static func decode(from objectDecoder: sending StructuredCoding.StructuredObjectDecoder<ObjectDecoderValues>) -> sending Self {
+          Self(from: objectDecoder)
+        }
+        private init(from objectDecoder: sending StructuredCoding.StructuredObjectDecoder<ObjectDecoderValues>) {
+          self.endpoints = objectDecoder.values.0.values
+          self.label = objectDecoder.values.1?.values
+          if let origin = objectDecoder.values.2 {
+            self.origin = origin.values
+          }
+        }
+      }
+      """#
+    )
+  }
+
   /// Covers the array-literal form of `compatibilityMode:` (`[.variadicGenerics]`
   /// rather than the bare `.variadicGenerics`). A type-erased
   /// `schema` witness is emitted instead of a structural `Schema` typealias.

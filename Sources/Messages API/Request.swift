@@ -5,12 +5,12 @@ public struct Request<each Tool: StructuredCodable> {
 
   public init(messages: [Message], tools: repeat each Tool) {
     self.messages = messages
-    self.tools = StructuredTuple(repeat each tools)
+    self.tools = (repeat each tools)
   }
 
   public let messages: [Message]
 
-  public let tools: StructuredTuple<repeat each Tool>
+  public let tools: (repeat each Tool)
 
 }
 
