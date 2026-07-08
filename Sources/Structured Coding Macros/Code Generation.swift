@@ -453,7 +453,7 @@ extension ObjectSchema.Property.Definition {
   func typeSyntax(in namespace: StructuredCodingNamespace) -> TypeSyntax {
     let coreType = TypeSyntax(
       MemberTypeSyntax(
-        baseType: declaredType.memberTypeBase,
+        baseType: declaredType,
         name: "_StructuredObjectPropertyDefinition"
       )
     )
@@ -485,32 +485,6 @@ extension ObjectSchema.Property.Definition {
   /// a synthesized associated-value object.
   var declaredType: TypeSyntax {
     valueType.trimmed
-  }
-
-}
-
-extension TypeSyntax {
-
-  /// The type, ready to serve as the base of a member type reference.
-  /// Optional sugar cannot (`String?._Member` does not parse), so it is
-  /// expanded to `Swift.Optional<String>` — a purely syntactic rewrite, since
-  /// `T?` *is* `Swift.Optional<T>` by language definition, unlike the
-  /// semantic optionality guesses this member-type emission replaces.
-  fileprivate var memberTypeBase: TypeSyntax {
-    guard let optionalType = self.as(OptionalTypeSyntax.self) else {
-      return self
-    }
-    return TypeSyntax(
-      MemberTypeSyntax(
-        baseType: IdentifierTypeSyntax(name: "Swift"),
-        name: "Optional",
-        genericArgumentClause: GenericArgumentClauseSyntax {
-          GenericArgumentSyntax(
-            argument: GenericArgumentSyntax.Argument(optionalType.wrappedType)
-          )
-        }
-      )
-    )
   }
 
 }

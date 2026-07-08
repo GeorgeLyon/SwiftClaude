@@ -78,7 +78,7 @@ struct StructuredCodableStructTests {
 
       extension S: StructuredCoding.StructuredObject {
         typealias __macro_local_5firstfMu_ = StructuredCoding.StructuredObjectProperty<Self, String._StructuredObjectPropertyDefinition>
-        typealias __macro_local_6secondfMu_ = StructuredCoding.StructuredObjectProperty<Self, Swift.Optional<String>._StructuredObjectPropertyDefinition>
+        typealias __macro_local_6secondfMu_ = StructuredCoding.StructuredObjectProperty<Self, String?._StructuredObjectPropertyDefinition>
         typealias __macro_local_4kindfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredImmutableDefaultInitializedPropertyDefinition<String._StructuredObjectPropertyDefinition>>
         typealias __macro_local_5countfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredMutableDefaultInitializedPropertyDefinition<Int._StructuredObjectPropertyDefinition>>
         static var schema: some StructuredCoding.StructuredCodingSchema {
@@ -185,7 +185,7 @@ struct StructuredCodableStructTests {
 
       extension PackBox: StructuredCoding.StructuredObject {
         typealias __macro_local_5firstfMu_ = StructuredCoding.StructuredObjectProperty<Self, String._StructuredObjectPropertyDefinition>
-        typealias __macro_local_6secondfMu_ = StructuredCoding.StructuredObjectProperty<Self, Swift.Optional<String>._StructuredObjectPropertyDefinition>
+        typealias __macro_local_6secondfMu_ = StructuredCoding.StructuredObjectProperty<Self, String?._StructuredObjectPropertyDefinition>
         static var schema: some StructuredCoding.StructuredCodingSchema {
           _schema()
         }
@@ -416,7 +416,7 @@ struct StructuredCodableStructTests {
       }
 
       extension MaybeName: StructuredCoding.StructuredWrapper {
-        typealias __macro_local_4namefMu_ = StructuredCoding.StructuredObjectProperty<Self, Swift.Optional<String>._StructuredObjectPropertyDefinition>
+        typealias __macro_local_4namefMu_ = StructuredCoding.StructuredObjectProperty<Self, String?._StructuredObjectPropertyDefinition>
         static var schema: some StructuredCoding.StructuredCodingSchema {
           _schema()
         }

@@ -1,11 +1,16 @@
 public import StructuredCoding
 
-//@APICodable
+@APICodable(compatibilityMode: .variadicGenerics)
 public struct Request<each Tool: StructuredCodable> {
+
+  public init(messages: [Message], tools: repeat each Tool) {
+    self.messages = messages
+    self.tools = StructuredTuple(repeat each tools)
+  }
 
   public let messages: [Message]
 
-  public let tools: (repeat each Tool)
+  public let tools: StructuredTuple<repeat each Tool>
 
 }
 

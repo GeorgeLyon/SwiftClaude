@@ -66,6 +66,32 @@ struct MessagesAPIEncodingTests {
     )
   }
 
+  // MARK: - Requests
+
+  /// `Request` is generic over a parameter pack of tools, so its conformance
+  /// is generated with `.variadicGenerics` compatibility; encoding a value
+  /// instantiates the property metadata that the default key-path emission
+  /// crashes on at runtime.
+  @Test func encodesRequestWithTools() throws {
+    try #expect(
+      encode(
+        Request(
+          messages: [Message(role: .user, content: [.text(text: "Hello, world")])],
+          tools: Calculator(precision: 2), WebSearch(maxResults: 5)
+        )
+      )
+        == #"{"messages":[{"role":"user","content":[{"type":"text","text":"Hello, world"}]}],"tools":[{"precision":2},{"max_results":5}]}"#
+    )
+  }
+
+  /// An empty tool pack encodes as an empty `tools` array.
+  @Test func encodesRequestWithoutTools() throws {
+    try #expect(
+      encode(Request(messages: [Message(role: .user, content: [.text(text: "Hello, world")])]))
+        == #"{"messages":[{"role":"user","content":[{"type":"text","text":"Hello, world"}]}],"tools":[]}"#
+    )
+  }
+
   // MARK: - Cache Control
 
   /// A `nil` time-to-live is omitted, leaving only the discriminator.
@@ -101,7 +127,17 @@ struct MessagesAPIEncodingTests {
 
 }
 
-// MARK: - Helper
+// MARK: - Helpers
+
+@APICodable
+private struct Calculator {
+  let precision: Int
+}
+
+@APICodable
+private struct WebSearch {
+  let maxResults: Int
+}
 
 private func encode<Value: StructuredEncodable>(_ value: Value) throws -> String {
   var encoder = StructuredEncoder()
