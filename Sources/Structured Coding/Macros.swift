@@ -26,6 +26,29 @@ public macro StructuredCodable(
     type: "StructuredCodableMacro"
   )
 
+/// Conforms a single-property struct to `StructuredWrapper`, coding it as its
+/// stored value with no object container around it.
+@attached(
+  extension,
+  conformances: StructuredWrapper,
+  names:
+    named(Schema),
+    named(schema),
+    named(StructuredObjectProperties),
+    named(properties),
+    named(ObjectDecoderValues),
+    named(decode),
+    named(init)
+)
+public macro StructuredCodable(
+  description: String? = nil,
+  style: StructuredWrapperStyle
+) =
+  #externalMacro(
+    module: "StructuredCodingMacros",
+    type: "StructuredCodableMacro"
+  )
+
 // MARK: - Member Annotations
 
 /// Attaches a description to a stored property of a `@StructuredCodable` type.

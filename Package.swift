@@ -16,7 +16,10 @@ let package = Package(
   products: [
     .library(
       name: "SwiftClaude",
-      targets: ["StructuredCoding"]
+      targets: [
+        "StructuredCoding",
+        "MessagesAPI",
+      ]
     )
   ],
   dependencies: [
@@ -51,6 +54,25 @@ let package = Package(
         "JavaScriptObjectNotation",
       ],
       path: "Tests/Structured Coding Tests",
+      swiftSettings: .projectDefaults
+    ),
+
+    .target(
+      name: "MessagesAPI",
+      dependencies: [
+        "StructuredCoding",
+        "StructuredCodingMacros",
+      ],
+      path: "Sources/Messages API",
+      swiftSettings: .projectDefaults
+    ),
+    .testTarget(
+      name: "MessagesAPITests",
+      dependencies: [
+        "MessagesAPI",
+        "StructuredCoding",
+      ],
+      path: "Tests/Messages API Tests",
       swiftSettings: .projectDefaults
     ),
 

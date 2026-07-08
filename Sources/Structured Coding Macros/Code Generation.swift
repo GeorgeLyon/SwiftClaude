@@ -12,6 +12,8 @@ extension StructuredCodableType {
     switch kind {
     case .object:
       namespace.memberType(name: "StructuredObject")
+    case .wrapper:
+      namespace.memberType(name: "StructuredWrapper")
     case .enumeration:
       namespace.memberType(name: "StructuredEnumeration")
     }
@@ -20,7 +22,7 @@ extension StructuredCodableType {
   @MemberBlockItemListBuilder
   var members: MemberBlockItemListSyntax {
     switch kind {
-    case .object(let schema):
+    case .object(let schema), .wrapper(let schema):
       schema.conformanceMembers(isPublic: isPublic)
     case .enumeration(let schema):
       schema.conformanceMembers(isPublic: isPublic)
@@ -443,31 +445,18 @@ extension ObjectSchema.Property {
 
 extension ObjectSchema.Property.Definition {
 
-  /// The `Structured…ObjectPropertyDefinition` generic specialization for this
-  /// property, e.g.
-  /// `{ns}.StructuredMutableDefaultInitializedPropertyDefinition<{ns}.StructuredRequiredObjectPropertyDefinition<Int>>`.
+  /// The property definition specialization for this property, resolved
+  /// through the declared type — e.g. `Int._StructuredObjectPropertyDefinition`
+  /// or `{ns}.StructuredMutableDefaultInitializedPropertyDefinition<
+  /// Int._StructuredObjectPropertyDefinition>` — so that the *type system*
+  /// decides how the property codes.
   func typeSyntax(in namespace: StructuredCodingNamespace) -> TypeSyntax {
-    let coreType: TypeSyntax
-    switch core {
-    case .required(let valueType):
-      coreType = TypeSyntax(
-        namespace.memberType(
-          name: "StructuredRequiredObjectPropertyDefinition",
-          genericArgumentClause: GenericArgumentClauseSyntax {
-            GenericArgumentSyntax(argument: GenericArgumentSyntax.Argument(valueType.trimmed))
-          }
-        )
+    let coreType = TypeSyntax(
+      MemberTypeSyntax(
+        baseType: declaredType.memberTypeBase,
+        name: "_StructuredObjectPropertyDefinition"
       )
-    case .optional(let wrappedType):
-      coreType = TypeSyntax(
-        namespace.memberType(
-          name: "StructuredOptionalObjectPropertyDefinition",
-          genericArgumentClause: GenericArgumentClauseSyntax {
-            GenericArgumentSyntax(argument: GenericArgumentSyntax.Argument(wrappedType.trimmed))
-          }
-        )
-      )
-    }
+    )
 
     let wrapperName: TokenSyntax?
     switch defaulting {
@@ -492,15 +481,36 @@ extension ObjectSchema.Property.Definition {
     )
   }
 
-  /// The property's Swift type as written (`T` or `T?`) — used for the stored
-  /// property of a synthesized associated-value object.
+  /// The property's Swift type as written — used for the stored property of
+  /// a synthesized associated-value object.
   var declaredType: TypeSyntax {
-    switch core {
-    case .required(let valueType):
-      return valueType.trimmed
-    case .optional(let wrappedType):
-      return TypeSyntax(OptionalTypeSyntax(wrappedType: wrappedType.trimmed))
+    valueType.trimmed
+  }
+
+}
+
+extension TypeSyntax {
+
+  /// The type, ready to serve as the base of a member type reference.
+  /// Optional sugar cannot (`String?._Member` does not parse), so it is
+  /// expanded to `Swift.Optional<String>` — a purely syntactic rewrite, since
+  /// `T?` *is* `Swift.Optional<T>` by language definition, unlike the
+  /// semantic optionality guesses this member-type emission replaces.
+  fileprivate var memberTypeBase: TypeSyntax {
+    guard let optionalType = self.as(OptionalTypeSyntax.self) else {
+      return self
     }
+    return TypeSyntax(
+      MemberTypeSyntax(
+        baseType: IdentifierTypeSyntax(name: "Swift"),
+        name: "Optional",
+        genericArgumentClause: GenericArgumentClauseSyntax {
+          GenericArgumentSyntax(
+            argument: GenericArgumentSyntax.Argument(optionalType.wrappedType)
+          )
+        }
+      )
+    )
   }
 
 }

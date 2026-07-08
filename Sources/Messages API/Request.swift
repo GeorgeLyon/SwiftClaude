@@ -1,7 +1,7 @@
-public import SchemaCoding
+public import StructuredCoding
 
 //@APICodable
-public struct Request<each Tool: SchemaCoding.SchemaCodable> {
+public struct Request<each Tool: StructuredCodable> {
 
   public let messages: [Message]
 
@@ -12,7 +12,12 @@ public struct Request<each Tool: SchemaCoding.SchemaCodable> {
 // MARK: - Messages
 
 @APICodable
-public struct Message {
+public struct Message: Sendable {
+
+  public init(role: MessageRole, content: [ContentBlock]) {
+    self.role = role
+    self.content = content
+  }
 
   public let role: MessageRole
 
@@ -20,20 +25,20 @@ public struct Message {
 
 }
 
-public enum MessageRole: String, CaseIterable {
+public enum MessageRole: String, CaseIterable, StructuredEnumeration, Sendable {
   case user, assistant
 }
 
 @APICodable
-public enum ContentBlock {
+public enum ContentBlock: Sendable {
   case text(text: String)
   case image(source: ImageSource)
 
   @APICodable
-  public enum ImageSource {
+  public enum ImageSource: Sendable {
 
     @APICodable(style: .wrapper)
-    public struct Base64MediaType {
+    public struct Base64MediaType: Sendable {
       public static var png: Self { Self(stringValue: "image/png") }
 
       let stringValue: String
@@ -51,14 +56,14 @@ public enum ContentBlock {
 // MARK: - Prompt Caching
 
 @APICodable
-public enum CacheControl {
+public enum CacheControl: Sendable {
 
   case ephemeral(
     ttl: TimeToLive? = nil
   )
 
   @APICodable(style: .wrapper)
-  public struct TimeToLive {
+  public struct TimeToLive: Sendable {
     public static var fiveMinutes: Self { Self(stringValue: "5m") }
     public static var oneHour: Self { Self(stringValue: "1h") }
     let stringValue: String

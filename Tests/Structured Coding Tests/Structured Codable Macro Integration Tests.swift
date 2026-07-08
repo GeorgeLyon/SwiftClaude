@@ -76,6 +76,96 @@ struct StructuredCodableMacroIntegrationTests {
     try test(#"{"type":"move","x":1,"y":2}"#, decodesAs: MacroMessage.move(x: 1, y: 2))
   }
 
+  // MARK: - Typealiased Optionals
+
+  /// The motivating case for type-resolved property definitions: the macro
+  /// cannot see through `typealias MacroAliasedOptional = String?`, but the
+  /// type system can — the aliased property codes with omission semantics
+  /// exactly like a spelled-out `String?`.
+  @Test func typealiasedOptionalPropertyOmitsNil() throws {
+    try #expect(
+      encode(MacroAliasedProfile(name: "ada", nickname: nil)) == #"{"name":"ada"}"#
+    )
+    try #expect(
+      encode(MacroAliasedProfile(name: "ada", nickname: "al"))
+        == #"{"name":"ada","nickname":"al"}"#
+    )
+    try test(
+      #"{"name":"ada"}"#,
+      decodesAs: MacroAliasedProfile(name: "ada", nickname: nil)
+    )
+    try test(
+      #"{"name":"ada","nickname":"al"}"#,
+      decodesAs: MacroAliasedProfile(name: "ada", nickname: "al")
+    )
+  }
+
+  /// Likewise for wrappers: a typealiased optional wrapped value selects the
+  /// optional-cored wrapper specialization.
+  @Test func typealiasedOptionalWrapperCodesByOptionalConformance() throws {
+    try #expect(encode(MacroAliasedMaybe(name: "ada")) == #"{"value":"ada"}"#)
+    try #expect(encode(MacroAliasedMaybe(name: nil)) == #"{}"#)
+    try test(#"{}"#, decodesAs: MacroAliasedMaybe(name: nil))
+    try test(#"{"value":"ada"}"#, decodesAs: MacroAliasedMaybe(name: "ada"))
+  }
+
+  // MARK: - Wrappers
+
+  /// A `style: .wrapper` struct codes as its bare stored value.
+  @Test func wrapperRoundTrips() throws {
+    try #expect(encode(MacroMediaType(stringValue: "image/png")) == #""image/png""#)
+    try test(#""image/png""#, decodesAs: MacroMediaType(stringValue: "image/png"))
+  }
+
+  /// A wrapper's schema is its wrapped value's schema, with the type's own
+  /// description prepended.
+  @Test func wrapperSchemaIsWrappedValueSchema() throws {
+    try test(MacroMediaType.schema, encodesAs: #"{"type":"string"}"#)
+    try test(
+      MacroDescribedMediaType.schema,
+      encodesAs: #"{"description":"A MIME media type","type":"string"}"#
+    )
+  }
+
+  /// An optional wrapped value has no enclosing object to omit a `nil` from,
+  /// so it codes by `Optional`'s own conformance.
+  @Test func optionalWrapperCodesByOptionalConformance() throws {
+    try #expect(encode(MacroMaybeName(name: "ada")) == #"{"value":"ada"}"#)
+    try #expect(encode(MacroMaybeName(name: nil)) == #"{}"#)
+    try test(#"{"value":"ada"}"#, decodesAs: MacroMaybeName(name: "ada"))
+    try test(#"{}"#, decodesAs: MacroMaybeName(name: nil))
+  }
+
+  /// A `var` default on a wrapped value is a construction-time convenience
+  /// with no coding role: the decoded value always wins.
+  @Test func defaultedVarWrapperRoundTrips() throws {
+    try #expect(encode(MacroTag()) == #""untagged""#)
+    try test(#""tagged""#, decodesAs: MacroTag(text: "tagged"))
+  }
+
+  /// A constant wrapped value (`let` with a default) decodes only its
+  /// declared value — anything else fails validation, exactly like a constant
+  /// object property.
+  @Test func constantWrapperValidatesDecodedValue() throws {
+    try #expect(encode(MacroFixedTag()) == #""fixed""#)
+    try test(#""fixed""#, decodesAs: MacroFixedTag())
+    #expect(throws: (any Error).self) {
+      try test(#""other""#, decodesAs: MacroFixedTag())
+    }
+  }
+
+  /// A wrapper used as an object property codes as its bare value in place.
+  @Test func wrapperObjectPropertyCodesInPlace() throws {
+    try #expect(
+      encode(MacroAttachment(media: MacroMediaType(stringValue: "image/png")))
+        == #"{"media":"image/png"}"#
+    )
+    try test(
+      #"{"media":"image/png"}"#,
+      decodesAs: MacroAttachment(media: MacroMediaType(stringValue: "image/png"))
+    )
+  }
+
   // MARK: - Key Conversion
 
   @Test func snakeCaseKeysRoundTrip() throws {
@@ -172,6 +262,49 @@ private enum MacroMessage: Equatable, Sendable {
 @StructuredCodable
 private struct MacroNote: Equatable, Sendable {
   var body: String
+}
+
+private typealias MacroAliasedOptional = String?
+
+@StructuredCodable
+private struct MacroAliasedProfile: Equatable, Sendable {
+  var name: String
+  var nickname: MacroAliasedOptional
+}
+
+@StructuredCodable(style: .wrapper)
+private struct MacroAliasedMaybe: Equatable, Sendable {
+  let name: MacroAliasedOptional
+}
+
+@StructuredCodable(style: .wrapper)
+private struct MacroMediaType: Equatable, Sendable {
+  let stringValue: String
+}
+
+@StructuredCodable(description: "A MIME media type", style: .wrapper)
+private struct MacroDescribedMediaType: Equatable, Sendable {
+  let stringValue: String
+}
+
+@StructuredCodable(style: .wrapper)
+private struct MacroMaybeName: Equatable, Sendable {
+  let name: String?
+}
+
+@StructuredCodable(style: .wrapper)
+private struct MacroTag: Equatable, Sendable {
+  var text: String = "untagged"
+}
+
+@StructuredCodable(style: .wrapper)
+private struct MacroFixedTag: Equatable, Sendable {
+  let text: String = "fixed"
+}
+
+@StructuredCodable
+private struct MacroAttachment: Equatable, Sendable {
+  var media: MacroMediaType
 }
 
 /// `var` rather than `let` properties: two immutable mutation-streamed (`String`)

@@ -303,8 +303,34 @@ public struct StructuredObjectProperty<Root, _Definition: StructuredObjectProper
   let name: StructuredCodingKey
   let schema: CodingSchema
   var isRequired: Bool { definition.isRequired }
-  fileprivate let taggedKeyPath: TaggedKeyPath<Root, Definition.PropertyValue>
-  fileprivate let definition: Definition
+  let taggedKeyPath: TaggedKeyPath<Root, Definition.PropertyValue>
+  let definition: Definition
+}
+
+/// How a type behaves as a `StructuredObject` property. The
+/// `@StructuredCodable` macro references this through the declared property
+/// type, so the *resolved* type decides — `typealias Foo = Bar?` lowers
+/// exactly like `Bar?`, something the macro could never determine from
+/// syntax alone. Deliberately a plain member typealias rather than an
+/// associated-type witness: the macro only ever spells it on concrete types,
+/// and a witness would force decode-only types (which cannot satisfy the
+/// required-property default) to provide one even though they never appear
+/// as object properties.
+extension StructuredDecodable where Self: StructuredEncodable {
+
+  /// The default object-property behavior: a required property.
+  public typealias _StructuredObjectPropertyDefinition =
+    StructuredRequiredObjectPropertyDefinition<Self>
+
+}
+
+/// As an object property, `nil` is expressed by omitting the property — not
+/// by `Optional`'s own `{}`/`{"value":…}` coding.
+extension Optional where Wrapped: StructuredCodable {
+
+  public typealias _StructuredObjectPropertyDefinition =
+    StructuredOptionalObjectPropertyDefinition<Wrapped>
+
 }
 
 public protocol StructuredObjectPropertyDefinition: SendableMetatype {

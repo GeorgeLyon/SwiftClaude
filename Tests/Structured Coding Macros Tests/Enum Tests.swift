@@ -162,8 +162,8 @@ struct StructuredCodableEnumTests {
         struct __macro_local_5pointfMu_: StructuredCoding.StructuredObject {
           var x: Int
           var y: Int
-          typealias __macro_local_1xfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredRequiredObjectPropertyDefinition<Int>>
-          typealias __macro_local_1yfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredRequiredObjectPropertyDefinition<Int>>
+          typealias __macro_local_1xfMu_ = StructuredCoding.StructuredObjectProperty<Self, Int._StructuredObjectPropertyDefinition>
+          typealias __macro_local_1yfMu_ = StructuredCoding.StructuredObjectProperty<Self, Int._StructuredObjectPropertyDefinition>
           static var schema: some StructuredCoding.StructuredCodingSchema {
             _schema()
           }
@@ -245,8 +245,8 @@ struct StructuredCodableEnumTests {
         struct __macro_local_4movefMu_: StructuredCoding.StructuredObject {
           var x: Int
           var y: Int
-          typealias __macro_local_1xfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredRequiredObjectPropertyDefinition<Int>>
-          typealias __macro_local_1yfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredRequiredObjectPropertyDefinition<Int>>
+          typealias __macro_local_1xfMu_ = StructuredCoding.StructuredObjectProperty<Self, Int._StructuredObjectPropertyDefinition>
+          typealias __macro_local_1yfMu_ = StructuredCoding.StructuredObjectProperty<Self, Int._StructuredObjectPropertyDefinition>
           static var schema: some StructuredCoding.StructuredCodingSchema {
             _schema()
           }
@@ -316,7 +316,7 @@ struct StructuredCodableEnumTests {
         }
         struct __macro_local_6circlefMu_: StructuredCoding.StructuredObject {
           var radius: Double
-          typealias __macro_local_6radiusfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredRequiredObjectPropertyDefinition<Double>>
+          typealias __macro_local_6radiusfMu_ = StructuredCoding.StructuredObjectProperty<Self, Double._StructuredObjectPropertyDefinition>
           static var schema: some StructuredCoding.StructuredCodingSchema {
             _schema()
           }
@@ -393,8 +393,8 @@ struct StructuredCodableEnumTests {
         struct __macro_local_5pointfMu_: StructuredCoding.StructuredObject {
           var x: Int
           var y: Int
-          typealias __macro_local_1xfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredRequiredObjectPropertyDefinition<Int>>
-          typealias __macro_local_1yfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredRequiredObjectPropertyDefinition<Int>>
+          typealias __macro_local_1xfMu_ = StructuredCoding.StructuredObjectProperty<Self, Int._StructuredObjectPropertyDefinition>
+          typealias __macro_local_1yfMu_ = StructuredCoding.StructuredObjectProperty<Self, Int._StructuredObjectPropertyDefinition>
           static var schema: some StructuredCoding.StructuredCodingSchema {
             _schema()
           }

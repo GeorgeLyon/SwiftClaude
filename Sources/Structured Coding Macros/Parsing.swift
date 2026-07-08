@@ -11,12 +11,15 @@ extension DeclGroupSyntax {
     in context: StructuredCodableMacroContext
   ) -> StructuredCodableType? {
     if let structDecl = self.as(StructDeclSyntax.self) {
+      guard let kind = structDecl.structuredCodableKind(in: context) else {
+        return nil
+      }
       return StructuredCodableType(
         isPublic: structDecl.modifiers.contains(where: \.isPublic),
         typeSyntax: context.extendedType.bindingGenericParameters(
           structDecl.genericParameterClause
         ),
-        kind: .object(structDecl.objectSchema(in: context))
+        kind: kind
       )
     } else if let classDecl = self.as(ClassDeclSyntax.self) {
       return StructuredCodableType(
@@ -52,23 +55,46 @@ extension DeclGroupSyntax {
 
 extension StructDeclSyntax {
 
-  fileprivate func objectSchema(
+  /// A struct lowers onto `StructuredObject` by default; `style: .wrapper`
+  /// selects `StructuredWrapper` instead, which requires exactly one stored
+  /// property, neither optional nor defaulted. Returns `nil` (after
+  /// diagnosing) when the wrapper requirements are violated, so no
+  /// conformance is generated.
+  fileprivate func structuredCodableKind(
     in context: StructuredCodableMacroContext
-  ) -> ObjectSchema {
+  ) -> StructuredCodableType.Kind? {
     let arguments = parseArguments(
       ofAttribute: context.macroAttribute,
       as: (
-        DescriptionArgument.self, KeyConversionStrategyArgument.self,
-        CompatibilityModeArgument.self
+        DescriptionArgument.self, StructStyleArgument.self,
+        KeyConversionStrategyArgument.self, CompatibilityModeArgument.self
       ),
       in: context.expansionContext
     )
-    return memberBlock.objectSchema(
+    let schema = memberBlock.objectSchema(
       description: arguments.0,
-      keyConversionStrategy: arguments.1,
-      compatibilityMode: arguments.2,
+      keyConversionStrategy: arguments.2,
+      compatibilityMode: arguments.3,
       in: context
     )
+
+    guard let style = arguments.1 else {
+      return .object(schema)
+    }
+    switch style {
+    case .wrapper:
+      guard schema.properties.count == 1 else {
+        context.expansionContext.diagnose(
+          DiagnosticError(
+            node: name,
+            severity: .error,
+            message: "A wrapper struct must declare exactly one stored property."
+          )
+        )
+        return nil
+      }
+      return .wrapper(schema)
+    }
   }
 }
 
@@ -207,7 +233,7 @@ extension MemberBlockSyntax {
               token: name
             ),
             definition: ObjectSchema.Property.Definition(
-              core: type.objectPropertyCore,
+              valueType: type,
               defaulting: defaulting
             ),
             propertyTypeAliasName: context.expansionContext.makeUniqueName(
@@ -220,20 +246,6 @@ extension MemberBlockSyntax {
         .reversed()
     }
   }
-}
-
-extension TypeSyntax {
-
-  /// Splits a property's declared type into the `Required` / `Optional`
-  /// definition core the new format wraps it in.
-  fileprivate var objectPropertyCore: ObjectSchema.Property.Core {
-    if let optionalType = self.as(OptionalTypeSyntax.self) {
-      return .optional(wrappedType: optionalType.wrappedType)
-    } else {
-      return .required(valueType: self)
-    }
-  }
-
 }
 
 // MARK: - Enumeration Schema Parsing
@@ -401,7 +413,7 @@ extension EnumCaseElementSyntax {
         return ObjectSchema.Property(
           name: IdentifiableToken(identifier: identifier, token: label),
           definition: ObjectSchema.Property.Definition(
-            core: element.type.objectPropertyCore,
+            valueType: element.type,
             defaulting: .none
           ),
           propertyTypeAliasName: context.expansionContext.makeUniqueName(identifier.name),

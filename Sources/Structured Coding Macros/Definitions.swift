@@ -51,6 +51,11 @@ struct StructuredCodableType {
   enum Kind {
     /// A `struct` or `class` — becomes a `StructuredObject`.
     case object(ObjectSchema)
+    /// A single-property `struct` with `style: .wrapper` — becomes a
+    /// `StructuredWrapper`. The payload is a one-property `ObjectSchema`
+    /// because the wrapper protocol deliberately mirrors `StructuredObject`,
+    /// so the same member generation applies; only the conformance differs.
+    case wrapper(ObjectSchema)
     /// An `enum` — becomes a `StructuredEnumeration`.
     case enumeration(EnumerationSchema)
   }
@@ -58,7 +63,7 @@ struct StructuredCodableType {
 
   var namespace: StructuredCodingNamespace {
     switch kind {
-    case .object(let schema): schema.namespace
+    case .object(let schema), .wrapper(let schema): schema.namespace
     case .enumeration(let schema): schema.namespace
     }
   }
@@ -128,22 +133,17 @@ struct ObjectSchema {
 
 extension ObjectSchema.Property {
 
-  /// How a stored property is wrapped. Two orthogonal axes — the optionality of
-  /// the value (`core`) and the presence/kind of a default (`defaulting`) — which
-  /// nest exactly as the fixture type aliases do, e.g.
-  /// `StructuredMutableDefaultInitializedPropertyDefinition<
-  ///   StructuredRequiredObjectPropertyDefinition<Int>>`.
+  /// How a stored property is wrapped: the declared type resolves its own
+  /// core definition through `_StructuredObjectPropertyDefinition` — so the
+  /// *type system* decides required vs optional, and `typealias Foo = Bar?`
+  /// lowers exactly like `Bar?` — while the presence/kind of a default
+  /// (`defaulting`, a fact fully visible in syntax) nests a wrapper around
+  /// it, e.g. `StructuredMutableDefaultInitializedPropertyDefinition<
+  /// Int._StructuredObjectPropertyDefinition>`.
   struct Definition {
-    let core: Core
+    /// The property's declared type, emitted verbatim.
+    let valueType: TypeSyntax
     let defaulting: Defaulting
-  }
-
-  /// The non-defaulted core, selecting `Required` vs `Optional`.
-  enum Core {
-    /// `x: T` → `StructuredRequiredObjectPropertyDefinition<T>`.
-    case required(valueType: TypeSyntax)
-    /// `x: T?` → `StructuredOptionalObjectPropertyDefinition<Wrapped>`.
-    case optional(wrappedType: TypeSyntax)
   }
 
   /// Whether the property carries a default, and what generation does with it in

@@ -96,9 +96,10 @@ struct CompatibilityModeArgument: ParsableArgument {
   }
 }
 
+/// `style: .wrapper` — the only non-default struct style; selects the
+/// `StructuredWrapper` conformance. Its absence selects `StructuredObject`.
 enum StructStyleArgument: String, InferredBaseMemberAccessExprArgument {
   static let label: TokenSyntax = "style"
-  case standard
   case wrapper
 }
 
