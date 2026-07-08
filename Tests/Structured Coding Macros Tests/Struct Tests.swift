@@ -162,16 +162,16 @@ struct StructuredCodableStructTests {
     )
   }
 
-  /// No properties — empty tuples and `Self()`.
-  /// `compatibilityMode: .variadicGenerics` accesses every property through a
-  /// getter closure instead of a key path literal, so the conformance can be
-  /// generated for pack-generic types (key paths rooted in them crash at
-  /// runtime; see `StructuredCodingCompatibilityMode.variadicGenerics`).
+  /// A parameter pack in the decorated type's generic parameter list infers
+  /// `.variadicGenerics` without an explicit `compatibilityMode:` argument:
+  /// every property is accessed through a getter closure instead of a key
+  /// path literal (key paths rooted in pack-generic types crash at runtime;
+  /// see `StructuredCodingCompatibilityMode.variadicGenerics`).
   @Test
-  func structWithVariadicGenericsCompatibilityMode() {
+  func structWithInferredVariadicGenericsCompatibility() {
     assertStructuredCodableExpansion(
       """
-      @StructuredCodable(compatibilityMode: .variadicGenerics)
+      @StructuredCodable
       struct PackBox<each T> {
         var first: String
         var second: String?

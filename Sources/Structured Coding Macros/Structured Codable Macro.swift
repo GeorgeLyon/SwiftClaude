@@ -35,6 +35,7 @@ extension StructuredCodableMacroProtocol {
       defaultKeyConversionStrategy: Self.defaultKeyConversionStrategy,
       defaultEnumStyle: Self.defaultEnumStyle,
       extendedType: TypeSyntax(type),
+      inferredCompatibilityModes: CompatibilityModes(inferredFrom: declaration, in: context),
       expansionContext: context
     )
     guard let structuredCodableType = declaration.structuredCodableType(in: context) else {

@@ -1,6 +1,6 @@
 public import StructuredCoding
 
-@APICodable(compatibilityMode: .variadicGenerics)
+@APICodable
 public struct Request<each Tool: StructuredCodable> {
 
   public init(messages: [Message], tools: repeat each Tool) {

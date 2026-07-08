@@ -81,6 +81,13 @@ public struct StructuredCodingCompatibilityMode: OptionSet, Sendable {
   /// literals, allowing `@StructuredCodable` to be applied to types whose
   /// generic signature contains a parameter pack (`each T`).
   ///
+  /// This mode is normally *inferred*: the macro applies it automatically
+  /// when the decorated type — or any type it is lexically nested in —
+  /// declares a parameter pack. Spelling it explicitly is only needed when
+  /// the pack is invisible to the macro, i.e. the type is declared inside an
+  /// `extension` of a pack-generic type (extensions do not repeat generic
+  /// parameters, and the macro only sees syntax).
+  ///
   /// By default, the generated `properties()` references each stored property
   /// with a key path literal (`keyPath: \.foo`). As of Swift 6.3, forming a key
   /// path literal whose `Root` captures a parameter pack crashes at runtime:
@@ -105,9 +112,9 @@ public struct StructuredCodingCompatibilityMode: OptionSet, Sendable {
   /// `decode(from:)` path, and decoding strategies that write into an existing
   /// value in place (which require a `WritableKeyPath`) are unavailable.
   ///
-  /// Only set this option on types that actually have a parameter pack in
-  /// their generic signature; remove it once the Swift runtime supports key
-  /// paths rooted in pack-generic types.
+  /// Only set this option explicitly on types whose parameter pack the macro
+  /// cannot see (the extension case above); remove it entirely once the Swift
+  /// runtime supports key paths rooted in pack-generic types.
   public static let variadicGenerics = Self(rawValue: 1 << 0)
 
   public init(rawValue: Int) {

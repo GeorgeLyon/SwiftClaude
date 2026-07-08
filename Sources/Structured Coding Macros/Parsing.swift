@@ -3,6 +3,37 @@ import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 
+// MARK: - Compatibility Mode Inference
+
+extension CompatibilityModes {
+
+  /// The modes a declaration needs without spelling them explicitly:
+  /// `.variadicGenerics` is inferred when the decorated type — or any type or
+  /// function it is lexically nested in — declares a parameter pack, since
+  /// key path literals rooted in such a type crash at runtime. The inference
+  /// is syntactic, so it cannot see a pack hidden behind an extension
+  /// (`extension Outer { @StructuredCodable struct Inner {} }` where `Outer`
+  /// is pack-generic); those types must still spell the mode explicitly.
+  init(
+    inferredFrom declaration: some DeclGroupSyntax,
+    in expansionContext: MacroExpansionContext
+  ) {
+    let enclosingDeclarations = [Syntax(declaration)] + expansionContext.lexicalContext
+    let declaresParameterPack = enclosingDeclarations.contains { declaration in
+      declaration
+        .asProtocol(WithGenericParametersSyntax.self)?
+        .genericParameterClause?
+        .parameters
+        .contains { parameter in
+          parameter.specifier?.tokenKind == .keyword(.each)
+        }
+        ?? false
+    }
+    self = declaresParameterPack ? .variadicGenerics : []
+  }
+
+}
+
 // MARK: - Declaration Dispatch
 
 extension DeclGroupSyntax {
@@ -134,7 +165,8 @@ extension MemberBlockSyntax {
       isSynthesized: false,
       keyConversionStrategy: keyConversionStrategy?.value
         ?? context.defaultKeyConversionStrategy,
-      compatibilityModes: compatibilityMode?.modes ?? [],
+      compatibilityModes: (compatibilityMode?.modes ?? [])
+        .union(context.inferredCompatibilityModes),
       description: description?.expression,
       properties: parseObjectProperties(in: context)
     )
@@ -268,7 +300,8 @@ extension EnumDeclSyntax {
       )
     let keyConversionStrategy =
       keyConversionStrategyArgument?.value ?? context.defaultKeyConversionStrategy
-    let compatibilityModes = compatibilityModeArgument?.modes ?? []
+    let compatibilityModes = (compatibilityModeArgument?.modes ?? [])
+      .union(context.inferredCompatibilityModes)
 
     return EnumerationSchema(
       namespace: context.namespace,

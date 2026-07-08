@@ -27,8 +27,9 @@ private struct Line: Equatable {
 }
 
 /// A pack-generic object whose tuple property *is* the pack — wrapped and
-/// unwrapped with `repeat each` rather than by element index.
-@StructuredCodable(compatibilityMode: .variadicGenerics)
+/// unwrapped with `repeat each` rather than by element index
+/// (`.variadicGenerics` compatibility is inferred from the pack).
+@StructuredCodable
 private struct PackTupleObject<each T: StructuredCodable> {
   var items: (repeat each T)
 }
