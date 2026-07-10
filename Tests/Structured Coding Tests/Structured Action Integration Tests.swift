@@ -3,17 +3,17 @@ import Testing
 @testable import JavaScriptObjectNotation
 @testable import StructuredCoding
 
-/// End-to-end coverage for `@StructuredCallable`: JSON is decoded into the
+/// End-to-end coverage for `@StructuredAction`: JSON is decoded into the
 /// collapsed Input, the decorated function is invoked through the generated
 /// glue, and the result is encoded from the collapsed Output — for every
 /// collapse shape and effect combination.
 @Suite
-struct StructuredCallableIntegrationTests {
+struct StructuredActionIntegrationTests {
 
   @Test
   func instanceMethodObjectInputRoundTrips() async throws {
     let result = try await invokeJSON(
-      Calculator.__structuredCallable_add(),
+      Calculator.__structuredAction_add(),
       on: Calculator(base: 2),
       input: #"{"amount": 3}"#
     )
@@ -23,7 +23,7 @@ struct StructuredCallableIntegrationTests {
   @Test
   func mixedTupleInputObjectOutputRoundTrips() async throws {
     let result = try await invokeJSON(
-      Calculator.__structuredCallable_flip(),
+      Calculator.__structuredAction_flip(),
       on: Calculator(base: 0),
       input: "[true, false]"
     )
@@ -33,7 +33,7 @@ struct StructuredCallableIntegrationTests {
   @Test
   func voidOutputAndEmptyInputCodeAsEmptyObjects() async throws {
     let result = try await invokeJSON(
-      Calculator.__structuredCallable_ping(),
+      Calculator.__structuredAction_ping(),
       on: Calculator(base: 0),
       input: "{}"
     )
@@ -47,7 +47,7 @@ struct StructuredCallableIntegrationTests {
   @Test
   func nonOptionalDefaultedParameterIsStillRequired() async throws {
     let supplied = try await invokeJSON(
-      Calculator.__structuredCallable_greet(),
+      Calculator.__structuredAction_greet(),
       on: Calculator(base: 0),
       input: #"{"name": "moon"}"#
     )
@@ -55,7 +55,7 @@ struct StructuredCallableIntegrationTests {
 
     await #expect(throws: (any Error).self) {
       _ = try await invokeJSON(
-        Calculator.__structuredCallable_greet(),
+        Calculator.__structuredAction_greet(),
         on: Calculator(base: 0),
         input: "{}"
       )
@@ -65,7 +65,7 @@ struct StructuredCallableIntegrationTests {
   @Test
   func optionalDefaultedParameterMayBeOmitted() async throws {
     let result = try await invokeJSON(
-      Calculator.__structuredCallable_log(),
+      Calculator.__structuredAction_log(),
       on: Calculator(base: 0),
       input: #"{"message": "hi"}"#
     )
@@ -76,21 +76,15 @@ struct StructuredCallableIntegrationTests {
   /// (`SyncInput == Input`), and a static method needs no callee.
   @Test
   func staticMethodInvokesSynchronouslyWithoutCallee() throws {
-    let callable = Calculator.__structuredCallable_double()
+    let callable = Calculator.__structuredAction_double()
     let input: Int = try decodeValue("21")
     #expect(callable.invoke(with: input) == 42)
   }
 
   @Test
-  func topLevelFunctionInvokes() {
-    let callable = __structuredCallable_negate()
-    #expect(callable.invoke(with: true) == false)
-  }
-
-  @Test
   func asyncFunctionInvokes() async throws {
     let result = try await invokeJSON(
-      Calculator.__structuredCallable_fetch(),
+      Calculator.__structuredAction_fetch(),
       on: Calculator(base: 0),
       input: #"{"id": 7}"#
     )
@@ -101,7 +95,7 @@ struct StructuredCallableIntegrationTests {
   /// block only compiles because `Failure == ParityError`.
   @Test
   func typedThrowsPreservesFailureType() throws {
-    let callable = Calculator.__structuredCallable_parity()
+    let callable = Calculator.__structuredAction_parity()
     let callee = Calculator(base: 0)
 
     let even = try callable.invoke(on: callee, with: decodeInput(callable, #"{"of": 4}"#))
@@ -118,7 +112,7 @@ struct StructuredCallableIntegrationTests {
 
   @Test
   func untypedThrowsPropagates() async throws {
-    let callable = Calculator.__structuredCallable_head()
+    let callable = Calculator.__structuredAction_head()
     await #expect(throws: NoElementsError.self) {
       _ = try await invokeJSON(callable, on: Calculator(base: 0), input: "[]")
     }
@@ -128,8 +122,8 @@ struct StructuredCallableIntegrationTests {
   /// defaulted metatype parameters.
   @Test
   func overloadsDisambiguateByMetatypeParameters() throws {
-    let intCallable = Calculator.__structuredCallable_over(x: Int.self)
-    let stringCallable = Calculator.__structuredCallable_over(x: String.self)
+    let intCallable = Calculator.__structuredAction_over(x: Int.self)
+    let stringCallable = Calculator.__structuredAction_over(x: String.self)
     let callee = Calculator(base: 0)
 
     #expect(try intCallable.invoke(on: callee, with: decodeInput(intCallable, #"{"x": 1}"#)) == 1)
@@ -140,8 +134,8 @@ struct StructuredCallableIntegrationTests {
 
   @Test
   func nameAndDescriptionsAreExposed() throws {
-    let callable = Calculator.__structuredCallable_describedAdd()
-    #expect(callable.name == "describedAdd(a:b:)")
+    let callable = Calculator.__structuredAction_describedAdd()
+    #expect(callable.name == "describedAdd")
     #expect(callable.description == "Adds two numbers")
     try test(
       callable.inputSchema,
@@ -176,41 +170,41 @@ struct StructuredCallableIntegrationTests {
 private struct Calculator {
   var base: Int
 
-  @StructuredCallable
+  @StructuredAction
   func add(amount: Int) -> Int {
     base + amount
   }
 
-  @StructuredCallable
+  @StructuredAction
   func flip(bar: Bool, _ baz: Bool) throws -> (a: Bool, b: Bool) {
     (baz, bar)
   }
 
-  @StructuredCallable
+  @StructuredAction
   func ping() {
   }
 
-  @StructuredCallable
+  @StructuredAction
   func greet(name: String = "world") -> String {
     "Hello, \(name)"
   }
 
-  @StructuredCallable
+  @StructuredAction
   func log(message: String, level: Int? = nil) -> String {
     "\(message)@\(level.map(String.init) ?? "none")"
   }
 
-  @StructuredCallable
+  @StructuredAction
   static func double(_ value: Int) -> Int {
     value * 2
   }
 
-  @StructuredCallable
+  @StructuredAction
   func fetch(id: Int) async -> String {
     "item-\(id)"
   }
 
-  @StructuredCallable
+  @StructuredAction
   func parity(of value: Int) throws(ParityError) -> Bool {
     guard value >= 0 else {
       throw ParityError()
@@ -218,7 +212,7 @@ private struct Calculator {
     return value.isMultiple(of: 2)
   }
 
-  @StructuredCallable
+  @StructuredAction
   func head(_ values: [Int]) throws -> Int {
     guard let first = values.first else {
       throw NoElementsError()
@@ -226,7 +220,7 @@ private struct Calculator {
     return first
   }
 
-  @StructuredCallable(
+  @StructuredAction(
     description: "Adds two numbers",
     inputDescription: "The addends",
     outputDescription: "The sum"
@@ -235,20 +229,15 @@ private struct Calculator {
     a + b
   }
 
-  @StructuredCallable
+  @StructuredAction
   func over(x: Int) -> Int {
     x
   }
 
-  @StructuredCallable
+  @StructuredAction
   func over(x: String) -> String {
     x
   }
-}
-
-@StructuredCallable
-private func negate(_ value: Bool) -> Bool {
-  !value
 }
 
 private struct ParityError: Error {}
@@ -276,24 +265,24 @@ private func decodeValue<Value: StructuredDecodable>(_ json: String) throws -> V
   return try session.value
 }
 
-/// Decodes `json` as the Input of `callable`, letting the callable pin the
+/// Decodes `json` as the Input of `action`, letting the action pin the
 /// decoded type so call sites never spell the synthesized Input's name.
-private func decodeInput<Callee, Input, Output, SyncInput, Failure>(
-  _ callable: StructuredCallable<Callee, Input, Output, SyncInput, Failure>,
+private func decodeInput<Callee, Signature: StructuredActionSignatureProtocol>(
+  _ action: StructuredAction<Callee, Signature>,
   _ json: String
-) throws -> Input {
+) throws -> Signature.Input {
   try decodeValue(json)
 }
 
 /// Decodes `json` as the Input, invokes, and encodes the Output — the full
 /// path a tool invocation would take.
-private func invokeJSON<Callee, Input, Output, SyncInput, Failure>(
-  _ callable: StructuredCallable<Callee, Input, Output, SyncInput, Failure>,
+private func invokeJSON<Callee, Signature: StructuredActionSignatureProtocol>(
+  _ action: StructuredAction<Callee, Signature>,
   on callee: Callee,
   input json: String
 ) async throws -> String {
-  let input: Input = try decodeValue(json)
-  let output = try await callable.invoke(on: callee, with: input)
+  let input: Signature.Input = try decodeValue(json)
+  let output = try await action.invoke(on: callee, with: input)
   var encoder = StructuredEncoder()
   try output.encode(to: &encoder)
   return encoder.stringValue

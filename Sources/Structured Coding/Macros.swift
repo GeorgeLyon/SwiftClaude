@@ -49,16 +49,20 @@ public macro StructuredCodable(
     type: "StructuredCodableMacro"
   )
 
-// MARK: - Structured Callable
+// MARK: - Structured Action
 
 /// Exposes a function through Structured Coding: its parameter clause
 /// collapses onto a `StructuredCodable` Input and its return type onto a
 /// `StructuredCodable` Output — following the same rules as enum-case
-/// associated values — and a `__structuredCallable_<name>` sidecar function
-/// is generated returning the `StructuredCallable` that ties them together
-/// with the function's effects.
-@attached(peer, names: prefixed(__structuredCallable_))
-public macro StructuredCallable(
+/// associated values — and a `__structuredAction_<name>` sidecar function
+/// is generated returning the `StructuredAction` that ties them together
+/// with the function's effects. Actions must be declared in a type's body —
+/// not at the top level, and not in an extension, whose syntax cannot reveal
+/// whether the extended type is an actor (which decides the generated glue's
+/// isolation). Apply `@StructuredTool` to the type to gather its actions
+/// into a tool definition.
+@attached(peer, names: prefixed(__structuredAction_))
+public macro StructuredAction(
   description: String? = nil,
   inputDescription: String? = nil,
   outputDescription: String? = nil,
@@ -66,7 +70,24 @@ public macro StructuredCallable(
 ) =
   #externalMacro(
     module: "StructuredCodingMacros",
-    type: "StructuredCallableMacro"
+    type: "StructuredActionMacro"
+  )
+
+// MARK: - Structured Tool
+
+/// Gathers the type's `@StructuredAction` functions into a
+/// `static var definition: some StructuredToolDefinitionProtocol<…>`. The
+/// tool's `name` defaults to the type's name; the generated property is pure
+/// data gathering — schema shape and dispatch live in the runtime's
+/// `StructuredToolDefinition`.
+@attached(member, names: named(definition))
+public macro StructuredTool(
+  name: String? = nil,
+  description: String? = nil
+) =
+  #externalMacro(
+    module: "StructuredCodingMacros",
+    type: "StructuredToolMacro"
   )
 
 // MARK: - Member Annotations

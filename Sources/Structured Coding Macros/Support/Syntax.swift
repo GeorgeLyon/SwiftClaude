@@ -29,6 +29,10 @@ extension DeclModifierSyntax {
     name.tokenKind == .keyword(.static)
   }
 
+  var isNonisolated: Bool {
+    name.tokenKind == .keyword(.nonisolated)
+  }
+
 }
 
 extension TokenSyntax {

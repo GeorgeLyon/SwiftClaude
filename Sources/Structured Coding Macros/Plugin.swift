@@ -4,11 +4,11 @@ import SwiftSyntaxMacros
 @main struct ClaudeMacroPlugin: CompilerPlugin {
   let providingMacros: [Macro.Type] = [
     StructuredCodableMacro.self,
-    StructuredCallableMacro.self,
+    StructuredActionMacro.self,
+    StructuredToolMacro.self,
     StructuredPropertyMacro.self,
     StructuredCaseMacro.self,
     APICodableMacro.self,
     ToolInputMacro.self,
-    // ToolMacro.self,
   ]
 }

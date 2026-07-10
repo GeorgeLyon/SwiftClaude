@@ -10,7 +10,8 @@ private let macroSpecs: [String: MacroSpec] = [
   "StructuredCodable": MacroSpec(type: StructuredCodableMacro.self),
   "StructuredProperty": MacroSpec(type: StructuredPropertyMacro.self),
   "StructuredCase": MacroSpec(type: StructuredCaseMacro.self),
-  "StructuredCallable": MacroSpec(type: StructuredCallableMacro.self),
+  "StructuredAction": MacroSpec(type: StructuredActionMacro.self),
+  "StructuredTool": MacroSpec(type: StructuredToolMacro.self),
 ]
 
 /// Asserts that the `@StructuredCodable` family of macros expands `original` into

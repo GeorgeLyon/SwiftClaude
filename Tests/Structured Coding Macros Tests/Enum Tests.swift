@@ -7,7 +7,7 @@ struct StructuredCodableEnumTests {
 
   /// Defaulted associated values lower like `var x: T = expr` struct
   /// properties: the `Mutable` definition wrapper plus a `?? default` decode
-  /// fallback — the same rules `@StructuredCallable` applies to defaulted
+  /// fallback — the same rules `@StructuredAction` applies to defaulted
   /// function parameters.
   @Test
   func enumDefaultedAssociatedValues() {

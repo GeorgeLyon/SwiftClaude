@@ -21,7 +21,7 @@ extension CompatibilityModes {
     self.init(inferredFromAnyOf: [Syntax(declaration)] + expansionContext.lexicalContext)
   }
 
-  /// The variant for peer macros (`@StructuredCallable`), which decorate a
+  /// The variant for peer macros (`@StructuredAction`), which decorate a
   /// declaration that cannot itself introduce a pack (generic functions are
   /// rejected) but may be nested in one.
   init(inferredFromLexicalContextOf expansionContext: some MacroExpansionContext) {
@@ -386,7 +386,7 @@ extension ParameterClauseSchema {
   ///
   /// Takes its dependencies piecewise rather than as a
   /// `StructuredCodableMacroContext` because it is shared with the
-  /// `@StructuredCallable` peer macro, which has no such context.
+  /// `@StructuredAction` peer macro, which has no such context.
   init(
     collapsing elements: [Element],
     synthesizedObjectNameSeed nameSeed: String,
@@ -502,7 +502,7 @@ extension Optional where Wrapped == EnumStyleArgument {
 
 extension FunctionDeclSyntax {
 
-  /// Lowers a `@StructuredCallable`-decorated function onto the IR the
+  /// Lowers a `@StructuredAction`-decorated function onto the IR the
   /// sidecar generator consumes, or `nil` (after diagnosing) when the
   /// function cannot be represented.
   func callableSchema(
@@ -518,7 +518,7 @@ extension FunctionDeclSyntax {
         DiagnosticError(
           node: name,
           severity: .error,
-          message: "@StructuredCallable requires a function with an identifier name"
+          message: "@StructuredAction requires a function with an identifier name"
         )
       )
       return nil
@@ -530,7 +530,7 @@ extension FunctionDeclSyntax {
         DiagnosticError(
           node: unsupported,
           severity: .error,
-          message: "@StructuredCallable does not support generic functions"
+          message: "@StructuredAction does not support generic functions"
         )
       )
       return nil
@@ -543,7 +543,7 @@ extension FunctionDeclSyntax {
           DiagnosticError(
             node: modifier,
             severity: .error,
-            message: "@StructuredCallable does not support `\(modifier.name.trimmed)` methods"
+            message: "@StructuredAction does not support `\(modifier.name.trimmed)` methods"
           )
         )
         return nil
@@ -563,7 +563,7 @@ extension FunctionDeclSyntax {
         DiagnosticError(
           node: signature.effectSpecifiers!,
           severity: .error,
-          message: "@StructuredCallable does not support `reasync`"
+          message: "@StructuredAction does not support `reasync`"
         )
       )
       return nil
@@ -579,7 +579,7 @@ extension FunctionDeclSyntax {
           DiagnosticError(
             node: throwsClause,
             severity: .error,
-            message: "@StructuredCallable does not support `rethrows`"
+            message: "@StructuredAction does not support `rethrows`"
           )
         )
         return nil
@@ -589,13 +589,14 @@ extension FunctionDeclSyntax {
     }
 
     let callableContext: CallableSchema.Context
+    let isCalleeIsolated: Bool
     if let innermost = context.lexicalContext.first {
       guard innermost.asProtocol(DeclGroupSyntax.self) != nil else {
         context.diagnose(
           DiagnosticError(
             node: name,
             severity: .error,
-            message: "@StructuredCallable cannot be applied to local functions"
+            message: "@StructuredAction cannot be applied to local functions"
           )
         )
         return nil
@@ -605,14 +606,56 @@ extension FunctionDeclSyntax {
           DiagnosticError(
             node: name,
             severity: .error,
-            message: "@StructuredCallable cannot be applied to protocol requirements"
+            message: "@StructuredAction cannot be applied to protocol requirements"
           )
         )
         return nil
       }
-      callableContext = modifiers.contains(where: \.isStatic) ? .staticMember : .instanceMember
+      /// An extension names its type but reveals nothing else about it — in
+      /// particular whether it is an actor, which decides the glue closure's
+      /// isolation (see `isCalleeIsolated`). Requiring actions in the type's
+      /// body keeps that decision decidable, and keeps `@StructuredTool`'s
+      /// member scan complete: it cannot see extensions either.
+      guard !innermost.is(ExtensionDeclSyntax.self) else {
+        context.diagnose(
+          DiagnosticError(
+            node: name,
+            severity: .error,
+            message:
+              "@StructuredAction cannot be applied to functions in extensions; declare actions in the type's body"
+          )
+        )
+        return nil
+      }
+      if modifiers.contains(where: \.isStatic) {
+        callableContext = .staticMember
+        isCalleeIsolated = false
+      } else {
+        guard let calleeType = innermost.calleeType else {
+          context.diagnose(
+            DiagnosticError(
+              node: name,
+              severity: .error,
+              message: "@StructuredAction cannot determine the enclosing type"
+            )
+          )
+          return nil
+        }
+        callableContext = .instanceMember(calleeType: calleeType)
+        isCalleeIsolated =
+          innermost.is(ActorDeclSyntax.self)
+          && !modifiers.contains(where: \.isNonisolated)
+      }
     } else {
-      callableContext = .topLevel
+      context.diagnose(
+        DiagnosticError(
+          node: name,
+          severity: .error,
+          message:
+            "@StructuredAction cannot be applied to top-level functions; actions must be members of a type"
+        )
+      )
+      return nil
     }
 
     guard
@@ -654,11 +697,11 @@ extension FunctionDeclSyntax {
       namespace: namespace,
       isPublic: modifiers.contains(where: \.isPublic),
       baseName: name.trimmed,
-      fullName: fullName,
       parameters: signature.parameterClause.parameters,
       input: input,
       output: output,
       isAsync: isAsync,
+      isCalleeIsolated: isCalleeIsolated,
       failure: failure,
       context: callableContext,
       description: description,
@@ -686,20 +729,6 @@ extension FunctionDeclSyntax {
       seed += "_async"
     }
     return String(seed.map { $0.isLetter || $0.isNumber ? $0 : "_" })
-  }
-
-  /// `"foo(bar:_:)"`
-  private var fullName: String {
-    let labels = signature.parameterClause.parameters
-      .map { parameter -> String in
-        if parameter.firstName.tokenKind == .wildcard {
-          return "_:"
-        } else {
-          return "\(parameter.firstName.trimmed):"
-        }
-      }
-      .joined()
-    return "\(name.trimmed)(\(labels))"
   }
 
   /// The return type as parameter-clause elements: `Void` in any spelling is
@@ -769,7 +798,7 @@ extension FunctionParameterListSyntax {
           DiagnosticError(
             node: parameter,
             severity: .error,
-            message: "@StructuredCallable does not support variadic parameters"
+            message: "@StructuredAction does not support variadic parameters"
           )
         )
         return nil
@@ -780,7 +809,7 @@ extension FunctionParameterListSyntax {
           DiagnosticError(
             node: parameter,
             severity: .error,
-            message: "@StructuredCallable does not support `\(specifier.trimmed)` parameters"
+            message: "@StructuredAction does not support `\(specifier.trimmed)` parameters"
           )
         )
         return nil
@@ -842,6 +871,29 @@ extension TypeSyntax {
       return TypeSyntax(member)
     }
     return self
+  }
+
+}
+
+// MARK: - Callee Type
+
+extension Syntax {
+
+  /// The type an instance method's `Callee` is spelled as: the enclosing
+  /// type declaration's name. `nil` for syntax that declares no type
+  /// (already diagnosed by the callers — extensions are rejected outright).
+  fileprivate var calleeType: TypeSyntax? {
+    if let decl = self.as(StructDeclSyntax.self) {
+      return TypeSyntax(IdentifierTypeSyntax(name: decl.name.trimmed))
+    } else if let decl = self.as(EnumDeclSyntax.self) {
+      return TypeSyntax(IdentifierTypeSyntax(name: decl.name.trimmed))
+    } else if let decl = self.as(ActorDeclSyntax.self) {
+      return TypeSyntax(IdentifierTypeSyntax(name: decl.name.trimmed))
+    } else if let decl = self.as(ClassDeclSyntax.self) {
+      return TypeSyntax(IdentifierTypeSyntax(name: decl.name.trimmed))
+    } else {
+      return nil
+    }
   }
 
 }

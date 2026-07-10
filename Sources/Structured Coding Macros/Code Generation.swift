@@ -955,7 +955,7 @@ extension ParameterClauseSchema {
   /// The original labeled argument list, recovered from the collapsed
   /// representation `base` — `(base)`, `(label: base.values.0, ...)`, or
   /// `(name: base.name, ...)`. Used to reconstruct an enum case
-  /// (`.name(label: $0.values.0)`) and to call a `@StructuredCallable`
+  /// (`.name(label: $0.values.0)`) and to call a `@StructuredAction`
   /// function (`foo(label: input.values.0, ...)`).
   func argumentList(unpacking base: some ExprSyntaxProtocol) -> LabeledExprListSyntax {
     switch self {
@@ -1185,10 +1185,10 @@ extension DeclModifierListSyntax {
 
 extension CallableSchema {
 
-  /// The peer declarations for a `@StructuredCallable` function: the
+  /// The peer declarations for a `@StructuredAction` function: the
   /// synthesized `Input`/`Output` objects (when the corresponding clause
   /// collapses onto one) and the sidecar function returning the
-  /// `StructuredCallable`.
+  /// `StructuredAction`.
   func peerDeclarations() -> [DeclSyntax] {
     var declarations: [DeclSyntax] = []
     if case .object(let objectSchema) = input {
@@ -1201,15 +1201,14 @@ extension CallableSchema {
     return declarations
   }
 
-  /// `static func __structuredCallable_foo(bar: Bool.Type = Bool.self) -> {ns}.StructuredCallable<…> { … }`
+  /// `static func __structuredAction_foo(bar: Bool.Type = Bool.self) -> {ns}.StructuredAction<…> { … }`
   ///
   /// The defaulted metatype parameters mirror the decorated function's, so
   /// overloads of the same base name get distinct sidecars; call sites only
-  /// pass them to disambiguate. `static` is dropped for top-level functions,
-  /// whose sidecar is itself top-level.
+  /// pass them to disambiguate.
   private func sidecarFunction() -> FunctionDeclSyntax {
     FunctionDeclSyntax(
-      modifiers: .visibility(isPublic, static: context != .topLevel),
+      modifiers: .visibility(isPublic, static: true),
       name: sidecarName,
       signature: FunctionSignatureSyntax(
         parameterClause: sidecarParameterClause(),
@@ -1245,33 +1244,45 @@ extension CallableSchema {
     )
   }
 
-  /// `{ns}.StructuredCallable<Callee, Input, Output, SyncInput, Failure>`
+  /// `{ns}.StructuredAction<Callee, {ns}.StructuredActionSignature<Input, Output, SyncInput, Failure>>`
   private func callableType() -> TypeSyntax {
     TypeSyntax(
       namespace.memberType(
-        name: "StructuredCallable",
+        name: "StructuredAction",
         genericArgumentClause: GenericArgumentClauseSyntax {
           GenericArgumentSyntax(argument: GenericArgumentSyntax.Argument(calleeType))
+          GenericArgumentSyntax(argument: GenericArgumentSyntax.Argument(signatureType()))
+        }
+      )
+    )
+  }
+
+  private func signatureType() -> TypeSyntax {
+    TypeSyntax(
+      namespace.memberType(
+        name: "StructuredActionSignature",
+        genericArgumentClause: GenericArgumentClauseSyntax {
           GenericArgumentSyntax(
             argument: GenericArgumentSyntax.Argument(input.typeSyntax(in: namespace)))
           GenericArgumentSyntax(
             argument: GenericArgumentSyntax.Argument(output.typeSyntax(in: namespace)))
           GenericArgumentSyntax(
             argument: GenericArgumentSyntax.Argument(
-              isAsync ? TypeSyntax("Never") : input.typeSyntax(in: namespace)))
+              isEffectivelyAsync ? TypeSyntax("Never") : input.typeSyntax(in: namespace)))
           GenericArgumentSyntax(argument: GenericArgumentSyntax.Argument(failureType))
         }
       )
     )
   }
 
-  /// `Void` for free and static functions, `Self` for instance methods.
+  /// `Void` for static functions, the enclosing type's name for instance
+  /// methods.
   private var calleeType: TypeSyntax {
     switch context {
-    case .topLevel, .staticMember:
+    case .staticMember:
       "Void"
-    case .instanceMember:
-      "Self"
+    case .instanceMember(let calleeType):
+      calleeType
     }
   }
 
@@ -1300,16 +1311,16 @@ extension CallableSchema {
     }
   }
 
-  /// `{ns}.StructuredCallable(name: "foo(bar:_:)", …, invoke: { … })`
+  /// `{ns}.StructuredAction(name: "foo", …, invoke: { … })`
   private func callableInitExpr() -> FunctionCallExprSyntax {
     FunctionCallExprSyntax(
-      calledExpression: namespace.member(name: "StructuredCallable"),
+      calledExpression: namespace.member(name: "StructuredAction"),
       leftParen: .leftParenToken(trailingTrivia: .newline),
       arguments: LabeledExprListSyntax {
         LabeledExprSyntax(
           label: "name",
           colon: .colonToken(),
-          expression: StringLiteralExprSyntax(content: fullName),
+          expression: StringLiteralExprSyntax(content: baseName.text),
           trailingComma: .commaToken(trailingTrivia: .newline)
         )
         if let description {
@@ -1349,7 +1360,7 @@ extension CallableSchema {
   /// `{ (callee, input) throws in … }` — unpacks the collapsed `Input` into
   /// the original argument list, calls the decorated function, and packs the
   /// result into the collapsed `Output`. Always the two-parameter shape so
-  /// exactly one `StructuredCallable` initializer matches; unused parameters
+  /// exactly one `StructuredAction` initializer matches; unused parameters
   /// are wildcards.
   private func glueClosure() -> ClosureExprSyntax {
     ClosureExprSyntax(
@@ -1358,7 +1369,7 @@ extension CallableSchema {
           ClosureParameterClauseSyntax(
             parameters: ClosureParameterListSyntax {
               ClosureParameterSyntax(
-                firstName: context == .instanceMember ? "callee" : .wildcardToken()
+                firstName: isInstanceMember ? "callee" : .wildcardToken()
               )
               ClosureParameterSyntax(
                 firstName: input.componentCount == 0 ? .wildcardToken() : "input"
@@ -1387,11 +1398,11 @@ extension CallableSchema {
           rightParen: .rightParenToken()
         )
       }
-    guard isAsync || throwsClause != nil else {
+    guard isEffectivelyAsync || throwsClause != nil else {
       return nil
     }
     return TypeEffectSpecifiersSyntax(
-      asyncSpecifier: isAsync ? .keyword(.async) : nil,
+      asyncSpecifier: isEffectivelyAsync ? .keyword(.async) : nil,
       throwsClause: throwsClause
     )
   }
@@ -1437,7 +1448,7 @@ extension CallableSchema {
       arguments: input.argumentList(unpacking: DeclReferenceExprSyntax(baseName: "input")),
       rightParen: .rightParenToken()
     )
-    switch (isAsync, isThrowing) {
+    switch (isEffectivelyAsync, isThrowing) {
     case (false, false):
       return ExprSyntax(call)
     case (true, false):
@@ -1450,8 +1461,7 @@ extension CallableSchema {
   }
 
   /// `callee.foo` for instance methods, `foo` otherwise — a static sidecar's
-  /// unqualified reference resolves to the static member, a top-level
-  /// sidecar's to the top-level function.
+  /// unqualified reference resolves to the static member.
   private var calledExpression: ExprSyntax {
     switch context {
     case .instanceMember:
@@ -1461,7 +1471,7 @@ extension CallableSchema {
           name: baseName
         )
       )
-    case .staticMember, .topLevel:
+    case .staticMember:
       ExprSyntax(DeclReferenceExprSyntax(baseName: baseName))
     }
   }

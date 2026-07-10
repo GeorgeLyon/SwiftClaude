@@ -26,6 +26,11 @@ extension StringLiteralArgument {
   }
 }
 
+struct NameArgument: StringLiteralArgument {
+  static let label: TokenSyntax = "name"
+  let expression: StringLiteralExprSyntax
+}
+
 struct DescriptionArgument: StringLiteralArgument {
   static let label: TokenSyntax = "description"
   let expression: StringLiteralExprSyntax

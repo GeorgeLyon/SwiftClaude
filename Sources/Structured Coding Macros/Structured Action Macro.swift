@@ -3,7 +3,7 @@ import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 
-enum StructuredCallableMacro: PeerMacro {
+enum StructuredActionMacro: PeerMacro {
 
   static func expansion(
     of node: AttributeSyntax,
@@ -15,7 +15,7 @@ enum StructuredCallableMacro: PeerMacro {
         DiagnosticError(
           node: declaration,
           severity: .error,
-          message: "@StructuredCallable can only be applied to functions"
+          message: "@StructuredAction can only be applied to functions"
         )
       )
       return []
@@ -40,7 +40,7 @@ enum StructuredCallableMacro: PeerMacro {
 
     let (description, inputDescription, outputDescription, keyConversionStrategy) =
       arguments.parse(
-        ofAttribute: "StructuredCallable",
+        ofAttribute: "StructuredAction",
         as: (
           DescriptionArgument.self, InputDescriptionArgument.self,
           OutputDescriptionArgument.self, KeyConversionStrategyArgument.self

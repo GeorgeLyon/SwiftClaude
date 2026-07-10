@@ -333,26 +333,24 @@ struct EnumerationSchema {
 
 // MARK: - Callable Schema
 
-/// A function decorated with `@StructuredCallable`, lowered to what the
+/// A function decorated with `@StructuredAction`, lowered to what the
 /// sidecar generator needs: the parameter clause and return type collapsed
 /// onto their `ParameterClauseSchema` representations, plus the effects and
-/// declaration context that pick the `StructuredCallable` generic arguments.
+/// declaration context that pick the `StructuredAction` generic arguments.
 struct CallableSchema {
 
   let namespace: StructuredCodingNamespace
 
   let isPublic: Bool
 
-  /// The function's base name (`foo`).
+  /// The function's base name (`foo`) — also the runtime action name, which
+  /// tools dispatch on (which is why a tool's action names must be unique).
   let baseName: TokenSyntax
 
-  /// The full name encoded into the runtime value (`"foo(bar:_:)"`).
-  let fullName: String
-
   /// The sidecar function's name. The fixed prefix is what the
-  /// `@StructuredCallable` declaration's `names: prefixed(…)` promises.
+  /// `@StructuredAction` declaration's `names: prefixed(…)` promises.
   var sidecarName: TokenSyntax {
-    "__structuredCallable_\(raw: baseName.text)"
+    "__structuredAction_\(raw: baseName.text)"
   }
 
   /// The original parameter list, mirrored as the sidecar's defaulted
@@ -369,6 +367,17 @@ struct CallableSchema {
   /// `true` adds `async` to the glue closure and pins `SyncInput` to `Never`.
   let isAsync: Bool
 
+  /// `true` when the decorated function is isolated to an actor callee — an
+  /// instance method of an actor without `nonisolated`. Invoking it from the
+  /// glue closure's nonisolated context requires `await`, so the closure is
+  /// forced async and `SyncInput` pinned to `Never` even when the function
+  /// itself is synchronous.
+  let isCalleeIsolated: Bool
+
+  /// Whether the glue closure is async: the function's own `async`, or the
+  /// actor hop an isolated callee forces.
+  var isEffectivelyAsync: Bool { isAsync || isCalleeIsolated }
+
   /// The callable's `Failure` type.
   enum Failure {
     /// Non-throwing — `Never`.
@@ -380,20 +389,28 @@ struct CallableSchema {
   }
   let failure: Failure
 
-  /// Where the decorated function is declared, which picks the sidecar's
-  /// modifiers and the callable's `Callee`.
+  /// Where the decorated function is declared, which picks the action's
+  /// `Callee`. Top-level functions are rejected during parsing — actions
+  /// must be members of a type.
   enum Context {
-    /// A top-level function — the sidecar is a top-level function too;
-    /// `Callee == Void`.
-    case topLevel
-    /// A static member — the sidecar is `static`; `Callee == Void`.
+    /// A static member — `Callee == Void`.
     case staticMember
-    /// An instance method — the sidecar is `static`; `Callee == Self`.
-    case instanceMember
+    /// An instance method — `Callee` is the enclosing type, always spelled
+    /// by name: covariant `Self` cannot appear in a non-top-level
+    /// result-type position on actors and classes, so naming the type
+    /// uniformly keeps one code path for every declaration kind.
+    case instanceMember(calleeType: TypeSyntax)
   }
   let context: Context
 
-  /// Carried from `@StructuredCallable(description:inputDescription:outputDescription:)`,
+  var isInstanceMember: Bool {
+    if case .instanceMember = context {
+      return true
+    }
+    return false
+  }
+
+  /// Carried from `@StructuredAction(description:inputDescription:outputDescription:)`,
   /// emitted as the corresponding arguments of the generated initializer call.
   let description: StringLiteralExprSyntax?
   let inputDescription: StringLiteralExprSyntax?

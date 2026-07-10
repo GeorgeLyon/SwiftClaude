@@ -2,14 +2,14 @@ import SwiftDiagnostics
 import SwiftSyntaxMacrosGenericTestSupport
 import Testing
 
-/// Verifies that `@StructuredCallable` lowers a function's parameter clause and
+/// Verifies that `@StructuredAction` lowers a function's parameter clause and
 /// return type onto `StructuredCodable` Input/Output representations — using
 /// the same collapse rules as enum-case associated values — tied together by a
-/// `StructuredCallable` sidecar carrying the function's effects. The
+/// `StructuredAction` sidecar carrying the function's effects. The
 /// synthesized type names fold in the full signature so overloads of the same
 /// base name never collide.
 @Suite
-struct StructuredCallableTests {
+struct StructuredActionTests {
 
   /// The representative shape: a mixed-label parameter clause (`StructuredTuple`
   /// input), an all-labeled tuple return (synthesized object output), and an
@@ -19,7 +19,7 @@ struct StructuredCallableTests {
     assertStructuredCodableExpansion(
       """
       struct S {
-        @StructuredCallable
+        @StructuredAction
         func foo(bar: Bool, _ baz: Bool) throws -> (a: Bool, b: Bool) {
           (bar, baz)
         }
@@ -60,9 +60,9 @@ struct StructuredCallableTests {
           }
         }
 
-        static func __structuredCallable_foo(bar: Bool.Type = Bool.self, _ baz: Bool.Type = Bool.self) -> StructuredCoding.StructuredCallable<Self, StructuredCoding.StructuredTuple<Bool, Bool>, __macro_local_45foo_bar_Bool___Bool__a__Bool__b__Bool__OutputfMu_, StructuredCoding.StructuredTuple<Bool, Bool>, any Error> {
-          StructuredCoding.StructuredCallable(
-            name: "foo(bar:_:)",
+        static func __structuredAction_foo(bar: Bool.Type = Bool.self, _ baz: Bool.Type = Bool.self) -> StructuredCoding.StructuredAction<S, StructuredCoding.StructuredActionSignature<StructuredCoding.StructuredTuple<Bool, Bool>, __macro_local_45foo_bar_Bool___Bool__a__Bool__b__Bool__OutputfMu_, StructuredCoding.StructuredTuple<Bool, Bool>, any Error>> {
+          StructuredCoding.StructuredAction(
+            name: "foo",
             invoke: { (callee, input) throws in
               let output = try callee.foo(bar: input.values.0, input.values.1)
               return __macro_local_45foo_bar_Bool___Bool__a__Bool__b__Bool__OutputfMu_(a: output.0, b: output.1)
@@ -81,7 +81,7 @@ struct StructuredCallableTests {
     assertStructuredCodableExpansion(
       """
       struct S {
-        @StructuredCallable
+        @StructuredAction
         func ping() {
         }
       }
@@ -91,9 +91,9 @@ struct StructuredCallableTests {
         func ping() {
         }
 
-        static func __structuredCallable_ping() -> StructuredCoding.StructuredCallable<Self, StructuredCoding.StructuredEmptyObject, StructuredCoding.StructuredEmptyObject, StructuredCoding.StructuredEmptyObject, Never> {
-          StructuredCoding.StructuredCallable(
-            name: "ping()",
+        static func __structuredAction_ping() -> StructuredCoding.StructuredAction<S, StructuredCoding.StructuredActionSignature<StructuredCoding.StructuredEmptyObject, StructuredCoding.StructuredEmptyObject, StructuredCoding.StructuredEmptyObject, Never>> {
+          StructuredCoding.StructuredAction(
+            name: "ping",
             invoke: { (callee, _) in
               callee.ping()
               return StructuredCoding.StructuredEmptyObject()
@@ -112,7 +112,7 @@ struct StructuredCallableTests {
     assertStructuredCodableExpansion(
       """
       struct S {
-        @StructuredCallable
+        @StructuredAction
         func echo(_ text: String) -> String {
           text
         }
@@ -124,9 +124,9 @@ struct StructuredCallableTests {
           text
         }
 
-        static func __structuredCallable_echo(_ text: String.Type = String.self) -> StructuredCoding.StructuredCallable<Self, String, String, String, Never> {
-          StructuredCoding.StructuredCallable(
-            name: "echo(_:)",
+        static func __structuredAction_echo(_ text: String.Type = String.self) -> StructuredCoding.StructuredAction<S, StructuredCoding.StructuredActionSignature<String, String, String, Never>> {
+          StructuredCoding.StructuredAction(
+            name: "echo",
             invoke: { (callee, input) in
               callee.echo(input)
             }
@@ -144,7 +144,7 @@ struct StructuredCallableTests {
     assertStructuredCodableExpansion(
       """
       struct S {
-        @StructuredCallable
+        @StructuredAction
         func greet(name: String) -> String {
           name
         }
@@ -178,9 +178,9 @@ struct StructuredCallableTests {
           }
         }
 
-        static func __structuredCallable_greet(name: String.Type = String.self) -> StructuredCoding.StructuredCallable<Self, __macro_local_30greet_name_String_String_InputfMu_, String, __macro_local_30greet_name_String_String_InputfMu_, Never> {
-          StructuredCoding.StructuredCallable(
-            name: "greet(name:)",
+        static func __structuredAction_greet(name: String.Type = String.self) -> StructuredCoding.StructuredAction<S, StructuredCoding.StructuredActionSignature<__macro_local_30greet_name_String_String_InputfMu_, String, __macro_local_30greet_name_String_String_InputfMu_, Never>> {
+          StructuredCoding.StructuredAction(
+            name: "greet",
             invoke: { (callee, input) in
               callee.greet(name: input.name)
             }
@@ -198,7 +198,7 @@ struct StructuredCallableTests {
     assertStructuredCodableExpansion(
       """
       struct S {
-        @StructuredCallable
+        @StructuredAction
         func greet(name: String = "world") -> String {
           name
         }
@@ -232,9 +232,9 @@ struct StructuredCallableTests {
           }
         }
 
-        static func __structuredCallable_greet(name: String.Type = String.self) -> StructuredCoding.StructuredCallable<Self, __macro_local_30greet_name_String_String_InputfMu_, String, __macro_local_30greet_name_String_String_InputfMu_, Never> {
-          StructuredCoding.StructuredCallable(
-            name: "greet(name:)",
+        static func __structuredAction_greet(name: String.Type = String.self) -> StructuredCoding.StructuredAction<S, StructuredCoding.StructuredActionSignature<__macro_local_30greet_name_String_String_InputfMu_, String, __macro_local_30greet_name_String_String_InputfMu_, Never>> {
+          StructuredCoding.StructuredAction(
+            name: "greet",
             invoke: { (callee, input) in
               callee.greet(name: input.name)
             }
@@ -252,7 +252,7 @@ struct StructuredCallableTests {
     assertStructuredCodableExpansion(
       """
       struct S {
-        @StructuredCallable
+        @StructuredAction
         func pair() -> (Int, String) {
           (1, "one")
         }
@@ -264,9 +264,9 @@ struct StructuredCallableTests {
           (1, "one")
         }
 
-        static func __structuredCallable_pair() -> StructuredCoding.StructuredCallable<Self, StructuredCoding.StructuredEmptyObject, StructuredCoding.StructuredTuple<Int, String>, StructuredCoding.StructuredEmptyObject, Never> {
-          StructuredCoding.StructuredCallable(
-            name: "pair()",
+        static func __structuredAction_pair() -> StructuredCoding.StructuredAction<S, StructuredCoding.StructuredActionSignature<StructuredCoding.StructuredEmptyObject, StructuredCoding.StructuredTuple<Int, String>, StructuredCoding.StructuredEmptyObject, Never>> {
+          StructuredCoding.StructuredAction(
+            name: "pair",
             invoke: { (callee, _) in
               let output = callee.pair()
               return StructuredCoding.StructuredTuple(output.0, output.1)
@@ -285,7 +285,7 @@ struct StructuredCallableTests {
     assertStructuredCodableExpansion(
       """
       struct S {
-        @StructuredCallable
+        @StructuredAction
         func fetch(id: Int) async throws(FetchError) -> String {
           "x"
         }
@@ -319,9 +319,9 @@ struct StructuredCallableTests {
           }
         }
 
-        static func __structuredCallable_fetch(id: Int.Type = Int.self) -> StructuredCoding.StructuredCallable<Self, __macro_local_31fetch_id_Int_String_async_InputfMu_, String, Never, FetchError> {
-          StructuredCoding.StructuredCallable(
-            name: "fetch(id:)",
+        static func __structuredAction_fetch(id: Int.Type = Int.self) -> StructuredCoding.StructuredAction<S, StructuredCoding.StructuredActionSignature<__macro_local_31fetch_id_Int_String_async_InputfMu_, String, Never, FetchError>> {
+          StructuredCoding.StructuredAction(
+            name: "fetch",
             invoke: { (callee, input) async throws(FetchError) in
               try await callee.fetch(id: input.id)
             }
@@ -339,7 +339,7 @@ struct StructuredCallableTests {
     assertStructuredCodableExpansion(
       """
       struct S {
-        @StructuredCallable
+        @StructuredAction
         static func make(count: Int) -> Int {
           count
         }
@@ -373,9 +373,9 @@ struct StructuredCallableTests {
           }
         }
 
-        static func __structuredCallable_make(count: Int.Type = Int.self) -> StructuredCoding.StructuredCallable<Void, __macro_local_24make_count_Int_Int_InputfMu_, Int, __macro_local_24make_count_Int_Int_InputfMu_, Never> {
-          StructuredCoding.StructuredCallable(
-            name: "make(count:)",
+        static func __structuredAction_make(count: Int.Type = Int.self) -> StructuredCoding.StructuredAction<Void, StructuredCoding.StructuredActionSignature<__macro_local_24make_count_Int_Int_InputfMu_, Int, __macro_local_24make_count_Int_Int_InputfMu_, Never>> {
+          StructuredCoding.StructuredAction(
+            name: "make",
             invoke: { (_, input) in
               make(count: input.count)
             }
@@ -386,30 +386,121 @@ struct StructuredCallableTests {
     )
   }
 
-  /// A top-level function's sidecar is itself a top-level function — no
-  /// `static` modifier.
+  /// Actions must be members of a type — a top-level function has no tool to
+  /// belong to.
   @Test
-  func topLevelFunctionSidecarIsNotStatic() {
+  func rejectsTopLevelFunction() {
     assertStructuredCodableExpansion(
       """
-      @StructuredCallable
+      @StructuredAction
       func negate(_ value: Bool) -> Bool {
         !value
       }
       """,
-      #"""
-
+      """
       func negate(_ value: Bool) -> Bool {
         !value
       }
+      """,
+      diagnostics: [
+        DiagnosticSpec(
+          message:
+            "@StructuredAction cannot be applied to top-level functions; actions must be members of a type",
+          line: 2, column: 6)
+      ]
+    )
+  }
 
-      func __structuredCallable_negate(_ value: Bool.Type = Bool.self) -> StructuredCoding.StructuredCallable<Void, Bool, Bool, Bool, Never> {
-        StructuredCoding.StructuredCallable(
-          name: "negate(_:)",
-          invoke: { (_, input) in
-            negate(input)
-          }
-        )
+  /// An actor's instance method is isolated to its callee: the glue closure
+  /// must hop to the actor, so it is forced async and `SyncInput` pinned to
+  /// `Never` even though the function itself is synchronous.
+  @Test
+  func actorMethodForcesAsyncGlue() {
+    assertStructuredCodableExpansion(
+      """
+      actor A {
+        @StructuredAction
+        func bump(_ value: Int) -> Int {
+          value + 1
+        }
+      }
+      """,
+      #"""
+      actor A {
+        func bump(_ value: Int) -> Int {
+          value + 1
+        }
+
+        static func __structuredAction_bump(_ value: Int.Type = Int.self) -> StructuredCoding.StructuredAction<A, StructuredCoding.StructuredActionSignature<Int, Int, Never, Never>> {
+          StructuredCoding.StructuredAction(
+            name: "bump",
+            invoke: { (callee, input) async in
+              await callee.bump(input)
+            }
+          )
+        }
+      }
+      """#
+    )
+  }
+
+  /// An extension's syntax cannot reveal whether the extended type is an
+  /// actor — which decides the glue closure's isolation — so actions must be
+  /// declared in the type's body.
+  @Test
+  func rejectsFunctionInExtension() {
+    assertStructuredCodableExpansion(
+      """
+      extension S {
+        @StructuredAction
+        func echo(_ text: String) -> String {
+          text
+        }
+      }
+      """,
+      """
+      extension S {
+        func echo(_ text: String) -> String {
+          text
+        }
+      }
+      """,
+      diagnostics: [
+        DiagnosticSpec(
+          message:
+            "@StructuredAction cannot be applied to functions in extensions; declare actions in the type's body",
+          line: 3, column: 8)
+      ]
+    )
+  }
+
+  /// `nonisolated` opts an actor method out of callee isolation, keeping the
+  /// synchronous glue.
+  @Test
+  func nonisolatedActorMethodKeepsSyncGlue() {
+    assertStructuredCodableExpansion(
+      """
+      actor A {
+        @StructuredAction
+        nonisolated func bump(_ value: Int) -> Int {
+          value + 1
+        }
+      }
+      """,
+      #"""
+      actor A {
+        nonisolated func bump(_ value: Int) -> Int {
+          value + 1
+        }
+
+        static func __structuredAction_bump(_ value: Int.Type = Int.self) -> StructuredCoding.StructuredAction<A, StructuredCoding.StructuredActionSignature<Int, Int, Int, Never>> {
+          StructuredCoding.StructuredAction(
+            name: "bump",
+            invoke: { (callee, input) in
+              callee.bump(input)
+            }
+          )
+        }
       }
       """#
     )
@@ -422,7 +513,7 @@ struct StructuredCallableTests {
     assertStructuredCodableExpansion(
       """
       public struct S {
-        @StructuredCallable
+        @StructuredAction
         public func run(name: String) -> Int {
           name.count
         }
@@ -456,9 +547,9 @@ struct StructuredCallableTests {
           }
         }
 
-        public static func __structuredCallable_run(name: String.Type = String.self) -> StructuredCoding.StructuredCallable<Self, __macro_local_25run_name_String_Int_InputfMu_, Int, __macro_local_25run_name_String_Int_InputfMu_, Never> {
-          StructuredCoding.StructuredCallable(
-            name: "run(name:)",
+        public static func __structuredAction_run(name: String.Type = String.self) -> StructuredCoding.StructuredAction<S, StructuredCoding.StructuredActionSignature<__macro_local_25run_name_String_Int_InputfMu_, Int, __macro_local_25run_name_String_Int_InputfMu_, Never>> {
+          StructuredCoding.StructuredAction(
+            name: "run",
             invoke: { (callee, input) in
               callee.run(name: input.name)
             }
@@ -470,13 +561,13 @@ struct StructuredCallableTests {
   }
 
   /// The attribute's `description`/`inputDescription`/`outputDescription`
-  /// arguments are forwarded to the `StructuredCallable` initializer.
+  /// arguments are forwarded to the `StructuredAction` initializer.
   @Test
   func descriptionArgumentsFlowIntoInitializer() {
     assertStructuredCodableExpansion(
       """
       struct S {
-        @StructuredCallable(description: "Adds numbers", inputDescription: "The addends", outputDescription: "The sum")
+        @StructuredAction(description: "Adds numbers", inputDescription: "The addends", outputDescription: "The sum")
         func add(a: Int, b: Int) -> Int {
           a + b
         }
@@ -517,9 +608,9 @@ struct StructuredCallableTests {
           }
         }
 
-        static func __structuredCallable_add(a: Int.Type = Int.self, b: Int.Type = Int.self) -> StructuredCoding.StructuredCallable<Self, __macro_local_25add_a_Int_b_Int_Int_InputfMu_, Int, __macro_local_25add_a_Int_b_Int_Int_InputfMu_, Never> {
-          StructuredCoding.StructuredCallable(
-            name: "add(a:b:)",
+        static func __structuredAction_add(a: Int.Type = Int.self, b: Int.Type = Int.self) -> StructuredCoding.StructuredAction<S, StructuredCoding.StructuredActionSignature<__macro_local_25add_a_Int_b_Int_Int_InputfMu_, Int, __macro_local_25add_a_Int_b_Int_Int_InputfMu_, Never>> {
+          StructuredCoding.StructuredAction(
+            name: "add",
             description: "Adds numbers",
             inputDescription: "The addends",
             outputDescription: "The sum",
@@ -540,7 +631,7 @@ struct StructuredCallableTests {
     assertStructuredCodableExpansion(
       """
       struct S {
-        @StructuredCallable(keyConversionStrategy: .convertToSnakeCase)
+        @StructuredAction(keyConversionStrategy: .convertToSnakeCase)
         func set(userName: String, maxCount: Int) {
         }
       }
@@ -579,9 +670,9 @@ struct StructuredCallableTests {
           }
         }
 
-        static func __structuredCallable_set(userName: String.Type = String.self, maxCount: Int.Type = Int.self) -> StructuredCoding.StructuredCallable<Self, __macro_local_38set_userName_String_maxCount_Int_InputfMu_, StructuredCoding.StructuredEmptyObject, __macro_local_38set_userName_String_maxCount_Int_InputfMu_, Never> {
-          StructuredCoding.StructuredCallable(
-            name: "set(userName:maxCount:)",
+        static func __structuredAction_set(userName: String.Type = String.self, maxCount: Int.Type = Int.self) -> StructuredCoding.StructuredAction<S, StructuredCoding.StructuredActionSignature<__macro_local_38set_userName_String_maxCount_Int_InputfMu_, StructuredCoding.StructuredEmptyObject, __macro_local_38set_userName_String_maxCount_Int_InputfMu_, Never>> {
+          StructuredCoding.StructuredAction(
+            name: "set",
             invoke: { (callee, input) in
               callee.set(userName: input.userName, maxCount: input.maxCount)
               return StructuredCoding.StructuredEmptyObject()
@@ -602,7 +693,7 @@ struct StructuredCallableTests {
     assertStructuredCodableExpansion(
       """
       struct S {
-        @StructuredCallable
+        @StructuredAction
         func f(x: inout Int) {
         }
       }
@@ -615,7 +706,7 @@ struct StructuredCallableTests {
       """,
       diagnostics: [
         DiagnosticSpec(
-          message: "@StructuredCallable does not support `inout` parameters",
+          message: "@StructuredAction does not support `inout` parameters",
           line: 3, column: 10)
       ]
     )
@@ -627,7 +718,7 @@ struct StructuredCallableTests {
     assertStructuredCodableExpansion(
       """
       struct S {
-        @StructuredCallable
+        @StructuredAction
         func f<T>(x: T) -> T {
           x
         }
@@ -642,7 +733,7 @@ struct StructuredCallableTests {
       """,
       diagnostics: [
         DiagnosticSpec(
-          message: "@StructuredCallable does not support generic functions",
+          message: "@StructuredAction does not support generic functions",
           line: 3, column: 9)
       ]
     )
@@ -654,7 +745,7 @@ struct StructuredCallableTests {
     assertStructuredCodableExpansion(
       """
       struct S {
-        @StructuredCallable
+        @StructuredAction
         func f(_ body: () throws -> Void) rethrows {
           try body()
         }
@@ -669,7 +760,7 @@ struct StructuredCallableTests {
       """,
       diagnostics: [
         DiagnosticSpec(
-          message: "@StructuredCallable does not support `rethrows`",
+          message: "@StructuredAction does not support `rethrows`",
           line: 3, column: 37)
       ]
     )
@@ -681,7 +772,7 @@ struct StructuredCallableTests {
     assertStructuredCodableExpansion(
       """
       struct S {
-        @StructuredCallable
+        @StructuredAction
         func sum(_ values: Int...) -> Int {
           0
         }
@@ -696,7 +787,7 @@ struct StructuredCallableTests {
       """,
       diagnostics: [
         DiagnosticSpec(
-          message: "@StructuredCallable does not support variadic parameters",
+          message: "@StructuredAction does not support variadic parameters",
           line: 3, column: 12)
       ]
     )
@@ -709,7 +800,7 @@ struct StructuredCallableTests {
     assertStructuredCodableExpansion(
       """
       struct S {
-        @StructuredCallable
+        @StructuredAction
         mutating func bump() {
         }
       }
@@ -722,7 +813,7 @@ struct StructuredCallableTests {
       """,
       diagnostics: [
         DiagnosticSpec(
-          message: "@StructuredCallable does not support `mutating` methods",
+          message: "@StructuredAction does not support `mutating` methods",
           line: 3, column: 3)
       ]
     )
@@ -734,7 +825,7 @@ struct StructuredCallableTests {
     assertStructuredCodableExpansion(
       """
       func outer() {
-        @StructuredCallable
+        @StructuredAction
         func inner() {
         }
       }
@@ -747,7 +838,7 @@ struct StructuredCallableTests {
       """,
       diagnostics: [
         DiagnosticSpec(
-          message: "@StructuredCallable cannot be applied to local functions",
+          message: "@StructuredAction cannot be applied to local functions",
           line: 3, column: 8)
       ]
     )
@@ -758,7 +849,7 @@ struct StructuredCallableTests {
   func rejectsNonFunction() {
     assertStructuredCodableExpansion(
       """
-      @StructuredCallable
+      @StructuredAction
       struct S {
       }
       """,
@@ -768,7 +859,7 @@ struct StructuredCallableTests {
       """,
       diagnostics: [
         DiagnosticSpec(
-          message: "@StructuredCallable can only be applied to functions",
+          message: "@StructuredAction can only be applied to functions",
           line: 1, column: 1)
       ]
     )
@@ -781,7 +872,7 @@ struct StructuredCallableTests {
     assertStructuredCodableExpansion(
       """
       struct S {
-        @StructuredCallable
+        @StructuredAction
         func f(_ x: Int = 1) -> Int {
           x
         }
@@ -793,9 +884,9 @@ struct StructuredCallableTests {
           x
         }
 
-        static func __structuredCallable_f(_ x: Int.Type = Int.self) -> StructuredCoding.StructuredCallable<Self, Int, Int, Int, Never> {
-          StructuredCoding.StructuredCallable(
-            name: "f(_:)",
+        static func __structuredAction_f(_ x: Int.Type = Int.self) -> StructuredCoding.StructuredAction<S, StructuredCoding.StructuredActionSignature<Int, Int, Int, Never>> {
+          StructuredCoding.StructuredAction(
+            name: "f",
             invoke: { (callee, input) in
               callee.f(input)
             }
