@@ -5,6 +5,76 @@ import Testing
 @Suite
 struct StructuredCodableEnumTests {
 
+  /// Defaulted associated values lower like `var x: T = expr` struct
+  /// properties: the `Mutable` definition wrapper plus a `?? default` decode
+  /// fallback — the same rules `@StructuredCallable` applies to defaulted
+  /// function parameters.
+  @Test
+  func enumDefaultedAssociatedValues() {
+    assertStructuredCodableExpansion(
+      """
+      @StructuredCodable
+      enum Policy {
+        case retry(count: Int = 3, delay: Double? = nil)
+      }
+      """,
+      #"""
+      enum Policy {
+        case retry(count: Int = 3, delay: Double? = nil)
+      }
+
+      extension Policy: StructuredCoding.StructuredEnumeration {
+        static var schema: some StructuredCoding.StructuredCodingSchema {
+          _schema()
+        }
+        typealias Cases = StructuredCoding.StructuredEnumerationCase<Self, __macro_local_5retryfMu_>
+        static func cases() -> Cases {
+          StructuredCoding.StructuredEnumerationCase(
+            name: "retry",
+            accessor: { value in
+              guard case .retry(let v0, let v1) = value else {
+                return nil
+              }
+              return __macro_local_5retryfMu_(count: v0, delay: v1)
+            },
+            initializer: {
+              .retry(count: $0.count, delay: $0.delay)
+            }
+          )
+        }
+        struct __macro_local_5retryfMu_: StructuredCoding.StructuredObject {
+          var count: Int
+          var delay: Double?
+          typealias __macro_local_5countfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredMutableDefaultInitializedPropertyDefinition<Int._StructuredObjectPropertyDefinition>>
+          typealias __macro_local_5delayfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredMutableDefaultInitializedPropertyDefinition<Double?._StructuredObjectPropertyDefinition>>
+          static var schema: some StructuredCoding.StructuredCodingSchema {
+            _schema()
+          }
+          typealias StructuredObjectProperties = (__macro_local_5countfMu_, __macro_local_5delayfMu_)
+          static func properties() -> StructuredObjectProperties {
+            (__macro_local_5countfMu_(
+                name: "count",
+                keyPath: \.count,
+                schema: __macro_local_5countfMu_.Definition.CodingValue.schema
+              ), __macro_local_5delayfMu_(
+                name: "delay",
+                keyPath: \.delay,
+                schema: __macro_local_5delayfMu_.Definition.CodingValue.schema
+              ))
+          }
+          typealias ObjectDecoderValues = (__macro_local_5countfMu_.ObjectDecoderValue, __macro_local_5delayfMu_.ObjectDecoderValue)
+          static func decode(from objectDecoder: sending StructuredCoding.StructuredObjectDecoder<ObjectDecoderValues>) -> sending Self {
+            Self(
+              count: objectDecoder.values.0 ?? 3,
+              delay: objectDecoder.values.1 ?? nil
+            )
+          }
+        }
+      }
+      """#
+    )
+  }
+
   /// Default object-properties style: single-value cases, plus a value-less case
   /// represented by `StructuredEmptyObject`.
   @Test

@@ -227,6 +227,47 @@ extension ObjectSchema.Property {
 
 }
 
+// MARK: - Parameter Clause Schema
+
+/// How a list of labeled/unlabeled typed elements — an enum case's associated
+/// values, a function's parameter clause, or a function's tuple return type —
+/// collapses onto the single `StructuredCodable` type that represents it.
+enum ParameterClauseSchema {
+
+  /// No elements (`case ping`, `func ping()`) — represented by the shared
+  /// `StructuredEmptyObject` so the value still codes as an (empty) object.
+  case none
+
+  /// Exactly one unlabeled element (`case text(String)`, `func f(_ x: Int?)`)
+  /// — its type is used directly.
+  case single(Element)
+
+  /// Two or more elements with at least one unlabeled (`case pair(Int, String)`,
+  /// `func f(bar: Int, _ x: String)`) — wrapped in `StructuredTuple`. Labels
+  /// are dropped from the wrapper but kept here for reconstruction.
+  case tuple([Element])
+
+  /// One or more elements, all labeled (`case circle(radius: Double)`,
+  /// `func move(x: Int, y: Int)`) — wrapped in a synthesized
+  /// `StructuredObject` whose `rootType` is a unique macro-generated name and
+  /// whose properties are these labeled values. A label names an object
+  /// property, so a labeled value always codes as an object (which is also
+  /// what lets an internally-tagged discriminator live alongside it).
+  case object(ObjectSchema)
+
+  /// One element of the clause: its declared label (if any), type, and default.
+  struct Element {
+    /// `nil` when the element is unlabeled (`case pair(Int, String)`).
+    let label: TokenSyntax?
+    let type: TypeSyntax
+    /// `= expr` on the element. Honored only in the `.object` collapse, where
+    /// it lowers as `Defaulting.mutable` — identical to a `var x: T = expr`
+    /// struct property.
+    let defaultValue: ExprSyntax?
+  }
+
+}
+
 // MARK: - Enumeration Schema
 
 /// A `StructuredEnumeration` conformance.
@@ -235,7 +276,7 @@ extension ObjectSchema.Property {
 /// `codingStyle`), plus any nested `StructuredObject` types synthesized for
 /// all-labeled cases. Every `StructuredEnumerationCase` wraps exactly one
 /// associated-value type, so each case's 0/1/N Swift associated values are first
-/// collapsed onto a single `AssociatedValue`.
+/// collapsed onto a single `ParameterClauseSchema`.
 struct EnumerationSchema {
 
   let namespace: StructuredCodingNamespace
@@ -280,7 +321,7 @@ struct EnumerationSchema {
     let name: IdentifiableToken
 
     /// The single type the case's associated values collapse onto.
-    let associatedValue: AssociatedValue
+    let associatedValue: ParameterClauseSchema
 
     /// Carried from `@StructuredCase(description:)`; emitted as the
     /// `description:` argument of the generated `StructuredEnumerationCase`.
@@ -290,96 +331,72 @@ struct EnumerationSchema {
 
 }
 
-extension EnumerationSchema.Case {
-
-  /// One Swift associated value of a case: its declared label (if any) and type.
-  struct Element {
-    /// `nil` when the value is unlabeled (`case pair(Int, String)`).
-    let label: TokenSyntax?
-    let type: TypeSyntax
-  }
-
-  /// How a case's associated values are represented as the single type a
-  /// `StructuredEnumerationCase` wraps.
-  enum AssociatedValue {
-
-    /// No associated values (`case ping`) — represented by the shared
-    /// `StructuredEmptyObject` so the case still codes as an (empty) object.
-    case none
-
-    /// Exactly one unlabeled associated value (`case text(String)`,
-    /// `case maybe(Int?)`) — its type is used directly.
-    case single(Element)
-
-    /// Two or more values with at least one unlabeled (`case pair(Int, String)`,
-    /// `case mixed(Int, label: String)`) — wrapped in `StructuredTuple`. Labels
-    /// are dropped from the wrapper but kept here for reconstruction.
-    case tuple([Element])
-
-    /// One or more values, all labeled (`case circle(radius: Double)`,
-    /// `case point(x: Int, y: Int)`) — wrapped in a synthesized
-    /// `StructuredObject` whose `rootType` is a unique macro-generated name and
-    /// whose properties are these labeled values. A label names an object
-    /// property, so a labeled value always codes as an object (which is also
-    /// what lets an internally-tagged discriminator live alongside it).
-    case object(ObjectSchema)
-
-  }
-
-}
-
 // MARK: - Callable Schema
 
-/// Unchanged from the previous schema format; still consumed by
-/// `SchemaCallableMacro` against the legacy `SchemaCoding.Support` API and out of
-/// scope for the `StructuredCoding` migration.
-
-struct SchemaType {
-  let syntax: TypeSyntax
-
-  enum Kind {
-    case optionalTuple([TypeSyntax])
-    case tuple([TypeSyntax])
-    case other(TypeSyntax)
-  }
-  let kind: Kind
-}
-
-struct SchemaParameter {
-  let firstName: TokenSyntax
-  let secondName: TokenSyntax?
-  let type: SchemaType
-  let bindingName: TokenSyntax
-
-  var isLabeled: Bool {
-    firstName.tokenKind != .wildcard
-  }
-
-  var effectiveName: TokenSyntax {
-    secondName ?? firstName
-  }
-
-  /// The label to use in parameter() calls - nil if unlabeled
-  var label: TokenSyntax? {
-    isLabeled ? firstName : nil
-  }
-}
-
+/// A function decorated with `@StructuredCallable`, lowered to what the
+/// sidecar generator needs: the parameter clause and return type collapsed
+/// onto their `ParameterClauseSchema` representations, plus the effects and
+/// declaration context that pick the `StructuredCallable` generic arguments.
 struct CallableSchema {
-  let namespace: StructuredCodingNamespace
-  let name: TokenSyntax
-  let fullName: String
-  let additionalArguments: LabeledExprListSyntax
-  let keyConversionStrategy: KeyConversionStrategy
-  let parameters: [SchemaParameter]
-  let returnType: ReturnType
-  let isAsync: Bool
-  let throwsClause: ThrowsClauseSyntax?
-  let isMethod: Bool
 
-  enum ReturnType {
-    case void
-    case single(TypeSyntax)
-    case tuple([(label: TokenSyntax?, type: TypeSyntax)])
+  let namespace: StructuredCodingNamespace
+
+  let isPublic: Bool
+
+  /// The function's base name (`foo`).
+  let baseName: TokenSyntax
+
+  /// The full name encoded into the runtime value (`"foo(bar:_:)"`).
+  let fullName: String
+
+  /// The sidecar function's name. The fixed prefix is what the
+  /// `@StructuredCallable` declaration's `names: prefixed(…)` promises.
+  var sidecarName: TokenSyntax {
+    "__structuredCallable_\(raw: baseName.text)"
   }
+
+  /// The original parameter list, mirrored as the sidecar's defaulted
+  /// metatype parameters (labels, wildcards, and internal names preserved) so
+  /// overloads of the decorated function produce distinct sidecars.
+  let parameters: FunctionParameterListSyntax
+
+  /// The parameter clause, collapsed onto the callable's `Input`.
+  let input: ParameterClauseSchema
+
+  /// The return type, collapsed onto the callable's `Output`.
+  let output: ParameterClauseSchema
+
+  /// `true` adds `async` to the glue closure and pins `SyncInput` to `Never`.
+  let isAsync: Bool
+
+  /// The callable's `Failure` type.
+  enum Failure {
+    /// Non-throwing — `Never`.
+    case never
+    /// `throws(E)` — `E`.
+    case typed(TypeSyntax)
+    /// Bare `throws` — `any Error`.
+    case untyped
+  }
+  let failure: Failure
+
+  /// Where the decorated function is declared, which picks the sidecar's
+  /// modifiers and the callable's `Callee`.
+  enum Context {
+    /// A top-level function — the sidecar is a top-level function too;
+    /// `Callee == Void`.
+    case topLevel
+    /// A static member — the sidecar is `static`; `Callee == Void`.
+    case staticMember
+    /// An instance method — the sidecar is `static`; `Callee == Self`.
+    case instanceMember
+  }
+  let context: Context
+
+  /// Carried from `@StructuredCallable(description:inputDescription:outputDescription:)`,
+  /// emitted as the corresponding arguments of the generated initializer call.
+  let description: StringLiteralExprSyntax?
+  let inputDescription: StringLiteralExprSyntax?
+  let outputDescription: StringLiteralExprSyntax?
+
 }

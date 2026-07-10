@@ -27,24 +27,6 @@ struct StructuredCodingNamespace: ExpressibleByStringLiteral {
     )
   }
 
-  func supportMember(name memberName: TokenSyntax) -> some ExprSyntaxProtocol {
-    MemberAccessExprSyntax(
-      base: member(name: "Support"),
-      name: memberName
-    )
-  }
-
-  func supportMemberType(
-    name memberName: TokenSyntax,
-    genericArgumentClause: GenericArgumentClauseSyntax? = nil
-  ) -> some TypeSyntaxProtocol {
-    MemberTypeSyntax(
-      baseType: memberType(name: "Support"),
-      name: memberName,
-      genericArgumentClause: genericArgumentClause
-    )
-  }
-
   init(stringLiteral value: StringLiteralType) {
     name = TokenSyntax(stringLiteral: value)
   }

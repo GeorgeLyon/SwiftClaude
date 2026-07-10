@@ -49,6 +49,26 @@ public macro StructuredCodable(
     type: "StructuredCodableMacro"
   )
 
+// MARK: - Structured Callable
+
+/// Exposes a function through Structured Coding: its parameter clause
+/// collapses onto a `StructuredCodable` Input and its return type onto a
+/// `StructuredCodable` Output — following the same rules as enum-case
+/// associated values — and a `__structuredCallable_<name>` sidecar function
+/// is generated returning the `StructuredCallable` that ties them together
+/// with the function's effects.
+@attached(peer, names: prefixed(__structuredCallable_))
+public macro StructuredCallable(
+  description: String? = nil,
+  inputDescription: String? = nil,
+  outputDescription: String? = nil,
+  keyConversionStrategy: StructuredCodingKeyConversionStrategy = .none
+) =
+  #externalMacro(
+    module: "StructuredCodingMacros",
+    type: "StructuredCallableMacro"
+  )
+
 // MARK: - Member Annotations
 
 /// Attaches a description to a stored property of a `@StructuredCodable` type.

@@ -18,7 +18,17 @@ extension CompatibilityModes {
     inferredFrom declaration: some DeclGroupSyntax,
     in expansionContext: MacroExpansionContext
   ) {
-    let enclosingDeclarations = [Syntax(declaration)] + expansionContext.lexicalContext
+    self.init(inferredFromAnyOf: [Syntax(declaration)] + expansionContext.lexicalContext)
+  }
+
+  /// The variant for peer macros (`@StructuredCallable`), which decorate a
+  /// declaration that cannot itself introduce a pack (generic functions are
+  /// rejected) but may be nested in one.
+  init(inferredFromLexicalContextOf expansionContext: some MacroExpansionContext) {
+    self.init(inferredFromAnyOf: expansionContext.lexicalContext)
+  }
+
+  private init(inferredFromAnyOf enclosingDeclarations: [Syntax]) {
     let declaresParameterPack = enclosingDeclarations.contains { declaration in
       declaration
         .asProtocol(WithGenericParametersSyntax.self)?
@@ -350,11 +360,13 @@ extension EnumDeclSyntax {
                 identifier: name,
                 token: element.name
               ),
-              associatedValue: element.associatedValue(
-                caseName: name,
+              associatedValue: ParameterClauseSchema(
+                collapsing: element.parameterClause?.parameters.parameterClauseElements ?? [],
+                synthesizedObjectNameSeed: name.name,
+                namespace: context.namespace,
                 keyConversionStrategy: keyConversionStrategy,
                 compatibilityModes: compatibilityModes,
-                in: context
+                in: context.expansionContext
               ),
               description: description?.expression
             )
@@ -365,95 +377,106 @@ extension EnumDeclSyntax {
 
 }
 
-extension EnumCaseElementSyntax {
+// MARK: - Parameter Clause Parsing
 
-  /// Collapses a case's 0/1/N associated values onto the single type a
-  /// `StructuredEnumerationCase` wraps, following the rules in `AssociatedValue`.
-  fileprivate func associatedValue(
-    caseName: Identifier,
+extension ParameterClauseSchema {
+
+  /// Collapses a clause's 0/1/N elements onto the single type that represents
+  /// it, following the rules documented on the cases.
+  ///
+  /// Takes its dependencies piecewise rather than as a
+  /// `StructuredCodableMacroContext` because it is shared with the
+  /// `@StructuredCallable` peer macro, which has no such context.
+  init(
+    collapsing elements: [Element],
+    synthesizedObjectNameSeed nameSeed: String,
+    namespace: StructuredCodingNamespace,
     keyConversionStrategy: KeyConversionStrategy,
     compatibilityModes: CompatibilityModes,
-    in context: StructuredCodableMacroContext
-  ) -> EnumerationSchema.Case.AssociatedValue {
-    let elements: [EnumerationSchema.Case.Element] =
-      parameterClause?.parameters.map { parameter in
-        let label: TokenSyntax?
-        if let firstName = parameter.firstName, firstName.tokenKind != .wildcard {
-          label = firstName
-        } else {
-          label = nil
-        }
-        return EnumerationSchema.Case.Element(label: label, type: parameter.type)
-      } ?? []
-
+    in expansionContext: MacroExpansionContext
+  ) {
     switch elements.count {
     case 0:
-      return .none
-    case 1:
-      // A label names an object property, so a labeled value synthesizes a
-      // one-property object exactly as labels do on multi-value cases (and
-      // an internally-tagged payload must be an object for the discriminator
-      // to live alongside its properties).
-      if elements[0].label != nil {
-        return .object(
-          synthesizedObject(
-            for: elements,
-            caseName: caseName,
-            keyConversionStrategy: keyConversionStrategy,
-            compatibilityModes: compatibilityModes,
-            in: context
-          )
-        )
-      }
-      return .single(elements[0])
+      self = .none
+    case 1 where elements[0].label == nil:
+      self = .single(elements[0])
     default:
-      if elements.allSatisfy({ $0.label != nil }) {
-        return .object(
-          synthesizedObject(
-            for: elements,
-            caseName: caseName,
-            keyConversionStrategy: keyConversionStrategy,
-            compatibilityModes: compatibilityModes,
-            in: context
-          )
-        )
-      } else {
-        return .tuple(elements)
+      // A label names an object property, so a single labeled value
+      // synthesizes a one-property object exactly as labels do on
+      // multi-value clauses (and an internally-tagged payload must be an
+      // object for the discriminator to live alongside its properties).
+      guard elements.allSatisfy({ $0.label != nil }) else {
+        self = .tuple(elements)
+        return
       }
+      // The `StructuredObject` that stands in for an all-labeled clause,
+      // assigning it and each of its properties a unique macro-generated name.
+      self = .object(
+        ObjectSchema(
+          namespace: namespace,
+          rootType: expansionContext.makeUniqueName(nameSeed),
+          isSynthesized: true,
+          keyConversionStrategy: keyConversionStrategy,
+          compatibilityModes: compatibilityModes,
+          description: nil,
+          properties: elements.compactMap { element in
+            guard let label = element.label, let identifier = label.identifier else {
+              return nil
+            }
+            return ObjectSchema.Property(
+              name: IdentifiableToken(identifier: identifier, token: label),
+              definition: ObjectSchema.Property.Definition(
+                valueType: element.type,
+                defaulting: element.defaultValue
+                  .map { .mutable(defaultValue: $0) } ?? .none
+              ),
+              propertyTypeAliasName: expansionContext.makeUniqueName(identifier.name),
+              description: nil
+            )
+          }
+        )
+      )
     }
   }
 
-  /// Builds the `StructuredObject` that stands in for an all-labeled case,
-  /// assigning it and each of its properties a unique macro-generated name.
-  private func synthesizedObject(
-    for elements: [EnumerationSchema.Case.Element],
-    caseName: Identifier,
-    keyConversionStrategy: KeyConversionStrategy,
-    compatibilityModes: CompatibilityModes,
-    in context: StructuredCodableMacroContext
-  ) -> ObjectSchema {
-    ObjectSchema(
-      namespace: context.namespace,
-      rootType: context.expansionContext.makeUniqueName(caseName.name),
-      isSynthesized: true,
-      keyConversionStrategy: keyConversionStrategy,
-      compatibilityModes: compatibilityModes,
-      description: nil,
-      properties: elements.compactMap { element in
-        guard let label = element.label, let identifier = label.identifier else {
-          return nil
-        }
-        return ObjectSchema.Property(
-          name: IdentifiableToken(identifier: identifier, token: label),
-          definition: ObjectSchema.Property.Definition(
-            valueType: element.type,
-            defaulting: .none
-          ),
-          propertyTypeAliasName: context.expansionContext.makeUniqueName(identifier.name),
-          description: nil
-        )
+}
+
+extension EnumCaseParameterListSyntax {
+
+  var parameterClauseElements: [ParameterClauseSchema.Element] {
+    map { parameter in
+      let label: TokenSyntax?
+      if let firstName = parameter.firstName, firstName.tokenKind != .wildcard {
+        label = firstName
+      } else {
+        label = nil
       }
-    )
+      return ParameterClauseSchema.Element(
+        label: label,
+        type: parameter.type,
+        defaultValue: parameter.defaultValue?.value
+      )
+    }
+  }
+
+}
+
+extension TupleTypeElementListSyntax {
+
+  var parameterClauseElements: [ParameterClauseSchema.Element] {
+    map { element in
+      let label: TokenSyntax?
+      if let firstName = element.firstName, firstName.tokenKind != .wildcard {
+        label = firstName
+      } else {
+        label = nil
+      }
+      return ParameterClauseSchema.Element(
+        label: label,
+        type: element.type,
+        defaultValue: nil
+      )
+    }
   }
 
 }
@@ -479,134 +502,321 @@ extension Optional where Wrapped == EnumStyleArgument {
 
 extension FunctionDeclSyntax {
 
+  /// Lowers a `@StructuredCallable`-decorated function onto the IR the
+  /// sidecar generator consumes, or `nil` (after diagnosing) when the
+  /// function cannot be represented.
   func callableSchema(
     namespace: StructuredCodingNamespace,
-    additionalArguments: LabeledExprListSyntax,
+    description: StringLiteralExprSyntax?,
+    inputDescription: StringLiteralExprSyntax?,
+    outputDescription: StringLiteralExprSyntax?,
     keyConversionStrategy: KeyConversionStrategy,
     in context: some MacroExpansionContext
-  ) -> CallableSchema {
-    let signature = self.signature
-
-    // Parse parameters
-    let parameters = signature.parameterClause.parameters.enumerated().map { (offset, param) in
-      SchemaParameter(
-        firstName: param.firstName,
-        secondName: param.secondName,
-        type: param.type.schemaType,
-        bindingName: "__param_\(raw: offset)"
+  ) -> CallableSchema? {
+    guard name.identifier != nil else {
+      context.diagnose(
+        DiagnosticError(
+          node: name,
+          severity: .error,
+          message: "@StructuredCallable requires a function with an identifier name"
+        )
       )
+      return nil
     }
 
-    // Parse return type
-    let returnType = parseReturnType(signature.returnClause?.type)
+    // Generic functions have no concrete Input/Output types to collapse onto.
+    if let unsupported = genericParameterClause.map(Syntax.init) ?? genericWhereClause.map(Syntax.init) {
+      context.diagnose(
+        DiagnosticError(
+          node: unsupported,
+          severity: .error,
+          message: "@StructuredCallable does not support generic functions"
+        )
+      )
+      return nil
+    }
 
-    // Parse effect specifiers
-    let isAsync = signature.effectSpecifiers?.asyncSpecifier != nil
-    let throwsClause = signature.effectSpecifiers?.throwsClause
+    for modifier in modifiers {
+      switch modifier.name.tokenKind {
+      case .keyword(.mutating), .keyword(.borrowing), .keyword(.consuming):
+        context.diagnose(
+          DiagnosticError(
+            node: modifier,
+            severity: .error,
+            message: "@StructuredCallable does not support `\(modifier.name.trimmed)` methods"
+          )
+        )
+        return nil
+      default:
+        break
+      }
+    }
 
-    // Build full function name like "foo(bar:_:)"
-    let fullName = buildFullName(baseName: name, parameters: parameters)
+    let isAsync: Bool
+    switch signature.effectSpecifiers?.asyncSpecifier?.tokenKind {
+    case .none:
+      isAsync = false
+    case .keyword(.async):
+      isAsync = true
+    case .some:
+      context.diagnose(
+        DiagnosticError(
+          node: signature.effectSpecifiers!,
+          severity: .error,
+          message: "@StructuredCallable does not support `reasync`"
+        )
+      )
+      return nil
+    }
 
-    // Instance methods require a callee; static methods do not
-    let isMethod = !context.lexicalContext.isEmpty && !modifiers.contains(where: \.isStatic)
+    let failure: CallableSchema.Failure
+    if let throwsClause = signature.effectSpecifiers?.throwsClause {
+      switch throwsClause.throwsSpecifier.tokenKind {
+      case .keyword(.throws):
+        failure = throwsClause.type.map { .typed($0) } ?? .untyped
+      default:
+        context.diagnose(
+          DiagnosticError(
+            node: throwsClause,
+            severity: .error,
+            message: "@StructuredCallable does not support `rethrows`"
+          )
+        )
+        return nil
+      }
+    } else {
+      failure = .never
+    }
+
+    let callableContext: CallableSchema.Context
+    if let innermost = context.lexicalContext.first {
+      guard innermost.asProtocol(DeclGroupSyntax.self) != nil else {
+        context.diagnose(
+          DiagnosticError(
+            node: name,
+            severity: .error,
+            message: "@StructuredCallable cannot be applied to local functions"
+          )
+        )
+        return nil
+      }
+      guard !innermost.is(ProtocolDeclSyntax.self) else {
+        context.diagnose(
+          DiagnosticError(
+            node: name,
+            severity: .error,
+            message: "@StructuredCallable cannot be applied to protocol requirements"
+          )
+        )
+        return nil
+      }
+      callableContext = modifiers.contains(where: \.isStatic) ? .staticMember : .instanceMember
+    } else {
+      callableContext = .topLevel
+    }
+
+    guard
+      let inputElements = signature.parameterClause.parameters.parameterClauseElements(in: context)
+    else {
+      return nil
+    }
+
+    let compatibilityModes = CompatibilityModes(inferredFromLexicalContextOf: context)
+
+    let input = ParameterClauseSchema(
+      collapsing: inputElements,
+      synthesizedObjectNameSeed: "\(overloadSeed)_Input",
+      namespace: namespace,
+      keyConversionStrategy: keyConversionStrategy,
+      compatibilityModes: compatibilityModes,
+      in: context
+    )
+
+    // Defaults survive only in the `.object` collapse, where they lower like
+    // defaulted struct properties; in the other collapses the representation
+    // has nowhere to record them.
+    if case .single = input {
+      diagnoseIgnoredDefaults(inputElements, in: context)
+    } else if case .tuple = input {
+      diagnoseIgnoredDefaults(inputElements, in: context)
+    }
+
+    let output = ParameterClauseSchema(
+      collapsing: returnClauseElements(signature.returnClause?.type),
+      synthesizedObjectNameSeed: "\(overloadSeed)_Output",
+      namespace: namespace,
+      keyConversionStrategy: keyConversionStrategy,
+      compatibilityModes: compatibilityModes,
+      in: context
+    )
 
     return CallableSchema(
       namespace: namespace,
-      name: name,
+      isPublic: modifiers.contains(where: \.isPublic),
+      baseName: name.trimmed,
       fullName: fullName,
-      additionalArguments: additionalArguments,
-      keyConversionStrategy: keyConversionStrategy,
-      parameters: parameters,
-      returnType: returnType,
+      parameters: signature.parameterClause.parameters,
+      input: input,
+      output: output,
       isAsync: isAsync,
-      throwsClause: throwsClause,
-      isMethod: isMethod
+      failure: failure,
+      context: callableContext,
+      description: description,
+      inputDescription: inputDescription,
+      outputDescription: outputDescription
     )
   }
 
-  private func parseReturnType(_ type: TypeSyntax?) -> CallableSchema.ReturnType {
+  /// A deterministic seed for the synthesized Input/Output type names that no
+  /// two overloads of the same base name can share. `makeUniqueName` alone is
+  /// not enough: its discriminator is derived from the decorated declaration's
+  /// *name*, so two `over(x:)` overloads would collide. Folding the full
+  /// signature into the seed (sanitized to identifier characters) keeps the
+  /// generated names distinct — labels, parameter types, return type, and
+  /// `async` are exactly the axes Swift allows overloading on.
+  private var overloadSeed: String {
+    var seed = name.text
+    for parameter in signature.parameterClause.parameters {
+      seed += "_\(parameter.firstName.text)_\(parameter.type.trimmedDescription)"
+    }
+    if let returnType = signature.returnClause?.type {
+      seed += "_\(returnType.trimmedDescription)"
+    }
+    if signature.effectSpecifiers?.asyncSpecifier != nil {
+      seed += "_async"
+    }
+    return String(seed.map { $0.isLetter || $0.isNumber ? $0 : "_" })
+  }
+
+  /// `"foo(bar:_:)"`
+  private var fullName: String {
+    let labels = signature.parameterClause.parameters
+      .map { parameter -> String in
+        if parameter.firstName.tokenKind == .wildcard {
+          return "_:"
+        } else {
+          return "\(parameter.firstName.trimmed):"
+        }
+      }
+      .joined()
+    return "\(name.trimmed)(\(labels))"
+  }
+
+  /// The return type as parameter-clause elements: `Void` in any spelling is
+  /// empty, a parenthesized single type unwraps, a tuple contributes its
+  /// elements, and anything else is a single unlabeled element.
+  private func returnClauseElements(_ type: TypeSyntax?) -> [ParameterClauseSchema.Element] {
     guard let type else {
-      return .void
+      return []
     }
 
-    // Check for Void identifier
     if let identifier = type.as(IdentifierTypeSyntax.self),
       identifier.name.text == "Void"
     {
-      return .void
+      return []
     }
 
-    // Check for tuple type
     if let tupleType = type.as(TupleTypeSyntax.self) {
-      // Empty tuple is Void
       guard !tupleType.elements.isEmpty else {
-        return .void
+        return []
       }
 
-      // Single unlabeled element is treated as single type
       if tupleType.elements.count == 1,
         let element = tupleType.elements.first,
         element.firstName == nil
       {
-        return .single(element.type)
+        return returnClauseElements(element.type)
       }
 
-      // Multi-element or labeled tuple
-      let elements = tupleType.elements.map { element in
-        (label: element.firstName, type: element.type)
-      }
-      return .tuple(elements)
+      return tupleType.elements.parameterClauseElements
     }
 
-    // Single type
-    return .single(type)
+    return [ParameterClauseSchema.Element(label: nil, type: type, defaultValue: nil)]
   }
 
-  private func buildFullName(
-    baseName: TokenSyntax,
-    parameters: [SchemaParameter]
-  ) -> String {
-    let labels = parameters.map { param -> String in
-      if param.firstName.tokenKind == .wildcard {
-        return "_:"
-      } else {
-        return "\(param.firstName.text):"
-      }
-    }.joined()
-    return "\(baseName.text)(\(labels))"
+  private func diagnoseIgnoredDefaults(
+    _ elements: [ParameterClauseSchema.Element],
+    in context: some MacroExpansionContext
+  ) {
+    for element in elements {
+      guard let defaultValue = element.defaultValue else { continue }
+      context.diagnose(
+        DiagnosticError(
+          node: defaultValue,
+          severity: .warning,
+          message:
+            "Default value is ignored: only functions whose parameters are all labeled can encode defaults"
+        )
+      )
+    }
   }
 
 }
 
-// MARK: - SchemaType Parsing
+extension FunctionParameterListSyntax {
+
+  /// Lowers a function's parameters to parameter-clause elements, or `nil`
+  /// (after diagnosing) when a parameter cannot be represented. The internal
+  /// name (`secondName`) only ever names the binding inside the function
+  /// body, so only the label survives lowering.
+  func parameterClauseElements(
+    in context: some MacroExpansionContext
+  ) -> [ParameterClauseSchema.Element]? {
+    var elements: [ParameterClauseSchema.Element] = []
+    for parameter in self {
+      guard parameter.ellipsis == nil else {
+        context.diagnose(
+          DiagnosticError(
+            node: parameter,
+            severity: .error,
+            message: "@StructuredCallable does not support variadic parameters"
+          )
+        )
+        return nil
+      }
+
+      if let specifier = parameter.type.as(AttributedTypeSyntax.self)?.specifiers.first {
+        context.diagnose(
+          DiagnosticError(
+            node: parameter,
+            severity: .error,
+            message: "@StructuredCallable does not support `\(specifier.trimmed)` parameters"
+          )
+        )
+        return nil
+      }
+
+      let label: TokenSyntax?
+      if parameter.firstName.tokenKind == .wildcard {
+        label = nil
+      } else {
+        guard parameter.firstName.identifier != nil else {
+          context.diagnose(
+            DiagnosticError(
+              node: parameter.firstName,
+              severity: .error,
+              message: "Parameter labels must be identifiers"
+            )
+          )
+          return nil
+        }
+        label = parameter.firstName
+      }
+
+      elements.append(
+        ParameterClauseSchema.Element(
+          label: label,
+          type: parameter.type,
+          defaultValue: parameter.defaultValue?.value
+        )
+      )
+    }
+    return elements
+  }
+
+}
 
 extension TypeSyntax {
-
-  var schemaType: SchemaType {
-    // Check for optional wrapping a tuple: (A, B)?
-    if let optionalType = self.as(OptionalTypeSyntax.self),
-      let tupleType = optionalType.wrappedType.as(TupleTypeSyntax.self),
-      tupleType.elements.count >= 2
-    {
-      return SchemaType(
-        syntax: self,
-        kind: .optionalTuple(tupleType.elements.map(\.type))
-      )
-    }
-
-    // Check for tuple: (A, B)
-    if let tupleType = self.as(TupleTypeSyntax.self),
-      tupleType.elements.count >= 2
-    {
-      return SchemaType(
-        syntax: self,
-        kind: .tuple(tupleType.elements.map(\.type))
-      )
-    }
-
-    // Everything else
-    return SchemaType(syntax: self, kind: .other(self))
-  }
 
   /// Returns this type with generic arguments appended to its terminal segment,
   /// referencing each generic parameter by name. For nil or empty parameter

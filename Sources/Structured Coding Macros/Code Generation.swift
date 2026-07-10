@@ -809,8 +809,10 @@ extension EnumerationSchema.Case {
   /// `{ value in guard case .name(let v0, ...) = value else { return nil }; return <wrapper> }`
   private func accessorClosure(in namespace: StructuredCodingNamespace) -> ClosureExprSyntax {
     let bindingNames = associatedValue.bindingNames
-    let returnExpr = associatedValue.accessorReturnExpr(
-      caseName: name, in: namespace, bindingNames: bindingNames)
+    let returnExpr = associatedValue.representationExpr(
+      packing: bindingNames.map { ExprSyntax(DeclReferenceExprSyntax(baseName: $0)) },
+      in: namespace
+    )
 
     return ClosureExprSyntax(
       signature: ClosureSignatureSyntax(
@@ -886,84 +888,29 @@ extension EnumerationSchema.Case {
           MemberAccessExprSyntax(name: name.token)
         }
       )
-    case .single(let element):
-      return initializerClosure(
-        arguments: LabeledExprListSyntax {
-          labeledArgument(label: element.label, expression: dollarArgument())
-        }
-      )
-    case .tuple(let elements):
-      return initializerClosure(
-        arguments: LabeledExprListSyntax {
-          for (index, element) in elements.enumerated() {
-            labeledArgument(
-              label: element.label,
-              expression: dollarMember("values", "\(index)")
-            )
-          }
-        }
-      )
-    case .object(let objectSchema):
-      return initializerClosure(
-        arguments: LabeledExprListSyntax {
-          for property in objectSchema.properties {
-            labeledArgument(
-              label: property.name.token,
-              expression: dollarMember(property.name.name)
-            )
-          }
+    case .single, .tuple, .object:
+      return ClosureExprSyntax(
+        statements: CodeBlockItemListSyntax {
+          FunctionCallExprSyntax(
+            calledExpression: MemberAccessExprSyntax(name: name.token),
+            leftParen: .leftParenToken(),
+            arguments: associatedValue.argumentList(
+              unpacking: DeclReferenceExprSyntax(baseName: .dollarIdentifier("$0"))
+            ),
+            rightParen: .rightParenToken()
+          )
         }
       )
     }
-  }
-
-  private func initializerClosure(arguments: LabeledExprListSyntax) -> ClosureExprSyntax {
-    ClosureExprSyntax(
-      statements: CodeBlockItemListSyntax {
-        FunctionCallExprSyntax(
-          calledExpression: MemberAccessExprSyntax(name: name.token),
-          leftParen: .leftParenToken(),
-          arguments: arguments,
-          rightParen: .rightParenToken()
-        )
-      }
-    )
-  }
-
-  private func labeledArgument(label: TokenSyntax?, expression: some ExprSyntaxProtocol)
-    -> LabeledExprSyntax
-  {
-    if let label {
-      LabeledExprSyntax(
-        label: .identifier(label.identifierOrText),
-        colon: .colonToken(),
-        expression: expression
-      )
-    } else {
-      LabeledExprSyntax(expression: expression)
-    }
-  }
-
-  /// `$0`
-  private func dollarArgument() -> DeclReferenceExprSyntax {
-    DeclReferenceExprSyntax(baseName: .dollarIdentifier("$0"))
-  }
-
-  /// `$0.<components...>`
-  private func dollarMember(_ components: String...) -> ExprSyntax {
-    var expression = ExprSyntax(dollarArgument())
-    for component in components {
-      expression = ExprSyntax(
-        MemberAccessExprSyntax(base: expression, name: .identifier(component)))
-    }
-    return expression
   }
 
 }
 
-extension EnumerationSchema.Case.AssociatedValue {
+// MARK: - Parameter Clause Code Generation
 
-  /// The single type the `StructuredEnumerationCase` wraps.
+extension ParameterClauseSchema {
+
+  /// The single `StructuredCodable` type the clause collapses onto.
   func typeSyntax(in namespace: StructuredCodingNamespace) -> TypeSyntax {
     switch self {
     case .none:
@@ -987,24 +934,66 @@ extension EnumerationSchema.Case.AssociatedValue {
     }
   }
 
+  /// How many values of the original clause the collapsed representation
+  /// carries — the arity of the case pattern (enum) or of the returned tuple
+  /// (callable output).
+  var componentCount: Int {
+    switch self {
+    case .none: 0
+    case .single: 1
+    case .tuple(let elements): elements.count
+    case .object(let objectSchema): objectSchema.properties.count
+    }
+  }
+
   /// The positional binding names introduced by the case pattern (`v0`, `v1`, …),
   /// empty for a value-less case.
   fileprivate var bindingNames: [TokenSyntax] {
-    let count =
-      switch self {
-      case .none: 0
-      case .single: 1
-      case .tuple(let elements): elements.count
-      case .object(let objectSchema): objectSchema.properties.count
-      }
-    return (0..<count).map { .identifier("v\($0)") }
+    (0..<componentCount).map { .identifier("v\($0)") }
   }
 
-  /// The value returned from the accessor once the case has matched.
-  fileprivate func accessorReturnExpr(
-    caseName: IdentifiableToken,
-    in namespace: StructuredCodingNamespace,
-    bindingNames: [TokenSyntax]
+  /// The original labeled argument list, recovered from the collapsed
+  /// representation `base` — `(base)`, `(label: base.values.0, ...)`, or
+  /// `(name: base.name, ...)`. Used to reconstruct an enum case
+  /// (`.name(label: $0.values.0)`) and to call a `@StructuredCallable`
+  /// function (`foo(label: input.values.0, ...)`).
+  func argumentList(unpacking base: some ExprSyntaxProtocol) -> LabeledExprListSyntax {
+    switch self {
+    case .none:
+      return LabeledExprListSyntax()
+    case .single(let element):
+      return LabeledExprListSyntax {
+        labeledArgument(label: element.label, expression: base)
+      }
+    case .tuple(let elements):
+      return LabeledExprListSyntax {
+        for (index, element) in elements.enumerated() {
+          labeledArgument(
+            label: element.label,
+            expression: member(base, "values", "\(index)")
+          )
+        }
+      }
+    case .object(let objectSchema):
+      return LabeledExprListSyntax {
+        for property in objectSchema.properties {
+          labeledArgument(
+            label: property.name.token,
+            expression: member(base, property.name.name)
+          )
+        }
+      }
+    }
+  }
+
+  /// The collapsed representation, constructed from the clause's component
+  /// values — `StructuredEmptyObject()`, the value itself,
+  /// `StructuredTuple(v0, v1)`, or `RootType(name0: v0, ...)`. `components`
+  /// are the matched case-pattern bindings (enum accessor) or the positional
+  /// accesses into a callable's returned tuple.
+  func representationExpr(
+    packing components: [ExprSyntax],
+    in namespace: StructuredCodingNamespace
   ) -> ExprSyntax {
     switch self {
     case .none:
@@ -1017,15 +1006,15 @@ extension EnumerationSchema.Case.AssociatedValue {
         )
       )
     case .single:
-      return ExprSyntax(DeclReferenceExprSyntax(baseName: bindingNames[0]))
+      return components[0]
     case .tuple:
       return ExprSyntax(
         FunctionCallExprSyntax(
           calledExpression: namespace.member(name: "StructuredTuple"),
           leftParen: .leftParenToken(),
           arguments: LabeledExprListSyntax {
-            for bindingName in bindingNames {
-              LabeledExprSyntax(expression: DeclReferenceExprSyntax(baseName: bindingName))
+            for component in components {
+              LabeledExprSyntax(expression: component)
             }
           },
           rightParen: .rightParenToken()
@@ -1037,11 +1026,11 @@ extension EnumerationSchema.Case.AssociatedValue {
           calledExpression: DeclReferenceExprSyntax(baseName: objectSchema.rootType),
           leftParen: .leftParenToken(),
           arguments: LabeledExprListSyntax {
-            for (property, bindingName) in zip(objectSchema.properties, bindingNames) {
+            for (property, component) in zip(objectSchema.properties, components) {
               LabeledExprSyntax(
                 label: .identifier(property.name.name),
                 colon: .colonToken(),
-                expression: DeclReferenceExprSyntax(baseName: bindingName)
+                expression: component
               )
             }
           },
@@ -1051,9 +1040,37 @@ extension EnumerationSchema.Case.AssociatedValue {
     }
   }
 
+  private func labeledArgument(label: TokenSyntax?, expression: some ExprSyntaxProtocol)
+    -> LabeledExprSyntax
+  {
+    if let label {
+      LabeledExprSyntax(
+        label: .identifier(label.identifierOrText),
+        colon: .colonToken(),
+        expression: expression
+      )
+    } else {
+      LabeledExprSyntax(expression: expression)
+    }
+  }
+
 }
 
 // MARK: - Generation Helpers
+
+/// `<base>.<name>`
+private func member(
+  _ base: some ExprSyntaxProtocol, _ name: String
+) -> some ExprSyntaxProtocol {
+  MemberAccessExprSyntax(base: base, name: .identifier(name))
+}
+
+/// `<base>.<name0>.<name1>`
+private func member(
+  _ base: some ExprSyntaxProtocol, _ name0: String, _ name1: String
+) -> some ExprSyntaxProtocol {
+  member(member(base, name0), name1)
+}
 
 /// `static var schema: some {ns}.StructuredCodingSchema { _schema() }` — the
 /// non-generic `Schema` witness emitted into every object and enumeration;
@@ -1166,139 +1183,59 @@ extension DeclModifierListSyntax {
 
 // MARK: - Callable Schema Code Generation
 
-extension SchemaParameter {
-
-  /// Generates a `parameter(label: "...", schema: ...)` call
-  func parameterCallExpr(
-    namespace: StructuredCodingNamespace,
-    keyConversionStrategy: KeyConversionStrategy
-  ) -> FunctionCallExprSyntax {
-    var arguments = LabeledExprListSyntax()
-
-    if let label {
-      arguments.append(
-        LabeledExprSyntax(
-          label: "label",
-          colon: .colonToken(),
-          expression: StringLiteralExprSyntax(
-            content: keyConversionStrategy.convert(label.text)
-          ),
-          trailingComma: .commaToken(trailingTrivia: .newline)
-        )
-      )
-    }
-
-    arguments.append(
-      LabeledExprSyntax(
-        label: "schema",
-        colon: .colonToken(),
-        expression: .schema(namespace: namespace, representing: type.syntax)
-      )
-    )
-
-    return FunctionCallExprSyntax(
-      calledExpression: namespace.supportMember(name: "parameter"),
-      leftParen: .leftParenToken(trailingTrivia: .newline),
-      arguments: arguments,
-      rightParen: .rightParenToken(leadingTrivia: .newline)
-    )
-  }
-}
-
-extension ExprSyntaxProtocol where Self == FunctionCallExprSyntax {
-
-  fileprivate static func schema(
-    namespace: StructuredCodingNamespace,
-    representing type: TypeSyntax,
-    additionalArguments: LabeledExprListSyntax = LabeledExprListSyntax()
-  ) -> Self {
-    var arguments = LabeledExprListSyntax {
-      LabeledExprSyntax(
-        label: "representing",
-        colon: .colonToken(),
-        expression: MemberAccessExprSyntax(
-          base: DeclReferenceExprSyntax(baseName: "\(type.trimmed)"),
-          name: "self"
-        )
-      )
-      additionalArguments
-    }
-    arguments[arguments.indices.last!].trailingComma = nil
-    return FunctionCallExprSyntax(
-      calledExpression: namespace.supportMember(name: "schema"),
-      leftParen: .leftParenToken(trailingTrivia: .newline),
-      arguments: arguments,
-      rightParen: .rightParenToken(leadingTrivia: .newline)
-    )
-  }
-
-}
-
 extension CallableSchema {
 
-  /// Generates the complete sidecar function declaration
-  func sidecarFunction() -> FunctionDeclSyntax {
+  /// The peer declarations for a `@StructuredCallable` function: the
+  /// synthesized `Input`/`Output` objects (when the corresponding clause
+  /// collapses onto one) and the sidecar function returning the
+  /// `StructuredCallable`.
+  func peerDeclarations() -> [DeclSyntax] {
+    var declarations: [DeclSyntax] = []
+    if case .object(let objectSchema) = input {
+      declarations.append(DeclSyntax(objectSchema.synthesizedStructDecl(isPublic: isPublic)))
+    }
+    if case .object(let objectSchema) = output {
+      declarations.append(DeclSyntax(objectSchema.synthesizedStructDecl(isPublic: isPublic)))
+    }
+    declarations.append(DeclSyntax(sidecarFunction()))
+    return declarations
+  }
+
+  /// `static func __structuredCallable_foo(bar: Bool.Type = Bool.self) -> {ns}.StructuredCallable<…> { … }`
+  ///
+  /// The defaulted metatype parameters mirror the decorated function's, so
+  /// overloads of the same base name get distinct sidecars; call sites only
+  /// pass them to disambiguate. `static` is dropped for top-level functions,
+  /// whose sidecar is itself top-level.
+  private func sidecarFunction() -> FunctionDeclSyntax {
     FunctionDeclSyntax(
-      modifiers: DeclModifierListSyntax {
-        DeclModifierSyntax(name: .keyword(.static))
-      },
-      name: "__schema__\(raw: name.text)",
+      modifiers: .visibility(isPublic, static: context != .topLevel),
+      name: sidecarName,
       signature: FunctionSignatureSyntax(
         parameterClause: sidecarParameterClause(),
-        returnClause: ReturnClauseSyntax(
-          type: callableSchemaReturnType()
-        )
+        returnClause: ReturnClauseSyntax(type: callableType())
       ),
       body: CodeBlockSyntax {
-        // let inputSchema = ...
-        VariableDeclSyntax(
-          bindingSpecifier: .keyword(.let),
-          bindings: PatternBindingListSyntax {
-            PatternBindingSyntax(
-              pattern: IdentifierPatternSyntax(identifier: "inputSchema"),
-              initializer: InitializerClauseSyntax(
-                value: inputSchemaExpr()
-              )
-            )
-          }
-        )
-
-        // let outputSchema = ...
-        VariableDeclSyntax(
-          bindingSpecifier: .keyword(.let),
-          bindings: PatternBindingListSyntax {
-            PatternBindingSyntax(
-              pattern: IdentifierPatternSyntax(identifier: "outputSchema"),
-              initializer: InitializerClauseSyntax(
-                value: outputSchemaExpr()
-              )
-            )
-          }
-        )
-
-        // return CallableSchema(...)
-        ReturnStmtSyntax(
-          expression: callableSchemaInitExpr()
-        )
+        callableInitExpr()
       }
     )
   }
 
-  /// Generates parameters like: bar: Bool.Type = Bool.self, _ baz: Bool.Type = Bool.self
+  /// `(bar: Bool.Type = Bool.self, _ baz: Bool.Type = Bool.self)`
   private func sidecarParameterClause() -> FunctionParameterClauseSyntax {
     FunctionParameterClauseSyntax(
       parameters: FunctionParameterListSyntax {
-        for param in parameters {
+        for parameter in parameters {
           FunctionParameterSyntax(
-            firstName: param.firstName,
-            secondName: param.secondName,
+            firstName: parameter.firstName.trimmed,
+            secondName: parameter.secondName?.trimmed,
             type: MemberTypeSyntax(
-              baseType: param.type.syntax,
+              baseType: parameter.type.trimmed,
               name: "Type"
             ),
             defaultValue: InitializerClauseSyntax(
               value: MemberAccessExprSyntax(
-                base: DeclReferenceExprSyntax(baseName: "\(param.type.syntax.trimmed)"),
+                base: TypeExprSyntax(type: parameter.type.trimmed),
                 name: "self"
               )
             )
@@ -1308,261 +1245,225 @@ extension CallableSchema {
     )
   }
 
-  /// Generates the CallableSchema<...> return type
-  private func callableSchemaReturnType() -> some TypeSyntaxProtocol {
-    // Callee type: Void for standalone, Self for methods
-    let calleeType: TypeSyntax = isMethod ? "Self" : "Void"
-
-    // Input value type
-    let inputValueType = tupleType(from: parameters.map(\.type.syntax))
-
-    // Output value type
-    let outputValueType = outputTupleType()
-
-    // SyncInput: Never for async, inputValueType for sync
-    let syncInputType: TypeSyntax = isAsync ? "Never" : inputValueType
-
-    // Failure type
-    let failureType = failureTypeSyntax()
-
-    return namespace.supportMemberType(
-      name: "CallableSchema",
-      genericArgumentClause: GenericArgumentClauseSyntax {
-        GenericArgumentSyntax(argument: GenericArgumentSyntax.Argument(calleeType))
-        GenericArgumentSyntax(
-          argument: GenericArgumentSyntax.Argument(TypeSyntax(
-            SomeOrAnyTypeSyntax(
-              someOrAnySpecifier: .keyword(.some),
-              constraint: namespace.memberType(
-                name: "Schema",
-                genericArgumentClause: GenericArgumentClauseSyntax {
-                  GenericArgumentSyntax(argument: GenericArgumentSyntax.Argument(inputValueType))
-                }
-              )
-            )
-          ))
-        )
-        GenericArgumentSyntax(
-          argument: GenericArgumentSyntax.Argument(TypeSyntax(
-            SomeOrAnyTypeSyntax(
-              someOrAnySpecifier: .keyword(.some),
-              constraint: namespace.memberType(
-                name: "Schema",
-                genericArgumentClause: GenericArgumentClauseSyntax {
-                  GenericArgumentSyntax(argument: GenericArgumentSyntax.Argument(outputValueType))
-                }
-              )
-            )
-          ))
-        )
-        GenericArgumentSyntax(argument: GenericArgumentSyntax.Argument(syncInputType))
-        GenericArgumentSyntax(argument: GenericArgumentSyntax.Argument(failureType))
-      }
-    )
-  }
-
-  /// Generates inputSchema = parameterClauseSchema { ... }
-  private func inputSchemaExpr() -> FunctionCallExprSyntax {
-    FunctionCallExprSyntax(
-      calledExpression: namespace.supportMember(name: "parameterClauseSchema"),
-      leftParen: .leftParenToken(),
-      arguments: [],
-      rightParen: .rightParenToken(),
-      trailingClosure: ClosureExprSyntax(
-        statements: CodeBlockItemListSyntax {
-          for param in parameters {
-            param.parameterCallExpr(
-              namespace: namespace,
-              keyConversionStrategy: keyConversionStrategy
-            )
-          }
+  /// `{ns}.StructuredCallable<Callee, Input, Output, SyncInput, Failure>`
+  private func callableType() -> TypeSyntax {
+    TypeSyntax(
+      namespace.memberType(
+        name: "StructuredCallable",
+        genericArgumentClause: GenericArgumentClauseSyntax {
+          GenericArgumentSyntax(argument: GenericArgumentSyntax.Argument(calleeType))
+          GenericArgumentSyntax(
+            argument: GenericArgumentSyntax.Argument(input.typeSyntax(in: namespace)))
+          GenericArgumentSyntax(
+            argument: GenericArgumentSyntax.Argument(output.typeSyntax(in: namespace)))
+          GenericArgumentSyntax(
+            argument: GenericArgumentSyntax.Argument(
+              isAsync ? TypeSyntax("Never") : input.typeSyntax(in: namespace)))
+          GenericArgumentSyntax(argument: GenericArgumentSyntax.Argument(failureType))
         }
       )
     )
   }
 
-  /// Generates outputSchema = parameterClauseSchema { ... }
-  private func outputSchemaExpr() -> FunctionCallExprSyntax {
+  /// `Void` for free and static functions, `Self` for instance methods.
+  private var calleeType: TypeSyntax {
+    switch context {
+    case .topLevel, .staticMember:
+      "Void"
+    case .instanceMember:
+      "Self"
+    }
+  }
+
+  private var failureType: TypeSyntax {
+    switch failure {
+    case .never:
+      "Never"
+    case .typed(let type):
+      type.trimmed
+    case .untyped:
+      TypeSyntax(
+        SomeOrAnyTypeSyntax(
+          someOrAnySpecifier: .keyword(.any),
+          constraint: IdentifierTypeSyntax(name: "Error")
+        )
+      )
+    }
+  }
+
+  private var isThrowing: Bool {
+    switch failure {
+    case .never:
+      false
+    case .typed, .untyped:
+      true
+    }
+  }
+
+  /// `{ns}.StructuredCallable(name: "foo(bar:_:)", …, invoke: { … })`
+  private func callableInitExpr() -> FunctionCallExprSyntax {
     FunctionCallExprSyntax(
-      calledExpression: namespace.supportMember(name: "parameterClauseSchema"),
-      leftParen: .leftParenToken(),
-      arguments: [],
-      rightParen: .rightParenToken(),
-      trailingClosure: ClosureExprSyntax(
-        statements: outputSchemaStatements()
-      )
-    )
-  }
-
-  private func outputSchemaStatements() -> CodeBlockItemListSyntax {
-    switch returnType {
-    case .void:
-      // Empty closure for Void return
-      return CodeBlockItemListSyntax()
-
-    case .single(let type):
-      // Single unlabeled parameter
-      return CodeBlockItemListSyntax {
-        parameterCallExpr(label: nil, type: type)
-      }
-
-    case .tuple(let elements):
-      return CodeBlockItemListSyntax {
-        for (label, type) in elements {
-          let labelText: String? =
-            if let label, label.tokenKind != .wildcard {
-              label.text
-            } else {
-              nil
-            }
-          parameterCallExpr(label: labelText, type: type)
-        }
-      }
-    }
-  }
-
-  /// Helper to generate a parameter(...) call
-  private func parameterCallExpr(label: String?, type: TypeSyntax) -> FunctionCallExprSyntax {
-    var arguments = LabeledExprListSyntax()
-
-    if let label {
-      arguments.append(
-        LabeledExprSyntax(
-          label: "label",
-          colon: .colonToken(),
-          expression: StringLiteralExprSyntax(content: keyConversionStrategy.convert(label)),
-          trailingComma: .commaToken(trailingTrivia: .newline)
-        )
-      )
-    }
-
-    arguments.append(
-      LabeledExprSyntax(
-        label: "schema",
-        colon: .colonToken(),
-        expression: .schema(namespace: namespace, representing: type)
-      )
-    )
-
-    return FunctionCallExprSyntax(
-      calledExpression: namespace.supportMember(name: "parameter"),
-      leftParen: .leftParenToken(trailingTrivia: .newline),
-      arguments: arguments,
-      rightParen: .rightParenToken(leadingTrivia: .newline)
-    )
-  }
-
-  /// Generates CallableSchema(...) initializer call
-  private func callableSchemaInitExpr() -> FunctionCallExprSyntax {
-    // Build argument names for function reference
-    var argumentNamesList = DeclNameArgumentListSyntax()
-    for param in parameters {
-      argumentNamesList.append(
-        DeclNameArgumentSyntax(
-          name: param.isLabeled ? param.firstName : .wildcardToken()
-        )
-      )
-    }
-
-    return FunctionCallExprSyntax(
-      calledExpression: namespace.supportMember(name: "CallableSchema"),
+      calledExpression: namespace.member(name: "StructuredCallable"),
       leftParen: .leftParenToken(trailingTrivia: .newline),
       arguments: LabeledExprListSyntax {
-        // name: "foo(bar:_:)"
         LabeledExprSyntax(
           label: "name",
           colon: .colonToken(),
           expression: StringLiteralExprSyntax(content: fullName),
           trailingComma: .commaToken(trailingTrivia: .newline)
         )
-
-        // description: "..." (if provided)
-        additionalArguments
-
-        // inputSchema: inputSchema
-        LabeledExprSyntax(
-          label: "inputSchema",
-          colon: .colonToken(),
-          expression: DeclReferenceExprSyntax(baseName: "inputSchema"),
-          trailingComma: .commaToken(trailingTrivia: .newline)
-        )
-
-        // outputSchema: outputSchema
-        LabeledExprSyntax(
-          label: "outputSchema",
-          colon: .colonToken(),
-          expression: DeclReferenceExprSyntax(baseName: "outputSchema"),
-          trailingComma: .commaToken(trailingTrivia: .newline)
-        )
-
-        // invoke: foo(bar:_:)
+        if let description {
+          LabeledExprSyntax(
+            label: "description",
+            colon: .colonToken(),
+            expression: description.trimmed,
+            trailingComma: .commaToken(trailingTrivia: .newline)
+          )
+        }
+        if let inputDescription {
+          LabeledExprSyntax(
+            label: "inputDescription",
+            colon: .colonToken(),
+            expression: inputDescription.trimmed,
+            trailingComma: .commaToken(trailingTrivia: .newline)
+          )
+        }
+        if let outputDescription {
+          LabeledExprSyntax(
+            label: "outputDescription",
+            colon: .colonToken(),
+            expression: outputDescription.trimmed,
+            trailingComma: .commaToken(trailingTrivia: .newline)
+          )
+        }
         LabeledExprSyntax(
           label: "invoke",
           colon: .colonToken(),
-          expression: DeclReferenceExprSyntax(
-            baseName: name,
-            argumentNames: DeclNameArgumentsSyntax(arguments: argumentNamesList)
-          )
+          expression: glueClosure()
         )
       },
       rightParen: .rightParenToken(leadingTrivia: .newline)
     )
   }
 
-  // MARK: - Helper Methods
+  /// `{ (callee, input) throws in … }` — unpacks the collapsed `Input` into
+  /// the original argument list, calls the decorated function, and packs the
+  /// result into the collapsed `Output`. Always the two-parameter shape so
+  /// exactly one `StructuredCallable` initializer matches; unused parameters
+  /// are wildcards.
+  private func glueClosure() -> ClosureExprSyntax {
+    ClosureExprSyntax(
+      signature: ClosureSignatureSyntax(
+        parameterClause: .parameterClause(
+          ClosureParameterClauseSyntax(
+            parameters: ClosureParameterListSyntax {
+              ClosureParameterSyntax(
+                firstName: context == .instanceMember ? "callee" : .wildcardToken()
+              )
+              ClosureParameterSyntax(
+                firstName: input.componentCount == 0 ? .wildcardToken() : "input"
+              )
+            }
+          )
+        ),
+        effectSpecifiers: closureEffectSpecifiers()
+      ),
+      statements: glueClosureStatements()
+    )
+  }
 
-  private func tupleType(from types: [TypeSyntax]) -> TypeSyntax {
-    if types.isEmpty {
-      return "Void"
-    }
-    if types.count == 1 {
-      return types[0]
-    }
-    let elements = TupleTypeElementListSyntax {
-      for type in types {
-        TupleTypeElementSyntax(
-          type: type
+  private func closureEffectSpecifiers() -> TypeEffectSpecifiersSyntax? {
+    let throwsClause: ThrowsClauseSyntax? =
+      switch failure {
+      case .never:
+        nil
+      case .untyped:
+        ThrowsClauseSyntax(throwsSpecifier: .keyword(.throws))
+      case .typed(let type):
+        ThrowsClauseSyntax(
+          throwsSpecifier: .keyword(.throws),
+          leftParen: .leftParenToken(),
+          type: type.trimmed,
+          rightParen: .rightParenToken()
         )
       }
+    guard isAsync || throwsClause != nil else {
+      return nil
     }
-    return TypeSyntax(TupleTypeSyntax(elements: elements))
-  }
-
-  private func outputTupleType() -> TypeSyntax {
-    switch returnType {
-    case .void:
-      return "Void"
-    case .single(let type):
-      return type
-    case .tuple(let elements):
-      if elements.isEmpty {
-        return "Void"
-      }
-      let tupleElements = TupleTypeElementListSyntax {
-        for (_, type) in elements {
-          TupleTypeElementSyntax(type: type)
-        }
-      }
-      return TypeSyntax(TupleTypeSyntax(elements: tupleElements))
-    }
-  }
-
-  private func failureTypeSyntax() -> TypeSyntax {
-    guard let throwsClause else {
-      return "Never"  // Non-throwing
-    }
-
-    if let typedError = throwsClause.type {
-      return typedError  // Typed throws
-    }
-
-    // Untyped throws -> any Error
-    return TypeSyntax(
-      SomeOrAnyTypeSyntax(
-        someOrAnySpecifier: .keyword(.any),
-        constraint: IdentifierTypeSyntax(name: "Error")
-      )
+    return TypeEffectSpecifiersSyntax(
+      asyncSpecifier: isAsync ? .keyword(.async) : nil,
+      throwsClause: throwsClause
     )
+  }
+
+  @CodeBlockItemListBuilder
+  private func glueClosureStatements() -> CodeBlockItemListSyntax {
+    switch output {
+    case .single:
+      // A single expression — the closure's implicit return.
+      callExpr()
+    case .none:
+      // The call is pure effect; the representation is an empty object.
+      callExpr()
+      ReturnStmtSyntax(
+        expression: output.representationExpr(packing: [], in: namespace)
+      )
+    case .tuple, .object:
+      VariableDeclSyntax(
+        bindingSpecifier: .keyword(.let),
+        bindings: PatternBindingListSyntax {
+          PatternBindingSyntax(
+            pattern: IdentifierPatternSyntax(identifier: "output"),
+            initializer: InitializerClauseSyntax(value: callExpr())
+          )
+        }
+      )
+      ReturnStmtSyntax(
+        expression: output.representationExpr(
+          packing: (0..<output.componentCount).map { index in
+            ExprSyntax(member(DeclReferenceExprSyntax(baseName: "output"), "\(index)"))
+          },
+          in: namespace
+        )
+      )
+    }
+  }
+
+  /// `try await callee.foo(bar: input.values.0, input.values.1)`
+  private func callExpr() -> ExprSyntax {
+    let call = FunctionCallExprSyntax(
+      calledExpression: calledExpression,
+      leftParen: .leftParenToken(),
+      arguments: input.argumentList(unpacking: DeclReferenceExprSyntax(baseName: "input")),
+      rightParen: .rightParenToken()
+    )
+    switch (isAsync, isThrowing) {
+    case (false, false):
+      return ExprSyntax(call)
+    case (true, false):
+      return ExprSyntax(AwaitExprSyntax(expression: call))
+    case (false, true):
+      return ExprSyntax(TryExprSyntax(expression: call))
+    case (true, true):
+      return ExprSyntax(TryExprSyntax(expression: AwaitExprSyntax(expression: call)))
+    }
+  }
+
+  /// `callee.foo` for instance methods, `foo` otherwise — a static sidecar's
+  /// unqualified reference resolves to the static member, a top-level
+  /// sidecar's to the top-level function.
+  private var calledExpression: ExprSyntax {
+    switch context {
+    case .instanceMember:
+      ExprSyntax(
+        MemberAccessExprSyntax(
+          base: DeclReferenceExprSyntax(baseName: "callee"),
+          name: baseName
+        )
+      )
+    case .staticMember, .topLevel:
+      ExprSyntax(DeclReferenceExprSyntax(baseName: baseName))
+    }
   }
 
 }

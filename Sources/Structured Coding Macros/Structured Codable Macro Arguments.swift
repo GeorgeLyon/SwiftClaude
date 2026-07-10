@@ -3,8 +3,14 @@ import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 
-struct DescriptionArgument: ParsableArgument {
-  static let label: TokenSyntax = "description"
+/// An argument whose value must be a string literal; the label is supplied by
+/// the concrete type.
+protocol StringLiteralArgument: ParsableArgument {
+  init(expression: StringLiteralExprSyntax)
+  var expression: StringLiteralExprSyntax { get }
+}
+
+extension StringLiteralArgument {
   init?(_ expression: ExprSyntax, in context: MacroExpansionContext) {
     guard let expression = expression.as(StringLiteralExprSyntax.self) else {
       context.diagnose(
@@ -16,8 +22,22 @@ struct DescriptionArgument: ParsableArgument {
       )
       return nil
     }
-    self.expression = expression
+    self.init(expression: expression)
   }
+}
+
+struct DescriptionArgument: StringLiteralArgument {
+  static let label: TokenSyntax = "description"
+  let expression: StringLiteralExprSyntax
+}
+
+struct InputDescriptionArgument: StringLiteralArgument {
+  static let label: TokenSyntax = "inputDescription"
+  let expression: StringLiteralExprSyntax
+}
+
+struct OutputDescriptionArgument: StringLiteralArgument {
+  static let label: TokenSyntax = "outputDescription"
   let expression: StringLiteralExprSyntax
 }
 
