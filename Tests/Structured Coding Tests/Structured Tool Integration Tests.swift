@@ -97,8 +97,8 @@ struct StructuredToolIntegrationTests {
     #expect(Renamed.definition.name == "custom-name")
   }
 
-  /// Actor methods are isolated to the callee: the sidecars force the async
-  /// path, and invocations hop to the actor (observable through the
+  /// Actor methods are isolated to the callee: the generated glue forces the
+  /// async path, and invocations hop to the actor (observable through the
   /// accumulated state).
   @Test
   func actorToolInvokesThroughIsolation() async throws {
@@ -115,6 +115,56 @@ struct StructuredToolIntegrationTests {
     let described = try await Counter.definition.invoke(
       on: counter, inputJSON: #"{"describe": {}}"#)
     #expect(described == #""counted 5""#)
+  }
+
+  // MARK: - Collapse Shapes
+
+  /// The remaining input/output collapse shapes, exercised end to end through
+  /// dispatch: mixed-label tuples, void, defaulted parameters, optionals, and
+  /// untyped throws.
+  @Test
+  func mixedTupleInputObjectOutputRoundTrips() async throws {
+    let result = try await Shapes.definition.invoke(
+      on: Shapes(), inputJSON: #"{"flip": [true, false]}"#)
+    #expect(result == #"{"a":false,"b":true}"#)
+  }
+
+  @Test
+  func voidOutputAndEmptyInputCodeAsEmptyObjects() async throws {
+    let result = try await Shapes.definition.invoke(
+      on: Shapes(), inputJSON: #"{"ping": {}}"#)
+    #expect(result == "{}")
+  }
+
+  /// Defaults follow struct (`var x: T = expr`) semantics exactly: a
+  /// non-optional defaulted parameter is still required in the JSON — the
+  /// default seeds partial streaming, it does not make the key omittable.
+  @Test
+  func nonOptionalDefaultedParameterIsStillRequired() async throws {
+    let supplied = try await Shapes.definition.invoke(
+      on: Shapes(), inputJSON: #"{"greet": {"name": "moon"}}"#)
+    #expect(supplied == #""Hello, moon""#)
+
+    await #expect(throws: (any Error).self) {
+      _ = try await Shapes.definition.invoke(on: Shapes(), inputJSON: #"{"greet": {}}"#)
+    }
+  }
+
+  @Test
+  func optionalDefaultedParameterMayBeOmitted() async throws {
+    let result = try await Shapes.definition.invoke(
+      on: Shapes(), inputJSON: #"{"log": {"message": "hi"}}"#)
+    #expect(result == #""hi@none""#)
+  }
+
+  @Test
+  func untypedThrowsPropagates() async throws {
+    await #expect(throws: NoElementsError.self) {
+      _ = try await Shapes.definition.invoke(on: Shapes(), inputJSON: #"{"head": []}"#)
+    }
+    let first = try await Shapes.definition.invoke(
+      on: Shapes(), inputJSON: #"{"head": [3, 1]}"#)
+    #expect(first == "3")
   }
 
 }
@@ -175,4 +225,35 @@ private actor Counter {
   }
 }
 
+@StructuredTool
+private struct Shapes {
+  @StructuredAction
+  func flip(bar: Bool, _ baz: Bool) throws -> (a: Bool, b: Bool) {
+    (baz, bar)
+  }
+
+  @StructuredAction
+  func ping() {
+  }
+
+  @StructuredAction
+  func greet(name: String = "world") -> String {
+    "Hello, \(name)"
+  }
+
+  @StructuredAction
+  func log(message: String, level: Int? = nil) -> String {
+    "\(message)@\(level.map(String.init) ?? "none")"
+  }
+
+  @StructuredAction
+  func head(_ values: [Int]) throws -> Int {
+    guard let first = values.first else {
+      throw NoElementsError()
+    }
+    return first
+  }
+}
+
 private struct ParityError: Error {}
+private struct NoElementsError: Error {}

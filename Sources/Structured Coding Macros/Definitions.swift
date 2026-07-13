@@ -333,10 +333,10 @@ struct EnumerationSchema {
 
 // MARK: - Callable Schema
 
-/// A function decorated with `@StructuredAction`, lowered to what the
-/// sidecar generator needs: the parameter clause and return type collapsed
-/// onto their `ParameterClauseSchema` representations, plus the effects and
-/// declaration context that pick the `StructuredAction` generic arguments.
+/// A function decorated with `@StructuredAction`, lowered to what
+/// `@StructuredTool`'s generation needs: the parameter clause and return type
+/// collapsed onto their `ParameterClauseSchema` representations, plus the
+/// effects and callee that pick the `StructuredAction` generic arguments.
 struct CallableSchema {
 
   let namespace: StructuredCodingNamespace
@@ -347,21 +347,16 @@ struct CallableSchema {
   /// tools dispatch on (which is why a tool's action names must be unique).
   let baseName: TokenSyntax
 
-  /// The sidecar function's name. The fixed prefix is what the
-  /// `@StructuredAction` declaration's `names: prefixed(…)` promises.
-  var sidecarName: TokenSyntax {
-    "__structuredAction_\(raw: baseName.text)"
-  }
+  /// The tool type the action is invoked on, always spelled by name:
+  /// covariant `Self` cannot appear in a non-top-level position on actors
+  /// and classes, so naming the type uniformly keeps one code path for every
+  /// declaration kind.
+  let calleeType: TypeSyntax
 
-  /// The original parameter list, mirrored as the sidecar's defaulted
-  /// metatype parameters (labels, wildcards, and internal names preserved) so
-  /// overloads of the decorated function produce distinct sidecars.
-  let parameters: FunctionParameterListSyntax
-
-  /// The parameter clause, collapsed onto the callable's `Input`.
+  /// The parameter clause, collapsed onto the action's `Input`.
   let input: ParameterClauseSchema
 
-  /// The return type, collapsed onto the callable's `Output`.
+  /// The return type, collapsed onto the action's `Output`.
   let output: ParameterClauseSchema
 
   /// `true` adds `async` to the glue closure and pins `SyncInput` to `Never`.
@@ -378,7 +373,7 @@ struct CallableSchema {
   /// actor hop an isolated callee forces.
   var isEffectivelyAsync: Bool { isAsync || isCalleeIsolated }
 
-  /// The callable's `Failure` type.
+  /// The action's `Failure` type.
   enum Failure {
     /// Non-throwing — `Never`.
     case never
@@ -388,27 +383,6 @@ struct CallableSchema {
     case untyped
   }
   let failure: Failure
-
-  /// Where the decorated function is declared, which picks the action's
-  /// `Callee`. Top-level functions are rejected during parsing — actions
-  /// must be members of a type.
-  enum Context {
-    /// A static member — `Callee == Void`.
-    case staticMember
-    /// An instance method — `Callee` is the enclosing type, always spelled
-    /// by name: covariant `Self` cannot appear in a non-top-level
-    /// result-type position on actors and classes, so naming the type
-    /// uniformly keeps one code path for every declaration kind.
-    case instanceMember(calleeType: TypeSyntax)
-  }
-  let context: Context
-
-  var isInstanceMember: Bool {
-    if case .instanceMember = context {
-      return true
-    }
-    return false
-  }
 
   /// Carried from `@StructuredAction(description:inputDescription:outputDescription:)`,
   /// emitted as the corresponding arguments of the generated initializer call.

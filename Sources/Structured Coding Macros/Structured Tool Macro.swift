@@ -3,22 +3,33 @@ import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 
-/// Gathers the annotated type's `@StructuredAction` functions into a single
-/// generated member:
+/// Generates everything for the annotated type's `@StructuredAction`
+/// functions — the markers themselves generate nothing. Each action's
+/// synthesized `Input`/`Output` objects are added as members (named with
+/// `makeUniqueName`, so they are context-private), and the actions are
+/// inline `StructuredAction` initializer expressions in a single gathered
+/// member — no other name is introduced:
 ///
 /// ```swift
 /// static var definition: some StructuredCoding.StructuredToolDefinitionProtocol<Calculator> {
 ///   StructuredCoding.StructuredToolDefinition(
 ///     name: "\(Self.self)",
-///     actions: (__structuredAction_add(), __structuredAction_fetch())
+///     actions: (
+///       StructuredCoding.StructuredAction(
+///         name: "add",
+///         failure: Never.self,
+///         invoke: { (callee: Calculator, input: __macro_local_…) -> Int in
+///           callee.add(amount: input.amount)
+///         }
+///       ),
+///       …
+///     )
 ///   )
 /// }
 /// ```
 ///
-/// The property is pure data gathering: every generic argument is inferred
-/// from the sidecar return types (so the peer macro's `makeUniqueName`d
-/// synthesized Input/Output names are never spelled here), and all
-/// interpretation — schema shape, dispatch — lives in the runtime's
+/// Every generic argument is inferred from the initializer expressions, and
+/// all interpretation — schema shape, dispatch — lives in the runtime's
 /// `StructuredToolDefinition`.
 enum StructuredToolMacro: MemberMacro {
 
@@ -82,8 +93,8 @@ enum StructuredToolMacro: MemberMacro {
     }
 
     /// Tools dispatch actions by base name (the enumeration schema's property
-    /// names), so duplicates cannot be represented; static functions produce
-    /// `Callee == Void` sidecars that cannot join a `Callee == <Type>` tuple.
+    /// names), so duplicates cannot be represented; static functions have no
+    /// callee to join a `Callee == <Type>` tuple.
     var seenActionNames: Set<String> = []
     var isValid = true
     for function in actionFunctions {
@@ -109,19 +120,59 @@ enum StructuredToolMacro: MemberMacro {
         isValid = false
       }
     }
+
+    let calleeType = TypeSyntax(IdentifierTypeSyntax(name: typeName))
+    let isCalleeActor = declaration.is(ActorDeclSyntax.self)
+    let compatibilityModes = CompatibilityModes(inferredFrom: declaration, in: context)
+
+    var members: [DeclSyntax] = []
+    var actionExprs: [FunctionCallExprSyntax] = []
+    for function in actionFunctions {
+      let (description, inputDescription, outputDescription, keyConversionStrategy) =
+        function.attributes.parseArguments(
+          ofAttribute: "StructuredAction",
+          as: (
+            DescriptionArgument.self, InputDescriptionArgument.self,
+            OutputDescriptionArgument.self, KeyConversionStrategyArgument.self
+          ),
+          in: context
+        )
+      guard
+        let schema = function.callableSchema(
+          namespace: namespace,
+          calleeType: calleeType,
+          isCalleeActor: isCalleeActor,
+          description: description?.expression,
+          inputDescription: inputDescription?.expression,
+          outputDescription: outputDescription?.expression,
+          keyConversionStrategy: keyConversionStrategy?.value ?? .none,
+          compatibilityModes: compatibilityModes,
+          in: context
+        )
+      else {
+        isValid = false
+        continue
+      }
+      members.append(contentsOf: schema.synthesizedMemberDeclarations())
+      actionExprs.append(schema.actionInitExpr())
+    }
     guard isValid else {
       return []
     }
 
-    let definition = definitionProperty(
-      typeName: typeName,
-      name: name.map { ExprSyntax($0.expression) } ?? ExprSyntax(#""\(Self.self)""#),
-      description: description?.expression,
-      actionFunctions: actionFunctions,
-      isPublic: declaration.modifiers.contains(where: \.isPublic),
-      namespace: namespace
+    members.append(
+      DeclSyntax(
+        definitionProperty(
+          typeName: typeName,
+          name: name.map { ExprSyntax($0.expression) } ?? ExprSyntax(#""\(Self.self)""#),
+          description: description?.expression,
+          actionExprs: actionExprs,
+          isPublic: declaration.modifiers.contains(where: \.isPublic),
+          namespace: namespace
+        )
+      )
     )
-    return [DeclSyntax(definition)]
+    return members
   }
 
   /// `static var definition: some {ns}.StructuredToolDefinitionProtocol<TypeName> { … }`
@@ -129,7 +180,7 @@ enum StructuredToolMacro: MemberMacro {
     typeName: TokenSyntax,
     name: ExprSyntax,
     description: StringLiteralExprSyntax?,
-    actionFunctions: [FunctionDeclSyntax],
+    actionExprs: [FunctionCallExprSyntax],
     isPublic: Bool,
     namespace: StructuredCodingNamespace
   ) -> VariableDeclSyntax {
@@ -186,17 +237,10 @@ enum StructuredToolMacro: MemberMacro {
                     expression: TupleExprSyntax(
                       leftParen: .leftParenToken(trailingTrivia: .newline),
                       elements: LabeledExprListSyntax {
-                        for (index, function) in actionFunctions.enumerated() {
+                        for (index, actionExpr) in actionExprs.enumerated() {
                           LabeledExprSyntax(
-                            expression: FunctionCallExprSyntax(
-                              calledExpression: DeclReferenceExprSyntax(
-                                baseName: "__structuredAction_\(raw: function.name.text)"
-                              ),
-                              leftParen: .leftParenToken(),
-                              arguments: LabeledExprListSyntax(),
-                              rightParen: .rightParenToken()
-                            ),
-                            trailingComma: index == actionFunctions.count - 1
+                            expression: actionExpr,
+                            trailingComma: index == actionExprs.count - 1
                               ? nil
                               : .commaToken(trailingTrivia: .newline)
                           )

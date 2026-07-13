@@ -3,9 +3,9 @@ import SwiftSyntaxMacrosGenericTestSupport
 import Testing
 
 /// Verifies that `@StructuredTool` gathers a type's `@StructuredAction`
-/// functions into a single `definition` member — pure data gathering, with
-/// every generic argument inferred from the sidecar calls — and diagnoses the
-/// shapes a tool cannot represent.
+/// functions — pure markers — into a single `definition` member holding one
+/// inline `StructuredAction` per function, and diagnoses the shapes a tool
+/// cannot represent.
 @Suite
 struct StructuredToolTests {
 
@@ -28,35 +28,29 @@ struct StructuredToolTests {
       struct S {
         func ping() {
         }
-
-        static func __structuredAction_ping() -> StructuredCoding.StructuredAction<S, StructuredCoding.StructuredActionSignature<StructuredCoding.StructuredEmptyObject, StructuredCoding.StructuredEmptyObject, StructuredCoding.StructuredEmptyObject, Never>> {
-          StructuredCoding.StructuredAction(
-            name: "ping",
-            invoke: { (callee, _) in
-              callee.ping()
-              return StructuredCoding.StructuredEmptyObject()
-            }
-          )
-        }
         func pong() {
-        }
-
-        static func __structuredAction_pong() -> StructuredCoding.StructuredAction<S, StructuredCoding.StructuredActionSignature<StructuredCoding.StructuredEmptyObject, StructuredCoding.StructuredEmptyObject, StructuredCoding.StructuredEmptyObject, Never>> {
-          StructuredCoding.StructuredAction(
-            name: "pong",
-            invoke: { (callee, _) in
-              callee.pong()
-              return StructuredCoding.StructuredEmptyObject()
-            }
-          )
         }
 
         static var definition: some StructuredCoding.StructuredToolDefinitionProtocol<S> {
           StructuredCoding.StructuredToolDefinition(
             name: "\(Self.self)",
             actions: (
-              __structuredAction_ping(),
-              __structuredAction_pong()
+              StructuredCoding.StructuredAction(
+                name: "ping",
+                failure: Never.self,
+                invoke: { (callee: S, _: StructuredCoding.StructuredEmptyObject) -> StructuredCoding.StructuredEmptyObject in
+                  callee.ping()
+                  return StructuredCoding.StructuredEmptyObject()
+                }
+              ),
+              StructuredCoding.StructuredAction(
+                name: "pong",
+                failure: Never.self,
+                invoke: { (callee: S, _: StructuredCoding.StructuredEmptyObject) -> StructuredCoding.StructuredEmptyObject in
+                  callee.pong()
+                  return StructuredCoding.StructuredEmptyObject()
+                }
+              )
             )
           )
         }
@@ -81,22 +75,19 @@ struct StructuredToolTests {
         public func ping() {
         }
 
-        public static func __structuredAction_ping() -> StructuredCoding.StructuredAction<S, StructuredCoding.StructuredActionSignature<StructuredCoding.StructuredEmptyObject, StructuredCoding.StructuredEmptyObject, StructuredCoding.StructuredEmptyObject, Never>> {
-          StructuredCoding.StructuredAction(
-            name: "ping",
-            invoke: { (callee, _) in
-              callee.ping()
-              return StructuredCoding.StructuredEmptyObject()
-            }
-          )
-        }
-
         public static var definition: some StructuredCoding.StructuredToolDefinitionProtocol<S> {
           StructuredCoding.StructuredToolDefinition(
             name: "calc",
             description: "A tool",
             actions: (
-              __structuredAction_ping()
+              StructuredCoding.StructuredAction(
+                name: "ping",
+                failure: Never.self,
+                invoke: { (callee: S, _: StructuredCoding.StructuredEmptyObject) -> StructuredCoding.StructuredEmptyObject in
+                  callee.ping()
+                  return StructuredCoding.StructuredEmptyObject()
+                }
+              )
             )
           )
         }
@@ -150,34 +141,16 @@ struct StructuredToolTests {
         }
       }
       """,
-      #"""
+      """
       struct S {
         func over(_ x: Int) -> Int {
           x
         }
-
-        static func __structuredAction_over(_ x: Int.Type = Int.self) -> StructuredCoding.StructuredAction<S, StructuredCoding.StructuredActionSignature<Int, Int, Int, Never>> {
-          StructuredCoding.StructuredAction(
-            name: "over",
-            invoke: { (callee, input) in
-              callee.over(input)
-            }
-          )
-        }
         func over(_ x: String) -> String {
           x
         }
-
-        static func __structuredAction_over(_ x: String.Type = String.self) -> StructuredCoding.StructuredAction<S, StructuredCoding.StructuredActionSignature<String, String, String, Never>> {
-          StructuredCoding.StructuredAction(
-            name: "over",
-            invoke: { (callee, input) in
-              callee.over(input)
-            }
-          )
-        }
       }
-      """#,
+      """,
       diagnostics: [
         DiagnosticSpec(
           message: "Duplicate action name `over`; a tool's actions must have unique names",
@@ -186,8 +159,7 @@ struct StructuredToolTests {
     )
   }
 
-  /// A static action's sidecar has `Callee == Void`, which cannot join a
-  /// tuple of `Callee == S` actions.
+  /// A static action has no callee to join a `Callee == S` tuple.
   @Test
   func rejectsStaticActions() {
     assertStructuredCodableExpansion(
@@ -199,22 +171,12 @@ struct StructuredToolTests {
         }
       }
       """,
-      #"""
+      """
       struct S {
         static func make() {
         }
-
-        static func __structuredAction_make() -> StructuredCoding.StructuredAction<Void, StructuredCoding.StructuredActionSignature<StructuredCoding.StructuredEmptyObject, StructuredCoding.StructuredEmptyObject, StructuredCoding.StructuredEmptyObject, Never>> {
-          StructuredCoding.StructuredAction(
-            name: "make",
-            invoke: { (_, _) in
-              make()
-              return StructuredCoding.StructuredEmptyObject()
-            }
-          )
-        }
       }
-      """#,
+      """,
       diagnostics: [
         DiagnosticSpec(
           message: "static @StructuredAction functions are not supported in a @StructuredTool",

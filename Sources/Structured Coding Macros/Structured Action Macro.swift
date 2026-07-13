@@ -3,6 +3,13 @@ import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 
+/// A marker, like `@StructuredProperty`: it generates nothing — the enclosing
+/// type's `@StructuredTool` expansion reads the annotation and generates all
+/// the coding glue. The marker's job is validating the *context*, which the
+/// tool macro cannot see (it only runs where it is attached): actions must be
+/// declared directly in a `@StructuredTool` type's body. Signature-level
+/// validation (unsupported parameters, effects, and so on) happens in the
+/// tool macro's lowering, where generation lives.
 enum StructuredActionMacro: PeerMacro {
 
   static func expansion(
@@ -20,48 +27,69 @@ enum StructuredActionMacro: PeerMacro {
       )
       return []
     }
+    let name = funcDecl.name
 
-    let arguments: LabeledExprListSyntax
-    switch node.arguments {
-    case .argumentList(let argumentList):
-      arguments = argumentList
-    case .none:
-      arguments = []
-    default:
+    guard let innermost = context.lexicalContext.first else {
       context.diagnose(
         DiagnosticError(
-          node: node,
+          node: name,
           severity: .error,
-          message: "Expected argument list"
+          message:
+            "@StructuredAction cannot be applied to top-level functions; actions must be members of a @StructuredTool type"
         )
       )
-      arguments = []
-    }
-
-    let (description, inputDescription, outputDescription, keyConversionStrategy) =
-      arguments.parse(
-        ofAttribute: "StructuredAction",
-        as: (
-          DescriptionArgument.self, InputDescriptionArgument.self,
-          OutputDescriptionArgument.self, KeyConversionStrategyArgument.self
-        ),
-        in: context
-      )
-
-    guard
-      let callable = funcDecl.callableSchema(
-        namespace: "StructuredCoding",
-        description: description?.expression,
-        inputDescription: inputDescription?.expression,
-        outputDescription: outputDescription?.expression,
-        keyConversionStrategy: keyConversionStrategy?.value ?? .none,
-        in: context
-      )
-    else {
       return []
     }
-
-    return callable.peerDeclarations()
+    guard innermost.asProtocol(DeclGroupSyntax.self) != nil else {
+      context.diagnose(
+        DiagnosticError(
+          node: name,
+          severity: .error,
+          message: "@StructuredAction cannot be applied to local functions"
+        )
+      )
+      return []
+    }
+    guard !innermost.is(ProtocolDeclSyntax.self) else {
+      context.diagnose(
+        DiagnosticError(
+          node: name,
+          severity: .error,
+          message: "@StructuredAction cannot be applied to protocol requirements"
+        )
+      )
+      return []
+    }
+    /// An extension names its type but reveals nothing else about it — in
+    /// particular whether it is an actor, which decides the generated glue's
+    /// isolation. Requiring actions in the type's body keeps that decision
+    /// decidable, and keeps `@StructuredTool`'s member scan complete: it
+    /// cannot see extensions either.
+    guard !innermost.is(ExtensionDeclSyntax.self) else {
+      context.diagnose(
+        DiagnosticError(
+          node: name,
+          severity: .error,
+          message:
+            "@StructuredAction cannot be applied to functions in extensions; declare actions in the type's body"
+        )
+      )
+      return []
+    }
+    /// A marker on a type `@StructuredTool` never visits would silently do
+    /// nothing.
+    if let attributed = innermost.asProtocol(WithAttributesSyntax.self),
+      !attributed.attributes.hasAttribute("StructuredTool")
+    {
+      context.diagnose(
+        DiagnosticError(
+          node: name,
+          severity: .error,
+          message: "@StructuredAction requires the enclosing type to be marked @StructuredTool"
+        )
+      )
+    }
+    return []
   }
 
 }

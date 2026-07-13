@@ -7,7 +7,7 @@ private import JavaScriptObjectNotation
 /// `some StructuredToolDefinitionProtocol<Self>`, hiding the concrete
 /// pack-generic `StructuredToolDefinition` so that no generic argument — in
 /// particular no synthesized `Input` type name — is ever spelled outside the
-/// sidecar functions.
+/// macro expansion itself.
 public protocol StructuredToolDefinitionProtocol<Callee> {
 
   associatedtype Callee

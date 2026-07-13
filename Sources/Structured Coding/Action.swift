@@ -22,9 +22,9 @@ public protocol StructuredActionSignatureProtocol {
 }
 
 /// The uninhabited marker type carrying a `StructuredAction`'s signature; see
-/// `StructuredActionSignatureProtocol`. Instantiated by the sidecar functions
-/// the `@StructuredAction` macro generates; the same-type constraints on
-/// `StructuredAction`'s initializers infer it for hand-written actions.
+/// `StructuredActionSignatureProtocol`. Never spelled directly: the same-type
+/// constraints on `StructuredAction`'s initializers infer it — for the inline
+/// actions `@StructuredTool` generates and hand-written ones alike.
 public enum StructuredActionSignature<
   Input: StructuredCodable,
   Output: StructuredCodable,
@@ -38,8 +38,8 @@ public enum StructuredActionSignature<
 /// `StructuredActionSignatureProtocol` marker. `Callee` is `Void` for static
 /// functions and the enclosing type for instance methods.
 ///
-/// Values of this type are constructed by the sidecar function the
-/// `@StructuredAction` macro generates.
+/// Values of this type are constructed inline by the `@StructuredTool`
+/// macro's generated `definition`, or by hand.
 public struct StructuredAction<Callee, Signature: StructuredActionSignatureProtocol> {
 
   public init<Input, Output, Failure>(

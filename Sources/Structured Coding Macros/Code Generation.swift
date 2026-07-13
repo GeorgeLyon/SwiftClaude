@@ -1185,11 +1185,11 @@ extension DeclModifierListSyntax {
 
 extension CallableSchema {
 
-  /// The peer declarations for a `@StructuredAction` function: the
+  /// The member declarations `@StructuredTool` adds for one action: the
   /// synthesized `Input`/`Output` objects (when the corresponding clause
-  /// collapses onto one) and the sidecar function returning the
-  /// `StructuredAction`.
-  func peerDeclarations() -> [DeclSyntax] {
+  /// collapses onto one). The action itself is not a declaration — it is the
+  /// inline `actionInitExpr()` inside the generated `definition` property.
+  func synthesizedMemberDeclarations() -> [DeclSyntax] {
     var declarations: [DeclSyntax] = []
     if case .object(let objectSchema) = input {
       declarations.append(DeclSyntax(objectSchema.synthesizedStructDecl(isPublic: isPublic)))
@@ -1197,122 +1197,17 @@ extension CallableSchema {
     if case .object(let objectSchema) = output {
       declarations.append(DeclSyntax(objectSchema.synthesizedStructDecl(isPublic: isPublic)))
     }
-    declarations.append(DeclSyntax(sidecarFunction()))
     return declarations
   }
 
-  /// `static func __structuredAction_foo(bar: Bool.Type = Bool.self) -> {ns}.StructuredAction<…> { … }`
+  /// `{ns}.StructuredAction(name: "foo", …, failure: E.self, invoke: { … })`
   ///
-  /// The defaulted metatype parameters mirror the decorated function's, so
-  /// overloads of the same base name get distinct sidecars; call sites only
-  /// pass them to disambiguate.
-  private func sidecarFunction() -> FunctionDeclSyntax {
-    FunctionDeclSyntax(
-      modifiers: .visibility(isPublic, static: true),
-      name: sidecarName,
-      signature: FunctionSignatureSyntax(
-        parameterClause: sidecarParameterClause(),
-        returnClause: ReturnClauseSyntax(type: callableType())
-      ),
-      body: CodeBlockSyntax {
-        callableInitExpr()
-      }
-    )
-  }
-
-  /// `(bar: Bool.Type = Bool.self, _ baz: Bool.Type = Bool.self)`
-  private func sidecarParameterClause() -> FunctionParameterClauseSyntax {
-    FunctionParameterClauseSyntax(
-      parameters: FunctionParameterListSyntax {
-        for parameter in parameters {
-          FunctionParameterSyntax(
-            firstName: parameter.firstName.trimmed,
-            secondName: parameter.secondName?.trimmed,
-            type: MemberTypeSyntax(
-              baseType: parameter.type.trimmed,
-              name: "Type"
-            ),
-            defaultValue: InitializerClauseSyntax(
-              value: MemberAccessExprSyntax(
-                base: TypeExprSyntax(type: parameter.type.trimmed),
-                name: "self"
-              )
-            )
-          )
-        }
-      }
-    )
-  }
-
-  /// `{ns}.StructuredAction<Callee, {ns}.StructuredActionSignature<Input, Output, SyncInput, Failure>>`
-  private func callableType() -> TypeSyntax {
-    TypeSyntax(
-      namespace.memberType(
-        name: "StructuredAction",
-        genericArgumentClause: GenericArgumentClauseSyntax {
-          GenericArgumentSyntax(argument: GenericArgumentSyntax.Argument(calleeType))
-          GenericArgumentSyntax(argument: GenericArgumentSyntax.Argument(signatureType()))
-        }
-      )
-    )
-  }
-
-  private func signatureType() -> TypeSyntax {
-    TypeSyntax(
-      namespace.memberType(
-        name: "StructuredActionSignature",
-        genericArgumentClause: GenericArgumentClauseSyntax {
-          GenericArgumentSyntax(
-            argument: GenericArgumentSyntax.Argument(input.typeSyntax(in: namespace)))
-          GenericArgumentSyntax(
-            argument: GenericArgumentSyntax.Argument(output.typeSyntax(in: namespace)))
-          GenericArgumentSyntax(
-            argument: GenericArgumentSyntax.Argument(
-              isEffectivelyAsync ? TypeSyntax("Never") : input.typeSyntax(in: namespace)))
-          GenericArgumentSyntax(argument: GenericArgumentSyntax.Argument(failureType))
-        }
-      )
-    )
-  }
-
-  /// `Void` for static functions, the enclosing type's name for instance
-  /// methods.
-  private var calleeType: TypeSyntax {
-    switch context {
-    case .staticMember:
-      "Void"
-    case .instanceMember(let calleeType):
-      calleeType
-    }
-  }
-
-  private var failureType: TypeSyntax {
-    switch failure {
-    case .never:
-      "Never"
-    case .typed(let type):
-      type.trimmed
-    case .untyped:
-      TypeSyntax(
-        SomeOrAnyTypeSyntax(
-          someOrAnySpecifier: .keyword(.any),
-          constraint: IdentifierTypeSyntax(name: "Error")
-        )
-      )
-    }
-  }
-
-  private var isThrowing: Bool {
-    switch failure {
-    case .never:
-      false
-    case .typed, .untyped:
-      true
-    }
-  }
-
-  /// `{ns}.StructuredAction(name: "foo", …, invoke: { … })`
-  private func callableInitExpr() -> FunctionCallExprSyntax {
+  /// Nothing pins the generic arguments from outside, so the expression must
+  /// be self-contained: the glue closure is fully annotated — parameters and
+  /// return type, since multi-statement closures infer neither — and the
+  /// `failure:` argument pins `Failure`, which a non-throwing closure would
+  /// otherwise leave to conversion-based inference.
+  func actionInitExpr() -> FunctionCallExprSyntax {
     FunctionCallExprSyntax(
       calledExpression: namespace.member(name: "StructuredAction"),
       leftParen: .leftParenToken(trailingTrivia: .newline),
@@ -1348,6 +1243,12 @@ extension CallableSchema {
           )
         }
         LabeledExprSyntax(
+          label: "failure",
+          colon: .colonToken(),
+          expression: failureMetatypeExpr,
+          trailingComma: .commaToken(trailingTrivia: .newline)
+        )
+        LabeledExprSyntax(
           label: "invoke",
           colon: .colonToken(),
           expression: glueClosure()
@@ -1357,11 +1258,57 @@ extension CallableSchema {
     )
   }
 
-  /// `{ (callee, input) throws in … }` — unpacks the collapsed `Input` into
-  /// the original argument list, calls the decorated function, and packs the
-  /// result into the collapsed `Output`. Always the two-parameter shape so
-  /// exactly one `StructuredAction` initializer matches; unused parameters
-  /// are wildcards.
+  /// `Never.self`, `E.self`, or `(any Error).self`.
+  private var failureMetatypeExpr: ExprSyntax {
+    let base: ExprSyntax
+    switch failure {
+    case .never:
+      base = ExprSyntax(DeclReferenceExprSyntax(baseName: "Never"))
+    case .typed(let type):
+      base = ExprSyntax(TypeExprSyntax(type: type.trimmed))
+    case .untyped:
+      base = ExprSyntax(
+        TupleExprSyntax(
+          elements: LabeledExprListSyntax {
+            LabeledExprSyntax(expression: TypeExprSyntax(type: failureType))
+          }
+        )
+      )
+    }
+    return ExprSyntax(MemberAccessExprSyntax(base: base, name: "self"))
+  }
+
+  private var failureType: TypeSyntax {
+    switch failure {
+    case .never:
+      "Never"
+    case .typed(let type):
+      type.trimmed
+    case .untyped:
+      TypeSyntax(
+        SomeOrAnyTypeSyntax(
+          someOrAnySpecifier: .keyword(.any),
+          constraint: IdentifierTypeSyntax(name: "Error")
+        )
+      )
+    }
+  }
+
+  private var isThrowing: Bool {
+    switch failure {
+    case .never:
+      false
+    case .typed, .untyped:
+      true
+    }
+  }
+
+  /// `{ (callee: S, input: I) throws -> O in … }` — unpacks the collapsed
+  /// `Input` into the original argument list, calls the decorated function,
+  /// and packs the result into the collapsed `Output`. Always the
+  /// two-parameter shape so exactly one `StructuredAction` initializer
+  /// matches; an unused input parameter is a wildcard (but stays annotated —
+  /// the closure's type carries the inference).
   private func glueClosure() -> ClosureExprSyntax {
     ClosureExprSyntax(
       signature: ClosureSignatureSyntax(
@@ -1369,15 +1316,20 @@ extension CallableSchema {
           ClosureParameterClauseSyntax(
             parameters: ClosureParameterListSyntax {
               ClosureParameterSyntax(
-                firstName: isInstanceMember ? "callee" : .wildcardToken()
+                firstName: "callee",
+                colon: .colonToken(),
+                type: calleeType.trimmed
               )
               ClosureParameterSyntax(
-                firstName: input.componentCount == 0 ? .wildcardToken() : "input"
+                firstName: input.componentCount == 0 ? .wildcardToken() : "input",
+                colon: .colonToken(),
+                type: input.typeSyntax(in: namespace)
               )
             }
           )
         ),
-        effectSpecifiers: closureEffectSpecifiers()
+        effectSpecifiers: closureEffectSpecifiers(),
+        returnClause: ReturnClauseSyntax(type: output.typeSyntax(in: namespace))
       ),
       statements: glueClosureStatements()
     )
@@ -1443,7 +1395,10 @@ extension CallableSchema {
   /// `try await callee.foo(bar: input.values.0, input.values.1)`
   private func callExpr() -> ExprSyntax {
     let call = FunctionCallExprSyntax(
-      calledExpression: calledExpression,
+      calledExpression: MemberAccessExprSyntax(
+        base: DeclReferenceExprSyntax(baseName: "callee"),
+        name: baseName
+      ),
       leftParen: .leftParenToken(),
       arguments: input.argumentList(unpacking: DeclReferenceExprSyntax(baseName: "input")),
       rightParen: .rightParenToken()
@@ -1457,22 +1412,6 @@ extension CallableSchema {
       return ExprSyntax(TryExprSyntax(expression: call))
     case (true, true):
       return ExprSyntax(TryExprSyntax(expression: AwaitExprSyntax(expression: call)))
-    }
-  }
-
-  /// `callee.foo` for instance methods, `foo` otherwise — a static sidecar's
-  /// unqualified reference resolves to the static member.
-  private var calledExpression: ExprSyntax {
-    switch context {
-    case .instanceMember:
-      ExprSyntax(
-        MemberAccessExprSyntax(
-          base: DeclReferenceExprSyntax(baseName: "callee"),
-          name: baseName
-        )
-      )
-    case .staticMember:
-      ExprSyntax(DeclReferenceExprSyntax(baseName: baseName))
     }
   }
 

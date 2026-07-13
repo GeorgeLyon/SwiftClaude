@@ -51,17 +51,14 @@ public macro StructuredCodable(
 
 // MARK: - Structured Action
 
-/// Exposes a function through Structured Coding: its parameter clause
-/// collapses onto a `StructuredCodable` Input and its return type onto a
-/// `StructuredCodable` Output — following the same rules as enum-case
-/// associated values — and a `__structuredAction_<name>` sidecar function
-/// is generated returning the `StructuredAction` that ties them together
-/// with the function's effects. Actions must be declared in a type's body —
-/// not at the top level, and not in an extension, whose syntax cannot reveal
-/// whether the extended type is an actor (which decides the generated glue's
-/// isolation). Apply `@StructuredTool` to the type to gather its actions
-/// into a tool definition.
-@attached(peer, names: prefixed(__structuredAction_))
+/// Marks a function as one of the enclosing `@StructuredTool` type's actions.
+/// Like `@StructuredProperty`, this is a marker: it generates nothing itself —
+/// `@StructuredTool` reads the annotation and its arguments and generates all
+/// the coding glue. Actions must be declared in the tool type's body — not at
+/// the top level, and not in an extension, whose syntax cannot reveal whether
+/// the extended type is an actor (which decides the generated glue's
+/// isolation).
+@attached(peer)
 public macro StructuredAction(
   description: String? = nil,
   inputDescription: String? = nil,
@@ -76,10 +73,13 @@ public macro StructuredAction(
 // MARK: - Structured Tool
 
 /// Gathers the type's `@StructuredAction` functions into a
-/// `static var definition: some StructuredToolDefinitionProtocol<…>`. The
-/// tool's `name` defaults to the type's name; the generated property is pure
-/// data gathering — schema shape and dispatch live in the runtime's
-/// `StructuredToolDefinition`.
+/// `static var definition: some StructuredToolDefinitionProtocol<…>`. Each
+/// action's parameter clause collapses onto a `StructuredCodable` Input and
+/// its return type onto a `StructuredCodable` Output — following the same
+/// rules as enum-case associated values — and the definition property holds
+/// one inline `StructuredAction` per function; no other name is introduced.
+/// The tool's `name` defaults to the type's name; schema shape and dispatch
+/// live in the runtime's `StructuredToolDefinition`.
 @attached(member, names: named(definition))
 public macro StructuredTool(
   name: String? = nil,
