@@ -26,14 +26,35 @@ public struct StructuredCodingSchemaMetadata: Sendable {
 
   public init() {
     description = nil
+    shape = nil
   }
 
-  init(description: String?) {
+  init(
+    description: String?,
+    shape: StructuredCodingSchemaShape? = nil
+  ) {
     self.description = description
+    self.shape = shape
   }
 
   var description: String?
 
+  /// The shape of the values the schema admits, when declared; `nil` means
+  /// unspecified. This is how the machinery branches on a schema's shape
+  /// without inspecting its concrete type or coded structure — a tool
+  /// definition consults it to decide whether a single action's input schema
+  /// can stand alone or needs the `{"input": ...}` envelope.
+  var shape: StructuredCodingSchemaShape?
+
+}
+
+/// The broad shape of the values a schema admits — only the distinctions the
+/// coding machinery itself needs to branch on, not a full classification.
+/// Today that is object-ness: the Anthropic API requires a tool's input
+/// schema to be a top-level object, so schemas that don't declare this shape
+/// are enveloped when they stand for a whole tool's input.
+enum StructuredCodingSchemaShape: Hashable, Sendable {
+  case object
 }
 
 extension StructuredCodingSchema {

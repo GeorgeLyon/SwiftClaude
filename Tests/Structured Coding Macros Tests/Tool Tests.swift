@@ -55,6 +55,9 @@ struct StructuredToolTests {
           )
         }
       }
+
+      extension S: StructuredCoding.StructuredToolProtocol {
+      }
       """#
     )
   }
@@ -91,6 +94,9 @@ struct StructuredToolTests {
             )
           )
         }
+      }
+
+      extension S: StructuredCoding.StructuredToolProtocol {
       }
       """#
     )

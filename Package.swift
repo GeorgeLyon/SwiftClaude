@@ -71,6 +71,7 @@ let package = Package(
       dependencies: [
         "MessagesAPI",
         "StructuredCoding",
+        "JavaScriptObjectNotation",
       ],
       path: "Tests/Messages API Tests",
       swiftSettings: .projectDefaults

@@ -1,4 +1,5 @@
 import SwiftSyntax
+import SwiftSyntaxBuilder
 import SwiftSyntaxMacroExpansion
 import SwiftSyntaxMacros
 import SwiftSyntaxMacrosGenericTestSupport
@@ -11,7 +12,10 @@ private let macroSpecs: [String: MacroSpec] = [
   "StructuredProperty": MacroSpec(type: StructuredPropertyMacro.self),
   "StructuredCase": MacroSpec(type: StructuredCaseMacro.self),
   "StructuredAction": MacroSpec(type: StructuredActionMacro.self),
-  "StructuredTool": MacroSpec(type: StructuredToolMacro.self),
+  "StructuredTool": MacroSpec(
+    type: StructuredToolMacro.self,
+    conformances: ["StructuredToolProtocol"]
+  ),
 ]
 
 /// Asserts that the `@StructuredCodable` family of macros expands `original` into

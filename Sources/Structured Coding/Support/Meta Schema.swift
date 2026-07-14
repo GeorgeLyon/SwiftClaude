@@ -53,9 +53,18 @@ extension MetaSchema: StructuredCodingSchema {
 
   /// `description` is a stored (and coded) property rather than living inside
   /// a stored metadata value because it is part of the schema's coded
-  /// representation; the metadata view is reconstituted around it.
+  /// representation; the metadata view is reconstituted around it. The
+  /// `.object` shape is likewise derived, not stored: only the `object`
+  /// factory creates a property map (a possibly empty one), so its presence
+  /// is exactly object-ness — and the setter ignores the shape, which no
+  /// machinery writes.
   var metadata: StructuredCodingSchemaMetadata {
-    get { StructuredCodingSchemaMetadata(description: description) }
+    get {
+      StructuredCodingSchemaMetadata(
+        description: description,
+        shape: properties != nil ? .object : nil
+      )
+    }
     set { description = newValue.description }
   }
 

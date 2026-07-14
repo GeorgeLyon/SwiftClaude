@@ -76,20 +76,77 @@ struct StructuredToolIntegrationTests {
     }
   }
 
-  /// A single action's input schema is the tool's schema, with the tool
-  /// description prepended.
+  /// A single action's object input schema is the tool's schema directly,
+  /// with the tool description prepended.
   @Test
   func singleActionToolUsesActionInputSchema() throws {
     try test(
-      Doubler.definition.inputSchema,
-      encodesAs: #"{"description":"Doubles numbers","type":"integer"}"#
+      Greeter.definition.inputSchema,
+      encodesAs:
+        #"{"description":"Greets people","properties":{"name":{"type":"string"}},"required":["name"]}"#
     )
   }
 
   @Test
-  func singleActionInvokeTakesInputDirectly() async throws {
-    let result = try await Doubler.definition.invoke(on: Doubler(), inputJSON: "21")
+  func singleActionInvokeTakesObjectInputDirectly() async throws {
+    let result = try await Greeter.definition.invoke(
+      on: Greeter(), inputJSON: #"{"name": "moon"}"#)
+    #expect(result == #""Hello, moon""#)
+  }
+
+  // MARK: - Input Envelope
+
+  /// A single action whose input schema is not an object (here a bare
+  /// integer) gets enveloped in an object with one required `"input"`
+  /// property — the Anthropic API requires tool input schemas to be
+  /// top-level objects.
+  @Test
+  func singleActionScalarInputSchemaIsEnveloped() throws {
+    try test(
+      Doubler.definition.inputSchema,
+      encodesAs:
+        #"{"description":"Doubles numbers","properties":{"input":{"type":"integer"}},"required":["input"]}"#
+    )
+  }
+
+  @Test
+  func singleActionScalarInvokeDecodesInputEnvelope() async throws {
+    let result = try await Doubler.definition.invoke(
+      on: Doubler(), inputJSON: #"{"input": 21}"#)
     #expect(result == "42")
+  }
+
+  /// Mixed-label tuples collapse to a tuple schema (`prefixItems`), which is
+  /// enveloped the same way scalars are.
+  @Test
+  func singleActionTupleInvokeDecodesInputEnvelope() async throws {
+    let result = try await Flipper.definition.invoke(
+      on: Flipper(), inputJSON: #"{"input": [true, false]}"#)
+    #expect(result == #"{"a":false,"b":true}"#)
+  }
+
+  @Test
+  func invalidInputEnvelopesThrow() async throws {
+    // Bare value where the envelope is expected.
+    await #expect(throws: (any Error).self) {
+      _ = try await Doubler.definition.invoke(on: Doubler(), inputJSON: "21")
+    }
+
+    // Empty envelope.
+    await #expect(throws: StructuredToolInvocationError.self) {
+      _ = try await Doubler.definition.invoke(on: Doubler(), inputJSON: "{}")
+    }
+
+    // Wrong property name.
+    await #expect(throws: StructuredToolInvocationError.self) {
+      _ = try await Doubler.definition.invoke(on: Doubler(), inputJSON: #"{"value": 21}"#)
+    }
+
+    // More than one property.
+    await #expect(throws: StructuredToolInvocationError.self) {
+      _ = try await Doubler.definition.invoke(
+        on: Doubler(), inputJSON: #"{"input": 21, "extra": 1}"#)
+    }
   }
 
   @Test
@@ -199,6 +256,22 @@ private struct Doubler {
   @StructuredAction
   func double(_ value: Int) -> Int {
     value * 2
+  }
+}
+
+@StructuredTool(description: "Greets people")
+private struct Greeter {
+  @StructuredAction
+  func greet(name: String) -> String {
+    "Hello, \(name)"
+  }
+}
+
+@StructuredTool
+private struct Flipper {
+  @StructuredAction
+  func flip(bar: Bool, _ baz: Bool) -> (a: Bool, b: Bool) {
+    (baz, bar)
   }
 }
 

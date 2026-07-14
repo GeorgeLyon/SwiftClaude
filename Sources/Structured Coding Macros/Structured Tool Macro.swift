@@ -31,7 +31,39 @@ import SwiftSyntaxMacros
 /// Every generic argument is inferred from the initializer expressions, and
 /// all interpretation — schema shape, dispatch — lives in the runtime's
 /// `StructuredToolDefinition`.
-enum StructuredToolMacro: MemberMacro {
+enum StructuredToolMacro: MemberMacro, ExtensionMacro {
+
+  /// Conforms the tool type to `StructuredToolProtocol`; the member
+  /// expansion's `definition` witnesses the requirement. Diagnosing an
+  /// invalid declaration is the member expansion's job — this expansion runs
+  /// the same basic validation silently, so an invalid tool (which gets no
+  /// `definition`) is not additionally saddled with a does-not-conform
+  /// error. `protocols` is empty when the conformance is already declared
+  /// explicitly.
+  static func expansion(
+    of node: AttributeSyntax,
+    attachedTo declaration: some DeclGroupSyntax,
+    providingExtensionsOf type: some TypeSyntaxProtocol,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  ) throws -> [ExtensionDeclSyntax] {
+    let namespace: StructuredCodingNamespace = "StructuredCoding"
+    guard
+      declaration.nominalTypeName != nil,
+      !protocols.isEmpty,
+      validatedActionFunctions(of: declaration, attribute: node, diagnosingIn: nil) != nil
+    else {
+      return []
+    }
+    return [
+      ExtensionDeclSyntax(
+        extendedType: type,
+        inheritanceClause: InheritanceClauseSyntax {
+          InheritedTypeSyntax(type: namespace.memberType(name: "StructuredToolProtocol"))
+        }
+      ) {}
+    ]
+  }
 
   static func expansion(
     of node: AttributeSyntax,
@@ -75,53 +107,18 @@ enum StructuredToolMacro: MemberMacro {
       in: context
     )
 
-    let actionFunctions = declaration.memberBlock.members.compactMap { member in
-      member.decl.as(FunctionDeclSyntax.self).flatMap { function in
-        function.attributes.hasAttribute("StructuredAction") ? function : nil
-      }
-    }
-
-    guard !actionFunctions.isEmpty else {
-      context.diagnose(
-        DiagnosticError(
-          node: node,
-          severity: .error,
-          message: "@StructuredTool requires at least one @StructuredAction function"
-        )
+    guard
+      let actionFunctions = validatedActionFunctions(
+        of: declaration,
+        attribute: node,
+        diagnosingIn: context
       )
+    else {
       return []
     }
 
-    /// Tools dispatch actions by base name (the enumeration schema's property
-    /// names), so duplicates cannot be represented; static functions have no
-    /// callee to join a `Callee == <Type>` tuple.
-    var seenActionNames: Set<String> = []
-    var isValid = true
-    for function in actionFunctions {
-      if function.modifiers.contains(where: \.isStatic) {
-        context.diagnose(
-          DiagnosticError(
-            node: function.name,
-            severity: .error,
-            message: "static @StructuredAction functions are not supported in a @StructuredTool"
-          )
-        )
-        isValid = false
-      }
-      if !seenActionNames.insert(function.name.text).inserted {
-        context.diagnose(
-          DiagnosticError(
-            node: function.name,
-            severity: .error,
-            message:
-              "Duplicate action name `\(function.name.text)`; a tool's actions must have unique names"
-          )
-        )
-        isValid = false
-      }
-    }
-
     let calleeType = TypeSyntax(IdentifierTypeSyntax(name: typeName))
+    var isValid = true
     let isCalleeActor = declaration.is(ActorDeclSyntax.self)
     let compatibilityModes = CompatibilityModes(inferredFrom: declaration, in: context)
 
@@ -173,6 +170,63 @@ enum StructuredToolMacro: MemberMacro {
       )
     )
     return members
+  }
+
+  /// The declaration's `@StructuredAction` functions, or `nil` when the
+  /// tool's basic shape is invalid: no actions at all, static actions (no
+  /// callee to join a `Callee == <Type>` tuple), or duplicate action names
+  /// (tools dispatch actions by base name — the enumeration schema's
+  /// property names — so duplicates cannot be represented). Diagnostics are
+  /// emitted only through `context`: the member expansion diagnoses, and the
+  /// extension expansion re-validates silently.
+  private static func validatedActionFunctions(
+    of declaration: some DeclGroupSyntax,
+    attribute node: AttributeSyntax,
+    diagnosingIn context: (any MacroExpansionContext)?
+  ) -> [FunctionDeclSyntax]? {
+    let actionFunctions = declaration.memberBlock.members.compactMap { member in
+      member.decl.as(FunctionDeclSyntax.self).flatMap { function in
+        function.attributes.hasAttribute("StructuredAction") ? function : nil
+      }
+    }
+
+    guard !actionFunctions.isEmpty else {
+      context?.diagnose(
+        DiagnosticError(
+          node: node,
+          severity: .error,
+          message: "@StructuredTool requires at least one @StructuredAction function"
+        )
+      )
+      return nil
+    }
+
+    var seenActionNames: Set<String> = []
+    var isValid = true
+    for function in actionFunctions {
+      if function.modifiers.contains(where: \.isStatic) {
+        context?.diagnose(
+          DiagnosticError(
+            node: function.name,
+            severity: .error,
+            message: "static @StructuredAction functions are not supported in a @StructuredTool"
+          )
+        )
+        isValid = false
+      }
+      if !seenActionNames.insert(function.name.text).inserted {
+        context?.diagnose(
+          DiagnosticError(
+            node: function.name,
+            severity: .error,
+            message:
+              "Duplicate action name `\(function.name.text)`; a tool's actions must have unique names"
+          )
+        )
+        isValid = false
+      }
+    }
+    return isValid ? actionFunctions : nil
   }
 
   /// `static var definition: some {ns}.StructuredToolDefinitionProtocol<TypeName> { … }`

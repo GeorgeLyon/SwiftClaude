@@ -1,16 +1,43 @@
 public import StructuredCoding
 
 @APICodable
-public struct Request<each Tool: StructuredCodable> {
+public struct Request<each Tool: StructuredToolProtocol> {
 
+  /// The tool instances themselves are not stored yet — encoding a request
+  /// only needs each tool type's `definition`. A later round will keep them
+  /// as the callees that responses' tool-use blocks dispatch onto.
   public init(messages: [Message], tools: repeat each Tool) {
     self.messages = messages
-    self.tools = (repeat each tools)
+    self.tools = (repeat ToolDefinition((each Tool).definition))
   }
 
   public let messages: [Message]
 
-  public let tools: (repeat each Tool)
+  let tools: (repeat ToolDefinition<(each Tool).Definition>)
+
+}
+
+// MARK: - Tools
+
+/// A tool definition in the Anthropic wire shape: `{"name": ...,
+/// "description": ..., "input_schema": ...}`, with a `nil` description
+/// omitted. The definition's `inputSchema` is already guaranteed to be a
+/// top-level object schema (non-object single-action schemas are enveloped
+/// in `{"input": ...}` by `StructuredToolDefinition`).
+@APICodable
+public struct ToolDefinition<Definition: StructuredToolDefinitionProtocol> {
+
+  init(_ definition: Definition) {
+    self.name = definition.name
+    self.description = definition.description
+    self.inputSchema = definition.inputSchema
+  }
+
+  let name: String
+
+  let description: String?
+
+  let inputSchema: Definition.InputSchema
 
 }
 

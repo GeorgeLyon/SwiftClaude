@@ -79,8 +79,11 @@ public macro StructuredAction(
 /// rules as enum-case associated values — and the definition property holds
 /// one inline `StructuredAction` per function; no other name is introduced.
 /// The tool's `name` defaults to the type's name; schema shape and dispatch
-/// live in the runtime's `StructuredToolDefinition`.
+/// live in the runtime's `StructuredToolDefinition`. The generated
+/// `definition` witnesses `StructuredToolProtocol`, whose conformance is
+/// added in an extension.
 @attached(member, names: named(definition))
+@attached(extension, conformances: StructuredToolProtocol)
 public macro StructuredTool(
   name: String? = nil,
   description: String? = nil

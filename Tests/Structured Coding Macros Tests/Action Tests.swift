@@ -77,6 +77,9 @@ struct StructuredActionTests {
           )
         }
       }
+
+      extension S: StructuredCoding.StructuredToolProtocol {
+      }
       """#
     )
   }
@@ -114,6 +117,9 @@ struct StructuredActionTests {
             )
           )
         }
+      }
+
+      extension S: StructuredCoding.StructuredToolProtocol {
       }
       """#
     )
@@ -153,6 +159,9 @@ struct StructuredActionTests {
             )
           )
         }
+      }
+
+      extension S: StructuredCoding.StructuredToolProtocol {
       }
       """#
     )
@@ -215,6 +224,9 @@ struct StructuredActionTests {
           )
         }
       }
+
+      extension S: StructuredCoding.StructuredToolProtocol {
+      }
       """#
     )
   }
@@ -276,6 +288,9 @@ struct StructuredActionTests {
           )
         }
       }
+
+      extension S: StructuredCoding.StructuredToolProtocol {
+      }
       """#
     )
   }
@@ -315,6 +330,9 @@ struct StructuredActionTests {
             )
           )
         }
+      }
+
+      extension S: StructuredCoding.StructuredToolProtocol {
       }
       """#
     )
@@ -377,6 +395,9 @@ struct StructuredActionTests {
           )
         }
       }
+
+      extension S: StructuredCoding.StructuredToolProtocol {
+      }
       """#
     )
   }
@@ -417,6 +438,9 @@ struct StructuredActionTests {
           )
         }
       }
+
+      extension A: StructuredCoding.StructuredToolProtocol {
+      }
       """#
     )
   }
@@ -455,6 +479,9 @@ struct StructuredActionTests {
             )
           )
         }
+      }
+
+      extension A: StructuredCoding.StructuredToolProtocol {
       }
       """#
     )
@@ -516,6 +543,9 @@ struct StructuredActionTests {
             )
           )
         }
+      }
+
+      extension S: StructuredCoding.StructuredToolProtocol {
       }
       """#
     )
@@ -588,6 +618,9 @@ struct StructuredActionTests {
           )
         }
       }
+
+      extension S: StructuredCoding.StructuredToolProtocol {
+      }
       """#
     )
   }
@@ -654,6 +687,9 @@ struct StructuredActionTests {
             )
           )
         }
+      }
+
+      extension S: StructuredCoding.StructuredToolProtocol {
       }
       """#
     )
@@ -808,6 +844,9 @@ struct StructuredActionTests {
         func f(x: inout Int) {
         }
       }
+
+      extension S: StructuredCoding.StructuredToolProtocol {
+      }
       """,
       diagnostics: [
         DiagnosticSpec(
@@ -835,6 +874,9 @@ struct StructuredActionTests {
         func f<T>(x: T) -> T {
           x
         }
+      }
+
+      extension S: StructuredCoding.StructuredToolProtocol {
       }
       """,
       diagnostics: [
@@ -864,6 +906,9 @@ struct StructuredActionTests {
           try body()
         }
       }
+
+      extension S: StructuredCoding.StructuredToolProtocol {
+      }
       """,
       diagnostics: [
         DiagnosticSpec(
@@ -892,6 +937,9 @@ struct StructuredActionTests {
           0
         }
       }
+
+      extension S: StructuredCoding.StructuredToolProtocol {
+      }
       """,
       diagnostics: [
         DiagnosticSpec(
@@ -918,6 +966,9 @@ struct StructuredActionTests {
       struct S {
         mutating func bump() {
         }
+      }
+
+      extension S: StructuredCoding.StructuredToolProtocol {
       }
       """,
       diagnostics: [
@@ -962,6 +1013,9 @@ struct StructuredActionTests {
             )
           )
         }
+      }
+
+      extension S: StructuredCoding.StructuredToolProtocol {
       }
       """#,
       diagnostics: [

@@ -1,3 +1,4 @@
+import JavaScriptObjectNotation
 import MessagesAPI
 import StructuredCoding
 import Testing
@@ -30,9 +31,24 @@ struct MessagesAPIEncodingTests {
         Message(
           role: .user,
           content: [.image(source: .base64(mediaType: .png, data: "iVBORw0KGgo="))]
-        )
+        ),
+        pretty: true
       )
-        == #"{"role":"user","content":[{"type":"image","source":{"type":"base64","media_type":"image/png","data":"iVBORw0KGgo="}}]}"#
+        == #"""
+        {
+          "role": "user",
+          "content": [
+            {
+              "type": "image",
+              "source": {
+                "type": "base64",
+                "media_type": "image/png",
+                "data": "iVBORw0KGgo="
+              }
+            }
+          ]
+        }
+        """#
     )
   }
 
@@ -45,9 +61,23 @@ struct MessagesAPIEncodingTests {
             data: "iVBORw0KGgo=",
             cacheControl: .ephemeral(ttl: .fiveMinutes)
           )
-        )
+        ),
+        pretty: true
       )
-        == #"{"type":"image","source":{"type":"base64","media_type":"image/png","data":"iVBORw0KGgo=","cache_control":{"type":"ephemeral","ttl":"5m"}}}"#
+        == #"""
+        {
+          "type": "image",
+          "source": {
+            "type": "base64",
+            "media_type": "image/png",
+            "data": "iVBORw0KGgo=",
+            "cache_control": {
+              "type": "ephemeral",
+              "ttl": "5m"
+            }
+          }
+        }
+        """#
     )
   }
 
@@ -60,14 +90,37 @@ struct MessagesAPIEncodingTests {
             .text(text: "What is in this image?"),
             .image(source: .base64(mediaType: .png, data: "iVBORw0KGgo=")),
           ]
-        )
+        ),
+        pretty: true
       )
-        == #"{"role":"user","content":[{"type":"text","text":"What is in this image?"},{"type":"image","source":{"type":"base64","media_type":"image/png","data":"iVBORw0KGgo="}}]}"#
+        == #"""
+        {
+          "role": "user",
+          "content": [
+            {
+              "type": "text",
+              "text": "What is in this image?"
+            },
+            {
+              "type": "image",
+              "source": {
+                "type": "base64",
+                "media_type": "image/png",
+                "data": "iVBORw0KGgo="
+              }
+            }
+          ]
+        }
+        """#
     )
   }
 
   // MARK: - Requests
 
+  /// Tools encode as Anthropic tool definitions — `name`, `description`,
+  /// `input_schema` — drawn from each pack element type's `definition`, not
+  /// from the instances. A tool without a description omits the key.
+  ///
   /// `Request` is generic over a parameter pack of tools, so its conformance
   /// is generated with `.variadicGenerics` compatibility; encoding a value
   /// instantiates the property metadata that the default key-path emission
@@ -77,10 +130,116 @@ struct MessagesAPIEncodingTests {
       encode(
         Request(
           messages: [Message(role: .user, content: [.text(text: "Hello, world")])],
-          tools: Calculator(precision: 2), WebSearch(maxResults: 5)
-        )
+          tools: Calculator(), WebSearch()
+        ),
+        pretty: true
       )
-        == #"{"messages":[{"role":"user","content":[{"type":"text","text":"Hello, world"}]}],"tools":[{"precision":2},{"max_results":5}]}"#
+        == #"""
+        {
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Hello, world"
+                }
+              ]
+            }
+          ],
+          "tools": [
+            {
+              "name": "Calculator",
+              "description": "Does math",
+              "input_schema": {
+                "description": "Does math",
+                "properties": {
+                  "add": {
+                    "properties": {
+                      "amount": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "amount"
+                    ]
+                  },
+                  "parity": {
+                    "properties": {
+                      "of": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "of"
+                    ]
+                  }
+                },
+                "maxProperties": 1
+              }
+            },
+            {
+              "name": "WebSearch",
+              "input_schema": {
+                "properties": {
+                  "query": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "query"
+                ]
+              }
+            }
+          ]
+        }
+        """#
+    )
+  }
+
+  /// A single action whose input schema is not an object surfaces through
+  /// the request with its `{"input": ...}` envelope.
+  @Test func encodesEnvelopedScalarToolInputSchema() throws {
+    try #expect(
+      encode(
+        Request(
+          messages: [Message(role: .user, content: [.text(text: "21")])],
+          tools: Doubler()
+        ),
+        pretty: true
+      )
+        == #"""
+        {
+          "messages": [
+            {
+              "role": "user",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "21"
+                }
+              ]
+            }
+          ],
+          "tools": [
+            {
+              "name": "Doubler",
+              "description": "Doubles numbers",
+              "input_schema": {
+                "description": "Doubles numbers",
+                "properties": {
+                  "input": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "input"
+                ]
+              }
+            }
+          ]
+        }
+        """#
     )
   }
 
@@ -129,18 +288,40 @@ struct MessagesAPIEncodingTests {
 
 // MARK: - Helpers
 
-@APICodable
+@StructuredTool(description: "Does math")
 private struct Calculator {
-  let precision: Int
+  @StructuredAction
+  func add(amount: Int) -> Int {
+    amount
+  }
+
+  @StructuredAction
+  func parity(of value: Int) -> Bool {
+    value.isMultiple(of: 2)
+  }
 }
 
-@APICodable
+@StructuredTool
 private struct WebSearch {
-  let maxResults: Int
+  @StructuredAction
+  func search(query: String) -> String {
+    query
+  }
 }
 
-private func encode<Value: StructuredEncodable>(_ value: Value) throws -> String {
-  var encoder = StructuredEncoder()
+@StructuredTool(description: "Doubles numbers")
+private struct Doubler {
+  @StructuredAction
+  func double(_ value: Int) -> Int {
+    value * 2
+  }
+}
+
+private func encode<Value: StructuredEncodable>(
+  _ value: Value,
+  pretty: Bool = false
+) throws -> String {
+  var encoder = StructuredEncoder(options: pretty ? .prettyPrint : [])
   try value.encode(to: &encoder)
   return encoder.stringValue
 }
