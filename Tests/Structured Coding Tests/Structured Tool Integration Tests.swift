@@ -25,7 +25,7 @@ struct StructuredToolIntegrationTests {
     try test(
       Calculator.definition.inputSchema,
       encodesAs:
-        #"{"description":"Does math","properties":{"add":{"properties":{"amount":{"type":"integer"}},"required":["amount"]},"fetch":{"description":"Fetches an item","properties":{"id":{"type":"integer"}},"required":["id"]},"parity":{"properties":{"of":{"type":"integer"}},"required":["of"]}},"maxProperties":1}"#
+        #"{"properties":{"add":{"properties":{"amount":{"type":"integer"}},"required":["amount"]},"fetch":{"description":"Fetches an item","properties":{"id":{"type":"integer"}},"required":["id"]},"parity":{"properties":{"of":{"type":"integer"}},"required":["of"]}},"maxProperties":1}"#
     )
   }
 
@@ -76,14 +76,15 @@ struct StructuredToolIntegrationTests {
     }
   }
 
-  /// A single action's object input schema is the tool's schema directly,
-  /// with the tool description prepended.
+  /// A single action's object input schema is the tool's schema directly.
+  /// The tool description is not folded in — it travels separately, in the
+  /// definition's `description`.
   @Test
   func singleActionToolUsesActionInputSchema() throws {
     try test(
       Greeter.definition.inputSchema,
       encodesAs:
-        #"{"description":"Greets people","properties":{"name":{"type":"string"}},"required":["name"]}"#
+        #"{"properties":{"name":{"type":"string"}},"required":["name"]}"#
     )
   }
 
@@ -105,7 +106,7 @@ struct StructuredToolIntegrationTests {
     try test(
       Doubler.definition.inputSchema,
       encodesAs:
-        #"{"description":"Doubles numbers","properties":{"input":{"type":"integer"}},"required":["input"]}"#
+        #"{"properties":{"input":{"type":"integer"}},"required":["input"]}"#
     )
   }
 

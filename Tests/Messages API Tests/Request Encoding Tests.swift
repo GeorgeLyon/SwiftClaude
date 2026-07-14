@@ -152,7 +152,6 @@ struct MessagesAPIEncodingTests {
               "name": "Calculator",
               "description": "Does math",
               "input_schema": {
-                "description": "Does math",
                 "properties": {
                   "add": {
                     "properties": {
@@ -226,7 +225,6 @@ struct MessagesAPIEncodingTests {
               "name": "Doubler",
               "description": "Doubles numbers",
               "input_schema": {
-                "description": "Doubles numbers",
                 "properties": {
                   "input": {
                     "type": "integer"

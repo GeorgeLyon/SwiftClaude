@@ -91,7 +91,7 @@ extension StructuredToolDefinition: StructuredToolDefinitionProtocol {
     }
     return MetaSchema.SchemaCodable(
       MetaSchema.object(
-        description: description,
+        description: nil,
         maxProperties: 1,
         properties: repeat (
           (each actions).key,
@@ -201,25 +201,24 @@ extension StructuredToolDefinition: StructuredToolDefinitionProtocol {
     return try await invocation()
   }
 
-  /// A single action's input schema stands in for the whole tool's — with
-  /// the tool description prepended — when its metadata declares the
-  /// `.object` shape. Any other schema (a scalar, tuple, `oneOf`, or a
-  /// hand-written schema that declares no shape) is enveloped in an object
-  /// with one required `"input"` property carrying it: the Anthropic API
-  /// requires a tool's input schema to be a top-level object.
+  /// A single action's input schema stands in for the whole tool's when its
+  /// metadata declares the `.object` shape. Any other schema (a scalar,
+  /// tuple, `oneOf`, or a hand-written schema that declares no shape) is
+  /// enveloped in an object with one required `"input"` property carrying
+  /// it: the Anthropic API requires a tool's input schema to be a top-level
+  /// object. The tool-level description is not folded in — consumers carry
+  /// it separately (a request's tool `description` field, say).
   /// `invoke(on:inputJSON:)` applies the same rule when decoding, so the
   /// published schema and dispatch always agree.
   private func singleActionInputSchema<ActionSignature: StructuredActionSignatureProtocol>(
     of action: StructuredAction<Callee, ActionSignature>
   ) -> MetaSchema.SchemaCodable {
     guard needsInputEnvelope(action) else {
-      return MetaSchema.SchemaCodable(
-        action.inputSchema.prependDescription(description)
-      )
+      return MetaSchema.SchemaCodable(action.inputSchema)
     }
     return MetaSchema.SchemaCodable(
       MetaSchema.object(
-        description: description,
+        description: nil,
         properties: ("input", action.inputSchema, true)
       )
     )
