@@ -229,6 +229,29 @@ struct StructuredCodableMacroIntegrationTests {
     )
   }
 
+  // MARK: - Object Representable
+
+  /// The macro marks types whose every encoded instance is a JSON object:
+  /// objects, and the object-properties and internally-tagged enumeration
+  /// styles (the latter's payloads are constrained to `StructuredObject`, so
+  /// the discriminator always lives inside an object).
+  @Test func objectEncodedTypesAreMarkedObjectRepresentable() {
+    #expect(MacroPoint.self is any StructuredObjectRepresentable.Type)
+    #expect(MacroEvent.self is any StructuredObjectRepresentable.Type)
+    #expect(MacroMessage.self is any StructuredObjectRepresentable.Type)
+  }
+
+  /// Type-discriminated enumerations encode bare payloads, wrappers encode
+  /// their stored value, and raw-value enumerations encode scalars — none
+  /// carry the marker, so a tool definition envelopes them when they stand
+  /// as a single action's input.
+  @Test func nonObjectEncodedTypesAreNotMarkedObjectRepresentable() {
+    #expect(!(MacroValue.self is any StructuredObjectRepresentable.Type))
+    #expect(!(MacroMediaType.self is any StructuredObjectRepresentable.Type))
+    #expect(!(MacroColor.self is any StructuredObjectRepresentable.Type))
+    #expect(!(String.self is any StructuredObjectRepresentable.Type))
+  }
+
 }
 
 // MARK: - Fixtures
@@ -262,6 +285,16 @@ private enum MacroMessage: Equatable, Sendable {
 @StructuredCodable
 private struct MacroNote: Equatable, Sendable {
   var body: String
+}
+
+@StructuredCodable(style: .typeDiscriminated)
+private enum MacroValue: Equatable, Sendable {
+  case number(Int)
+  case text(String)
+}
+
+private enum MacroColor: String, CaseIterable, StructuredEnumeration, Sendable {
+  case red, green
 }
 
 private typealias MacroAliasedOptional = String?

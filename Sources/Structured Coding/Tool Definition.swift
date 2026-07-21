@@ -202,14 +202,15 @@ extension StructuredToolDefinition: StructuredToolDefinitionProtocol {
   }
 
   /// A single action's input schema stands in for the whole tool's when its
-  /// metadata declares the `.object` shape. Any other schema (a scalar,
-  /// tuple, `oneOf`, or a hand-written schema that declares no shape) is
-  /// enveloped in an object with one required `"input"` property carrying
-  /// it: the Anthropic API requires a tool's input schema to be a top-level
-  /// object. The tool-level description is not folded in — consumers carry
-  /// it separately (a request's tool `description` field, say).
-  /// `invoke(on:inputJSON:)` applies the same rule when decoding, so the
-  /// published schema and dispatch always agree.
+  /// `Input` is `StructuredObjectRepresentable`. Any other input (a scalar,
+  /// tuple, type-discriminated or raw-value enumeration, or a hand-written
+  /// type that doesn't adopt the marker) is enveloped in an object with one
+  /// required `"input"` property carrying it: the Anthropic API requires a
+  /// tool's input schema to be a top-level object. The tool-level
+  /// description is not folded in — consumers carry it separately (a
+  /// request's tool `description` field, say). `invoke(on:inputJSON:)`
+  /// applies the same rule when decoding, so the published schema and
+  /// dispatch always agree.
   private func singleActionInputSchema<ActionSignature: StructuredActionSignatureProtocol>(
     of action: StructuredAction<Callee, ActionSignature>
   ) -> MetaSchema.SchemaCodable {
@@ -227,7 +228,7 @@ extension StructuredToolDefinition: StructuredToolDefinitionProtocol {
   private func needsInputEnvelope<ActionSignature: StructuredActionSignatureProtocol>(
     _ action: StructuredAction<Callee, ActionSignature>
   ) -> Bool {
-    action.inputSchema.metadata.shape != .object
+    !(ActionSignature.Input.self is any StructuredObjectRepresentable.Type)
   }
 
   /// Decodes `action`'s `Input` from `decoder` and captures it, with the

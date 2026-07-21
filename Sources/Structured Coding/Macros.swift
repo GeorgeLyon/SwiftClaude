@@ -2,7 +2,7 @@
 
 @attached(
   extension,
-  conformances: StructuredObject, StructuredEnumeration,
+  conformances: StructuredObject, StructuredEnumeration, StructuredObjectRepresentable,
   names:
     named(Schema),
     named(schema),

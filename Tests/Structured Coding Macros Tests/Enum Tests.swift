@@ -23,7 +23,7 @@ struct StructuredCodableEnumTests {
         case retry(count: Int = 3, delay: Double? = nil)
       }
 
-      extension Policy: StructuredCoding.StructuredEnumeration {
+      extension Policy: StructuredCoding.StructuredEnumeration, StructuredCoding.StructuredObjectRepresentable {
         static var schema: some StructuredCoding.StructuredCodingSchema {
           _schema()
         }
@@ -95,7 +95,7 @@ struct StructuredCodableEnumTests {
         case ping
       }
 
-      extension E: StructuredCoding.StructuredEnumeration {
+      extension E: StructuredCoding.StructuredEnumeration, StructuredCoding.StructuredObjectRepresentable {
         static var schema: some StructuredCoding.StructuredCodingSchema {
           _schema()
         }
@@ -159,7 +159,7 @@ struct StructuredCodableEnumTests {
         case mixed(Int, label: String)
       }
 
-      extension T: StructuredCoding.StructuredEnumeration {
+      extension T: StructuredCoding.StructuredEnumeration, StructuredCoding.StructuredObjectRepresentable {
         static var schema: some StructuredCoding.StructuredCodingSchema {
           _schema()
         }
@@ -210,7 +210,7 @@ struct StructuredCodableEnumTests {
         case point(x: Int, y: Int)
       }
 
-      extension O: StructuredCoding.StructuredEnumeration {
+      extension O: StructuredCoding.StructuredEnumeration, StructuredCoding.StructuredObjectRepresentable {
         static var schema: some StructuredCoding.StructuredCodingSchema {
           _schema()
         }
@@ -279,7 +279,7 @@ struct StructuredCodableEnumTests {
         case move(x: Int, y: Int)
       }
 
-      extension Event: StructuredCoding.StructuredEnumeration {
+      extension Event: StructuredCoding.StructuredEnumeration, StructuredCoding.StructuredObjectRepresentable {
         static var codingStyle: StructuredCoding.StructuredEnumerationCodingStyleInternallyTagged {
           .internallyTagged(discriminatorPropertyName: "type")
         }
@@ -362,7 +362,7 @@ struct StructuredCodableEnumTests {
         case circle(radius: Double)
       }
 
-      extension Shape: StructuredCoding.StructuredEnumeration {
+      extension Shape: StructuredCoding.StructuredEnumeration, StructuredCoding.StructuredObjectRepresentable {
         static var codingStyle: StructuredCoding.StructuredEnumerationCodingStyleInternallyTagged {
           .internallyTagged(discriminatorPropertyName: "kind")
         }
@@ -512,7 +512,7 @@ struct StructuredCodableEnumTests {
         case ping
       }
 
-      extension E: StructuredCoding.StructuredEnumeration {
+      extension E: StructuredCoding.StructuredEnumeration, StructuredCoding.StructuredObjectRepresentable {
         static var schema: some StructuredCoding.StructuredCodingSchema {
           _schema()
         }
@@ -563,7 +563,7 @@ struct StructuredCodableEnumTests {
         case maybe(Int?)
       }
 
-      extension Maybe: StructuredCoding.StructuredEnumeration {
+      extension Maybe: StructuredCoding.StructuredEnumeration, StructuredCoding.StructuredObjectRepresentable {
         static var schema: some StructuredCoding.StructuredCodingSchema {
           _schema()
         }

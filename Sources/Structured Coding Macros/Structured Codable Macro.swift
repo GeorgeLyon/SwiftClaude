@@ -45,7 +45,9 @@ extension StructuredCodableMacroProtocol {
       ExtensionDeclSyntax(
         extendedType: type,
         inheritanceClause: InheritanceClauseSyntax {
-          InheritedTypeSyntax(type: structuredCodableType.conformanceType)
+          for conformanceType in structuredCodableType.conformanceTypes {
+            InheritedTypeSyntax(type: conformanceType)
+          }
         }
       ) {
         structuredCodableType.members

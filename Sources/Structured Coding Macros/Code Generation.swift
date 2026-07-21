@@ -7,15 +7,31 @@ import SwiftSyntaxMacros
 
 extension StructuredCodableType {
 
-  /// The protocol the generated extension conforms the type to.
-  var conformanceType: some TypeSyntaxProtocol {
+  /// The protocols the generated extension conforms the type to. Although
+  /// `StructuredObject` refines `StructuredObjectRepresentable`, a
+  /// macro-generated extension must spell the inherited conformance
+  /// explicitly — the compiler does not imply conformances inside expansion
+  /// buffers. Enumerations declare the marker when their coding style always
+  /// encodes an object — the object-properties and internally-tagged styles,
+  /// but not type-discriminated, whose values encode as bare payloads.
+  var conformanceTypes: [TypeSyntax] {
     switch kind {
     case .object:
-      namespace.memberType(name: "StructuredObject")
+      return [
+        TypeSyntax(namespace.memberType(name: "StructuredObject")),
+        TypeSyntax(namespace.memberType(name: "StructuredObjectRepresentable")),
+      ]
     case .wrapper:
-      namespace.memberType(name: "StructuredWrapper")
-    case .enumeration:
-      namespace.memberType(name: "StructuredEnumeration")
+      return [TypeSyntax(namespace.memberType(name: "StructuredWrapper"))]
+    case .enumeration(let schema):
+      var types = [TypeSyntax(namespace.memberType(name: "StructuredEnumeration"))]
+      switch schema.codingStyle {
+      case .objectProperties, .internallyTagged:
+        types.append(TypeSyntax(namespace.memberType(name: "StructuredObjectRepresentable")))
+      case .typeDiscriminated:
+        break
+      }
+      return types
     }
   }
 

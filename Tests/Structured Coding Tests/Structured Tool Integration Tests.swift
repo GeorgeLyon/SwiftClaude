@@ -150,6 +150,31 @@ struct StructuredToolIntegrationTests {
     }
   }
 
+  /// A single action whose input is an internally-tagged enumeration is not
+  /// enveloped: the style constrains every payload to an object, so each
+  /// instance encodes as a JSON object (the discriminator alongside the
+  /// case's properties) and the `oneOf` schema stands as the tool's input
+  /// schema directly.
+  @Test
+  func singleActionInternallyTaggedInputIsNotEnveloped() throws {
+    try test(
+      Router.definition.inputSchema,
+      encodesAs:
+        #"{"oneOf":[{"properties":{"kind":{"const":"set"},"value":{"type":"integer"}},"required":["kind","value"]},{"properties":{"kind":{"const":"reset"},"hard":{"type":"boolean"}},"required":["kind","hard"]}]}"#
+    )
+  }
+
+  @Test
+  func singleActionInternallyTaggedInvokeTakesInputDirectly() async throws {
+    let set = try await Router.definition.invoke(
+      on: Router(), inputJSON: #"{"kind": "set", "value": 3}"#)
+    #expect(set == #""set 3""#)
+
+    let reset = try await Router.definition.invoke(
+      on: Router(), inputJSON: #"{"kind": "reset", "hard": true}"#)
+    #expect(reset == #""reset hard""#)
+  }
+
   @Test
   func nameArgumentOverridesTypeName() {
     #expect(Renamed.definition.name == "custom-name")
@@ -273,6 +298,25 @@ private struct Flipper {
   @StructuredAction
   func flip(bar: Bool, _ baz: Bool) -> (a: Bool, b: Bool) {
     (baz, bar)
+  }
+}
+
+@StructuredCodable(style: .internallyTagged(discriminatorPropertyName: "kind"))
+private enum RouterCommand {
+  case set(value: Int)
+  case reset(hard: Bool)
+}
+
+@StructuredTool
+private struct Router {
+  @StructuredAction
+  func route(_ command: RouterCommand) -> String {
+    switch command {
+    case .set(let value):
+      "set \(value)"
+    case .reset(let hard):
+      hard ? "reset hard" : "reset soft"
+    }
   }
 }
 

@@ -32,35 +32,4 @@ struct SchemaMetadataTests {
     try test(schema, encodesAs: #"{"description":"after","type":"string"}"#)
   }
 
-  // MARK: - Shape
-
-  /// Object schemas declare the `.object` shape through metadata; every
-  /// other schema's shape is unspecified. This is the signal a tool
-  /// definition uses to decide whether a single action's input schema can
-  /// stand alone or needs the `{"input": ...}` envelope.
-  @Test func objectSchemasDeclareTheObjectShape() {
-    #expect(MetaSchema.object(description: nil).metadata.shape == .object)
-    #expect(
-      MetaSchema.object(
-        description: nil,
-        properties: ("name", String.schema, true)
-      ).metadata.shape == .object
-    )
-  }
-
-  @Test func nonObjectSchemasDeclareNoShape() {
-    #expect(String.schema.metadata.shape == nil)
-    #expect(Int.schema.metadata.shape == nil)
-    #expect(MetaSchema.any(description: nil).metadata.shape == nil)
-    #expect(
-      MetaSchema.array(description: nil, items: Int.schema).metadata.shape == nil
-    )
-    #expect(
-      MetaSchema.tuple(description: nil, prefixItems: Bool.schema).metadata.shape == nil
-    )
-    #expect(
-      MetaSchema.oneOf(description: nil, subschemas: String.schema).metadata.shape == nil
-    )
-  }
-
 }

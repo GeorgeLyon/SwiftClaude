@@ -5,7 +5,7 @@ public import StructuredCoding
 /// with a `"type"` discriminator.
 @attached(
   extension,
-  conformances: StructuredObject, StructuredEnumeration,
+  conformances: StructuredObject, StructuredEnumeration, StructuredObjectRepresentable,
   names:
     named(Schema),
     named(schema),
@@ -57,6 +57,7 @@ public macro APICodable(
 /// onto the `StructuredCoding` implementations.
 public enum APICodable {
   public typealias StructuredObject = StructuredCoding.StructuredObject
+  public typealias StructuredObjectRepresentable = StructuredCoding.StructuredObjectRepresentable
   public typealias StructuredEnumeration = StructuredCoding.StructuredEnumeration
   public typealias StructuredWrapper = StructuredCoding.StructuredWrapper
   public typealias StructuredCodingSchema = StructuredCoding.StructuredCodingSchema

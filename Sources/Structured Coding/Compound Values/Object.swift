@@ -1,9 +1,23 @@
 import JavaScriptObjectNotation
 private import Synchronization
 
+// MARK: - Object Representable
+
+/// A marker adopted by types whose every encoded instance is a JSON object.
+/// Tool definitions consult it to decide whether a single action's input
+/// schema can stand as the tool's top-level input schema — which the
+/// Anthropic API requires to be an object — or needs the `{"input": ...}`
+/// envelope. `StructuredObject` refines it, and `@StructuredCodable` adds it
+/// to enumerations whose coding style always encodes an object (the
+/// object-properties and internally-tagged styles; not type-discriminated,
+/// whose values encode as bare payloads). Adopt it by hand only on a type
+/// whose `encode(to:)` unconditionally produces a JSON object — the promise
+/// is not compiler-checked.
+public protocol StructuredObjectRepresentable {}
+
 // MARK: - Definition
 
-public protocol StructuredObject: StructuredCodable {
+public protocol StructuredObject: StructuredCodable, StructuredObjectRepresentable {
 
   associatedtype StructuredObjectProperties
   static func properties() -> StructuredObjectProperties
