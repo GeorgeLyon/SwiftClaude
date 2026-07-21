@@ -79,9 +79,9 @@ public macro StructuredAction(
 /// the container's stored `actions` holds one inline `StructuredAction` per
 /// function. `StructuredAction.build`'s builder keeps a lone action a leaf
 /// `StructuredAction` and folds several into a composed `StructuredAction`
-/// at its placeholder instantiation; the stored property's initializer
-/// infers the concrete type, which consumers use to classify tools
-/// statically through `Tool.Definition.Actions`. The container also stores the tool's `name`
+/// whose input nests `StructuredActionSelection`; the stored property's
+/// initializer infers the concrete type, which consumers use to classify
+/// tools statically through `Tool.Definition.Actions`. The container also stores the tool's `name`
 /// (the attribute's `name:` when provided, the type's name otherwise) and
 /// its `description` (`nil` when the attribute provides none). The
 /// generated members witness `StructuredToolProtocol`, whose conformance is

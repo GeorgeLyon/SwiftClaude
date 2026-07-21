@@ -5,17 +5,21 @@ import Testing
 
 /// Coverage for hand-written (macro-free) tools built with
 /// `StructuredAction.build`: the identity build keeping a lone action a leaf
-/// `StructuredAction`, and the fold of a second action into a composed
-/// `StructuredAction` at its placeholder instantiation. The
+/// `StructuredAction`, and the fold of further actions into a composed
+/// `StructuredAction` whose input nests `StructuredActionSelection`, whose
+/// output collapses when shared or nests `StructuredActionResult` when the
+/// types differ, whose sync-ness survives all-synchronous folds, and whose
+/// failure always collapses to `any Error`. The
 /// fixtures follow the same shape the macro generates — a nested
 /// `Definition` storing the name, description, and an `actions` value whose
 /// concrete type its initializer infers, plus a computed
 /// `static var definition` — because that concrete inferred shape is what
 /// consumers classify tools by.
 ///
-/// Invocation here is typed — `invoke(on:with:)` on the leaf, or on a
-/// group's stored `actions` tuple elements; JSON dispatch returns in a later
-/// round.
+/// Invocation is typed throughout — `invoke(on:with:)` on a leaf, or on a
+/// composed action with a selection value like `.first(.next(input))`;
+/// nothing is erased, so composed dispatch is a `switch`, not a name
+/// lookup. JSON dispatch returns in a later round.
 ///
 /// The builder's folding overloads `precondition` that action names are
 /// unique — a composed enumeration is keyed by name, so duplicates cannot
@@ -48,18 +52,182 @@ struct StructuredToolBuilderTests {
     )
   }
 
-  /// Composition yields a plain `StructuredAction` at the placeholder
-  /// instantiation — the compile-time shape consumers classify on (the
-  /// `let` binding is the type assertion; per-component type identity is
-  /// gone by design, the stored schema is the identity). A composed action
-  /// is pure schema: it carries no name or description of its own.
+  /// Composition yields a composed `StructuredAction` — structurally a
+  /// single action with an enum argument. Nothing is erased: the input is
+  /// the concrete `StructuredActionSelection` over the components' input
+  /// types, and Toolbox's differing output types (`Int` vs `String`) nest
+  /// into a `StructuredActionResult` (the `let` binding is the type
+  /// assertion). Both components are synchronous, so `SyncInput` is the
+  /// selection itself; `Failure` is always `any Error`. A composed action
+  /// carries no name or description of its own — a tool's name lives on
+  /// its definition.
   @Test
-  func compositionProducesPlaceholderInstantiation() {
+  func compositionProducesComposedAction() {
     let actions:
       StructuredAction<
-        Toolbox, _StructuredActionGroupInput, _StructuredActionGroupInput, Never, Never
+        Toolbox,
+        StructuredActionSelection<Int, String>,
+        StructuredActionResult<Int, String>,
+        StructuredActionSelection<Int, String>,
+        any Error
       > = Toolbox.definition.actions
+    #expect(actions.inputSchema.wrapped.propertyNames == ["double", "shout"])
+    #expect(actions.name == "")
     #expect(actions.description == nil)
+  }
+
+  /// A mismatched-output fold stores the `oneOf` of the components' output
+  /// schemas — a result is untagged on the wire (matching-output components
+  /// collapse, so a payload can't be keyed by the action that produced it).
+  @Test
+  func mismatchedOutputsSynthesizeOneOfSchema() throws {
+    try test(
+      Toolbox.definition.actions.outputSchema,
+      encodesAs: #"{"oneOf":[{"type":"integer"},{"type":"string"}]}"#
+    )
+  }
+
+  /// Composed invoke is real and fully typed: a selection value picks the
+  /// component by case (not by name), and Toolbox's differing outputs come
+  /// back wrapped in the matching result case. Both components are
+  /// synchronous, so the synchronous invoke dispatches (in a synchronous
+  /// context — an async context resolves `invoke(on:with:)` to the async
+  /// surface, which `syncCompositionAlsoInvokesAsync` covers).
+  @Test
+  func composedActionInvokesTyped() throws {
+    let actions = Toolbox.definition.actions
+    let doubled = try actions.invoke(on: Toolbox(base: 1), with: .first(21))
+    guard case .first(let value) = doubled else {
+      Issue.record("expected .first, got \(doubled)")
+      return
+    }
+    #expect(value == 43)
+    let shouted = try actions.invoke(on: Toolbox(base: 0), with: .next("quiet"))
+    guard case .next(let text) = shouted else {
+      Issue.record("expected .next, got \(shouted)")
+      return
+    }
+    #expect(text == "QUIET")
+  }
+
+  /// A synchronous composition's async invoke surface dispatches too — the
+  /// fold wires both stored invokes.
+  @Test
+  func syncCompositionAlsoInvokesAsync() async throws {
+    let shouted = try await Toolbox.definition.actions.invoke(
+      on: Toolbox(base: 0), with: .next("quiet"))
+    guard case .next(let text) = shouted else {
+      Issue.record("expected .next, got \(shouted)")
+      return
+    }
+    #expect(text == "QUIET")
+  }
+
+  /// When every component agrees on an output type, the composition
+  /// collapses to it — no `StructuredActionResult` appears, and invoking
+  /// returns the shared type directly. All-synchronous components keep the
+  /// composition synchronous (`SyncInput` is the nested selection).
+  @Test
+  func sharedOutputsCollapse() throws {
+    let composed:
+      StructuredAction<
+        Toolbox,
+        StructuredActionSelection<StructuredActionSelection<Int, Int>, Int>,
+        Int,
+        StructuredActionSelection<StructuredActionSelection<Int, Int>, Int>,
+        any Error
+      > = StructuredAction.build {
+        StructuredAction(
+          name: "double",
+          invoke: { (toolbox: Toolbox, value: Int) in value * 2 + toolbox.base }
+        )
+        StructuredAction(
+          name: "increment",
+          invoke: { (_: Toolbox, value: Int) in value + 1 }
+        )
+        StructuredAction(
+          name: "negate",
+          invoke: { (_: Toolbox, value: Int) in -value }
+        )
+      }
+    #expect(composed.inputSchema.wrapped.propertyNames == ["double", "increment", "negate"])
+    let doubled = try composed.invoke(on: Toolbox(base: 1), with: .first(.first(21)))
+    #expect(doubled == 43)
+    let incremented = try composed.invoke(on: Toolbox(base: 0), with: .first(.next(41)))
+    #expect(incremented == 42)
+    let negated = try composed.invoke(on: Toolbox(base: 0), with: .next(7))
+    #expect(negated == -7)
+  }
+
+  /// One `async` component anywhere makes the whole composition
+  /// async-only: `SyncInput` collapses to `Never` (the `let` binding is
+  /// the type assertion) and only the async invoke dispatches.
+  @Test
+  func asyncComponentMakesCompositionAsync() async throws {
+    let composed:
+      StructuredAction<
+        Toolbox,
+        StructuredActionSelection<Int, Int>,
+        Int,
+        Never,
+        any Error
+      > = StructuredAction.build {
+        StructuredAction(
+          name: "echo",
+          invoke: { (_: Toolbox, value: Int) async in value }
+        )
+        StructuredAction(
+          name: "increment",
+          invoke: { (_: Toolbox, value: Int) in value + 1 }
+        )
+      }
+    let echoed = try await composed.invoke(on: Toolbox(base: 0), with: .first(1))
+    #expect(echoed == 1)
+    let incremented = try await composed.invoke(on: Toolbox(base: 0), with: .next(1))
+    #expect(incremented == 2)
+  }
+
+  /// Failures always collapse to `any Error` — a component's typed error
+  /// propagates through the composed invoke unwrapped, whatever the other
+  /// components throw (or don't).
+  @Test
+  func failuresCollapseToAnyError() {
+    let composed:
+      StructuredAction<
+        Toolbox,
+        StructuredActionSelection<String, Int>,
+        StructuredActionResult<String, Int>,
+        StructuredActionSelection<String, Int>,
+        any Error
+      > = StructuredAction.build {
+        StructuredAction(
+          name: "shout",
+          invoke: { (_: Toolbox, text: String) throws(ShoutError) -> String in
+            guard !text.isEmpty else { throw ShoutError.nothingToShout }
+            return text.uppercased()
+          }
+        )
+        StructuredAction(
+          name: "double",
+          invoke: { (_: Toolbox, value: Int) in value * 2 }
+        )
+      }
+    do {
+      _ = try composed.invoke(on: Toolbox(base: 0), with: .first(""))
+      Issue.record("expected a throw")
+    } catch {
+      guard case ShoutError.nothingToShout = error else {
+        Issue.record("unexpected error \(error)")
+        return
+      }
+    }
+  }
+
+  /// A result encodes untagged: the selected component's bare output.
+  @Test
+  func resultEncodesUntagged() throws {
+    try test(StructuredActionResult<Int, String>.first(7), encodesAs: "7")
+    try test(StructuredActionResult<Int, String>.next("up"), encodesAs: #""up""#)
   }
 
   /// A standalone leaf keeps the typed invoke surface a future dispatch
@@ -109,6 +277,10 @@ struct StructuredToolBuilderTests {
 }
 
 // MARK: - Fixtures
+
+private enum ShoutError: Error {
+  case nothingToShout
+}
 
 @StructuredCodable
 private struct GreetingInput {

@@ -118,13 +118,11 @@ struct MessagesAPIEncodingTests {
   // MARK: - Tool Definitions
 
   /// `ToolDefinition.init` classifies each tool statically: a composed
-  /// multi-action tool's keyed enumeration is a top-level object by
-  /// construction, so it encodes as the tool's `input_schema` directly.
-  /// This also pins the classification hazard: a composed action matches
-  /// the enveloped initializer's shape too, and only its `@_disfavoredOverload`
-  /// makes the group overload win — were it chosen, this test would see an
-  /// envelope schema instead of the enumeration.
-  @Test func encodesGroupToolDefinitionDirectly() throws {
+  /// multi-action tool's input is `StructuredActionSelection`, whose keyed
+  /// enumeration is a top-level object by construction, so the direct
+  /// object-representable overload publishes it as the tool's
+  /// `input_schema` unchanged — no envelope can appear here.
+  @Test func encodesComposedToolDefinitionDirectly() throws {
     try #expect(
       encode(ToolDefinition(Calculator()))
         == #"{"name":"Calculator","description":"Does math","input_schema":{"properties":{"add":{"properties":{"amount":{"type":"integer"}},"required":["amount"]},"parity":{"properties":{"of":{"type":"integer"}},"required":["of"]}},"maxProperties":1}}"#

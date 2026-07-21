@@ -5,18 +5,18 @@
 /// `Definition` container carrying the tool's name, its optional
 /// description, and the type's gathered `@StructuredAction` functions — one
 /// action stays a leaf `StructuredAction`, several fold into a composed
-/// `StructuredAction` at its placeholder instantiation (see
-/// `StructuredAction.build` and `_StructuredActionGroupInput`).
+/// `StructuredAction` whose input nests `StructuredActionSelection` (see
+/// `StructuredAction.build`).
 ///
 /// `definition` is a *computed* static returning a fresh value, so Swift 6's
 /// concurrency-safe-statics rule (which forbids non-`Sendable` static
 /// storage) never applies; the actions live in the nested container as a
 /// stored property whose initializer *infers* the concrete leaf/composed
-/// type — no generic action type is ever spelled, yet `Definition.Actions`
-/// stays fully concrete for consumers that classify tools statically (the
-/// Messages API's `ToolDefinition` constrains on `Tool.Definition.Actions`'
-/// shape; an opaque type anywhere in the chain would erase exactly the
-/// structure it constrains on).
+/// `StructuredAction` type — no generic action type is ever spelled, yet
+/// `Definition.Actions` stays fully concrete for consumers that classify
+/// tools statically (the Messages API's `ToolDefinition` constrains on
+/// `Tool.Definition.Actions`' shape; an opaque type anywhere in the chain
+/// would erase exactly the structure it constrains on).
 public protocol StructuredToolProtocol: SendableMetatype {
 
   associatedtype Definition: StructuredToolDefinitionProtocol<Self>
@@ -39,9 +39,10 @@ public protocol StructuredToolDefinitionProtocol<Callee>: SendableMetatype {
 
   associatedtype Callee
   /// Unconstrained: consumers classify a tool's actions by constraining on
-  /// the *concrete* `StructuredAction` shape (a leaf's real input vs the
-  /// composed placeholder instantiation), so no protocol abstraction over
-  /// actions exists — a constraint here would have nothing to name.
+  /// the concrete `StructuredAction` shape (a composed action is just the
+  /// shape whose input is a `StructuredActionSelection`), so no protocol
+  /// abstraction over actions exists — a constraint here would have
+  /// nothing to name.
   associatedtype Actions
 
   var name: String { get }

@@ -15,9 +15,9 @@
 /// generic over exactly two parameters (callee + bundle) was what made that
 /// pack expressible under a scalar `Callee` without same-element
 /// requirements (which the compiler does not support). Composition no longer
-/// packs — a composed action is this same type at a fixed placeholder
-/// instantiation (see `_StructuredActionGroupInput`) — so the bundle earned
-/// nothing and the parameters are flattened.
+/// packs — several actions fold into a composed `StructuredAction` whose
+/// input nests `StructuredActionSelection` pairwise, mirroring the fold —
+/// so the bundle earned nothing and the parameters are flattened.
 ///
 /// Values of this type are constructed inline by the `@StructuredTool`
 /// macro's generated `Definition`, or by hand; the generic arguments are
@@ -143,10 +143,11 @@ public struct StructuredAction<
   /// The schemas are stored — with `inputDescription`/`outputDescription`
   /// prepended — rather than derived on access, so an action's schemas carry
   /// its use-site descriptions the same way `@StructuredProperty` bakes
-  /// descriptions into a property's schema. A leaf's `inputSchema` is the
-  /// action's own raw schema, nothing more — no wrapping, no policy; a
-  /// composed action's is the assembled keyed enumeration (see
-  /// `_StructuredActionGroupInput`).
+  /// descriptions into a property's schema. A leaf's `inputSchema` is its
+  /// own raw schema, nothing more — no wrapping, no policy; a composed
+  /// action stores the assembled keyed input enumeration and the collapsed
+  /// or `oneOf` output schema (see `StructuredActionSelection` and
+  /// `StructuredActionResult`).
   public let inputSchema: Input.Schema
   public let outputSchema: Output.Schema
 
@@ -158,47 +159,43 @@ public struct StructuredAction<
     invoke: @escaping @Sendable (Callee, SyncInput) throws(Failure) -> Output,
     invokeAsync: @escaping @Sendable (Callee, Input) async throws(Failure) -> Output
   ) {
+    self.init(
+      key: key,
+      description: description,
+      inputSchema: Input.schema.prependDescription(inputDescription),
+      outputSchema: Output.schema.prependDescription(outputDescription),
+      invoke: invoke,
+      invokeAsync: invokeAsync
+    )
+  }
+
+  /// The composition fold's entry point: the public initializers above
+  /// derive the stored schemas from `Input.schema`/`Output.schema`, while
+  /// `StructuredAction.Builder` assembles a composed action's schemas at
+  /// fold time and stores them directly.
+  init(
+    key: StructuredCodingKey,
+    description: String?,
+    inputSchema: Input.Schema,
+    outputSchema: Output.Schema,
+    invoke: @escaping @Sendable (Callee, SyncInput) throws(Failure) -> Output,
+    invokeAsync: @escaping @Sendable (Callee, Input) async throws(Failure) -> Output
+  ) {
     self.key = key
     self.description = description
-    self.inputSchema = Input.schema.prependDescription(inputDescription)
-    self.outputSchema = Output.schema.prependDescription(outputDescription)
+    self.inputSchema = inputSchema
+    self.outputSchema = outputSchema
     self._invoke = invoke
     self._invokeAsync = invokeAsync
   }
 
-  private let _invoke:
+  /// Internal rather than private: `StructuredAction.Builder`'s fold
+  /// captures the component actions' stored invokes directly — the closures
+  /// are `@Sendable` where the actions themselves (whose stored schemas
+  /// hold deferred encoding state) are not.
+  let _invoke:
     @Sendable (Callee, SyncInput) throws(Failure) -> Output
-  private let _invokeAsync:
+  let _invokeAsync:
     @Sendable (Callee, Input) async throws(Failure) -> Output
-
-}
-
-// MARK: Group Composition
-
-extension StructuredAction
-where
-  Input == _StructuredActionGroupInput,
-  Output == _StructuredActionGroupInput,
-  SyncInput == Never,
-  Failure == Never
-{
-
-  /// Composes several actions into one: the `StructuredAction.Builder` fold
-  /// calls this with the assembled keyed enumeration, at the fixed composed
-  /// instantiation this extension pins — the uninhabited placeholder
-  /// input/output and the effect-free markers. The stored fields reflect
-  /// that a composed action is pure schema: a dummy key (a group has no name
-  /// of its own — `name` is `""`; a tool's name lives on its definition), no
-  /// description, the assembled enumeration in `inputSchema`, an inert
-  /// output schema, and invoke closures made statically unreachable by the
-  /// uninhabited input.
-  init(groupSchema: MetaSchema) {
-    self.key = ""
-    self.description = nil
-    self.inputSchema = _StructuredActionGroupSchema(wrapping: groupSchema)
-    self.outputSchema = _StructuredActionGroupSchema(wrapping: .any(description: nil))
-    self._invoke = { (_, _: Never) -> _StructuredActionGroupInput in }
-    self._invokeAsync = { (_, input) in switch input.never {} }
-  }
 
 }

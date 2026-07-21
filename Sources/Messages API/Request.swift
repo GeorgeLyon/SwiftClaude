@@ -78,16 +78,17 @@ public struct ToolInputEnvelope<Input: StructuredCodable> {
 /// A tool definition in the Anthropic wire shape: `{"name": ...,
 /// "description": ..., "input_schema": ...}`, with a `nil` description
 /// omitted. This is where all Anthropic tool-schema policy lives: the API
-/// requires `input_schema` to be a top-level JSON object, and the three
+/// requires `input_schema` to be a top-level JSON object, and the two
 /// constrained initializers below resolve — statically, at construction —
 /// how each tool shape satisfies that:
 ///
-/// - a single action whose input is `StructuredObjectRepresentable` publishes
-///   its raw schema directly;
-/// - any other single action publishes `ToolInputEnvelope`'s schema, so its
-///   input travels as `{"input": <raw>}` — an envelope spelled nowhere in
-///   StructuredCoding;
-/// - a multi-action group's keyed enumeration is an object by construction.
+/// - an action whose input is `StructuredObjectRepresentable` publishes its
+///   raw schema directly — this covers composed multi-action tools too,
+///   whose input is `StructuredActionSelection` and whose stored schema is
+///   the keyed enumeration, an object by construction;
+/// - any other action publishes `ToolInputEnvelope`'s schema, so its input
+///   travels as `{"input": <raw>}` — an envelope spelled nowhere in
+///   StructuredCoding.
 ///
 /// The initializers take the tool *instance*, not its metatype — a later
 /// round will store it as the callee that responses' tool-use blocks
@@ -96,13 +97,15 @@ public struct ToolInputEnvelope<Input: StructuredCodable> {
 @APICodable
 public struct ToolDefinition<InputSchema: StructuredCodable> {
 
-  /// Direct: a lone action whose `Input` is marked
+  /// Direct: an action whose `Input` is marked
   /// `StructuredObjectRepresentable` — every encoded instance a top-level
-  /// object — publishes its raw schema as the tool's `input_schema`
+  /// object — publishes its raw stored schema as the tool's `input_schema`
   /// unchanged. Strictly more constrained than the enveloped fallback below,
   /// and the fallback is additionally `@_disfavoredOverload`, so this wins
-  /// whenever the marker holds. A composed multi-action tool can never
-  /// match: its signature's placeholder input deliberately lacks the marker.
+  /// whenever the marker holds. A composed multi-action tool takes exactly
+  /// this path: its `Actions` is a `StructuredAction` like any leaf's, its
+  /// `Input` (`StructuredActionSelection`) carries the marker, and its
+  /// stored `inputSchema` is the builder-assembled keyed enumeration.
   public init<
     Tool: StructuredToolProtocol,
     Input: StructuredObjectRepresentable & StructuredCodable,
@@ -135,13 +138,11 @@ public struct ToolDefinition<InputSchema: StructuredCodable> {
   /// public decode-from-JSON-text entry point will arrive as general library
   /// surface then. No accessor, no constructed action, ever.
   ///
-  /// `@_disfavoredOverload` for two reasons: Swift cannot rank this against
-  /// the marker-constrained overload above by specialization alone (the two
-  /// bind `InputSchema` to different types), and a *composed* multi-action
-  /// tool also matches this shape (its `Input` binds the group placeholder,
-  /// which is `StructuredCodable`, so `ToolInputEnvelope` over it is
-  /// well-formed) — disfavoring lets the fully concrete group overload
-  /// below win for composed tools.
+  /// `@_disfavoredOverload` because Swift cannot rank this against the
+  /// marker-constrained overload above by specialization alone (the two
+  /// bind `InputSchema` to different types). A composed multi-action tool
+  /// also unifies with this signature, but its input carries the marker, so
+  /// the direct overload always wins for it.
   @_disfavoredOverload
   public init<
     Tool: StructuredToolProtocol,
@@ -161,26 +162,6 @@ public struct ToolDefinition<InputSchema: StructuredCodable> {
       name: definition.name,
       description: definition.description,
       inputSchema: ToolInputEnvelope<Input>.schema
-    )
-  }
-
-  /// Direct: a composed multi-action tool's keyed enumeration is a top-level
-  /// object by construction, published as assembled by the builder fold.
-  public init<Tool: StructuredToolProtocol>(
-    _ tool: Tool
-  )
-  where
-    Tool.Definition.Actions
-      == StructuredAction<
-        Tool, _StructuredActionGroupInput, _StructuredActionGroupInput, Never, Never
-      >,
-    InputSchema == _StructuredActionGroupSchema
-  {
-    let definition = Tool.definition
-    self.init(
-      name: definition.name,
-      description: definition.description,
-      inputSchema: definition.actions.inputSchema
     )
   }
 
