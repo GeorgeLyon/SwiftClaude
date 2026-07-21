@@ -129,6 +129,8 @@ struct MessagesAPIEncodingTests {
     try #expect(
       encode(
         Request(
+          model: .claudeOpus4_8,
+          maxTokens: 1024,
           messages: [Message(role: .user, content: [.text(text: "Hello, world")])],
           tools: Calculator(), WebSearch()
         ),
@@ -136,6 +138,8 @@ struct MessagesAPIEncodingTests {
       )
         == #"""
         {
+          "model": "claude-opus-4-8",
+          "max_tokens": 1024,
           "messages": [
             {
               "role": "user",
@@ -202,6 +206,8 @@ struct MessagesAPIEncodingTests {
     try #expect(
       encode(
         Request(
+          model: .claudeSonnet5,
+          maxTokens: 512,
           messages: [Message(role: .user, content: [.text(text: "21")])],
           tools: Doubler()
         ),
@@ -209,6 +215,8 @@ struct MessagesAPIEncodingTests {
       )
         == #"""
         {
+          "model": "claude-sonnet-5",
+          "max_tokens": 512,
           "messages": [
             {
               "role": "user",
@@ -241,12 +249,27 @@ struct MessagesAPIEncodingTests {
     )
   }
 
-  /// An empty tool pack encodes as an empty `tools` array.
+  /// An empty tool pack encodes as an empty `tools` array. `model` and
+  /// `maxTokens` lead the object, with `maxTokens` rendered as `max_tokens`.
   @Test func encodesRequestWithoutTools() throws {
     try #expect(
-      encode(Request(messages: [Message(role: .user, content: [.text(text: "Hello, world")])]))
-        == #"{"messages":[{"role":"user","content":[{"type":"text","text":"Hello, world"}]}],"tools":[]}"#
+      encode(
+        Request(
+          model: .claudeOpus4_8,
+          maxTokens: 1024,
+          messages: [Message(role: .user, content: [.text(text: "Hello, world")])]
+        )
+      )
+        == #"{"model":"claude-opus-4-8","max_tokens":1024,"messages":[{"role":"user","content":[{"type":"text","text":"Hello, world"}]}],"tools":[]}"#
     )
+  }
+
+  /// A model built from a raw identifier encodes as that bare string, matching
+  /// the static accessors.
+  @Test func encodesModelIdentifiers() throws {
+    try #expect(encode(Model.claudeOpus4_8) == #""claude-opus-4-8""#)
+    try #expect(encode(Model.claudeFable5) == #""claude-fable-5""#)
+    try #expect(encode(Model("claude-opus-4-5")) == #""claude-opus-4-5""#)
   }
 
   // MARK: - Cache Control
