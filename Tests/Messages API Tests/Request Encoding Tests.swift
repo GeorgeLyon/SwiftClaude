@@ -115,16 +115,51 @@ struct MessagesAPIEncodingTests {
     )
   }
 
+  // MARK: - Tool Definitions
+
+  /// `ToolDefinition.init` classifies each tool statically: a composed
+  /// multi-action tool's keyed enumeration is a top-level object by
+  /// construction, so it encodes as the tool's `input_schema` directly.
+  /// This also pins the classification hazard: a composed action matches
+  /// the enveloped initializer's shape too, and only its `@_disfavoredOverload`
+  /// makes the group overload win — were it chosen, this test would see an
+  /// envelope schema instead of the enumeration.
+  @Test func encodesGroupToolDefinitionDirectly() throws {
+    try #expect(
+      encode(ToolDefinition(Calculator()))
+        == #"{"name":"Calculator","description":"Does math","input_schema":{"properties":{"add":{"properties":{"amount":{"type":"integer"}},"required":["amount"]},"parity":{"properties":{"of":{"type":"integer"}},"required":["of"]}},"maxProperties":1}}"#
+    )
+  }
+
+  /// A single action whose input is `StructuredObjectRepresentable` publishes
+  /// its raw schema directly; a tool without a description omits the key.
+  @Test func encodesObjectInputToolDefinitionDirectly() throws {
+    try #expect(
+      encode(ToolDefinition(WebSearch()))
+        == #"{"name":"WebSearch","input_schema":{"properties":{"query":{"type":"string"}},"required":["query"]}}"#
+    )
+  }
+
+  /// A single action with any other input is mapped onto `ToolInputEnvelope`,
+  /// so its schema is the envelope object's `{"input": ...}` — the Anthropic
+  /// API requires `input_schema` to be a top-level object.
+  @Test func encodesScalarInputToolDefinitionEnveloped() throws {
+    try #expect(
+      encode(ToolDefinition(Doubler()))
+        == #"{"name":"Doubler","description":"Doubles numbers","input_schema":{"properties":{"input":{"type":"integer"}},"required":["input"]}}"#
+    )
+  }
+
   // MARK: - Requests
 
   /// Tools encode as Anthropic tool definitions — `name`, `description`,
-  /// `input_schema` — drawn from each pack element type's `definition`, not
-  /// from the instances. A tool without a description omits the key.
+  /// `input_schema` — from the `ToolDefinition` values wrapped at the call
+  /// site. A tool without a description omits the key.
   ///
-  /// `Request` is generic over a parameter pack of tools, so its conformance
-  /// is generated with `.variadicGenerics` compatibility; encoding a value
-  /// instantiates the property metadata that the default key-path emission
-  /// crashes on at runtime.
+  /// `Request` is generic over a parameter pack of tool input schemas, so its
+  /// conformance is generated with `.variadicGenerics` compatibility;
+  /// encoding a value instantiates the property metadata that the default
+  /// key-path emission crashes on at runtime.
   @Test func encodesRequestWithTools() throws {
     try #expect(
       encode(
@@ -132,7 +167,7 @@ struct MessagesAPIEncodingTests {
           model: .claudeOpus4_8,
           maxTokens: 1024,
           messages: [Message(role: .user, content: [.text(text: "Hello, world")])],
-          tools: Calculator(), WebSearch()
+          tools: ToolDefinition(Calculator()), ToolDefinition(WebSearch())
         ),
         pretty: true
       )
@@ -209,7 +244,7 @@ struct MessagesAPIEncodingTests {
           model: .claudeSonnet5,
           maxTokens: 512,
           messages: [Message(role: .user, content: [.text(text: "21")])],
-          tools: Doubler()
+          tools: ToolDefinition(Doubler())
         ),
         pretty: true
       )

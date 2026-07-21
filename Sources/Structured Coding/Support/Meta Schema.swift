@@ -220,6 +220,37 @@ extension MetaSchema {
 
 }
 
+// MARK: - Group Assembly
+
+extension MetaSchema {
+
+  /// The names of the object schema's keyed properties, in declaration
+  /// order — `StructuredAction.Builder`'s duplicate-name precondition checks
+  /// appended action names against them.
+  var propertyNames: [String] {
+    properties?.properties.map(\.name) ?? []
+  }
+
+  /// Appends one keyed property to the object schema. This is how
+  /// `StructuredAction.Builder` splices each further action into a composed
+  /// action's accumulated enumeration — the same internal property splice
+  /// `internallyTaggedBranch(discriminatorPropertyName:caseName:caseSchema:)`
+  /// performs for discriminators. The property is never required (a group's
+  /// enumeration keys are all optional; `maxProperties: 1` constrains the
+  /// selection), so `required` is untouched.
+  mutating func appendProperty(
+    named name: StructuredCodingKey,
+    schema: some StructuredEncodable
+  ) {
+    properties = PropertyMap(
+      properties: (properties?.properties ?? []) + [
+        PropertyMap.Property(name: name.stringValue, schema: SchemaCodable(schema))
+      ]
+    )
+  }
+
+}
+
 // MARK: - Subschemas
 
 extension MetaSchema {

@@ -5,8 +5,9 @@ import Testing
 /// Verifies that `@StructuredTool` lowers each `@StructuredAction` function's
 /// parameter clause and return type onto `StructuredCodable` Input/Output
 /// representations — using the same collapse rules as enum-case associated
-/// values — generated as an inline `StructuredAction` in the `definition`
-/// member. The synthesized type names fold in the full signature so overloads
+/// values — generated as an inline `StructuredAction` in the nested
+/// `Definition`'s stored `actions`, whose concrete type the initializer
+/// infers. The synthesized type names fold in the full signature so overloads
 /// of the same base name never collide.
 @Suite
 struct StructuredActionTests {
@@ -26,7 +27,7 @@ struct StructuredActionTests {
         }
       }
       """,
-      #"""
+#"""
       struct S {
         func foo(bar: Bool, _ baz: Bool) throws -> (a: Bool, b: Bool) {
           (bar, baz)
@@ -61,20 +62,24 @@ struct StructuredActionTests {
           }
         }
 
-        static var definition: some StructuredCoding.StructuredToolDefinitionProtocol<S> {
-          StructuredCoding.StructuredToolDefinition(
-            name: "\(Self.self)",
-            actions: (
-              StructuredCoding.StructuredAction(
-                name: "foo",
-                failure: (any Error).self,
-                invoke: { (callee: S, input: StructuredCoding.StructuredTuple<Bool, Bool>) throws -> __macro_local_45foo_bar_Bool___Bool__a__Bool__b__Bool__OutputfMu_ in
-                  let output = try callee.foo(bar: input.values.0, input.values.1)
-                  return __macro_local_45foo_bar_Bool___Bool__a__Bool__b__Bool__OutputfMu_(a: output.0, b: output.1)
-                }
-              )
+        struct Definition: StructuredCoding.StructuredToolDefinitionProtocol {
+          typealias Callee = S
+          let name = "S"
+          let description: String? = nil
+          let actions = StructuredCoding.StructuredAction.build {
+            StructuredCoding.StructuredAction(
+              name: "foo",
+              failure: (any Error).self,
+              invoke: { (callee: S, input: StructuredCoding.StructuredTuple<Bool, Bool>) throws -> __macro_local_45foo_bar_Bool___Bool__a__Bool__b__Bool__OutputfMu_ in
+                let output = try callee.foo(bar: input.values.0, input.values.1)
+                return __macro_local_45foo_bar_Bool___Bool__a__Bool__b__Bool__OutputfMu_(a: output.0, b: output.1)
+              }
             )
-          )
+          }
+        }
+
+        static var definition: Definition {
+          Definition()
         }
       }
 
@@ -97,25 +102,29 @@ struct StructuredActionTests {
         }
       }
       """,
-      #"""
+#"""
       struct S {
         func ping() {
         }
 
-        static var definition: some StructuredCoding.StructuredToolDefinitionProtocol<S> {
-          StructuredCoding.StructuredToolDefinition(
-            name: "\(Self.self)",
-            actions: (
-              StructuredCoding.StructuredAction(
-                name: "ping",
-                failure: Never.self,
-                invoke: { (callee: S, _: StructuredCoding.StructuredEmptyObject) -> StructuredCoding.StructuredEmptyObject in
-                  callee.ping()
-                  return StructuredCoding.StructuredEmptyObject()
-                }
-              )
+        struct Definition: StructuredCoding.StructuredToolDefinitionProtocol {
+          typealias Callee = S
+          let name = "S"
+          let description: String? = nil
+          let actions = StructuredCoding.StructuredAction.build {
+            StructuredCoding.StructuredAction(
+              name: "ping",
+              failure: Never.self,
+              invoke: { (callee: S, _: StructuredCoding.StructuredEmptyObject) -> StructuredCoding.StructuredEmptyObject in
+                callee.ping()
+                return StructuredCoding.StructuredEmptyObject()
+              }
             )
-          )
+          }
+        }
+
+        static var definition: Definition {
+          Definition()
         }
       }
 
@@ -139,25 +148,29 @@ struct StructuredActionTests {
         }
       }
       """,
-      #"""
+#"""
       struct S {
         func echo(_ text: String) -> String {
           text
         }
 
-        static var definition: some StructuredCoding.StructuredToolDefinitionProtocol<S> {
-          StructuredCoding.StructuredToolDefinition(
-            name: "\(Self.self)",
-            actions: (
-              StructuredCoding.StructuredAction(
-                name: "echo",
-                failure: Never.self,
-                invoke: { (callee: S, input: String) -> String in
-                  callee.echo(input)
-                }
-              )
+        struct Definition: StructuredCoding.StructuredToolDefinitionProtocol {
+          typealias Callee = S
+          let name = "S"
+          let description: String? = nil
+          let actions = StructuredCoding.StructuredAction.build {
+            StructuredCoding.StructuredAction(
+              name: "echo",
+              failure: Never.self,
+              invoke: { (callee: S, input: String) -> String in
+                callee.echo(input)
+              }
             )
-          )
+          }
+        }
+
+        static var definition: Definition {
+          Definition()
         }
       }
 
@@ -181,7 +194,7 @@ struct StructuredActionTests {
         }
       }
       """,
-      #"""
+#"""
       struct S {
         func greet(name: String) -> String {
           name
@@ -209,19 +222,23 @@ struct StructuredActionTests {
           }
         }
 
-        static var definition: some StructuredCoding.StructuredToolDefinitionProtocol<S> {
-          StructuredCoding.StructuredToolDefinition(
-            name: "\(Self.self)",
-            actions: (
-              StructuredCoding.StructuredAction(
-                name: "greet",
-                failure: Never.self,
-                invoke: { (callee: S, input: __macro_local_30greet_name_String_String_InputfMu_) -> String in
-                  callee.greet(name: input.name)
-                }
-              )
+        struct Definition: StructuredCoding.StructuredToolDefinitionProtocol {
+          typealias Callee = S
+          let name = "S"
+          let description: String? = nil
+          let actions = StructuredCoding.StructuredAction.build {
+            StructuredCoding.StructuredAction(
+              name: "greet",
+              failure: Never.self,
+              invoke: { (callee: S, input: __macro_local_30greet_name_String_String_InputfMu_) -> String in
+                callee.greet(name: input.name)
+              }
             )
-          )
+          }
+        }
+
+        static var definition: Definition {
+          Definition()
         }
       }
 
@@ -245,7 +262,7 @@ struct StructuredActionTests {
         }
       }
       """,
-      #"""
+#"""
       struct S {
         func greet(name: String = "world") -> String {
           name
@@ -273,19 +290,23 @@ struct StructuredActionTests {
           }
         }
 
-        static var definition: some StructuredCoding.StructuredToolDefinitionProtocol<S> {
-          StructuredCoding.StructuredToolDefinition(
-            name: "\(Self.self)",
-            actions: (
-              StructuredCoding.StructuredAction(
-                name: "greet",
-                failure: Never.self,
-                invoke: { (callee: S, input: __macro_local_30greet_name_String_String_InputfMu_) -> String in
-                  callee.greet(name: input.name)
-                }
-              )
+        struct Definition: StructuredCoding.StructuredToolDefinitionProtocol {
+          typealias Callee = S
+          let name = "S"
+          let description: String? = nil
+          let actions = StructuredCoding.StructuredAction.build {
+            StructuredCoding.StructuredAction(
+              name: "greet",
+              failure: Never.self,
+              invoke: { (callee: S, input: __macro_local_30greet_name_String_String_InputfMu_) -> String in
+                callee.greet(name: input.name)
+              }
             )
-          )
+          }
+        }
+
+        static var definition: Definition {
+          Definition()
         }
       }
 
@@ -309,26 +330,30 @@ struct StructuredActionTests {
         }
       }
       """,
-      #"""
+#"""
       struct S {
         func pair() -> (Int, String) {
           (1, "one")
         }
 
-        static var definition: some StructuredCoding.StructuredToolDefinitionProtocol<S> {
-          StructuredCoding.StructuredToolDefinition(
-            name: "\(Self.self)",
-            actions: (
-              StructuredCoding.StructuredAction(
-                name: "pair",
-                failure: Never.self,
-                invoke: { (callee: S, _: StructuredCoding.StructuredEmptyObject) -> StructuredCoding.StructuredTuple<Int, String> in
-                  let output = callee.pair()
-                  return StructuredCoding.StructuredTuple(output.0, output.1)
-                }
-              )
+        struct Definition: StructuredCoding.StructuredToolDefinitionProtocol {
+          typealias Callee = S
+          let name = "S"
+          let description: String? = nil
+          let actions = StructuredCoding.StructuredAction.build {
+            StructuredCoding.StructuredAction(
+              name: "pair",
+              failure: Never.self,
+              invoke: { (callee: S, _: StructuredCoding.StructuredEmptyObject) -> StructuredCoding.StructuredTuple<Int, String> in
+                let output = callee.pair()
+                return StructuredCoding.StructuredTuple(output.0, output.1)
+              }
             )
-          )
+          }
+        }
+
+        static var definition: Definition {
+          Definition()
         }
       }
 
@@ -352,7 +377,7 @@ struct StructuredActionTests {
         }
       }
       """,
-      #"""
+#"""
       struct S {
         func fetch(id: Int) async throws(FetchError) -> String {
           "x"
@@ -380,19 +405,23 @@ struct StructuredActionTests {
           }
         }
 
-        static var definition: some StructuredCoding.StructuredToolDefinitionProtocol<S> {
-          StructuredCoding.StructuredToolDefinition(
-            name: "\(Self.self)",
-            actions: (
-              StructuredCoding.StructuredAction(
-                name: "fetch",
-                failure: FetchError.self,
-                invoke: { (callee: S, input: __macro_local_31fetch_id_Int_String_async_InputfMu_) async throws(FetchError) -> String in
-                  try await callee.fetch(id: input.id)
-                }
-              )
+        struct Definition: StructuredCoding.StructuredToolDefinitionProtocol {
+          typealias Callee = S
+          let name = "S"
+          let description: String? = nil
+          let actions = StructuredCoding.StructuredAction.build {
+            StructuredCoding.StructuredAction(
+              name: "fetch",
+              failure: FetchError.self,
+              invoke: { (callee: S, input: __macro_local_31fetch_id_Int_String_async_InputfMu_) async throws(FetchError) -> String in
+                try await callee.fetch(id: input.id)
+              }
             )
-          )
+          }
+        }
+
+        static var definition: Definition {
+          Definition()
         }
       }
 
@@ -417,25 +446,29 @@ struct StructuredActionTests {
         }
       }
       """,
-      #"""
+#"""
       actor A {
         func bump(_ value: Int) -> Int {
           value + 1
         }
 
-        static var definition: some StructuredCoding.StructuredToolDefinitionProtocol<A> {
-          StructuredCoding.StructuredToolDefinition(
-            name: "\(Self.self)",
-            actions: (
-              StructuredCoding.StructuredAction(
-                name: "bump",
-                failure: Never.self,
-                invoke: { (callee: A, input: Int) async -> Int in
-                  await callee.bump(input)
-                }
-              )
+        struct Definition: StructuredCoding.StructuredToolDefinitionProtocol {
+          typealias Callee = A
+          let name = "A"
+          let description: String? = nil
+          let actions = StructuredCoding.StructuredAction.build {
+            StructuredCoding.StructuredAction(
+              name: "bump",
+              failure: Never.self,
+              invoke: { (callee: A, input: Int) async -> Int in
+                await callee.bump(input)
+              }
             )
-          )
+          }
+        }
+
+        static var definition: Definition {
+          Definition()
         }
       }
 
@@ -459,25 +492,29 @@ struct StructuredActionTests {
         }
       }
       """,
-      #"""
+#"""
       actor A {
         nonisolated func bump(_ value: Int) -> Int {
           value + 1
         }
 
-        static var definition: some StructuredCoding.StructuredToolDefinitionProtocol<A> {
-          StructuredCoding.StructuredToolDefinition(
-            name: "\(Self.self)",
-            actions: (
-              StructuredCoding.StructuredAction(
-                name: "bump",
-                failure: Never.self,
-                invoke: { (callee: A, input: Int) -> Int in
-                  callee.bump(input)
-                }
-              )
+        struct Definition: StructuredCoding.StructuredToolDefinitionProtocol {
+          typealias Callee = A
+          let name = "A"
+          let description: String? = nil
+          let actions = StructuredCoding.StructuredAction.build {
+            StructuredCoding.StructuredAction(
+              name: "bump",
+              failure: Never.self,
+              invoke: { (callee: A, input: Int) -> Int in
+                callee.bump(input)
+              }
             )
-          )
+          }
+        }
+
+        static var definition: Definition {
+          Definition()
         }
       }
 
@@ -488,7 +525,7 @@ struct StructuredActionTests {
   }
 
   /// `public` on the tool and its actions propagates to the synthesized
-  /// object and the definition.
+  /// object and the generated `Definition`.
   @Test
   func publicFunctionEmitsPublicPeers() {
     assertStructuredCodableExpansion(
@@ -501,7 +538,7 @@ struct StructuredActionTests {
         }
       }
       """,
-      #"""
+#"""
       public struct S {
         public func run(name: String) -> Int {
           name.count
@@ -529,19 +566,23 @@ struct StructuredActionTests {
           }
         }
 
-        public static var definition: some StructuredCoding.StructuredToolDefinitionProtocol<S> {
-          StructuredCoding.StructuredToolDefinition(
-            name: "\(Self.self)",
-            actions: (
-              StructuredCoding.StructuredAction(
-                name: "run",
-                failure: Never.self,
-                invoke: { (callee: S, input: __macro_local_25run_name_String_Int_InputfMu_) -> Int in
-                  callee.run(name: input.name)
-                }
-              )
+        public struct Definition: StructuredCoding.StructuredToolDefinitionProtocol {
+          public typealias Callee = S
+          public let name = "S"
+          public let description: String? = nil
+          public let actions = StructuredCoding.StructuredAction.build {
+            StructuredCoding.StructuredAction(
+              name: "run",
+              failure: Never.self,
+              invoke: { (callee: S, input: __macro_local_25run_name_String_Int_InputfMu_) -> Int in
+                callee.run(name: input.name)
+              }
             )
-          )
+          }
+        }
+
+        public static var definition: Definition {
+          Definition()
         }
       }
 
@@ -565,7 +606,7 @@ struct StructuredActionTests {
         }
       }
       """,
-      #"""
+#"""
       struct S {
         func add(a: Int, b: Int) -> Int {
           a + b
@@ -600,22 +641,26 @@ struct StructuredActionTests {
           }
         }
 
-        static var definition: some StructuredCoding.StructuredToolDefinitionProtocol<S> {
-          StructuredCoding.StructuredToolDefinition(
-            name: "\(Self.self)",
-            actions: (
-              StructuredCoding.StructuredAction(
-                name: "add",
-                description: "Adds numbers",
-                inputDescription: "The addends",
-                outputDescription: "The sum",
-                failure: Never.self,
-                invoke: { (callee: S, input: __macro_local_25add_a_Int_b_Int_Int_InputfMu_) -> Int in
-                  callee.add(a: input.a, b: input.b)
-                }
-              )
+        struct Definition: StructuredCoding.StructuredToolDefinitionProtocol {
+          typealias Callee = S
+          let name = "S"
+          let description: String? = nil
+          let actions = StructuredCoding.StructuredAction.build {
+            StructuredCoding.StructuredAction(
+              name: "add",
+              description: "Adds numbers",
+              inputDescription: "The addends",
+              outputDescription: "The sum",
+              failure: Never.self,
+              invoke: { (callee: S, input: __macro_local_25add_a_Int_b_Int_Int_InputfMu_) -> Int in
+                callee.add(a: input.a, b: input.b)
+              }
             )
-          )
+          }
+        }
+
+        static var definition: Definition {
+          Definition()
         }
       }
 
@@ -638,7 +683,7 @@ struct StructuredActionTests {
         }
       }
       """,
-      #"""
+#"""
       struct S {
         func set(userName: String, maxCount: Int) {
         }
@@ -672,20 +717,24 @@ struct StructuredActionTests {
           }
         }
 
-        static var definition: some StructuredCoding.StructuredToolDefinitionProtocol<S> {
-          StructuredCoding.StructuredToolDefinition(
-            name: "\(Self.self)",
-            actions: (
-              StructuredCoding.StructuredAction(
-                name: "set",
-                failure: Never.self,
-                invoke: { (callee: S, input: __macro_local_38set_userName_String_maxCount_Int_InputfMu_) -> StructuredCoding.StructuredEmptyObject in
-                  callee.set(userName: input.userName, maxCount: input.maxCount)
-                  return StructuredCoding.StructuredEmptyObject()
-                }
-              )
+        struct Definition: StructuredCoding.StructuredToolDefinitionProtocol {
+          typealias Callee = S
+          let name = "S"
+          let description: String? = nil
+          let actions = StructuredCoding.StructuredAction.build {
+            StructuredCoding.StructuredAction(
+              name: "set",
+              failure: Never.self,
+              invoke: { (callee: S, input: __macro_local_38set_userName_String_maxCount_Int_InputfMu_) -> StructuredCoding.StructuredEmptyObject in
+                callee.set(userName: input.userName, maxCount: input.maxCount)
+                return StructuredCoding.StructuredEmptyObject()
+              }
             )
-          )
+          }
+        }
+
+        static var definition: Definition {
+          Definition()
         }
       }
 
@@ -993,25 +1042,29 @@ struct StructuredActionTests {
         }
       }
       """,
-      #"""
+#"""
       struct S {
         func f(_ x: Int = 1) -> Int {
           x
         }
 
-        static var definition: some StructuredCoding.StructuredToolDefinitionProtocol<S> {
-          StructuredCoding.StructuredToolDefinition(
-            name: "\(Self.self)",
-            actions: (
-              StructuredCoding.StructuredAction(
-                name: "f",
-                failure: Never.self,
-                invoke: { (callee: S, input: Int) -> Int in
-                  callee.f(input)
-                }
-              )
+        struct Definition: StructuredCoding.StructuredToolDefinitionProtocol {
+          typealias Callee = S
+          let name = "S"
+          let description: String? = nil
+          let actions = StructuredCoding.StructuredAction.build {
+            StructuredCoding.StructuredAction(
+              name: "f",
+              failure: Never.self,
+              invoke: { (callee: S, input: Int) -> Int in
+                callee.f(input)
+              }
             )
-          )
+          }
+        }
+
+        static var definition: Definition {
+          Definition()
         }
       }
 

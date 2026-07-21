@@ -3,14 +3,18 @@ import SwiftSyntaxMacrosGenericTestSupport
 import Testing
 
 /// Verifies that `@StructuredTool` gathers a type's `@StructuredAction`
-/// functions — pure markers — into a single `definition` member holding one
-/// inline `StructuredAction` per function, and diagnoses the shapes a tool
-/// cannot represent.
+/// functions — pure markers — into a nested `Definition` container storing
+/// the tool's name (a literal: the attribute's `name:`, or the type's name),
+/// its description (`nil` when the attribute provides none), and an
+/// `actions` value holding one inline `StructuredAction` per function (its
+/// concrete type inferred from the initializer, never spelled), plus a
+/// computed `static var definition`; and diagnoses the shapes a tool cannot
+/// represent.
 @Suite
 struct StructuredToolTests {
 
   @Test
-  func gathersActionsIntoDefinition() {
+  func gathersActionsIntoNestedDefinition() {
     assertStructuredCodableExpansion(
       """
       @StructuredTool
@@ -24,35 +28,39 @@ struct StructuredToolTests {
         }
       }
       """,
-      #"""
+#"""
       struct S {
         func ping() {
         }
         func pong() {
         }
 
-        static var definition: some StructuredCoding.StructuredToolDefinitionProtocol<S> {
-          StructuredCoding.StructuredToolDefinition(
-            name: "\(Self.self)",
-            actions: (
-              StructuredCoding.StructuredAction(
-                name: "ping",
-                failure: Never.self,
-                invoke: { (callee: S, _: StructuredCoding.StructuredEmptyObject) -> StructuredCoding.StructuredEmptyObject in
-                  callee.ping()
-                  return StructuredCoding.StructuredEmptyObject()
-                }
-              ),
-              StructuredCoding.StructuredAction(
-                name: "pong",
-                failure: Never.self,
-                invoke: { (callee: S, _: StructuredCoding.StructuredEmptyObject) -> StructuredCoding.StructuredEmptyObject in
-                  callee.pong()
-                  return StructuredCoding.StructuredEmptyObject()
-                }
-              )
+        struct Definition: StructuredCoding.StructuredToolDefinitionProtocol {
+          typealias Callee = S
+          let name = "S"
+          let description: String? = nil
+          let actions = StructuredCoding.StructuredAction.build {
+            StructuredCoding.StructuredAction(
+              name: "ping",
+              failure: Never.self,
+              invoke: { (callee: S, _: StructuredCoding.StructuredEmptyObject) -> StructuredCoding.StructuredEmptyObject in
+                callee.ping()
+                return StructuredCoding.StructuredEmptyObject()
+              }
             )
-          )
+            StructuredCoding.StructuredAction(
+              name: "pong",
+              failure: Never.self,
+              invoke: { (callee: S, _: StructuredCoding.StructuredEmptyObject) -> StructuredCoding.StructuredEmptyObject in
+                callee.pong()
+                return StructuredCoding.StructuredEmptyObject()
+              }
+            )
+          }
+        }
+
+        static var definition: Definition {
+          Definition()
         }
       }
 
@@ -63,7 +71,7 @@ struct StructuredToolTests {
   }
 
   @Test
-  func nameAndDescriptionArgumentsFlowIntoDefinition() {
+  func nameAndDescriptionArgumentsBecomeStoredProperties() {
     assertStructuredCodableExpansion(
       """
       @StructuredTool(name: "calc", description: "A tool")
@@ -73,26 +81,29 @@ struct StructuredToolTests {
         }
       }
       """,
-      #"""
+#"""
       public struct S {
         public func ping() {
         }
 
-        public static var definition: some StructuredCoding.StructuredToolDefinitionProtocol<S> {
-          StructuredCoding.StructuredToolDefinition(
-            name: "calc",
-            description: "A tool",
-            actions: (
-              StructuredCoding.StructuredAction(
-                name: "ping",
-                failure: Never.self,
-                invoke: { (callee: S, _: StructuredCoding.StructuredEmptyObject) -> StructuredCoding.StructuredEmptyObject in
-                  callee.ping()
-                  return StructuredCoding.StructuredEmptyObject()
-                }
-              )
+        public struct Definition: StructuredCoding.StructuredToolDefinitionProtocol {
+          public typealias Callee = S
+          public let name = "calc"
+          public let description: String? = "A tool"
+          public let actions = StructuredCoding.StructuredAction.build {
+            StructuredCoding.StructuredAction(
+              name: "ping",
+              failure: Never.self,
+              invoke: { (callee: S, _: StructuredCoding.StructuredEmptyObject) -> StructuredCoding.StructuredEmptyObject in
+                callee.ping()
+                return StructuredCoding.StructuredEmptyObject()
+              }
             )
-          )
+          }
+        }
+
+        public static var definition: Definition {
+          Definition()
         }
       }
 

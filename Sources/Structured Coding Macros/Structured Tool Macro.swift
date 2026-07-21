@@ -7,39 +7,66 @@ import SwiftSyntaxMacros
 /// functions — the markers themselves generate nothing. Each action's
 /// synthesized `Input`/`Output` objects are added as members (named with
 /// `makeUniqueName`, so they are context-private), and the actions are
-/// inline `StructuredAction` initializer expressions in a single gathered
-/// member — no other name is introduced:
+/// inline `StructuredAction` initializer expressions — one statement per
+/// action in the `StructuredAction.build` builder closure — gathered into a
+/// nested `Definition` container:
 ///
 /// ```swift
-/// static var definition: some StructuredCoding.StructuredToolDefinitionProtocol<Calculator> {
-///   StructuredCoding.StructuredToolDefinition(
-///     name: "\(Self.self)",
-///     actions: (
-///       StructuredCoding.StructuredAction(
-///         name: "add",
-///         failure: Never.self,
-///         invoke: { (callee: Calculator, input: __macro_local_…) -> Int in
-///           callee.add(amount: input.amount)
-///         }
-///       ),
-///       …
+/// struct Definition: StructuredCoding.StructuredToolDefinitionProtocol {
+///   typealias Callee = Calculator
+///   let name = "Calculator"
+///   let description: String? = nil
+///   let actions = StructuredCoding.StructuredAction.build {
+///     StructuredCoding.StructuredAction(
+///       name: "add",
+///       failure: Never.self,
+///       invoke: { (callee: Calculator, input: __macro_local_…) -> Int in
+///         callee.add(amount: input.amount)
+///       }
 ///     )
-///   )
+///     …
+///   }
+/// }
+/// static var definition: Definition {
+///   Definition()
 /// }
 /// ```
 ///
-/// Every generic argument is inferred from the initializer expressions, and
-/// all interpretation — schema shape, dispatch — lives in the runtime's
-/// `StructuredToolDefinition`.
+/// The macro emits this one form *unconditionally* — no arity branching
+/// anywhere: `StructuredAction.build`'s builder keeps one action a leaf
+/// `StructuredAction` and folds several into a composed `StructuredAction`
+/// at its placeholder instantiation. The container shape carries the whole
+/// design:
+///
+/// - `actions` is a *stored* `let` whose initializer infers its type, so the
+///   concrete leaf/composed type is never spelled anywhere — yet the
+///   protocol's `Actions` associated type is inferred from that witness and
+///   stays fully concrete, which is what lets consumers with wire-format
+///   policy (the Messages API's `ToolDefinition`) classify tools statically
+///   by constraining on `Tool.Definition.Actions`' shape.
+/// - `static var definition` is *computed*, returning a fresh value, so
+///   Swift 6's concurrency-safe-statics rule (which forbids non-`Sendable`
+///   static storage) never applies.
+/// - Statics are nonisolated on actors, and the storage lives in the nested
+///   struct — so actor tools need no `nonisolated` tricks and enum tools
+///   work despite enums having no stored instance properties. The inline
+///   `invoke` closures capture nothing (the callee arrives as a parameter),
+///   so property-initializer restrictions don't bite.
+///
+/// `name` and `description` are stored on the container too: the macro
+/// emits the tool-name literal directly (the attribute's `name:` when
+/// provided, the type's name otherwise — it knows both, so no
+/// `"\(Self.self)"` machinery exists anywhere), and a `nil`-defaulted
+/// `description` when the attribute provides none.
 enum StructuredToolMacro: MemberMacro, ExtensionMacro {
 
   /// Conforms the tool type to `StructuredToolProtocol`; the member
   /// expansion's `definition` witnesses the requirement. Diagnosing an
   /// invalid declaration is the member expansion's job — this expansion runs
   /// the same basic validation silently, so an invalid tool (which gets no
-  /// `definition`) is not additionally saddled with a does-not-conform
-  /// error. `protocols` is empty when the conformance is already declared
-  /// explicitly.
+  /// `actions`) is not additionally saddled with a does-not-conform
+  /// error (an invalid tool gets no `Definition` either). `protocols` is
+  /// empty when the conformance is already declared explicitly.
   static func expansion(
     of node: AttributeSyntax,
     attachedTo declaration: some DeclGroupSyntax,
@@ -157,18 +184,21 @@ enum StructuredToolMacro: MemberMacro, ExtensionMacro {
       return []
     }
 
+    let isPublic = declaration.modifiers.contains(where: \.isPublic)
     members.append(
       DeclSyntax(
-        definitionProperty(
+        definitionStruct(
           typeName: typeName,
-          name: name.map { ExprSyntax($0.expression) } ?? ExprSyntax(#""\(Self.self)""#),
-          description: description?.expression,
+          name: name.map { ExprSyntax($0.expression.trimmed) }
+            ?? ExprSyntax(StringLiteralExprSyntax(content: typeName.text)),
+          description: description?.expression.trimmed,
           actionExprs: actionExprs,
-          isPublic: declaration.modifiers.contains(where: \.isPublic),
+          isPublic: isPublic,
           namespace: namespace
         )
       )
     )
+    members.append(DeclSyntax(definitionProperty(isPublic: isPublic)))
     return members
   }
 
@@ -229,15 +259,110 @@ enum StructuredToolMacro: MemberMacro, ExtensionMacro {
     return isValid ? actionFunctions : nil
   }
 
-  /// `static var definition: some {ns}.StructuredToolDefinitionProtocol<TypeName> { … }`
-  private static func definitionProperty(
+  /// The nested `Definition` container:
+  ///
+  /// ```swift
+  /// struct Definition: {ns}.StructuredToolDefinitionProtocol {
+  ///   typealias Callee = TypeName
+  ///   let name = "TypeName"
+  ///   let description: String? = nil
+  ///   let actions = {ns}.StructuredAction.build { … }
+  /// }
+  /// ```
+  ///
+  /// Every member is stored: `actions`' initializer infers the concrete
+  /// leaf/group type — nothing spells it, yet the protocol's `Actions`
+  /// associated type stays fully concrete for downstream static
+  /// classification — and `name`/`description` are emitted as literals (the
+  /// macro knows the type name, so the default needs no `"\(Self.self)"`
+  /// machinery; `description` defaults to `nil` when the attribute provides
+  /// none, since the protocol requirement needs a witness). The container is
+  /// a struct even inside actors and enums: statics are nonisolated on
+  /// actors and a struct can store what an enum cannot, so no declaration
+  /// kind needs special casing.
+  private static func definitionStruct(
     typeName: TokenSyntax,
     name: ExprSyntax,
     description: StringLiteralExprSyntax?,
     actionExprs: [FunctionCallExprSyntax],
     isPublic: Bool,
     namespace: StructuredCodingNamespace
-  ) -> VariableDeclSyntax {
+  ) -> StructDeclSyntax {
+    let memberModifiers = DeclModifierListSyntax {
+      if isPublic {
+        DeclModifierSyntax(name: "public")
+      }
+    }
+    return StructDeclSyntax(
+      modifiers: memberModifiers,
+      name: "Definition",
+      inheritanceClause: InheritanceClauseSyntax {
+        InheritedTypeSyntax(type: namespace.memberType(name: "StructuredToolDefinitionProtocol"))
+      }
+    ) {
+      TypeAliasDeclSyntax(
+        modifiers: memberModifiers,
+        name: "Callee",
+        initializer: TypeInitializerClauseSyntax(
+          value: IdentifierTypeSyntax(name: typeName)
+        )
+      )
+      VariableDeclSyntax(
+        modifiers: memberModifiers,
+        bindingSpecifier: .keyword(.let)
+      ) {
+        PatternBindingSyntax(
+          pattern: IdentifierPatternSyntax(identifier: "name"),
+          initializer: InitializerClauseSyntax(value: name)
+        )
+      }
+      VariableDeclSyntax(
+        modifiers: memberModifiers,
+        bindingSpecifier: .keyword(.let)
+      ) {
+        PatternBindingSyntax(
+          pattern: IdentifierPatternSyntax(identifier: "description"),
+          typeAnnotation: TypeAnnotationSyntax(
+            type: OptionalTypeSyntax(wrappedType: IdentifierTypeSyntax(name: "String"))
+          ),
+          initializer: InitializerClauseSyntax(
+            value: description.map { ExprSyntax($0) } ?? ExprSyntax(NilLiteralExprSyntax())
+          )
+        )
+      }
+      VariableDeclSyntax(
+        modifiers: memberModifiers,
+        bindingSpecifier: .keyword(.let)
+      ) {
+        PatternBindingSyntax(
+          pattern: IdentifierPatternSyntax(identifier: "actions"),
+          initializer: InitializerClauseSyntax(
+            value: FunctionCallExprSyntax(
+              calledExpression: MemberAccessExprSyntax(
+                base: namespace.member(name: "StructuredAction"),
+                name: "build"
+              ),
+              leftParen: nil,
+              arguments: LabeledExprListSyntax(),
+              rightParen: nil,
+              trailingClosure: ClosureExprSyntax(
+                statements: CodeBlockItemListSyntax {
+                  for actionExpr in actionExprs {
+                    actionExpr
+                  }
+                }
+              )
+            )
+          )
+        )
+      }
+    }
+  }
+
+  /// `static var definition: Definition { Definition() }` — computed, so the
+  /// non-`Sendable` definition value is built fresh on each read and Swift
+  /// 6's concurrency-safe-statics rule never applies.
+  private static func definitionProperty(isPublic: Bool) -> VariableDeclSyntax {
     VariableDeclSyntax(
       modifiers: DeclModifierListSyntax {
         if isPublic {
@@ -250,61 +375,16 @@ enum StructuredToolMacro: MemberMacro, ExtensionMacro {
       PatternBindingSyntax(
         pattern: IdentifierPatternSyntax(identifier: "definition"),
         typeAnnotation: TypeAnnotationSyntax(
-          type: SomeOrAnyTypeSyntax(
-            someOrAnySpecifier: .keyword(.some),
-            constraint: namespace.memberType(
-              name: "StructuredToolDefinitionProtocol",
-              genericArgumentClause: GenericArgumentClauseSyntax {
-                GenericArgumentSyntax(
-                  argument: GenericArgumentSyntax.Argument(
-                    IdentifierTypeSyntax(name: typeName)
-                  )
-                )
-              }
-            )
-          )
+          type: IdentifierTypeSyntax(name: "Definition")
         ),
         accessorBlock: AccessorBlockSyntax(
           accessors: .getter(
             CodeBlockItemListSyntax {
               FunctionCallExprSyntax(
-                calledExpression: namespace.member(name: "StructuredToolDefinition"),
-                leftParen: .leftParenToken(trailingTrivia: .newline),
-                arguments: LabeledExprListSyntax {
-                  LabeledExprSyntax(
-                    label: "name",
-                    colon: .colonToken(),
-                    expression: name.trimmed,
-                    trailingComma: .commaToken(trailingTrivia: .newline)
-                  )
-                  if let description {
-                    LabeledExprSyntax(
-                      label: "description",
-                      colon: .colonToken(),
-                      expression: description.trimmed,
-                      trailingComma: .commaToken(trailingTrivia: .newline)
-                    )
-                  }
-                  LabeledExprSyntax(
-                    label: "actions",
-                    colon: .colonToken(),
-                    expression: TupleExprSyntax(
-                      leftParen: .leftParenToken(trailingTrivia: .newline),
-                      elements: LabeledExprListSyntax {
-                        for (index, actionExpr) in actionExprs.enumerated() {
-                          LabeledExprSyntax(
-                            expression: actionExpr,
-                            trailingComma: index == actionExprs.count - 1
-                              ? nil
-                              : .commaToken(trailingTrivia: .newline)
-                          )
-                        }
-                      },
-                      rightParen: .rightParenToken(leadingTrivia: .newline)
-                    )
-                  )
-                },
-                rightParen: .rightParenToken(leadingTrivia: .newline)
+                calledExpression: DeclReferenceExprSyntax(baseName: "Definition"),
+                leftParen: .leftParenToken(),
+                arguments: LabeledExprListSyntax(),
+                rightParen: .rightParenToken()
               )
             }
           )

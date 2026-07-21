@@ -72,17 +72,21 @@ public macro StructuredAction(
 
 // MARK: - Structured Tool
 
-/// Gathers the type's `@StructuredAction` functions into a
-/// `static var definition: some StructuredToolDefinitionProtocol<…>`. Each
-/// action's parameter clause collapses onto a `StructuredCodable` Input and
-/// its return type onto a `StructuredCodable` Output — following the same
-/// rules as enum-case associated values — and the definition property holds
-/// one inline `StructuredAction` per function; no other name is introduced.
-/// The tool's `name` defaults to the type's name; schema shape and dispatch
-/// live in the runtime's `StructuredToolDefinition`. The generated
-/// `definition` witnesses `StructuredToolProtocol`, whose conformance is
+/// Gathers the type's `@StructuredAction` functions into a nested
+/// `Definition` container. Each action's parameter clause collapses onto a
+/// `StructuredCodable` Input and its return type onto a `StructuredCodable`
+/// Output — following the same rules as enum-case associated values — and
+/// the container's stored `actions` holds one inline `StructuredAction` per
+/// function. `StructuredAction.build`'s builder keeps a lone action a leaf
+/// `StructuredAction` and folds several into a composed `StructuredAction`
+/// at its placeholder instantiation; the stored property's initializer
+/// infers the concrete type, which consumers use to classify tools
+/// statically through `Tool.Definition.Actions`. The container also stores the tool's `name`
+/// (the attribute's `name:` when provided, the type's name otherwise) and
+/// its `description` (`nil` when the attribute provides none). The
+/// generated members witness `StructuredToolProtocol`, whose conformance is
 /// added in an extension.
-@attached(member, names: named(definition))
+@attached(member, names: named(Definition), named(definition))
 @attached(extension, conformances: StructuredToolProtocol)
 public macro StructuredTool(
   name: String? = nil,

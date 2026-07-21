@@ -1,55 +1,43 @@
-// MARK: - Action Signature
+// MARK: - Action
 
-/// The value-independent shape of a `StructuredAction`: the `StructuredCodable`
+/// A function exposed through Structured Coding: the `StructuredCodable`
 /// `Input` its parameter clause collapses onto, the `StructuredCodable`
 /// `Output` its return type collapses onto, and its effects recorded at the
 /// type level — `Failure` is `Never` for non-throwing functions, the thrown
 /// type for throwing ones, and `SyncInput` is `Input` for synchronous
 /// functions and `Never` for `async` ones (making the synchronous `invoke`
-/// overloads uncallable).
+/// overloads uncallable). `Callee` is `Void` for static functions and the
+/// enclosing type for instance methods.
 ///
-/// Bundling these into one marker keeps `StructuredAction` generic over
-/// exactly two parameters, which is what lets `StructuredToolDefinition` be
-/// generic over a single pack of signatures with a scalar `Callee`: a generic
-/// type may declare at most one type pack, and pinning every pack element's
-/// `Callee` associated type to a scalar parameter would be a same-element
-/// requirement, which the compiler does not yet support.
-public protocol StructuredActionSignatureProtocol {
-  associatedtype Input: StructuredCodable
-  associatedtype Output: StructuredCodable
-  associatedtype SyncInput
-  associatedtype Failure: Error
-}
-
-/// The uninhabited marker type carrying a `StructuredAction`'s signature; see
-/// `StructuredActionSignatureProtocol`. Never spelled directly: the same-type
-/// constraints on `StructuredAction`'s initializers infer it — for the inline
-/// actions `@StructuredTool` generates and hand-written ones alike.
-public enum StructuredActionSignature<
+/// The shape parameters used to be bundled behind a signature marker type:
+/// a generic type may declare at most one type pack, and while a composed
+/// multi-action group packed over per-action shapes, keeping the action
+/// generic over exactly two parameters (callee + bundle) was what made that
+/// pack expressible under a scalar `Callee` without same-element
+/// requirements (which the compiler does not support). Composition no longer
+/// packs — a composed action is this same type at a fixed placeholder
+/// instantiation (see `_StructuredActionGroupInput`) — so the bundle earned
+/// nothing and the parameters are flattened.
+///
+/// Values of this type are constructed inline by the `@StructuredTool`
+/// macro's generated `Definition`, or by hand; the generic arguments are
+/// always inferred from the initializer, never spelled.
+public struct StructuredAction<
+  Callee,
   Input: StructuredCodable,
   Output: StructuredCodable,
   SyncInput,
   Failure: Error
->: StructuredActionSignatureProtocol {}
+> {
 
-// MARK: - Action
-
-/// A function exposed through Structured Coding, its shape recorded by a
-/// `StructuredActionSignatureProtocol` marker. `Callee` is `Void` for static
-/// functions and the enclosing type for instance methods.
-///
-/// Values of this type are constructed inline by the `@StructuredTool`
-/// macro's generated `definition`, or by hand.
-public struct StructuredAction<Callee, Signature: StructuredActionSignatureProtocol> {
-
-  public init<Input, Output, Failure>(
+  public init(
     name: StructuredCodingKey,
     description: String? = nil,
     inputDescription: String? = nil,
     outputDescription: String? = nil,
     failure: Failure.Type = Failure.self,
     invoke: @escaping @Sendable (Callee, Input) throws(Failure) -> Output
-  ) where Signature == StructuredActionSignature<Input, Output, Input, Failure> {
+  ) where SyncInput == Input {
     self.init(
       key: name,
       description: description,
@@ -60,14 +48,14 @@ public struct StructuredAction<Callee, Signature: StructuredActionSignatureProto
     )
   }
 
-  public init<Input, Output, Failure>(
+  public init(
     name: StructuredCodingKey,
     description: String? = nil,
     inputDescription: String? = nil,
     outputDescription: String? = nil,
     failure: Failure.Type = Failure.self,
     invoke: @escaping @Sendable (Input) throws(Failure) -> Output
-  ) where Signature == StructuredActionSignature<Input, Output, Input, Failure>, Callee == Void {
+  ) where SyncInput == Input, Callee == Void {
     self.init(
       key: name,
       description: description,
@@ -78,14 +66,14 @@ public struct StructuredAction<Callee, Signature: StructuredActionSignatureProto
     )
   }
 
-  public init<Input, Output, Failure>(
+  public init(
     name: StructuredCodingKey,
     description: String? = nil,
     inputDescription: String? = nil,
     outputDescription: String? = nil,
     failure: Failure.Type = Failure.self,
     invoke: @escaping @Sendable (Callee, Input) async throws(Failure) -> Output
-  ) where Signature == StructuredActionSignature<Input, Output, Never, Failure> {
+  ) where SyncInput == Never {
     self.init(
       key: name,
       description: description,
@@ -96,14 +84,14 @@ public struct StructuredAction<Callee, Signature: StructuredActionSignatureProto
     )
   }
 
-  public init<Input, Output, Failure>(
+  public init(
     name: StructuredCodingKey,
     description: String? = nil,
     inputDescription: String? = nil,
     outputDescription: String? = nil,
     failure: Failure.Type = Failure.self,
     invoke: @escaping @Sendable (Input) async throws(Failure) -> Output
-  ) where Signature == StructuredActionSignature<Input, Output, Never, Failure>, Callee == Void {
+  ) where SyncInput == Never, Callee == Void {
     self.init(
       key: name,
       description: description,
@@ -116,28 +104,28 @@ public struct StructuredAction<Callee, Signature: StructuredActionSignatureProto
 
   public func invoke(
     on callee: Callee,
-    with input: Signature.SyncInput
-  ) throws(Signature.Failure) -> Signature.Output {
+    with input: SyncInput
+  ) throws(Failure) -> Output {
     try _invoke(callee, input)
   }
 
   public func invoke(
-    with input: Signature.SyncInput
-  ) throws(Signature.Failure) -> Signature.Output
+    with input: SyncInput
+  ) throws(Failure) -> Output
   where Callee == Void {
     try _invoke((), input)
   }
 
   public func invoke(
     on callee: Callee,
-    with input: Signature.Input
-  ) async throws(Signature.Failure) -> Signature.Output {
+    with input: Input
+  ) async throws(Failure) -> Output {
     try await _invokeAsync(callee, input)
   }
 
   public func invoke(
-    with input: Signature.Input
-  ) async throws(Signature.Failure) -> Signature.Output
+    with input: Input
+  ) async throws(Failure) -> Output
   where Callee == Void {
     try await _invokeAsync((), input)
   }
@@ -146,8 +134,8 @@ public struct StructuredAction<Callee, Signature: StructuredActionSignatureProto
     key.stringValue
   }
 
-  /// The `StaticString`-backed form of `name`, kept so a tool definition can
-  /// pass it straight into its enumeration schema's property list.
+  /// The `StaticString`-backed form of `name`, kept so the composition fold
+  /// can pass it straight into an enumeration schema's property list.
   let key: StructuredCodingKey
 
   public let description: String?
@@ -155,34 +143,62 @@ public struct StructuredAction<Callee, Signature: StructuredActionSignatureProto
   /// The schemas are stored — with `inputDescription`/`outputDescription`
   /// prepended — rather than derived on access, so an action's schemas carry
   /// its use-site descriptions the same way `@StructuredProperty` bakes
-  /// descriptions into a property's schema.
-  public let inputSchema: Signature.Input.Schema
-  public let outputSchema: Signature.Output.Schema
+  /// descriptions into a property's schema. A leaf's `inputSchema` is the
+  /// action's own raw schema, nothing more — no wrapping, no policy; a
+  /// composed action's is the assembled keyed enumeration (see
+  /// `_StructuredActionGroupInput`).
+  public let inputSchema: Input.Schema
+  public let outputSchema: Output.Schema
 
   private init(
     key: StructuredCodingKey,
     description: String?,
     inputDescription: String?,
     outputDescription: String?,
-    invoke: @escaping @Sendable (Callee, Signature.SyncInput) throws(Signature.Failure) ->
-      Signature.Output,
-    invokeAsync: @escaping @Sendable (Callee, Signature.Input) async throws(Signature.Failure) ->
-      Signature.Output
+    invoke: @escaping @Sendable (Callee, SyncInput) throws(Failure) -> Output,
+    invokeAsync: @escaping @Sendable (Callee, Input) async throws(Failure) -> Output
   ) {
     self.key = key
     self.description = description
-    self.inputSchema = Signature.Input.schema.prependDescription(inputDescription)
-    self.outputSchema = Signature.Output.schema.prependDescription(outputDescription)
+    self.inputSchema = Input.schema.prependDescription(inputDescription)
+    self.outputSchema = Output.schema.prependDescription(outputDescription)
     self._invoke = invoke
     self._invokeAsync = invokeAsync
   }
 
   private let _invoke:
-    @Sendable (Callee, Signature.SyncInput) throws(Signature.Failure) -> Signature.Output
+    @Sendable (Callee, SyncInput) throws(Failure) -> Output
   private let _invokeAsync:
-    @Sendable (Callee, Signature.Input) async throws(Signature.Failure) -> Signature.Output
+    @Sendable (Callee, Input) async throws(Failure) -> Output
 
 }
 
-extension StructuredAction: Sendable
-where Signature.Input.Schema: Sendable, Signature.Output.Schema: Sendable {}
+// MARK: Group Composition
+
+extension StructuredAction
+where
+  Input == _StructuredActionGroupInput,
+  Output == _StructuredActionGroupInput,
+  SyncInput == Never,
+  Failure == Never
+{
+
+  /// Composes several actions into one: the `StructuredAction.Builder` fold
+  /// calls this with the assembled keyed enumeration, at the fixed composed
+  /// instantiation this extension pins — the uninhabited placeholder
+  /// input/output and the effect-free markers. The stored fields reflect
+  /// that a composed action is pure schema: a dummy key (a group has no name
+  /// of its own — `name` is `""`; a tool's name lives on its definition), no
+  /// description, the assembled enumeration in `inputSchema`, an inert
+  /// output schema, and invoke closures made statically unreachable by the
+  /// uninhabited input.
+  init(groupSchema: MetaSchema) {
+    self.key = ""
+    self.description = nil
+    self.inputSchema = _StructuredActionGroupSchema(wrapping: groupSchema)
+    self.outputSchema = _StructuredActionGroupSchema(wrapping: .any(description: nil))
+    self._invoke = { (_, _: Never) -> _StructuredActionGroupInput in }
+    self._invokeAsync = { (_, input) in switch input.never {} }
+  }
+
+}

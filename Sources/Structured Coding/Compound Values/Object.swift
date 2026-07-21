@@ -3,16 +3,17 @@ private import Synchronization
 
 // MARK: - Object Representable
 
-/// A marker adopted by types whose every encoded instance is a JSON object.
-/// Tool definitions consult it to decide whether a single action's input
-/// schema can stand as the tool's top-level input schema — which the
-/// Anthropic API requires to be an object — or needs the `{"input": ...}`
-/// envelope. `StructuredObject` refines it, and `@StructuredCodable` adds it
-/// to enumerations whose coding style always encodes an object (the
-/// object-properties and internally-tagged styles; not type-discriminated,
-/// whose values encode as bare payloads). Adopt it by hand only on a type
-/// whose `encode(to:)` unconditionally produces a JSON object — the promise
-/// is not compiler-checked.
+/// A marker adopted by codable types whose every encoded instance is a JSON
+/// object — that, and nothing more. Consumers with a top-level-object
+/// requirement (the Anthropic Messages API's tool definitions, say)
+/// constrain an action's `Input` on it directly to decide whether the
+/// input's schema can stand as a tool's input schema or must travel inside
+/// an envelope object. `StructuredObject` refines it, and
+/// `@StructuredCodable` adds it to enumerations whose coding style always
+/// encodes an object (the object-properties and internally-tagged styles;
+/// not type-discriminated, whose values encode as bare payloads). Adopt it
+/// by hand only on a type whose `encode(to:)` unconditionally produces a
+/// JSON object — the promise is not compiler-checked.
 public protocol StructuredObjectRepresentable {}
 
 // MARK: - Definition
