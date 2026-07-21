@@ -209,12 +209,14 @@ extension StructuredAction {
   ///   the synchronous `invoke` dispatches for real — while one `async`
   ///   component anywhere makes the composition async-only
   ///   (`SyncInput == Never`).
-  /// - `Failure` always collapses to `any Error`, even when every
-  ///   component agrees (including all-`Never`). Preserving shared failure
-  ///   types is expressible, but each preserved dimension doubles the
-  ///   overload matrix; the untyped throw is the accepted trade, and
-  ///   dispatch (which decodes selections from JSON) makes compositions
-  ///   fallible anyway.
+  /// - `Failure` distinguishes only non-throwing from throwing: a fold of
+  ///   non-throwing components (`Failure == Never` throughout) stays
+  ///   non-throwing, while any throwing component anywhere collapses the
+  ///   composition to `any Error` — typed failures are not preserved,
+  ///   however the components' failures mix. Preserving them is
+  ///   expressible, but each preserved shape doubles the overload matrix
+  ///   (the `Never`/`any Error` split already does, once); the untyped
+  ///   throw is the accepted trade.
   /// - An accumulated *composition* is recognized by its `Input` being a
   ///   `StructuredActionSelection` (the all-sync overloads additionally
   ///   require `SyncInput` to be that same selection): those overloads
@@ -267,7 +269,48 @@ extension StructuredAction {
 
     // MARK: Folding Two Leaves
 
-    /// Shared output, all-synchronous.
+    /// Shared output, all-synchronous, non-throwing.
+    public static func buildPartialBlock<
+      FirstInput: StructuredCodable,
+      NextInput: StructuredCodable,
+      SharedOutput: StructuredCodable
+    >(
+      accumulated: StructuredAction<
+        Callee, FirstInput, SharedOutput, FirstInput, Never
+      >,
+      next: StructuredAction<Callee, NextInput, SharedOutput, NextInput, Never>
+    ) -> StructuredAction<
+      Callee,
+      StructuredActionSelection<FirstInput, NextInput>,
+      SharedOutput,
+      StructuredActionSelection<FirstInput, NextInput>,
+      Never
+    > {
+      let accumulatedInvokeSync = accumulated._invoke
+      let accumulatedInvoke = accumulated._invokeAsync
+      let nextInvokeSync = next._invoke
+      let nextInvoke = next._invokeAsync
+      return .init(
+        key: "",
+        description: nil,
+        inputSchema: enumeratedInputSchema(folding: accumulated, with: next),
+        outputSchema: SharedOutput.schema,
+        invoke: { (callee, selection) in
+          switch selection {
+          case .first(let input): accumulatedInvokeSync(callee, input)
+          case .next(let input): nextInvokeSync(callee, input)
+          }
+        },
+        invokeAsync: { (callee, selection) in
+          switch selection {
+          case .first(let input): await accumulatedInvoke(callee, input)
+          case .next(let input): await nextInvoke(callee, input)
+          }
+        }
+      )
+    }
+
+    /// Shared output, all-synchronous, throwing.
     public static func buildPartialBlock<
       FirstInput: StructuredCodable,
       FirstFailure: Error,
@@ -275,7 +318,9 @@ extension StructuredAction {
       NextFailure: Error,
       SharedOutput: StructuredCodable
     >(
-      accumulated: StructuredAction<Callee, FirstInput, SharedOutput, FirstInput, FirstFailure>,
+      accumulated: StructuredAction<
+        Callee, FirstInput, SharedOutput, FirstInput, FirstFailure
+      >,
       next: StructuredAction<Callee, NextInput, SharedOutput, NextInput, NextFailure>
     ) -> StructuredAction<
       Callee,
@@ -308,7 +353,43 @@ extension StructuredAction {
       )
     }
 
-    /// Shared output, at least one asynchronous component.
+    /// Shared output, at least one asynchronous component, non-throwing.
+    public static func buildPartialBlock<
+      FirstInput: StructuredCodable,
+      FirstSyncInput,
+      NextInput: StructuredCodable,
+      NextSyncInput,
+      SharedOutput: StructuredCodable
+    >(
+      accumulated: StructuredAction<
+        Callee, FirstInput, SharedOutput, FirstSyncInput, Never
+      >,
+      next: StructuredAction<Callee, NextInput, SharedOutput, NextSyncInput, Never>
+    ) -> StructuredAction<
+      Callee,
+      StructuredActionSelection<FirstInput, NextInput>,
+      SharedOutput,
+      Never,
+      Never
+    > {
+      let accumulatedInvoke = accumulated._invokeAsync
+      let nextInvoke = next._invokeAsync
+      return .init(
+        key: "",
+        description: nil,
+        inputSchema: enumeratedInputSchema(folding: accumulated, with: next),
+        outputSchema: SharedOutput.schema,
+        invoke: { (_, _: Never) -> SharedOutput in },
+        invokeAsync: { (callee, selection) in
+          switch selection {
+          case .first(let input): await accumulatedInvoke(callee, input)
+          case .next(let input): await nextInvoke(callee, input)
+          }
+        }
+      )
+    }
+
+    /// Shared output, at least one asynchronous component, throwing.
     public static func buildPartialBlock<
       FirstInput: StructuredCodable,
       FirstSyncInput,
@@ -346,7 +427,52 @@ extension StructuredAction {
       )
     }
 
-    /// Differing outputs, all-synchronous.
+    /// Differing outputs, all-synchronous, non-throwing.
+    public static func buildPartialBlock<
+      FirstInput: StructuredCodable,
+      FirstOutput: StructuredCodable,
+      NextInput: StructuredCodable,
+      NextOutput: StructuredCodable
+    >(
+      accumulated: StructuredAction<
+        Callee, FirstInput, FirstOutput, FirstInput, Never
+      >,
+      next: StructuredAction<Callee, NextInput, NextOutput, NextInput, Never>
+    ) -> StructuredAction<
+      Callee,
+      StructuredActionSelection<FirstInput, NextInput>,
+      StructuredActionResult<FirstOutput, NextOutput>,
+      StructuredActionSelection<FirstInput, NextInput>,
+      Never
+    > {
+      let accumulatedInvokeSync = accumulated._invoke
+      let accumulatedInvoke = accumulated._invokeAsync
+      let nextInvokeSync = next._invoke
+      let nextInvoke = next._invokeAsync
+      return .init(
+        key: "",
+        description: nil,
+        inputSchema: enumeratedInputSchema(folding: accumulated, with: next),
+        outputSchema: resultOutputSchema(
+          first: accumulated.outputSchema,
+          next: next.outputSchema
+        ),
+        invoke: { (callee, selection) in
+          switch selection {
+          case .first(let input): .first(accumulatedInvokeSync(callee, input))
+          case .next(let input): .next(nextInvokeSync(callee, input))
+          }
+        },
+        invokeAsync: { (callee, selection) in
+          switch selection {
+          case .first(let input): .first(await accumulatedInvoke(callee, input))
+          case .next(let input): .next(await nextInvoke(callee, input))
+          }
+        }
+      )
+    }
+
+    /// Differing outputs, all-synchronous, throwing.
     public static func buildPartialBlock<
       FirstInput: StructuredCodable,
       FirstOutput: StructuredCodable,
@@ -355,7 +481,9 @@ extension StructuredAction {
       NextOutput: StructuredCodable,
       NextFailure: Error
     >(
-      accumulated: StructuredAction<Callee, FirstInput, FirstOutput, FirstInput, FirstFailure>,
+      accumulated: StructuredAction<
+        Callee, FirstInput, FirstOutput, FirstInput, FirstFailure
+      >,
       next: StructuredAction<Callee, NextInput, NextOutput, NextInput, NextFailure>
     ) -> StructuredAction<
       Callee,
@@ -391,7 +519,47 @@ extension StructuredAction {
       )
     }
 
-    /// Differing outputs, at least one asynchronous component.
+    /// Differing outputs, at least one asynchronous component, non-throwing.
+    public static func buildPartialBlock<
+      FirstInput: StructuredCodable,
+      FirstOutput: StructuredCodable,
+      FirstSyncInput,
+      NextInput: StructuredCodable,
+      NextOutput: StructuredCodable,
+      NextSyncInput
+    >(
+      accumulated: StructuredAction<
+        Callee, FirstInput, FirstOutput, FirstSyncInput, Never
+      >,
+      next: StructuredAction<Callee, NextInput, NextOutput, NextSyncInput, Never>
+    ) -> StructuredAction<
+      Callee,
+      StructuredActionSelection<FirstInput, NextInput>,
+      StructuredActionResult<FirstOutput, NextOutput>,
+      Never,
+      Never
+    > {
+      let accumulatedInvoke = accumulated._invokeAsync
+      let nextInvoke = next._invokeAsync
+      return .init(
+        key: "",
+        description: nil,
+        inputSchema: enumeratedInputSchema(folding: accumulated, with: next),
+        outputSchema: resultOutputSchema(
+          first: accumulated.outputSchema,
+          next: next.outputSchema
+        ),
+        invoke: { (_, _: Never) -> StructuredActionResult<FirstOutput, NextOutput> in },
+        invokeAsync: { (callee, selection) in
+          switch selection {
+          case .first(let input): .first(await accumulatedInvoke(callee, input))
+          case .next(let input): .next(await nextInvoke(callee, input))
+          }
+        }
+      )
+    }
+
+    /// Differing outputs, at least one asynchronous component, throwing.
     public static func buildPartialBlock<
       FirstInput: StructuredCodable,
       FirstOutput: StructuredCodable,
@@ -435,7 +603,49 @@ extension StructuredAction {
 
     // MARK: Appending to a Composition
 
-    /// Shared output, all-synchronous.
+    /// Shared output, all-synchronous, non-throwing.
+    public static func buildPartialBlock<
+      AccumulatedFirst: StructuredCodable,
+      AccumulatedNext: StructuredCodable,
+      NextInput: StructuredCodable,
+      SharedOutput: StructuredCodable
+    >(
+      accumulated: StructuredAction<
+        Callee, StructuredActionSelection<AccumulatedFirst, AccumulatedNext>, SharedOutput, StructuredActionSelection<AccumulatedFirst, AccumulatedNext>, Never
+      >,
+      next: StructuredAction<Callee, NextInput, SharedOutput, NextInput, Never>
+    ) -> StructuredAction<
+      Callee,
+      StructuredActionSelection<StructuredActionSelection<AccumulatedFirst, AccumulatedNext>, NextInput>,
+      SharedOutput,
+      StructuredActionSelection<StructuredActionSelection<AccumulatedFirst, AccumulatedNext>, NextInput>,
+      Never
+    > {
+      let accumulatedInvokeSync = accumulated._invoke
+      let accumulatedInvoke = accumulated._invokeAsync
+      let nextInvokeSync = next._invoke
+      let nextInvoke = next._invokeAsync
+      return .init(
+        key: "",
+        description: nil,
+        inputSchema: splicedInputSchema(splicing: next, into: accumulated.inputSchema),
+        outputSchema: SharedOutput.schema,
+        invoke: { (callee, selection) in
+          switch selection {
+          case .first(let inner): accumulatedInvokeSync(callee, inner)
+          case .next(let input): nextInvokeSync(callee, input)
+          }
+        },
+        invokeAsync: { (callee, selection) in
+          switch selection {
+          case .first(let inner): await accumulatedInvoke(callee, inner)
+          case .next(let input): await nextInvoke(callee, input)
+          }
+        }
+      )
+    }
+
+    /// Shared output, all-synchronous, throwing.
     public static func buildPartialBlock<
       AccumulatedFirst: StructuredCodable,
       AccumulatedNext: StructuredCodable,
@@ -445,22 +655,14 @@ extension StructuredAction {
       SharedOutput: StructuredCodable
     >(
       accumulated: StructuredAction<
-        Callee,
-        StructuredActionSelection<AccumulatedFirst, AccumulatedNext>,
-        SharedOutput,
-        StructuredActionSelection<AccumulatedFirst, AccumulatedNext>,
-        AccumulatedFailure
+        Callee, StructuredActionSelection<AccumulatedFirst, AccumulatedNext>, SharedOutput, StructuredActionSelection<AccumulatedFirst, AccumulatedNext>, AccumulatedFailure
       >,
       next: StructuredAction<Callee, NextInput, SharedOutput, NextInput, NextFailure>
     ) -> StructuredAction<
       Callee,
-      StructuredActionSelection<
-        StructuredActionSelection<AccumulatedFirst, AccumulatedNext>, NextInput
-      >,
+      StructuredActionSelection<StructuredActionSelection<AccumulatedFirst, AccumulatedNext>, NextInput>,
       SharedOutput,
-      StructuredActionSelection<
-        StructuredActionSelection<AccumulatedFirst, AccumulatedNext>, NextInput
-      >,
+      StructuredActionSelection<StructuredActionSelection<AccumulatedFirst, AccumulatedNext>, NextInput>,
       any Error
     > {
       let accumulatedInvokeSync = accumulated._invoke
@@ -487,7 +689,44 @@ extension StructuredAction {
       )
     }
 
-    /// Shared output, at least one asynchronous component.
+    /// Shared output, at least one asynchronous component, non-throwing.
+    public static func buildPartialBlock<
+      AccumulatedFirst: StructuredCodable,
+      AccumulatedNext: StructuredCodable,
+      AccumulatedSyncInput,
+      NextInput: StructuredCodable,
+      NextSyncInput,
+      SharedOutput: StructuredCodable
+    >(
+      accumulated: StructuredAction<
+        Callee, StructuredActionSelection<AccumulatedFirst, AccumulatedNext>, SharedOutput, AccumulatedSyncInput, Never
+      >,
+      next: StructuredAction<Callee, NextInput, SharedOutput, NextSyncInput, Never>
+    ) -> StructuredAction<
+      Callee,
+      StructuredActionSelection<StructuredActionSelection<AccumulatedFirst, AccumulatedNext>, NextInput>,
+      SharedOutput,
+      Never,
+      Never
+    > {
+      let accumulatedInvoke = accumulated._invokeAsync
+      let nextInvoke = next._invokeAsync
+      return .init(
+        key: "",
+        description: nil,
+        inputSchema: splicedInputSchema(splicing: next, into: accumulated.inputSchema),
+        outputSchema: SharedOutput.schema,
+        invoke: { (_, _: Never) -> SharedOutput in },
+        invokeAsync: { (callee, selection) in
+          switch selection {
+          case .first(let inner): await accumulatedInvoke(callee, inner)
+          case .next(let input): await nextInvoke(callee, input)
+          }
+        }
+      )
+    }
+
+    /// Shared output, at least one asynchronous component, throwing.
     public static func buildPartialBlock<
       AccumulatedFirst: StructuredCodable,
       AccumulatedNext: StructuredCodable,
@@ -499,18 +738,12 @@ extension StructuredAction {
       SharedOutput: StructuredCodable
     >(
       accumulated: StructuredAction<
-        Callee,
-        StructuredActionSelection<AccumulatedFirst, AccumulatedNext>,
-        SharedOutput,
-        AccumulatedSyncInput,
-        AccumulatedFailure
+        Callee, StructuredActionSelection<AccumulatedFirst, AccumulatedNext>, SharedOutput, AccumulatedSyncInput, AccumulatedFailure
       >,
       next: StructuredAction<Callee, NextInput, SharedOutput, NextSyncInput, NextFailure>
     ) -> StructuredAction<
       Callee,
-      StructuredActionSelection<
-        StructuredActionSelection<AccumulatedFirst, AccumulatedNext>, NextInput
-      >,
+      StructuredActionSelection<StructuredActionSelection<AccumulatedFirst, AccumulatedNext>, NextInput>,
       SharedOutput,
       Never,
       any Error
@@ -532,7 +765,53 @@ extension StructuredAction {
       )
     }
 
-    /// Differing outputs, all-synchronous.
+    /// Differing outputs, all-synchronous, non-throwing.
+    public static func buildPartialBlock<
+      AccumulatedFirst: StructuredCodable,
+      AccumulatedNext: StructuredCodable,
+      AccumulatedOutput: StructuredCodable,
+      NextInput: StructuredCodable,
+      NextOutput: StructuredCodable
+    >(
+      accumulated: StructuredAction<
+        Callee, StructuredActionSelection<AccumulatedFirst, AccumulatedNext>, AccumulatedOutput, StructuredActionSelection<AccumulatedFirst, AccumulatedNext>, Never
+      >,
+      next: StructuredAction<Callee, NextInput, NextOutput, NextInput, Never>
+    ) -> StructuredAction<
+      Callee,
+      StructuredActionSelection<StructuredActionSelection<AccumulatedFirst, AccumulatedNext>, NextInput>,
+      StructuredActionResult<AccumulatedOutput, NextOutput>,
+      StructuredActionSelection<StructuredActionSelection<AccumulatedFirst, AccumulatedNext>, NextInput>,
+      Never
+    > {
+      let accumulatedInvokeSync = accumulated._invoke
+      let accumulatedInvoke = accumulated._invokeAsync
+      let nextInvokeSync = next._invoke
+      let nextInvoke = next._invokeAsync
+      return .init(
+        key: "",
+        description: nil,
+        inputSchema: splicedInputSchema(splicing: next, into: accumulated.inputSchema),
+        outputSchema: resultOutputSchema(
+          first: accumulated.outputSchema,
+          next: next.outputSchema
+        ),
+        invoke: { (callee, selection) in
+          switch selection {
+          case .first(let inner): .first(accumulatedInvokeSync(callee, inner))
+          case .next(let input): .next(nextInvokeSync(callee, input))
+          }
+        },
+        invokeAsync: { (callee, selection) in
+          switch selection {
+          case .first(let inner): .first(await accumulatedInvoke(callee, inner))
+          case .next(let input): .next(await nextInvoke(callee, input))
+          }
+        }
+      )
+    }
+
+    /// Differing outputs, all-synchronous, throwing.
     public static func buildPartialBlock<
       AccumulatedFirst: StructuredCodable,
       AccumulatedNext: StructuredCodable,
@@ -543,22 +822,14 @@ extension StructuredAction {
       NextFailure: Error
     >(
       accumulated: StructuredAction<
-        Callee,
-        StructuredActionSelection<AccumulatedFirst, AccumulatedNext>,
-        AccumulatedOutput,
-        StructuredActionSelection<AccumulatedFirst, AccumulatedNext>,
-        AccumulatedFailure
+        Callee, StructuredActionSelection<AccumulatedFirst, AccumulatedNext>, AccumulatedOutput, StructuredActionSelection<AccumulatedFirst, AccumulatedNext>, AccumulatedFailure
       >,
       next: StructuredAction<Callee, NextInput, NextOutput, NextInput, NextFailure>
     ) -> StructuredAction<
       Callee,
-      StructuredActionSelection<
-        StructuredActionSelection<AccumulatedFirst, AccumulatedNext>, NextInput
-      >,
+      StructuredActionSelection<StructuredActionSelection<AccumulatedFirst, AccumulatedNext>, NextInput>,
       StructuredActionResult<AccumulatedOutput, NextOutput>,
-      StructuredActionSelection<
-        StructuredActionSelection<AccumulatedFirst, AccumulatedNext>, NextInput
-      >,
+      StructuredActionSelection<StructuredActionSelection<AccumulatedFirst, AccumulatedNext>, NextInput>,
       any Error
     > {
       let accumulatedInvokeSync = accumulated._invoke
@@ -588,7 +859,48 @@ extension StructuredAction {
       )
     }
 
-    /// Differing outputs, at least one asynchronous component.
+    /// Differing outputs, at least one asynchronous component, non-throwing.
+    public static func buildPartialBlock<
+      AccumulatedFirst: StructuredCodable,
+      AccumulatedNext: StructuredCodable,
+      AccumulatedOutput: StructuredCodable,
+      AccumulatedSyncInput,
+      NextInput: StructuredCodable,
+      NextOutput: StructuredCodable,
+      NextSyncInput
+    >(
+      accumulated: StructuredAction<
+        Callee, StructuredActionSelection<AccumulatedFirst, AccumulatedNext>, AccumulatedOutput, AccumulatedSyncInput, Never
+      >,
+      next: StructuredAction<Callee, NextInput, NextOutput, NextSyncInput, Never>
+    ) -> StructuredAction<
+      Callee,
+      StructuredActionSelection<StructuredActionSelection<AccumulatedFirst, AccumulatedNext>, NextInput>,
+      StructuredActionResult<AccumulatedOutput, NextOutput>,
+      Never,
+      Never
+    > {
+      let accumulatedInvoke = accumulated._invokeAsync
+      let nextInvoke = next._invokeAsync
+      return .init(
+        key: "",
+        description: nil,
+        inputSchema: splicedInputSchema(splicing: next, into: accumulated.inputSchema),
+        outputSchema: resultOutputSchema(
+          first: accumulated.outputSchema,
+          next: next.outputSchema
+        ),
+        invoke: { (_, _: Never) -> StructuredActionResult<AccumulatedOutput, NextOutput> in },
+        invokeAsync: { (callee, selection) in
+          switch selection {
+          case .first(let inner): .first(await accumulatedInvoke(callee, inner))
+          case .next(let input): .next(await nextInvoke(callee, input))
+          }
+        }
+      )
+    }
+
+    /// Differing outputs, at least one asynchronous component, throwing.
     public static func buildPartialBlock<
       AccumulatedFirst: StructuredCodable,
       AccumulatedNext: StructuredCodable,
@@ -601,18 +913,12 @@ extension StructuredAction {
       NextFailure: Error
     >(
       accumulated: StructuredAction<
-        Callee,
-        StructuredActionSelection<AccumulatedFirst, AccumulatedNext>,
-        AccumulatedOutput,
-        AccumulatedSyncInput,
-        AccumulatedFailure
+        Callee, StructuredActionSelection<AccumulatedFirst, AccumulatedNext>, AccumulatedOutput, AccumulatedSyncInput, AccumulatedFailure
       >,
       next: StructuredAction<Callee, NextInput, NextOutput, NextSyncInput, NextFailure>
     ) -> StructuredAction<
       Callee,
-      StructuredActionSelection<
-        StructuredActionSelection<AccumulatedFirst, AccumulatedNext>, NextInput
-      >,
+      StructuredActionSelection<StructuredActionSelection<AccumulatedFirst, AccumulatedNext>, NextInput>,
       StructuredActionResult<AccumulatedOutput, NextOutput>,
       Never,
       any Error

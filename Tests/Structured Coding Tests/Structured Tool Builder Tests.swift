@@ -9,7 +9,8 @@ import Testing
 /// `StructuredAction` whose input nests `StructuredActionSelection`, whose
 /// output collapses when shared or nests `StructuredActionResult` when the
 /// types differ, whose sync-ness survives all-synchronous folds, and whose
-/// failure always collapses to `any Error`. The
+/// failure stays `Never` for non-throwing components but collapses to
+/// `any Error` once any component throws. The
 /// fixtures follow the same shape the macro generates — a nested
 /// `Definition` storing the name, description, and an `actions` value whose
 /// concrete type its initializer infers, plus a computed
@@ -57,10 +58,10 @@ struct StructuredToolBuilderTests {
   /// the concrete `StructuredActionSelection` over the components' input
   /// types, and Toolbox's differing output types (`Int` vs `String`) nest
   /// into a `StructuredActionResult` (the `let` binding is the type
-  /// assertion). Both components are synchronous, so `SyncInput` is the
-  /// selection itself; `Failure` is always `any Error`. A composed action
-  /// carries no name or description of its own — a tool's name lives on
-  /// its definition.
+  /// assertion). Both components are synchronous and non-throwing, so
+  /// `SyncInput` is the selection itself and `Failure` stays `Never`. A
+  /// composed action carries no name or description of its own — a tool's
+  /// name lives on its definition.
   @Test
   func compositionProducesComposedAction() {
     let actions:
@@ -69,7 +70,7 @@ struct StructuredToolBuilderTests {
         StructuredActionSelection<Int, String>,
         StructuredActionResult<Int, String>,
         StructuredActionSelection<Int, String>,
-        any Error
+        Never
       > = Toolbox.definition.actions
     #expect(actions.inputSchema.wrapped.propertyNames == ["double", "shout"])
     #expect(actions.name == "")
@@ -90,19 +91,20 @@ struct StructuredToolBuilderTests {
   /// Composed invoke is real and fully typed: a selection value picks the
   /// component by case (not by name), and Toolbox's differing outputs come
   /// back wrapped in the matching result case. Both components are
-  /// synchronous, so the synchronous invoke dispatches (in a synchronous
-  /// context — an async context resolves `invoke(on:with:)` to the async
-  /// surface, which `syncCompositionAlsoInvokesAsync` covers).
+  /// synchronous and non-throwing, so the synchronous invoke dispatches
+  /// with no `try` (in a synchronous context — an async context resolves
+  /// `invoke(on:with:)` to the async surface, which
+  /// `syncCompositionAlsoInvokesAsync` covers).
   @Test
-  func composedActionInvokesTyped() throws {
+  func composedActionInvokesTyped() {
     let actions = Toolbox.definition.actions
-    let doubled = try actions.invoke(on: Toolbox(base: 1), with: .first(21))
+    let doubled = actions.invoke(on: Toolbox(base: 1), with: .first(21))
     guard case .first(let value) = doubled else {
       Issue.record("expected .first, got \(doubled)")
       return
     }
     #expect(value == 43)
-    let shouted = try actions.invoke(on: Toolbox(base: 0), with: .next("quiet"))
+    let shouted = actions.invoke(on: Toolbox(base: 0), with: .next("quiet"))
     guard case .next(let text) = shouted else {
       Issue.record("expected .next, got \(shouted)")
       return
@@ -113,8 +115,8 @@ struct StructuredToolBuilderTests {
   /// A synchronous composition's async invoke surface dispatches too — the
   /// fold wires both stored invokes.
   @Test
-  func syncCompositionAlsoInvokesAsync() async throws {
-    let shouted = try await Toolbox.definition.actions.invoke(
+  func syncCompositionAlsoInvokesAsync() async {
+    let shouted = await Toolbox.definition.actions.invoke(
       on: Toolbox(base: 0), with: .next("quiet"))
     guard case .next(let text) = shouted else {
       Issue.record("expected .next, got \(shouted)")
@@ -128,14 +130,14 @@ struct StructuredToolBuilderTests {
   /// returns the shared type directly. All-synchronous components keep the
   /// composition synchronous (`SyncInput` is the nested selection).
   @Test
-  func sharedOutputsCollapse() throws {
+  func sharedOutputsCollapse() {
     let composed:
       StructuredAction<
         Toolbox,
         StructuredActionSelection<StructuredActionSelection<Int, Int>, Int>,
         Int,
         StructuredActionSelection<StructuredActionSelection<Int, Int>, Int>,
-        any Error
+        Never
       > = StructuredAction.build {
         StructuredAction(
           name: "double",
@@ -151,11 +153,11 @@ struct StructuredToolBuilderTests {
         )
       }
     #expect(composed.inputSchema.wrapped.propertyNames == ["double", "increment", "negate"])
-    let doubled = try composed.invoke(on: Toolbox(base: 1), with: .first(.first(21)))
+    let doubled = composed.invoke(on: Toolbox(base: 1), with: .first(.first(21)))
     #expect(doubled == 43)
-    let incremented = try composed.invoke(on: Toolbox(base: 0), with: .first(.next(41)))
+    let incremented = composed.invoke(on: Toolbox(base: 0), with: .first(.next(41)))
     #expect(incremented == 42)
-    let negated = try composed.invoke(on: Toolbox(base: 0), with: .next(7))
+    let negated = composed.invoke(on: Toolbox(base: 0), with: .next(7))
     #expect(negated == -7)
   }
 
@@ -163,14 +165,14 @@ struct StructuredToolBuilderTests {
   /// async-only: `SyncInput` collapses to `Never` (the `let` binding is
   /// the type assertion) and only the async invoke dispatches.
   @Test
-  func asyncComponentMakesCompositionAsync() async throws {
+  func asyncComponentMakesCompositionAsync() async {
     let composed:
       StructuredAction<
         Toolbox,
         StructuredActionSelection<Int, Int>,
         Int,
         Never,
-        any Error
+        Never
       > = StructuredAction.build {
         StructuredAction(
           name: "echo",
@@ -181,15 +183,15 @@ struct StructuredToolBuilderTests {
           invoke: { (_: Toolbox, value: Int) in value + 1 }
         )
       }
-    let echoed = try await composed.invoke(on: Toolbox(base: 0), with: .first(1))
+    let echoed = await composed.invoke(on: Toolbox(base: 0), with: .first(1))
     #expect(echoed == 1)
-    let incremented = try await composed.invoke(on: Toolbox(base: 0), with: .next(1))
+    let incremented = await composed.invoke(on: Toolbox(base: 0), with: .next(1))
     #expect(incremented == 2)
   }
 
-  /// Failures always collapse to `any Error` — a component's typed error
-  /// propagates through the composed invoke unwrapped, whatever the other
-  /// components throw (or don't).
+  /// One throwing component collapses the composition's failure to
+  /// `any Error` — the typed error propagates through the composed invoke
+  /// unwrapped, whatever the other components throw (or don't).
   @Test
   func failuresCollapseToAnyError() {
     let composed:
