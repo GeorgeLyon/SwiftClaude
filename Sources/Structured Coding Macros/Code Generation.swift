@@ -8,12 +8,9 @@ import SwiftSyntaxMacros
 extension StructuredCodableType {
 
   /// The protocols the generated extension conforms the type to. Although
-  /// `StructuredObject` refines `StructuredObjectRepresentable`, a
-  /// macro-generated extension must spell the inherited conformance
-  /// explicitly — the compiler does not imply conformances inside expansion
-  /// buffers. Enumerations declare the marker when their coding style always
-  /// encodes an object — the object-properties and internally-tagged styles,
-  /// but not type-discriminated, whose values encode as bare payloads.
+  /// `StructuredObject` refines `StructuredObjectRepresentable`, the
+  /// inherited conformance must be spelled explicitly — the compiler does
+  /// not imply conformances inside expansion buffers.
   var conformanceTypes: [TypeSyntax] {
     switch kind {
     case .object:
@@ -1089,8 +1086,7 @@ private func member(
 }
 
 /// `static var schema: some {ns}.StructuredCodingSchema { _schema() }` — the
-/// non-generic `Schema` witness emitted into every object and enumeration;
-/// see the call sites for why the trampoline is required.
+/// non-generic `Schema` witness emitted into every object and enumeration.
 /// A `@StructuredCodable(description:)` annotation adds its string literal as
 /// `_schema`'s `typeDescription:` argument.
 private func schemaTrampoline(

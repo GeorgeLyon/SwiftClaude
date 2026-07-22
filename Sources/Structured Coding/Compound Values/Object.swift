@@ -4,16 +4,9 @@ private import Synchronization
 // MARK: - Object Representable
 
 /// A marker adopted by codable types whose every encoded instance is a JSON
-/// object — that, and nothing more. Consumers with a top-level-object
-/// requirement (the Anthropic Messages API's tool definitions, say)
-/// constrain an action's `Input` on it directly to decide whether the
-/// input's schema can stand as a tool's input schema or must travel inside
-/// an envelope object. `StructuredObject` refines it, and
-/// `@StructuredCodable` adds it to enumerations whose coding style always
-/// encodes an object (the object-properties and internally-tagged styles;
-/// not type-discriminated, whose values encode as bare payloads). Adopt it
-/// by hand only on a type whose `encode(to:)` unconditionally produces a
-/// JSON object — the promise is not compiler-checked.
+/// object. Adopt it by hand only on a type whose `encode(to:)`
+/// unconditionally produces a JSON object — the promise is not
+/// compiler-checked.
 public protocol StructuredObjectRepresentable {}
 
 // MARK: - Definition
@@ -322,18 +315,8 @@ public struct StructuredObjectProperty<Root, _Definition: StructuredObjectProper
   let definition: Definition
 }
 
-/// How a type behaves as a `StructuredObject` property. The
-/// `@StructuredCodable` macro references this through the declared property
-/// type, so the *resolved* type decides — `typealias Foo = Bar?` lowers
-/// exactly like `Bar?`, something the macro could never determine from
-/// syntax alone. Deliberately a plain member typealias rather than an
-/// associated-type witness: the macro only ever spells it on concrete types,
-/// and a witness would force decode-only types (which cannot satisfy the
-/// required-property default) to provide one even though they never appear
-/// as object properties.
 extension StructuredDecodable where Self: StructuredEncodable {
 
-  /// The default object-property behavior: a required property.
   public typealias _StructuredObjectPropertyDefinition =
     StructuredRequiredObjectPropertyDefinition<Self>
 
@@ -695,15 +678,6 @@ where
 
 extension StructuredObject {
 
-  /// The shared implementation behind every object's `schema` witness. The
-  /// witness itself must be a non-generic member of the concrete type (the
-  /// `@StructuredCodable` macro generates a trampoline calling this function):
-  /// an opaque result type on a generic function cannot infer the `Schema`
-  /// associated type.
-  ///
-  /// `typeDescription` is the type's own `@StructuredCodable(description:)`,
-  /// passed by the generated trampoline; use-site descriptions are prepended
-  /// onto the returned schema with `prependDescription(_:)`.
   public static func _schema<each PropertyDefinition>(
     typeDescription: String? = nil
   ) -> some StructuredCodingSchema

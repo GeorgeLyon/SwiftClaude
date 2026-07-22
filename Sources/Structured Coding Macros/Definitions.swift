@@ -3,14 +3,10 @@ import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 
-/// The intermediate representation the macro builds from a decorated declaration.
-///
-/// `Parsing.swift` lowers Swift syntax into the types in this file, and
+/// The intermediate representation the macro builds from a decorated
+/// declaration: `Parsing.swift` lowers Swift syntax into these types, and
 /// `Code Generation.swift` raises them back into the `StructuredCoding`
-/// conformance. Nothing here touches `SwiftSyntax` traversal or emits members —
-/// it is the agreed vocabulary in between, chosen to mirror the hand-written
-/// fixtures in `Tests/Structured Coding Tests` (e.g. `MutableStringObject`,
-/// `ConstantObject`, the object-properties `Value` enum, `Point`).
+/// conformance.
 
 // MARK: - Shared
 
@@ -52,9 +48,7 @@ struct StructuredCodableType {
     /// A `struct` or `class` — becomes a `StructuredObject`.
     case object(ObjectSchema)
     /// A single-property `struct` with `style: .wrapper` — becomes a
-    /// `StructuredWrapper`. The payload is a one-property `ObjectSchema`
-    /// because the wrapper protocol deliberately mirrors `StructuredObject`,
-    /// so the same member generation applies; only the conformance differs.
+    /// `StructuredWrapper`.
     case wrapper(ObjectSchema)
     /// An `enum` — becomes a `StructuredEnumeration`.
     case enumeration(EnumerationSchema)
@@ -134,12 +128,9 @@ struct ObjectSchema {
 extension ObjectSchema.Property {
 
   /// How a stored property is wrapped: the declared type resolves its own
-  /// core definition through `_StructuredObjectPropertyDefinition` — so the
-  /// *type system* decides required vs optional, and `typealias Foo = Bar?`
-  /// lowers exactly like `Bar?` — while the presence/kind of a default
-  /// (`defaulting`, a fact fully visible in syntax) nests a wrapper around
-  /// it, e.g. `StructuredMutableDefaultInitializedPropertyDefinition<
-  /// Int._StructuredObjectPropertyDefinition>`.
+  /// core definition through `_StructuredObjectPropertyDefinition`, and a
+  /// default nests a `Structured…DefaultInitializedPropertyDefinition`
+  /// wrapper around it.
   struct Definition {
     /// The property's declared type, emitted verbatim.
     let valueType: TypeSyntax
@@ -156,14 +147,8 @@ extension ObjectSchema.Property {
   }
 
   /// A property whose declared type is a tuple, possibly wrapped in optional
-  /// sugar. A bare tuple is not a nominal type, so it can neither conform to
-  /// the coding protocols nor carry the `_StructuredObjectPropertyDefinition`
-  /// member the property machinery resolves through — generation instead
-  /// codes the property through `StructuredTuple`, wrapping in the property
-  /// getter and unwrapping (`.values`) in `decode`. Like the `T?` handling,
-  /// detection is syntactic but sound: a literal tuple type *is* a tuple by
-  /// language definition. A typealias hiding a tuple is not upgraded (and
-  /// fails to compile, exactly as it would have without the upgrade).
+  /// sugar. Bare tuples cannot conform to the coding protocols, so
+  /// generation codes the property through `StructuredTuple` instead.
   struct TupleUpgrade {
 
     /// `true` for `(Int, Int)?` — the wrap and unwrap lift over the optional
@@ -249,10 +234,7 @@ enum ParameterClauseSchema {
 
   /// One or more elements, all labeled (`case circle(radius: Double)`,
   /// `func move(x: Int, y: Int)`) — wrapped in a synthesized
-  /// `StructuredObject` whose `rootType` is a unique macro-generated name and
-  /// whose properties are these labeled values. A label names an object
-  /// property, so a labeled value always codes as an object (which is also
-  /// what lets an internally-tagged discriminator live alongside it).
+  /// `StructuredObject` whose properties are these labeled values.
   case object(ObjectSchema)
 
   /// One element of the clause: its declared label (if any), type, and default.

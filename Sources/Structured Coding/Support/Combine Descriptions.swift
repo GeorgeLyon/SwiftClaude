@@ -1,10 +1,5 @@
-/// Combines a use-site description with a type-level one into the single
-/// description a schema carries: the use-site description (from
-/// `@StructuredProperty` / `@StructuredCase`, or prepended with
-/// `prependDescription(_:)` directly) first, the type's own
-/// `@StructuredCodable(description:)` second, separated by a blank line.
-/// `nil`s are dropped, so a lone description is used as-is and combining two
-/// `nil`s stays `nil`.
+/// Combines a use-site description with a type-level one, use-site first,
+/// separated by a blank line. `nil`s are dropped.
 func combineDescriptions(
   _ useSiteDescription: String?,
   _ typeDescription: String?

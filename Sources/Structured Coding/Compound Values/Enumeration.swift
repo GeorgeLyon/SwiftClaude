@@ -33,13 +33,6 @@ extension StructuredEnumeration where Self: RawRepresentable & CaseIterable {
 
 // MARK: - Schema
 
-/// The style-specific implementations behind every enumeration's `schema`
-/// witness. As with objects, the witness itself must be a non-generic member
-/// of the concrete type (the `@StructuredCodable` macro generates a trampoline
-/// calling `_schema`): an opaque result type on a generic function cannot
-/// infer the `Schema` associated type.
-/// `typeDescription` is the enumeration's own `@StructuredCodable(description:)`;
-/// see `StructuredObject._schema`.
 extension StructuredEnumeration
 where CodingStyle == StructuredEnumerationCodingStyleObjectProperties {
 

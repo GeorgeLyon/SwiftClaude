@@ -376,10 +376,6 @@ extension ParameterClauseSchema {
 
   /// Collapses a clause's 0/1/N elements onto the single type that represents
   /// it, following the rules documented on the cases.
-  ///
-  /// Takes its dependencies piecewise rather than as a
-  /// `StructuredCodableMacroContext` because it is shared with the
-  /// `@StructuredAction` peer macro, which has no such context.
   init(
     collapsing elements: [Element],
     synthesizedObjectNameSeed nameSeed: String,

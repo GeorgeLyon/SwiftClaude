@@ -7,21 +7,12 @@ public typealias StructuredCodable = StructuredDecodable & StructuredEncodable
 // MARK: - Schema
 
 /// A schema value, as returned by a `schema` witness.
-///
-/// Schemas are `StructuredCodable` so they can be encoded (and decoded) as
-/// JSON schema documents; on top of that they carry `metadata` — properties
-/// of the schema that the coding machinery reads and writes but that are not
-/// themselves part of the schema's coded structure.
 public protocol StructuredCodingSchema: StructuredCodable {
 
   var metadata: StructuredCodingSchemaMetadata { get set }
 
 }
 
-/// The metadata a `StructuredCodingSchema` carries. Its properties are
-/// internal — descriptions enter through `prependDescription(_:)` and the
-/// `@StructuredCodable` family of annotations — so more metadata can be added
-/// without changing the public surface.
 public struct StructuredCodingSchemaMetadata: Sendable {
 
   public init() {
@@ -45,10 +36,7 @@ extension StructuredCodingSchema {
   }
 
   /// Returns the schema with `description` placed before any description the
-  /// schema already carries, separated by a blank line. This is how use-site
-  /// descriptions — `@StructuredProperty` and `@StructuredCase` — are baked
-  /// into a type's schema: the use-site description first, the type's own
-  /// description second. Prepending `nil` returns the schema unchanged.
+  /// schema already carries. Prepending `nil` returns the schema unchanged.
   consuming func prependDescription(_ description: String?) -> Self {
     metadata.description = combineDescriptions(description, metadata.description)
     return self

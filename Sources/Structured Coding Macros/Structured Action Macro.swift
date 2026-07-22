@@ -3,13 +3,9 @@ import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 
-/// A marker, like `@StructuredProperty`: it generates nothing — the enclosing
-/// type's `@StructuredTool` expansion reads the annotation and generates all
-/// the coding glue. The marker's job is validating the *context*, which the
-/// tool macro cannot see (it only runs where it is attached): actions must be
-/// declared directly in a `@StructuredTool` type's body. Signature-level
-/// validation (unsupported parameters, effects, and so on) happens in the
-/// tool macro's lowering, where generation lives.
+/// A marker: it generates nothing — its job is validating that actions are
+/// declared directly in a `@StructuredTool` type's body, context the tool
+/// macro cannot see.
 enum StructuredActionMacro: PeerMacro {
 
   static func expansion(

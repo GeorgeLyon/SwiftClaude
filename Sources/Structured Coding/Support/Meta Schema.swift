@@ -2,11 +2,10 @@ internal import JavaScriptObjectNotation
 
 // MARK: - Definition
 
-/// The single concrete type behind every `schema` witness in the
-/// module. Public API only ever exposes it as `some StructuredCodingSchema`; which
-/// JSON-schema keywords a value carries is determined by the factory that
-/// built it. Kept non-generic so witness manglings never contain pack
-/// expansions (which crash the runtime demangler).
+/// The single concrete type behind every `schema` witness in the module,
+/// only ever exposed as `some StructuredCodingSchema`. Kept non-generic so
+/// witness manglings never contain pack expansions (which crash the runtime
+/// demangler).
 @StructuredCodable
 struct MetaSchema {
 
@@ -51,9 +50,6 @@ struct MetaSchema {
 
 extension MetaSchema: StructuredCodingSchema {
 
-  /// `description` is a stored (and coded) property rather than living inside
-  /// a stored metadata value because it is part of the schema's coded
-  /// representation; the metadata view is reconstituted around it.
   var metadata: StructuredCodingSchemaMetadata {
     get { StructuredCodingSchemaMetadata(description: description) }
     set { description = newValue.description }
@@ -188,10 +184,7 @@ extension MetaSchema {
 
   /// One branch of an internally-tagged enumeration's `oneOf` schema: the
   /// case's object schema with the discriminator property spliced in as the
-  /// first required property, pinned to the case's name by `const`. A case
-  /// schema is only ever the `MetaSchema` the object machinery builds, but
-  /// the cast (and so the splice) is deferred to encoding, where a
-  /// hand-written case schema of some other type can surface as an error.
+  /// first required property, pinned to the case's name by `const`.
   static func internallyTaggedBranch(
     discriminatorPropertyName: StructuredCodingKey,
     caseName: StructuredCodingKey,
@@ -224,20 +217,12 @@ extension MetaSchema {
 
 extension MetaSchema {
 
-  /// The names of the object schema's keyed properties, in declaration
-  /// order — `StructuredAction.Builder`'s duplicate-name precondition checks
-  /// appended action names against them.
   var propertyNames: [String] {
     properties?.properties.map(\.name) ?? []
   }
 
-  /// Appends one keyed property to the object schema. This is how
-  /// `StructuredAction.Builder` splices each further action into a composed
-  /// action's accumulated enumeration — the same internal property splice
-  /// `internallyTaggedBranch(discriminatorPropertyName:caseName:caseSchema:)`
-  /// performs for discriminators. The property is never required (a group's
-  /// enumeration keys are all optional; `maxProperties: 1` constrains the
-  /// selection), so `required` is untouched.
+  /// Appends one keyed property to the object schema. The property is never
+  /// required, so `required` is untouched.
   mutating func appendProperty(
     named name: StructuredCodingKey,
     schema: some StructuredEncodable
