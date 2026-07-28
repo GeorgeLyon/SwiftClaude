@@ -9,9 +9,22 @@ private import Synchronization
 /// compiler-checked.
 public protocol StructuredObjectRepresentable {}
 
+// MARK: - Undeclared Property Behavior
+
+/// What an object's decoder does when it encounters a property the type does
+/// not declare.
+public enum StructuredUndeclaredPropertyBehavior: Sendable {
+  /// Fail decoding — the default.
+  case reject
+  /// Skip the property's value and continue decoding.
+  case discard
+}
+
 // MARK: - Definition
 
 public protocol StructuredObject: StructuredCodable, StructuredObjectRepresentable {
+
+  static var undeclaredPropertyBehavior: StructuredUndeclaredPropertyBehavior { get }
 
   associatedtype StructuredObjectProperties
   static func properties() -> StructuredObjectProperties
@@ -31,6 +44,14 @@ public protocol StructuredObject: StructuredCodable, StructuredObjectRepresentab
   func encodeProperties(
     to encoder: inout StructuredObjectPropertiesEncoder
   ) throws
+
+}
+
+extension StructuredObject {
+
+  public static var undeclaredPropertyBehavior: StructuredUndeclaredPropertyBehavior {
+    .reject
+  }
 
 }
 
@@ -863,6 +884,7 @@ extension StructuredObject {
     StructuredObjectProperties == (repeat StructuredObjectProperty<Self, each PropertyDefinition>),
     ObjectDecoderValues == (repeat (each PropertyDefinition).ObjectDecoderValue)
   {
+    decoder.undeclaredPropertyBehavior = undeclaredPropertyBehavior
     let properties = (repeat each properties())
     try await context.withArena { arena in
       if initialValueForDecoding(isMutable: accessor.isMutable) != nil {
@@ -912,7 +934,7 @@ extension StructuredObject {
     let stateRefs =
       (repeat arena.push(ObjectPropertyStreamedDecodingState(each properties)).unsafePointer)
 
-    outer: while propertiesDecoder.shouldContinueDecoding() {
+    outer: while try await propertiesDecoder.shouldContinueDecoding() {
       try await configuration.decodeAdditionalProperties(
         from: &propertiesDecoder,
         with: configurationState
@@ -1005,7 +1027,7 @@ extension StructuredObject {
       try await decode(from: repeat each stateRefs, using: accessor)
     }
 
-    outer: while propertiesDecoder.shouldContinueDecoding() {
+    outer: while try await propertiesDecoder.shouldContinueDecoding() {
       try await configuration.decodeAdditionalProperties(
         from: &propertiesDecoder,
         with: configurationState
@@ -1183,8 +1205,22 @@ public struct StructuredObjectPropertiesDecoder: ~Copyable, ~Escapable {
     propertyName
   }
 
-  mutating func shouldContinueDecoding() -> Bool {
-    shouldContinue(from: Self.firstCheckpoint)
+  mutating func shouldContinueDecoding() async throws -> Bool {
+    if shouldContinue(from: Self.firstCheckpoint) {
+      return true
+    }
+    /// A full sweep made no progress, so the current property (if any) is
+    /// undeclared.
+    switch undeclaredPropertyBehavior {
+    case .reject:
+      return false
+    case .discard:
+      guard propertyName != nil else {
+        return false
+      }
+      try await discardCurrentProperty()
+      return true
+    }
   }
 
   mutating func createCheckpoint<T>(_ markerType: T.Type = T.self) -> Checkpoint<T> {
@@ -1203,7 +1239,15 @@ public struct StructuredObjectPropertiesDecoder: ~Copyable, ~Escapable {
     }
     guard propertyName == name else {
       guard shouldContinue(from: checkpoint) else {
-        throw ObjectDecodingError.unknownProperty(propertyName)
+        /// Every candidate property has been tried against `propertyName`
+        /// without a match, so the property is undeclared.
+        switch undeclaredPropertyBehavior {
+        case .reject:
+          throw ObjectDecodingError.unknownProperty(propertyName)
+        case .discard:
+          try await discardCurrentProperty()
+        }
+        return
       }
       return
     }
@@ -1226,6 +1270,20 @@ public struct StructuredObjectPropertiesDecoder: ~Copyable, ~Escapable {
     }
   }
 
+  /// Skips the current property's value and advances to the next property,
+  /// restarting undeclared-property cycle detection.
+  private mutating func discardCurrentProperty() async throws {
+    terminationCheckpoint = nil
+    try await objectDecoder.stream.decodeValue()
+    try await objectDecoder.finishDecodingProperty()
+    if objectDecoder.isAtEnd {
+      self.propertyName = nil
+    } else {
+      let propertyName = try await objectDecoder.startDecodingProperty()
+      self.propertyName = propertyName
+    }
+  }
+
   private mutating func shouldContinue<T>(from checkpoint: Checkpoint<T>) -> Bool {
     if let terminationCheckpoint {
       return terminationCheckpoint != checkpoint.value
@@ -1236,6 +1294,10 @@ public struct StructuredObjectPropertiesDecoder: ~Copyable, ~Escapable {
   }
 
   private(set) var objectDecoder: DecodingStream.ObjectDecoder
+
+  /// Set by `StructuredObject.decodeProperties` from the decoded type's
+  /// `undeclaredPropertyBehavior` before the property loop runs.
+  var undeclaredPropertyBehavior: StructuredUndeclaredPropertyBehavior = .reject
 
   @ArenaRef private var terminationCheckpoint: Int?
   @ArenaRef private var nextCheckpoint: Int

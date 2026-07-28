@@ -101,14 +101,16 @@ extension StructDeclSyntax {
       ofAttribute: context.macroAttribute,
       as: (
         DescriptionArgument.self, StructStyleArgument.self,
-        KeyConversionStrategyArgument.self, CompatibilityModeArgument.self
+        KeyConversionStrategyArgument.self, CompatibilityModeArgument.self,
+        UndeclaredPropertyBehaviorArgument.self
       ),
       in: context.expansionContext
     )
-    let schema = memberBlock.objectSchema(
+    var schema = memberBlock.objectSchema(
       description: arguments.0,
       keyConversionStrategy: arguments.2,
       compatibilityMode: arguments.3,
+      undeclaredPropertyBehavior: arguments.4,
       in: context
     )
 
@@ -127,6 +129,17 @@ extension StructDeclSyntax {
         )
         return nil
       }
+      if arguments.4 != nil {
+        context.expansionContext.diagnose(
+          DiagnosticError(
+            node: name,
+            severity: .error,
+            message:
+              "`undeclaredPropertyBehavior` cannot be applied to a wrapper struct, which codes as its stored value with no object container."
+          )
+        )
+        schema.undeclaredPropertyBehavior = .reject
+      }
       return .wrapper(schema)
     }
   }
@@ -141,7 +154,7 @@ extension ClassDeclSyntax {
       ofAttribute: context.macroAttribute,
       as: (
         DescriptionArgument.self, KeyConversionStrategyArgument.self,
-        CompatibilityModeArgument.self
+        CompatibilityModeArgument.self, UndeclaredPropertyBehaviorArgument.self
       ),
       in: context.expansionContext
     )
@@ -149,6 +162,7 @@ extension ClassDeclSyntax {
       description: arguments.0,
       keyConversionStrategy: arguments.1,
       compatibilityMode: arguments.2,
+      undeclaredPropertyBehavior: arguments.3,
       in: context
     )
   }
@@ -160,6 +174,7 @@ extension MemberBlockSyntax {
     description: DescriptionArgument?,
     keyConversionStrategy: KeyConversionStrategyArgument?,
     compatibilityMode: CompatibilityModeArgument?,
+    undeclaredPropertyBehavior: UndeclaredPropertyBehaviorArgument?,
     in context: StructuredCodableMacroContext
   ) -> ObjectSchema {
     ObjectSchema(
@@ -171,6 +186,7 @@ extension MemberBlockSyntax {
       compatibilityModes: (compatibilityMode?.modes ?? [])
         .union(context.inferredCompatibilityModes),
       description: description?.expression,
+      undeclaredPropertyBehavior: undeclaredPropertyBehavior?.value ?? .reject,
       properties: parseObjectProperties(in: context)
     )
   }
@@ -290,14 +306,18 @@ extension EnumDeclSyntax {
   fileprivate func enumerationSchema(
     in context: StructuredCodableMacroContext
   ) -> EnumerationSchema {
-    let (description, style, keyConversionStrategyArgument, compatibilityModeArgument) =
+    let (
+      description, style, keyConversionStrategyArgument, compatibilityModeArgument,
+      undeclaredPropertyBehaviorArgument
+    ) =
       parseArguments(
         ofAttribute: context.macroAttribute,
         as: (
           DescriptionArgument.self,
           EnumStyleArgument.self,
           KeyConversionStrategyArgument.self,
-          CompatibilityModeArgument.self
+          CompatibilityModeArgument.self,
+          UndeclaredPropertyBehaviorArgument.self
         ),
         in: context.expansionContext
       )
@@ -305,66 +325,113 @@ extension EnumDeclSyntax {
       keyConversionStrategyArgument?.value ?? context.defaultKeyConversionStrategy
     let compatibilityModes = (compatibilityModeArgument?.modes ?? [])
       .union(context.inferredCompatibilityModes)
+    let codingStyle = (style ?? context.defaultEnumStyle).codingStyle
+
+    // A type-discriminated case codes as its bare associated value — there is
+    // no object container for the enumeration to configure, so the argument
+    // could never take effect.
+    let undeclaredPropertyBehavior: UndeclaredPropertyBehavior
+    if let undeclaredPropertyBehaviorArgument {
+      if case .typeDiscriminated = codingStyle {
+        context.expansionContext.diagnose(
+          DiagnosticError(
+            node: name,
+            severity: .error,
+            message:
+              "`undeclaredPropertyBehavior` cannot be applied to a type-discriminated enumeration, whose cases code as bare values with no object container."
+          )
+        )
+        undeclaredPropertyBehavior = .reject
+      } else {
+        undeclaredPropertyBehavior = undeclaredPropertyBehaviorArgument.value
+      }
+    } else {
+      undeclaredPropertyBehavior = .reject
+    }
+
+    let cases = memberBlock
+      .members
+      .flatMap { member -> [EnumerationSchema.Case] in
+        guard let caseDecl = member.decl.as(EnumCaseDeclSyntax.self) else {
+          return []
+        }
+        // Validate: @StructuredProperty should not be used on enum cases
+        if caseDecl.hasAttribute("StructuredProperty") {
+          context.expansionContext.diagnose(
+            DiagnosticError(
+              node: caseDecl,
+              severity: .error,
+              message: "@StructuredProperty cannot be used on enum cases. Use @StructuredCase instead."
+            )
+          )
+        }
+
+        let description = caseDecl.parseArguments(
+          ofAttribute: "StructuredCase",
+          as: DescriptionArgument.self,
+          in: context.expansionContext
+        )
+
+        return caseDecl.elements.compactMap { element -> EnumerationSchema.Case? in
+          guard let name = element.name.identifier else {
+            context.expansionContext.diagnose(
+              DiagnosticError(
+                node: element.name,
+                severity: .error,
+                message: "Missing Identifier"
+              )
+            )
+            return nil
+          }
+
+          return EnumerationSchema.Case(
+            name: IdentifiableToken(
+              identifier: name,
+              token: element.name
+            ),
+            associatedValue: ParameterClauseSchema(
+              collapsing: element.parameterClause?.parameters.parameterClauseElements ?? [],
+              synthesizedObjectNameSeed: name.name,
+              namespace: context.namespace,
+              keyConversionStrategy: keyConversionStrategy,
+              compatibilityModes: compatibilityModes,
+              undeclaredPropertyBehavior: undeclaredPropertyBehavior,
+              in: context.expansionContext
+            ),
+            description: description?.expression
+          )
+        }
+      }
+
+    // Value-less cases share one synthesized zero-property payload object when
+    // the behavior must be propagated — the shared `StructuredEmptyObject`
+    // cannot carry a per-enum setting.
+    var emptyCasePayloadObject: ObjectSchema?
+    if undeclaredPropertyBehavior == .discard,
+      cases.contains(where: { if case .none = $0.associatedValue { true } else { false } })
+    {
+      emptyCasePayloadObject = ObjectSchema(
+        namespace: context.namespace,
+        rootType: context.expansionContext.makeUniqueName("EmptyPayload"),
+        isSynthesized: true,
+        keyConversionStrategy: keyConversionStrategy,
+        compatibilityModes: compatibilityModes,
+        description: nil,
+        undeclaredPropertyBehavior: undeclaredPropertyBehavior,
+        properties: []
+      )
+    }
 
     return EnumerationSchema(
       namespace: context.namespace,
       typeName: "Self",
       keyConversionStrategy: keyConversionStrategy,
       compatibilityModes: compatibilityModes,
-      codingStyle: (style ?? context.defaultEnumStyle).codingStyle,
+      codingStyle: codingStyle,
       description: description?.expression,
-      cases: memberBlock
-        .members
-        .flatMap { member -> [EnumerationSchema.Case] in
-          guard let caseDecl = member.decl.as(EnumCaseDeclSyntax.self) else {
-            return []
-          }
-          // Validate: @StructuredProperty should not be used on enum cases
-          if caseDecl.hasAttribute("StructuredProperty") {
-            context.expansionContext.diagnose(
-              DiagnosticError(
-                node: caseDecl,
-                severity: .error,
-                message: "@StructuredProperty cannot be used on enum cases. Use @StructuredCase instead."
-              )
-            )
-          }
-
-          let description = caseDecl.parseArguments(
-            ofAttribute: "StructuredCase",
-            as: DescriptionArgument.self,
-            in: context.expansionContext
-          )
-
-          return caseDecl.elements.compactMap { element -> EnumerationSchema.Case? in
-            guard let name = element.name.identifier else {
-              context.expansionContext.diagnose(
-                DiagnosticError(
-                  node: element.name,
-                  severity: .error,
-                  message: "Missing Identifier"
-                )
-              )
-              return nil
-            }
-
-            return EnumerationSchema.Case(
-              name: IdentifiableToken(
-                identifier: name,
-                token: element.name
-              ),
-              associatedValue: ParameterClauseSchema(
-                collapsing: element.parameterClause?.parameters.parameterClauseElements ?? [],
-                synthesizedObjectNameSeed: name.name,
-                namespace: context.namespace,
-                keyConversionStrategy: keyConversionStrategy,
-                compatibilityModes: compatibilityModes,
-                in: context.expansionContext
-              ),
-              description: description?.expression
-            )
-          }
-        }
+      undeclaredPropertyBehavior: undeclaredPropertyBehavior,
+      emptyCasePayloadObject: emptyCasePayloadObject,
+      cases: cases
     )
   }
 
@@ -382,6 +449,7 @@ extension ParameterClauseSchema {
     namespace: StructuredCodingNamespace,
     keyConversionStrategy: KeyConversionStrategy,
     compatibilityModes: CompatibilityModes,
+    undeclaredPropertyBehavior: UndeclaredPropertyBehavior = .reject,
     in expansionContext: MacroExpansionContext
   ) {
     switch elements.count {
@@ -408,6 +476,7 @@ extension ParameterClauseSchema {
           keyConversionStrategy: keyConversionStrategy,
           compatibilityModes: compatibilityModes,
           description: nil,
+          undeclaredPropertyBehavior: undeclaredPropertyBehavior,
           properties: elements.compactMap { element in
             guard let label = element.label, let identifier = label.identifier else {
               return nil

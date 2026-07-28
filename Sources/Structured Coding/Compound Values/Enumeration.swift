@@ -6,7 +6,7 @@ public protocol StructuredEnumeration: StructuredCodable {
 
   associatedtype CodingStyle: StructuredEnumerationCodingStyle =
     StructuredEnumerationCodingStyleObjectProperties
-  static var codingStyle: CodingStyle { get }
+  static var codingConfiguration: StructuredEnumerationCodingConfiguration<CodingStyle> { get }
 
   associatedtype Cases
   static func cases() -> Cases
@@ -16,13 +16,19 @@ public protocol StructuredEnumeration: StructuredCodable {
 extension StructuredEnumeration
 where CodingStyle == StructuredEnumerationCodingStyleObjectProperties {
 
-  public static var codingStyle: CodingStyle { CodingStyle() }
+  public static var codingConfiguration: StructuredEnumerationCodingConfiguration<CodingStyle> {
+    StructuredEnumerationCodingConfiguration(style: CodingStyle())
+  }
 
 }
 
 extension StructuredEnumeration where Self: RawRepresentable & CaseIterable {
 
-  public static var codingStyle: StructuredEnumerationCodingStyleRawValue { .rawValue }
+  public static var codingConfiguration:
+    StructuredEnumerationCodingConfiguration<StructuredEnumerationCodingStyleRawValue>
+  {
+    StructuredEnumerationCodingConfiguration(style: .rawValue)
+  }
 
   /// Raw-value enumerations carry no per-case associated values, so there are no
   /// `StructuredEnumerationCase`s to enumerate; the case is determined by `init(rawValue:)`.
@@ -65,7 +71,7 @@ where CodingStyle == StructuredEnumerationCodingStyleInternallyTagged {
     typeDescription: String? = nil
   ) -> some StructuredCodingSchema
   where Cases == (repeat StructuredEnumerationCase<Self, each AssociatedValue>) {
-    let discriminatorPropertyName = codingStyle.discriminatorPropertyName
+    let discriminatorPropertyName = codingConfiguration.style.discriminatorPropertyName
     var branches: [MetaSchema.SchemaCodable] = []
     for `case` in repeat each cases() {
       branches.append(
@@ -157,7 +163,7 @@ where CodingStyle == StructuredEnumerationCodingStyleInternallyTagged {
     to encoder: inout StructuredEncoder
   ) throws
   where Cases == (repeat StructuredEnumerationCase<Self, each AssociatedValue>) {
-    let discriminatorPropertyName = Self.codingStyle.discriminatorPropertyName
+    let discriminatorPropertyName = Self.codingConfiguration.style.discriminatorPropertyName
     let casesTuple = Self.cases()
     let cases = (repeat each casesTuple)
     try encoder.stream.encodeObject { objectEncoder in
@@ -288,7 +294,7 @@ where CodingStyle == StructuredEnumerationCodingStyleInternallyTagged {
   {
     try await decoder.stream.decodeObject { objectDecoder in
       let discriminator = try await objectDecoder.peekObjectProperty(
-        named: codingStyle.discriminatorPropertyName.stringValue,
+        named: codingConfiguration.style.discriminatorPropertyName.stringValue,
         peekPropertyValue: { try await $0.decodeString() }
       )
       guard let discriminator else {
@@ -301,7 +307,7 @@ where CodingStyle == StructuredEnumerationCodingStyleInternallyTagged {
         try await context.withArena { arena in
           try await objectDecoder.decodeObjectProperties(in: arena) { propertiesDecoder in
             try await `case`.decodeProperties(
-              discriminatorPropertyName: codingStyle.discriminatorPropertyName,
+              discriminatorPropertyName: codingConfiguration.style.discriminatorPropertyName,
               from: &propertiesDecoder,
               in: context,
               using: accessor
@@ -592,6 +598,31 @@ private struct InternallyTaggedObjectPropertiesDecodingConfiguration:
       }
     )
   }
+}
+
+// MARK: - Coding Configuration
+
+/// How a `StructuredEnumeration` codes: the style its cases collapse onto,
+/// plus what its case payload objects synthesized by `@StructuredCodable` do
+/// with undeclared properties. The behavior recorded here is the one the
+/// macro propagates into every synthesized payload object; a case whose
+/// single associated value is its own `StructuredObject` type keeps that
+/// type's setting.
+public struct StructuredEnumerationCodingConfiguration<
+  Style: StructuredEnumerationCodingStyle
+>: Sendable {
+
+  public var style: Style
+  public var undeclaredPropertyBehavior: StructuredUndeclaredPropertyBehavior
+
+  public init(
+    style: Style,
+    undeclaredPropertyBehavior: StructuredUndeclaredPropertyBehavior = .reject
+  ) {
+    self.style = style
+    self.undeclaredPropertyBehavior = undeclaredPropertyBehavior
+  }
+
 }
 
 // MARK: - Coding Style

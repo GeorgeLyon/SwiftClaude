@@ -201,7 +201,11 @@ private enum Node: StructuredEnumeration, Equatable, Sendable {
   case boolean(Bool)
   case point(Point)
 
-  static var codingStyle: StructuredEnumerationCodingStyleTypeDiscriminated { .typeDiscriminated }
+  static var codingConfiguration:
+    StructuredEnumerationCodingConfiguration<StructuredEnumerationCodingStyleTypeDiscriminated>
+  {
+    .init(style: .typeDiscriminated)
+  }
 
   static var schema: some StructuredCodingSchema {
     _schema()

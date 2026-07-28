@@ -230,8 +230,10 @@ private enum Event: StructuredEnumeration, Equatable, Sendable {
   case move(Move)
   case ping(Ping)
 
-  static var codingStyle: StructuredEnumerationCodingStyleInternallyTagged {
-    .internallyTagged(discriminatorPropertyName: "type")
+  static var codingConfiguration:
+    StructuredEnumerationCodingConfiguration<StructuredEnumerationCodingStyleInternallyTagged>
+  {
+    .init(style: .internallyTagged(discriminatorPropertyName: "type"))
   }
 
   static var schema: some StructuredCodingSchema {

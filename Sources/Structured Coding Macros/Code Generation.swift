@@ -72,6 +72,12 @@ extension ObjectSchema {
       )
     }
 
+    // static var undeclaredPropertyBehavior: {ns}.StructuredUndeclaredPropertyBehavior { .discard }
+    // (only for `.discard`; `.reject` is the protocol-extension default)
+    if undeclaredPropertyBehavior == .discard {
+      undeclaredPropertyBehaviorMember(isPublic: isPublic)
+    }
+
     // static var schema: some {ns}.StructuredCodingSchema { _schema(…) }
     // The shared {ns}.StructuredObject._schema implementation is generic over
     // the property-definition pack, and an opaque result type on a generic
@@ -173,6 +179,29 @@ extension ObjectSchema {
     if !isSynthesized {
       decoderInitializer()
     }
+  }
+
+  /// `static var undeclaredPropertyBehavior: {ns}.StructuredUndeclaredPropertyBehavior { .discard }`.
+  private func undeclaredPropertyBehaviorMember(isPublic: Bool) -> VariableDeclSyntax {
+    VariableDeclSyntax(
+      modifiers: .visibility(isPublic, static: true),
+      bindingSpecifier: .keyword(.var),
+      bindings: PatternBindingListSyntax {
+        PatternBindingSyntax(
+          pattern: IdentifierPatternSyntax(identifier: "undeclaredPropertyBehavior"),
+          typeAnnotation: TypeAnnotationSyntax(
+            type: namespace.memberType(name: "StructuredUndeclaredPropertyBehavior")
+          ),
+          accessorBlock: AccessorBlockSyntax(
+            accessors: .getter(
+              CodeBlockItemListSyntax {
+                MemberAccessExprSyntax(name: "discard")
+              }
+            )
+          )
+        )
+      }
+    )
   }
 
   /// The full nested type declaration synthesized for an all-labeled enum case:
@@ -658,9 +687,10 @@ extension EnumerationSchema {
 
   @MemberBlockItemListBuilder
   func conformanceMembers(isPublic: Bool) -> MemberBlockItemListSyntax {
-    // static var codingStyle: <StyleType> { <styleExpr> }  (non-default styles only)
-    if let codingStyleMember = codingStyle.codingStyleMember(in: namespace, isPublic: isPublic) {
-      codingStyleMember
+    // static var codingConfiguration: {ns}.StructuredEnumerationCodingConfiguration<StyleType> { .init(…) }
+    // (only when some component differs from the protocol-extension default)
+    if let codingConfigurationMember = codingConfigurationMember(isPublic: isPublic) {
+      codingConfigurationMember
     }
 
     // static var schema: some {ns}.StructuredCodingSchema { _schema(…) }
@@ -684,7 +714,10 @@ extension EnumerationSchema {
                   argument: GenericArgumentSyntax.Argument(IdentifierTypeSyntax(name: "Self")))
                 GenericArgumentSyntax(
                   argument: GenericArgumentSyntax.Argument(
-                    `case`.associatedValue.typeSyntax(in: namespace)))
+                    `case`.associatedValue.typeSyntax(
+                      in: namespace,
+                      emptyPayloadObjectName: emptyCasePayloadObject?.rootType
+                    )))
               }
             )
           )
@@ -704,38 +737,115 @@ extension EnumerationSchema {
         tupleOrSingleExpr(
           cases.map { `case` in
             ExprSyntax(
-              `case`.caseExpr(in: namespace, keyConversionStrategy: keyConversionStrategy))
+              `case`.caseExpr(
+                in: namespace,
+                keyConversionStrategy: keyConversionStrategy,
+                emptyPayloadObjectName: emptyCasePayloadObject?.rootType
+              ))
           }
         )
       }
     )
 
-    // Nested `StructuredObject` types synthesized for all-labeled cases.
+    // Nested `StructuredObject` types synthesized for all-labeled cases, plus
+    // the shared empty payload object when the value-less cases need one.
     for `case` in cases {
       if case .object(let objectSchema) = `case`.associatedValue {
         objectSchema.synthesizedStructDecl(isPublic: isPublic)
       }
     }
+    if let emptyCasePayloadObject {
+      emptyCasePayloadObject.synthesizedStructDecl(isPublic: isPublic)
+    }
+  }
+
+  /// `static var codingConfiguration: {ns}.StructuredEnumerationCodingConfiguration<StyleType> { .init(style: …) }`,
+  /// or `nil` when both the style and the undeclared-property behavior are the
+  /// defaults the protocol extension supplies.
+  private func codingConfigurationMember(isPublic: Bool) -> VariableDeclSyntax? {
+    if case .objectProperties = codingStyle, undeclaredPropertyBehavior == .reject {
+      return nil
+    }
+
+    var initializerArguments = LabeledExprListSyntax {
+      LabeledExprSyntax(
+        label: "style",
+        colon: .colonToken(),
+        expression: codingStyle.styleExpr
+      )
+    }
+    if undeclaredPropertyBehavior == .discard {
+      initializerArguments[initializerArguments.startIndex].trailingComma =
+        .commaToken(trailingTrivia: .space)
+      initializerArguments.append(
+        LabeledExprSyntax(
+          label: "undeclaredPropertyBehavior",
+          colon: .colonToken(),
+          expression: MemberAccessExprSyntax(name: "discard")
+        )
+      )
+    }
+
+    return VariableDeclSyntax(
+      modifiers: .visibility(isPublic, static: true),
+      bindingSpecifier: .keyword(.var),
+      bindings: PatternBindingListSyntax {
+        PatternBindingSyntax(
+          pattern: IdentifierPatternSyntax(identifier: "codingConfiguration"),
+          typeAnnotation: TypeAnnotationSyntax(
+            type: namespace.memberType(
+              name: "StructuredEnumerationCodingConfiguration",
+              genericArgumentClause: GenericArgumentClauseSyntax {
+                GenericArgumentSyntax(
+                  argument: GenericArgumentSyntax.Argument(
+                    namespace.memberType(name: codingStyle.styleTypeName)
+                  )
+                )
+              }
+            )
+          ),
+          accessorBlock: AccessorBlockSyntax(
+            accessors: .getter(
+              CodeBlockItemListSyntax {
+                FunctionCallExprSyntax(
+                  calledExpression: MemberAccessExprSyntax(name: "init"),
+                  leftParen: .leftParenToken(),
+                  arguments: initializerArguments,
+                  rightParen: .rightParenToken()
+                )
+              }
+            )
+          )
+        )
+      }
+    )
   }
 
 }
 
 extension EnumerationSchema.CodingStyle {
 
-  /// `static var codingStyle: <StyleType> { <expr> }`, or `nil` for the default
-  /// object-properties style (which the protocol supplies).
-  fileprivate func codingStyleMember(
-    in namespace: StructuredCodingNamespace,
-    isPublic: Bool
-  ) -> VariableDeclSyntax? {
-    let styleTypeName: TokenSyntax
-    let valueExpr: ExprSyntax
+  /// The `StructuredEnumerationCodingStyle`-conforming type the style selects
+  /// — the generic argument of the generated `codingConfiguration`'s type.
+  fileprivate var styleTypeName: TokenSyntax {
     switch self {
     case .objectProperties:
-      return nil
+      "StructuredEnumerationCodingStyleObjectProperties"
+    case .internallyTagged:
+      "StructuredEnumerationCodingStyleInternallyTagged"
+    case .typeDiscriminated:
+      "StructuredEnumerationCodingStyleTypeDiscriminated"
+    }
+  }
+
+  /// The style value — `.objectProperties`, `.internallyTagged(…)`, or
+  /// `.typeDiscriminated` — passed as the configuration's `style:` argument.
+  fileprivate var styleExpr: ExprSyntax {
+    switch self {
+    case .objectProperties:
+      return ExprSyntax(MemberAccessExprSyntax(name: "objectProperties"))
     case .internallyTagged(let discriminatorPropertyName):
-      styleTypeName = "StructuredEnumerationCodingStyleInternallyTagged"
-      valueExpr = ExprSyntax(
+      return ExprSyntax(
         FunctionCallExprSyntax(
           calledExpression: MemberAccessExprSyntax(name: "internallyTagged"),
           leftParen: .leftParenToken(),
@@ -750,25 +860,8 @@ extension EnumerationSchema.CodingStyle {
         )
       )
     case .typeDiscriminated:
-      styleTypeName = "StructuredEnumerationCodingStyleTypeDiscriminated"
-      valueExpr = ExprSyntax(MemberAccessExprSyntax(name: "typeDiscriminated"))
+      return ExprSyntax(MemberAccessExprSyntax(name: "typeDiscriminated"))
     }
-
-    return VariableDeclSyntax(
-      modifiers: .visibility(isPublic, static: true),
-      bindingSpecifier: .keyword(.var),
-      bindings: PatternBindingListSyntax {
-        PatternBindingSyntax(
-          pattern: IdentifierPatternSyntax(identifier: "codingStyle"),
-          typeAnnotation: TypeAnnotationSyntax(
-            type: namespace.memberType(name: styleTypeName)
-          ),
-          accessorBlock: AccessorBlockSyntax(
-            accessors: .getter(CodeBlockItemListSyntax { valueExpr })
-          )
-        )
-      }
-    )
   }
 
 }
@@ -781,7 +874,8 @@ extension EnumerationSchema.Case {
   /// `nil` default applies.
   fileprivate func caseExpr(
     in namespace: StructuredCodingNamespace,
-    keyConversionStrategy: KeyConversionStrategy
+    keyConversionStrategy: KeyConversionStrategy,
+    emptyPayloadObjectName: TokenSyntax? = nil
   ) -> FunctionCallExprSyntax {
     FunctionCallExprSyntax(
       calledExpression: namespace.member(name: "StructuredEnumerationCase"),
@@ -806,7 +900,10 @@ extension EnumerationSchema.Case {
         LabeledExprSyntax(
           label: "accessor",
           colon: .colonToken(),
-          expression: accessorClosure(in: namespace),
+          expression: accessorClosure(
+            in: namespace,
+            emptyPayloadObjectName: emptyPayloadObjectName
+          ),
           trailingComma: .commaToken(trailingTrivia: .newline)
         )
         LabeledExprSyntax(
@@ -820,11 +917,15 @@ extension EnumerationSchema.Case {
   }
 
   /// `{ value in guard case .name(let v0, ...) = value else { return nil }; return <wrapper> }`
-  private func accessorClosure(in namespace: StructuredCodingNamespace) -> ClosureExprSyntax {
+  private func accessorClosure(
+    in namespace: StructuredCodingNamespace,
+    emptyPayloadObjectName: TokenSyntax?
+  ) -> ClosureExprSyntax {
     let bindingNames = associatedValue.bindingNames
     let returnExpr = associatedValue.representationExpr(
       packing: bindingNames.map { ExprSyntax(DeclReferenceExprSyntax(baseName: $0)) },
-      in: namespace
+      in: namespace,
+      emptyPayloadObjectName: emptyPayloadObjectName
     )
 
     return ClosureExprSyntax(
@@ -924,9 +1025,17 @@ extension EnumerationSchema.Case {
 extension ParameterClauseSchema {
 
   /// The single `StructuredCodable` type the clause collapses onto.
-  func typeSyntax(in namespace: StructuredCodingNamespace) -> TypeSyntax {
+  /// `emptyPayloadObjectName` substitutes an enum's synthesized empty payload
+  /// object for the shared `StructuredEmptyObject` in the `.none` collapse.
+  func typeSyntax(
+    in namespace: StructuredCodingNamespace,
+    emptyPayloadObjectName: TokenSyntax? = nil
+  ) -> TypeSyntax {
     switch self {
     case .none:
+      if let emptyPayloadObjectName {
+        return TypeSyntax(IdentifierTypeSyntax(name: emptyPayloadObjectName))
+      }
       return TypeSyntax(namespace.memberType(name: "StructuredEmptyObject"))
     case .single(let element):
       return element.type.trimmed
@@ -1006,13 +1115,20 @@ extension ParameterClauseSchema {
   /// accesses into a callable's returned tuple.
   func representationExpr(
     packing components: [ExprSyntax],
-    in namespace: StructuredCodingNamespace
+    in namespace: StructuredCodingNamespace,
+    emptyPayloadObjectName: TokenSyntax? = nil
   ) -> ExprSyntax {
     switch self {
     case .none:
+      let calledExpression: ExprSyntax =
+        if let emptyPayloadObjectName {
+          ExprSyntax(DeclReferenceExprSyntax(baseName: emptyPayloadObjectName))
+        } else {
+          ExprSyntax(namespace.member(name: "StructuredEmptyObject"))
+        }
       return ExprSyntax(
         FunctionCallExprSyntax(
-          calledExpression: namespace.member(name: "StructuredEmptyObject"),
+          calledExpression: calledExpression,
           leftParen: .leftParenToken(),
           arguments: LabeledExprListSyntax(),
           rightParen: .rightParenToken()

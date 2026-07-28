@@ -1,3 +1,4 @@
+import SwiftSyntaxMacrosGenericTestSupport
 import Testing
 
 /// Verifies that `@StructuredCodable` lowers enums onto `StructuredEnumeration`,
@@ -262,7 +263,7 @@ struct StructuredCodableEnumTests {
     )
   }
 
-  /// `internallyTagged` emits a `codingStyle` member.
+  /// `internallyTagged` emits a `codingConfiguration` member.
   @Test
   func enumInternallyTagged() {
     assertStructuredCodableExpansion(
@@ -280,8 +281,8 @@ struct StructuredCodableEnumTests {
       }
 
       extension Event: StructuredCoding.StructuredEnumeration, StructuredCoding.StructuredObjectRepresentable {
-        static var codingStyle: StructuredCoding.StructuredEnumerationCodingStyleInternallyTagged {
-          .internallyTagged(discriminatorPropertyName: "type")
+        static var codingConfiguration: StructuredCoding.StructuredEnumerationCodingConfiguration<StructuredCoding.StructuredEnumerationCodingStyleInternallyTagged> {
+          .init(style: .internallyTagged(discriminatorPropertyName: "type"))
         }
         static var schema: some StructuredCoding.StructuredCodingSchema {
           _schema()
@@ -363,8 +364,8 @@ struct StructuredCodableEnumTests {
       }
 
       extension Shape: StructuredCoding.StructuredEnumeration, StructuredCoding.StructuredObjectRepresentable {
-        static var codingStyle: StructuredCoding.StructuredEnumerationCodingStyleInternallyTagged {
-          .internallyTagged(discriminatorPropertyName: "kind")
+        static var codingConfiguration: StructuredCoding.StructuredEnumerationCodingConfiguration<StructuredCoding.StructuredEnumerationCodingStyleInternallyTagged> {
+          .init(style: .internallyTagged(discriminatorPropertyName: "kind"))
         }
         static var schema: some StructuredCoding.StructuredCodingSchema {
           _schema()
@@ -410,7 +411,7 @@ struct StructuredCodableEnumTests {
     )
   }
 
-  /// `typeDiscriminated` emits a `codingStyle` member.
+  /// `typeDiscriminated` emits a `codingConfiguration` member.
   @Test
   func enumTypeDiscriminated() {
     assertStructuredCodableExpansion(
@@ -428,8 +429,8 @@ struct StructuredCodableEnumTests {
       }
 
       extension Node: StructuredCoding.StructuredEnumeration {
-        static var codingStyle: StructuredCoding.StructuredEnumerationCodingStyleTypeDiscriminated {
-          .typeDiscriminated
+        static var codingConfiguration: StructuredCoding.StructuredEnumerationCodingConfiguration<StructuredCoding.StructuredEnumerationCodingStyleTypeDiscriminated> {
+          .init(style: .typeDiscriminated)
         }
         static var schema: some StructuredCoding.StructuredCodingSchema {
           _schema()
@@ -545,6 +546,171 @@ struct StructuredCodableEnumTests {
         }
       }
       """#
+    )
+  }
+
+  /// `undeclaredPropertyBehavior: .discard` is recorded in the
+  /// `codingConfiguration` (even for the default style) and propagated into
+  /// every synthesized case payload object. Value-less cases share one
+  /// synthesized empty payload object instead of `StructuredEmptyObject`,
+  /// which cannot carry the per-enum setting. A single-object case
+  /// (`.message`) is untouched — its type's own setting governs.
+  @Test
+  func enumDiscardingUndeclaredProperties() {
+    assertStructuredCodableExpansion(
+      """
+      @StructuredCodable(undeclaredPropertyBehavior: .discard)
+      enum E {
+        case message(Message)
+        case note(text: String)
+        case ping
+      }
+      """,
+      #"""
+      enum E {
+        case message(Message)
+        case note(text: String)
+        case ping
+      }
+
+      extension E: StructuredCoding.StructuredEnumeration, StructuredCoding.StructuredObjectRepresentable {
+        static var codingConfiguration: StructuredCoding.StructuredEnumerationCodingConfiguration<StructuredCoding.StructuredEnumerationCodingStyleObjectProperties> {
+          .init(style: .objectProperties, undeclaredPropertyBehavior: .discard)
+        }
+        static var schema: some StructuredCoding.StructuredCodingSchema {
+          _schema()
+        }
+        typealias Cases = (StructuredCoding.StructuredEnumerationCase<Self, Message>, StructuredCoding.StructuredEnumerationCase<Self, __macro_local_4notefMu_>, StructuredCoding.StructuredEnumerationCase<Self, __macro_local_12EmptyPayloadfMu_>)
+        static func cases() -> Cases {
+          (StructuredCoding.StructuredEnumerationCase(
+              name: "message",
+              accessor: { value in
+                guard case .message(let v0) = value else {
+                  return nil
+                }
+                return v0
+              },
+              initializer: {
+                .message($0)
+              }
+            ), StructuredCoding.StructuredEnumerationCase(
+              name: "note",
+              accessor: { value in
+                guard case .note(let v0) = value else {
+                  return nil
+                }
+                return __macro_local_4notefMu_(text: v0)
+              },
+              initializer: {
+                .note(text: $0.text)
+              }
+            ), StructuredCoding.StructuredEnumerationCase(
+              name: "ping",
+              accessor: { value in
+                guard case .ping = value else {
+                  return nil
+                }
+                return __macro_local_12EmptyPayloadfMu_()
+              },
+              initializer: { _ in
+                .ping
+              }
+            ))
+        }
+        struct __macro_local_4notefMu_: StructuredCoding.StructuredObject {
+          var text: String
+          typealias __macro_local_4textfMu_ = StructuredCoding.StructuredObjectProperty<Self, String._StructuredObjectPropertyDefinition>
+          static var undeclaredPropertyBehavior: StructuredCoding.StructuredUndeclaredPropertyBehavior {
+            .discard
+          }
+          static var schema: some StructuredCoding.StructuredCodingSchema {
+            _schema()
+          }
+          typealias StructuredObjectProperties = __macro_local_4textfMu_
+          static func properties() -> StructuredObjectProperties {
+            __macro_local_4textfMu_(
+              name: "text",
+              keyPath: \.text,
+              schema: __macro_local_4textfMu_.Definition.CodingValue.schema
+            )
+          }
+          typealias ObjectDecoderValues = __macro_local_4textfMu_.ObjectDecoderValue
+          static func decode(from objectDecoder: sending StructuredCoding.StructuredObjectDecoder<ObjectDecoderValues>) -> sending Self {
+            Self(
+              text: objectDecoder.values
+            )
+          }
+        }
+        struct __macro_local_12EmptyPayloadfMu_: StructuredCoding.StructuredObject {
+          static var undeclaredPropertyBehavior: StructuredCoding.StructuredUndeclaredPropertyBehavior {
+            .discard
+          }
+          static var schema: some StructuredCoding.StructuredCodingSchema {
+            _schema()
+          }
+          typealias StructuredObjectProperties = ()
+          static func properties() -> StructuredObjectProperties {
+            ()
+          }
+          typealias ObjectDecoderValues = ()
+          static func decode(from objectDecoder: sending StructuredCoding.StructuredObjectDecoder<ObjectDecoderValues>) -> sending Self {
+            Self()
+          }
+        }
+      }
+      """#
+    )
+  }
+
+  /// A type-discriminated case codes as its bare associated value — there is
+  /// no object container — so spelling `undeclaredPropertyBehavior` on the
+  /// enumeration is diagnosed and ignored.
+  @Test
+  func enumTypeDiscriminatedRejectsUndeclaredPropertyBehavior() {
+    assertStructuredCodableExpansion(
+      """
+      @StructuredCodable(style: .typeDiscriminated, undeclaredPropertyBehavior: .discard)
+      enum Node {
+        case string(String)
+      }
+      """,
+      #"""
+      enum Node {
+        case string(String)
+      }
+
+      extension Node: StructuredCoding.StructuredEnumeration {
+        static var codingConfiguration: StructuredCoding.StructuredEnumerationCodingConfiguration<StructuredCoding.StructuredEnumerationCodingStyleTypeDiscriminated> {
+          .init(style: .typeDiscriminated)
+        }
+        static var schema: some StructuredCoding.StructuredCodingSchema {
+          _schema()
+        }
+        typealias Cases = StructuredCoding.StructuredEnumerationCase<Self, String>
+        static func cases() -> Cases {
+          StructuredCoding.StructuredEnumerationCase(
+            name: "string",
+            accessor: { value in
+              guard case .string(let v0) = value else {
+                return nil
+              }
+              return v0
+            },
+            initializer: {
+              .string($0)
+            }
+          )
+        }
+      }
+      """#,
+      diagnostics: [
+        DiagnosticSpec(
+          message:
+            "`undeclaredPropertyBehavior` cannot be applied to a type-discriminated enumeration, whose cases code as bare values with no object container.",
+          line: 2,
+          column: 6
+        )
+      ]
     )
   }
 

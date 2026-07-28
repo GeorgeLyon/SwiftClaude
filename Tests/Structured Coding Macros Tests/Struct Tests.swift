@@ -1,3 +1,4 @@
+import SwiftSyntaxMacrosGenericTestSupport
 import Testing
 
 /// Verifies that `@StructuredCodable` lowers structs (and classes) onto
@@ -422,6 +423,100 @@ struct StructuredCodableStructTests {
         }
       }
       """#
+    )
+  }
+
+  /// `undeclaredPropertyBehavior: .discard` emits the static behavior witness;
+  /// the default `.reject` is supplied by the protocol extension and emits
+  /// nothing (every other expansion in this suite).
+  @Test
+  func structDiscardingUndeclaredProperties() {
+    assertStructuredCodableExpansion(
+      """
+      @StructuredCodable(undeclaredPropertyBehavior: .discard)
+      struct Point {
+        let x: Int
+      }
+      """,
+      #"""
+      struct Point {
+        let x: Int
+      }
+
+      extension Point: StructuredCoding.StructuredObject, StructuredCoding.StructuredObjectRepresentable {
+        typealias __macro_local_1xfMu_ = StructuredCoding.StructuredObjectProperty<Self, Int._StructuredObjectPropertyDefinition>
+        static var undeclaredPropertyBehavior: StructuredCoding.StructuredUndeclaredPropertyBehavior {
+          .discard
+        }
+        static var schema: some StructuredCoding.StructuredCodingSchema {
+          _schema()
+        }
+        typealias StructuredObjectProperties = __macro_local_1xfMu_
+        static func properties() -> StructuredObjectProperties {
+          __macro_local_1xfMu_(
+            name: "x",
+            keyPath: \.x,
+            schema: __macro_local_1xfMu_.Definition.CodingValue.schema
+          )
+        }
+        typealias ObjectDecoderValues = __macro_local_1xfMu_.ObjectDecoderValue
+        static func decode(from objectDecoder: sending StructuredCoding.StructuredObjectDecoder<ObjectDecoderValues>) -> sending Self {
+          Self(from: objectDecoder)
+        }
+        private init(from objectDecoder: sending StructuredCoding.StructuredObjectDecoder<ObjectDecoderValues>) {
+          self.x = objectDecoder.values
+        }
+      }
+      """#
+    )
+  }
+
+  /// `undeclaredPropertyBehavior` is rejected on a wrapper struct — the value
+  /// codes with no object container for the setting to govern.
+  @Test
+  func wrapperStructRejectsUndeclaredPropertyBehavior() {
+    assertStructuredCodableExpansion(
+      """
+      @StructuredCodable(style: .wrapper, undeclaredPropertyBehavior: .discard)
+      struct MediaType {
+        let stringValue: String
+      }
+      """,
+      #"""
+      struct MediaType {
+        let stringValue: String
+      }
+
+      extension MediaType: StructuredCoding.StructuredWrapper {
+        typealias __macro_local_11stringValuefMu_ = StructuredCoding.StructuredObjectProperty<Self, String._StructuredObjectPropertyDefinition>
+        static var schema: some StructuredCoding.StructuredCodingSchema {
+          _schema()
+        }
+        typealias StructuredObjectProperties = __macro_local_11stringValuefMu_
+        static func properties() -> StructuredObjectProperties {
+          __macro_local_11stringValuefMu_(
+            name: "stringValue",
+            keyPath: \.stringValue,
+            schema: __macro_local_11stringValuefMu_.Definition.CodingValue.schema
+          )
+        }
+        typealias ObjectDecoderValues = __macro_local_11stringValuefMu_.ObjectDecoderValue
+        static func decode(from objectDecoder: sending StructuredCoding.StructuredObjectDecoder<ObjectDecoderValues>) -> sending Self {
+          Self(from: objectDecoder)
+        }
+        private init(from objectDecoder: sending StructuredCoding.StructuredObjectDecoder<ObjectDecoderValues>) {
+          self.stringValue = objectDecoder.values
+        }
+      }
+      """#,
+      diagnostics: [
+        DiagnosticSpec(
+          message:
+            "`undeclaredPropertyBehavior` cannot be applied to a wrapper struct, which codes as its stored value with no object container.",
+          line: 2,
+          column: 8
+        )
+      ]
     )
   }
 

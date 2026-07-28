@@ -13,11 +13,13 @@
     named(init),
     named(Cases),
     named(cases),
-    named(codingStyle)
+    named(codingConfiguration),
+    named(undeclaredPropertyBehavior)
 )
 public macro StructuredCodable(
   description: String? = nil,
   style: any StructuredEnumerationCodingStyle = .objectProperties,
+  undeclaredPropertyBehavior: StructuredUndeclaredPropertyBehavior = .reject,
   keyConversionStrategy: StructuredCodingKeyConversionStrategy = .none,
   compatibilityMode: StructuredCodingCompatibilityMode = []
 ) =

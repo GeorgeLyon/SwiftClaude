@@ -228,8 +228,8 @@ private enum Feedback: Equatable, Sendable {
 /// An object-properties enumeration spanning every associated-value shape: a
 /// Branch-A primitive (`text`), a Branch-B primitive (`count`), a Branch-A object
 /// (`message`), a Branch-B object (`move`), and an empty object (`ping`). It takes
-/// the default `StructuredEnumerationCodingStyleObjectProperties`, so no `codingStyle` is
-/// declared.
+/// the default `StructuredEnumerationCodingStyleObjectProperties`, so no
+/// `codingConfiguration` is declared.
 private enum Value: StructuredEnumeration, Equatable, Sendable {
 
   case text(String)

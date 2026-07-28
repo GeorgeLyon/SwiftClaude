@@ -16,11 +16,13 @@ public import StructuredCoding
     named(init),
     named(Cases),
     named(cases),
-    named(codingStyle)
+    named(codingConfiguration),
+    named(undeclaredPropertyBehavior)
 )
 public macro APICodable(
   description: String? = nil,
   style: any StructuredEnumerationCodingStyle = .internallyTagged(discriminatorPropertyName: "type"),
+  undeclaredPropertyBehavior: StructuredUndeclaredPropertyBehavior = .reject,
   keyConversionStrategy: StructuredCodingKeyConversionStrategy = .convertToSnakeCase,
   compatibilityMode: StructuredCodingCompatibilityMode = []
 ) =
@@ -80,4 +82,8 @@ public enum APICodable {
     StructuredCoding.StructuredEnumerationCodingStyleInternallyTagged
   public typealias StructuredEnumerationCodingStyleTypeDiscriminated =
     StructuredCoding.StructuredEnumerationCodingStyleTypeDiscriminated
+  public typealias StructuredEnumerationCodingConfiguration =
+    StructuredCoding.StructuredEnumerationCodingConfiguration
+  public typealias StructuredUndeclaredPropertyBehavior =
+    StructuredCoding.StructuredUndeclaredPropertyBehavior
 }

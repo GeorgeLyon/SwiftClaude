@@ -121,6 +121,21 @@ struct CompatibilityModeArgument: ParsableArgument {
   }
 }
 
+/// `undeclaredPropertyBehavior: .discard` — what generated object decoding
+/// does with properties the type does not declare. Absent means `.reject`.
+enum UndeclaredPropertyBehaviorArgument: String, InferredBaseMemberAccessExprArgument {
+  static let label: TokenSyntax = "undeclaredPropertyBehavior"
+  case reject
+  case discard
+
+  var value: UndeclaredPropertyBehavior {
+    switch self {
+    case .reject: .reject
+    case .discard: .discard
+    }
+  }
+}
+
 /// `style: .wrapper` — the only non-default struct style; selects the
 /// `StructuredWrapper` conformance. Its absence selects `StructuredObject`.
 enum StructStyleArgument: String, InferredBaseMemberAccessExprArgument {

@@ -20,6 +20,13 @@ struct IdentifiableToken {
   }
 }
 
+/// Mirror of the library's public `StructuredUndeclaredPropertyBehavior`, as
+/// parsed from `@StructuredCodable(undeclaredPropertyBehavior:)`.
+enum UndeclaredPropertyBehavior {
+  case reject
+  case discard
+}
+
 /// Mirror of the library's public `StructuredCodingCompatibilityMode` option
 /// set, as parsed from `@StructuredCodable(compatibilityMode:)`.
 struct CompatibilityModes: OptionSet {
@@ -97,6 +104,13 @@ struct ObjectSchema {
   /// witness passes it as `_schema`'s `typeDescription:`; use sites prepend
   /// theirs onto the resulting schema.
   let description: StringLiteralExprSyntax?
+
+  /// Carried from `@StructuredCodable(undeclaredPropertyBehavior:)`, or — for
+  /// an object synthesized for an enum case payload — from the enclosing
+  /// enumeration's argument. `.discard` emits a `static var
+  /// undeclaredPropertyBehavior` witness; `.reject` is the protocol default
+  /// and emits nothing.
+  var undeclaredPropertyBehavior: UndeclaredPropertyBehavior = .reject
 
   var properties: [Property]
 
@@ -254,9 +268,10 @@ enum ParameterClauseSchema {
 
 /// A `StructuredEnumeration` conformance.
 ///
-/// Generation emits `Cases` / `cases()` (and, for the non-default coding styles,
-/// `codingStyle`), plus any nested `StructuredObject` types synthesized for
-/// all-labeled cases. Every `StructuredEnumerationCase` wraps exactly one
+/// Generation emits `Cases` / `cases()` (and, when any component differs from
+/// the protocol defaults, `codingConfiguration`), plus any nested
+/// `StructuredObject` types synthesized for all-labeled cases. Every
+/// `StructuredEnumerationCase` wraps exactly one
 /// associated-value type, so each case's 0/1/N Swift associated values are first
 /// collapsed onto a single `ParameterClauseSchema`.
 struct EnumerationSchema {
@@ -280,11 +295,26 @@ struct EnumerationSchema {
   /// See `ObjectSchema.description`.
   let description: StringLiteralExprSyntax?
 
+  /// Carried from `@StructuredCodable(undeclaredPropertyBehavior:)`. Recorded
+  /// in the generated `codingConfiguration` and propagated into every
+  /// synthesized case payload object; a case whose single associated value is
+  /// a user-declared object type keeps that type's own setting.
+  var undeclaredPropertyBehavior: UndeclaredPropertyBehavior = .reject
+
+  /// The shared zero-property payload object synthesized for the enum's
+  /// value-less cases when `undeclaredPropertyBehavior` is `.discard` — the
+  /// shared `StructuredEmptyObject` cannot carry a per-enum setting. `nil`
+  /// (falling back to `StructuredEmptyObject`) otherwise, or when no case
+  /// needs it.
+  var emptyCasePayloadObject: ObjectSchema? = nil
+
   var cases: [Case]
 
-  /// The `StructuredEnumerationCodingStyle` the conformance selects.
-  /// `objectProperties` is the protocol default, so generation emits no
-  /// `codingStyle` member for it; the others emit a `static var codingStyle`.
+  /// The `StructuredEnumerationCodingStyle` the conformance selects — the
+  /// `style` component of the generated `codingConfiguration`.
+  /// `objectProperties` is the protocol default, so (with a default
+  /// undeclared-property behavior) generation emits no configuration member
+  /// for it.
   enum CodingStyle {
     /// `{"caseName": <associatedValue>}` — the default.
     case objectProperties
