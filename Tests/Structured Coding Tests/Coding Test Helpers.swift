@@ -114,9 +114,9 @@ func test<Value: StructuredDecodable>(
   let json = jsonFragments.joined()
 
   func testDecoding(
-    _ body: (DecodingSession<Value>) throws -> Void
+    _ body: (DecodingSessionStorage<Value>) throws -> Void
   ) throws {
-    try decode { (session: DecodingSession<Value>, provider: any ValueProvider<Value>) in
+    try decode { (session: DecodingSessionStorage<Value>, provider: any ValueProvider<Value>) in
       try body(session)
 
       if isComplete {
@@ -171,35 +171,36 @@ func test<Value: StructuredDecodable>(
 }
 
 private func decode<Value: StructuredDecodable>(
-  _ body: (DecodingSession<Value>, any ValueProvider<Value>) throws -> Void
+  _ body: (DecodingSessionStorage<Value>, any ValueProvider<Value>) throws -> Void
 ) throws {
-  let decoder = IncrementalDecoder()
+  var jsonDecoder = JavaScriptObjectNotation.Decoder()
   let box: BoxAccessor<Value>
   if let initialValue = Value.initialValueForDecoding(isMutable: true) {
     box = BoxAccessor(initialValue: initialValue)
   } else {
     box = BoxAccessor()
   }
-  let session = decoder.startDecoding { stream in
+  let session = jsonDecoder.beginDecoding { stream in
     try await stream.withDecoder { decoder in
       try await Value.decode(from: &decoder, in: StructuredDecodingContext(), using: box)
     }
     try await stream.readTrailingWhitespace()
     return try box.value
   }
-  try body(session, box)
+  /// The test-facing driver is the session's reference-typed storage rather
+  /// than the `~Escapable` session itself so `#expect`/`#require` in test
+  /// closures can introspect it (the testing macros require `Copyable`).
+  try body(session.storage, box)
 }
 
 // MARK: - Value Provider
 
 /// Exposes the value being decoded, whether that is the final value produced by
-/// a `DecodingSession` or the in-progress value held by a `BoxAccessor`.
+/// a decoding session or the in-progress value held by a `BoxAccessor`.
 private protocol ValueProvider<Value> {
   associatedtype Value
   var value: Value { get throws }
 }
-
-extension DecodingSession: ValueProvider {}
 
 private final class BoxAccessor<Value>: StructuredAccessor, ValueProvider {
 
