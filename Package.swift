@@ -52,6 +52,10 @@ let package = Package(
       dependencies: [
         "StructuredCoding",
         "JavaScriptObjectNotation",
+        /// Works around an Xcode 27 beta 4 swift-build bug: the macro target's
+        /// object is linked into test bundles without its own dependencies.
+        .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
+        .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
       ],
       path: "Tests/Structured Coding Tests",
       swiftSettings: .projectDefaults
@@ -72,6 +76,10 @@ let package = Package(
         "MessagesAPI",
         "StructuredCoding",
         "JavaScriptObjectNotation",
+        /// Works around an Xcode 27 beta 4 swift-build bug: the macro target's
+        /// object is linked into test bundles without its own dependencies.
+        .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
+        .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
       ],
       path: "Tests/Messages API Tests",
       swiftSettings: .projectDefaults
