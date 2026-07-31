@@ -33,7 +33,7 @@ public protocol StructuredObject: StructuredCodable, StructuredObjectRepresentab
   static func decode(from objectDecoder: sending StructuredObjectDecoder<ObjectDecoderValues>)
     -> sending Self
   static func decodeProperties<Accessor: StructuredAccessor & ~Escapable>(
-    from decoder: inout StructuredObjectPropertiesDecoder,
+    from propertiesDecoder: inout StructuredObjectPropertiesDecoder,
     in context: borrowing StructuredDecodingContext,
     using accessor: Accessor,
     configuration: some StructuredObjectPropertiesDecodingConfiguration
@@ -42,7 +42,7 @@ public protocol StructuredObject: StructuredCodable, StructuredObjectRepresentab
     Accessor.Value == Self
 
   func encodeProperties(
-    to encoder: inout StructuredObjectPropertiesEncoder
+    to propertiesEncoder: inout StructuredObjectPropertiesEncoder
   ) throws
 
 }
@@ -373,7 +373,7 @@ public protocol StructuredObjectPropertyDefinition: SendableMetatype {
   func encode(
     _ propertyValue: PropertyValue,
     forKey name: StructuredCodingKey,
-    in encoder: inout StructuredObjectPropertiesEncoder
+    in propertiesEncoder: inout StructuredObjectPropertiesEncoder
   ) throws
 
   func initialValueForDecoding(
@@ -383,7 +383,7 @@ public protocol StructuredObjectPropertyDefinition: SendableMetatype {
     from propertyValue: sending PropertyValue
   ) -> sending ObjectDecoderValue
   func decodeValue<Accessor: StructuredAccessor & ~Escapable>(
-    from decoder: inout StructuredDecoder,
+    from stream: inout StructuredDecodingStream,
     in context: borrowing StructuredDecodingContext,
     using accessor: Accessor
   ) async throws -> sending ValidationPayload
@@ -420,10 +420,10 @@ public struct StructuredRequiredObjectPropertyDefinition<
   public func encode(
     _ propertyValue: PropertyValue,
     forKey name: StructuredCodingKey,
-    in encoder: inout StructuredObjectPropertiesEncoder
+    in propertiesEncoder: inout StructuredObjectPropertiesEncoder
   ) throws {
-    try encoder.encodeProperty(named: name) { encoder in
-      try propertyValue.encode(to: &encoder)
+    try propertiesEncoder.encodeProperty(named: name) { stream in
+      try propertyValue.encode(to: &stream)
     }
   }
 
@@ -445,11 +445,11 @@ public struct StructuredRequiredObjectPropertyDefinition<
   }
 
   public func decodeValue<Accessor: StructuredAccessor & ~Escapable>(
-    from decoder: inout StructuredDecoder,
+    from stream: inout StructuredDecodingStream,
     in context: borrowing StructuredDecodingContext,
     using accessor: Accessor
   ) async throws -> sending Void where Accessor.Value == PropertyValue {
-    try await PropertyValue.decode(from: &decoder, in: context, using: accessor)
+    try await PropertyValue.decode(from: &stream, in: context, using: accessor)
   }
 
   public func decodeOmitted<Accessor: StructuredAccessor & ~Escapable>(
@@ -483,11 +483,11 @@ public struct StructuredOptionalObjectPropertyDefinition<
   public func encode(
     _ propertyValue: Wrapped?,
     forKey name: StructuredCodingKey,
-    in encoder: inout StructuredObjectPropertiesEncoder
+    in propertiesEncoder: inout StructuredObjectPropertiesEncoder
   ) throws {
     guard let propertyValue else { return }
-    try encoder.encodeProperty(named: name) { encoder in
-      try propertyValue.encode(to: &encoder)
+    try propertiesEncoder.encodeProperty(named: name) { stream in
+      try propertyValue.encode(to: &stream)
     }
   }
 
@@ -504,7 +504,7 @@ public struct StructuredOptionalObjectPropertyDefinition<
     propertyValue
   }
   public func decodeValue<Accessor: StructuredAccessor & ~Escapable>(
-    from decoder: inout StructuredDecoder,
+    from stream: inout StructuredDecodingStream,
     in context: borrowing StructuredDecodingContext,
     using accessor: Accessor
   ) async throws -> sending Void where Accessor.Value == Wrapped? {
@@ -512,7 +512,7 @@ public struct StructuredOptionalObjectPropertyDefinition<
       try await accessor.initializeValue(to: initialValue)
     }
     return try await accessor.withSomeAccessor { accessor in
-      try await Wrapped.decode(from: &decoder, in: context, using: accessor)
+      try await Wrapped.decode(from: &stream, in: context, using: accessor)
     }
   }
   public func decodeOmitted<Accessor: StructuredAccessor & ~Escapable>(
@@ -548,9 +548,9 @@ where
   public func encode(
     _ propertyValue: Base.PropertyValue,
     forKey name: StructuredCodingKey,
-    in encoder: inout StructuredObjectPropertiesEncoder
+    in propertiesEncoder: inout StructuredObjectPropertiesEncoder
   ) throws {
-    try base.encode(propertyValue, forKey: name, in: &encoder)
+    try base.encode(propertyValue, forKey: name, in: &propertiesEncoder)
   }
 
   public func initialValueForDecoding(
@@ -564,7 +564,7 @@ where
     ()
   }
   public func decodeValue<Accessor: StructuredAccessor & ~Escapable>(
-    from decoder: inout StructuredDecoder,
+    from stream: inout StructuredDecodingStream,
     in context: borrowing StructuredDecodingContext,
     using accessor: Accessor
   ) async throws -> sending ValidationPayload
@@ -577,7 +577,7 @@ where
         case .objectDecoderValue, .none:
           break
         }
-        try await base.decodeValue(from: &decoder, in: context, using: accessor)
+        try await base.decodeValue(from: &stream, in: context, using: accessor)
       }
     }
   }
@@ -625,9 +625,9 @@ where
   public func encode(
     _ propertyValue: Base.PropertyValue,
     forKey name: StructuredCodingKey,
-    in encoder: inout StructuredObjectPropertiesEncoder
+    in propertiesEncoder: inout StructuredObjectPropertiesEncoder
   ) throws {
-    try base.encode(propertyValue, forKey: name, in: &encoder)
+    try base.encode(propertyValue, forKey: name, in: &propertiesEncoder)
   }
 
   public func initialValueForDecoding(
@@ -652,7 +652,7 @@ where
     propertyValue
   }
   public func decodeValue<Accessor: StructuredAccessor & ~Escapable>(
-    from decoder: inout StructuredDecoder,
+    from stream: inout StructuredDecodingStream,
     in context: borrowing StructuredDecodingContext,
     using accessor: Accessor
   ) async throws -> sending ValidationPayload
@@ -666,7 +666,7 @@ where
         try await accessor.initializeValue(to: value)
       }
     }
-    return try await base.decodeValue(from: &decoder, in: context, using: accessor)
+    return try await base.decodeValue(from: &stream, in: context, using: accessor)
   }
   public func decodeOmitted<Accessor: StructuredAccessor & ~Escapable>(
     in context: borrowing StructuredDecodingContext,
@@ -726,14 +726,14 @@ public struct StructuredObjectPropertiesEncoder: ~Copyable {
 
   public mutating func encodeProperty(
     named name: StructuredCodingKey,
-    _ encodeValue: (inout StructuredEncoder) throws -> Void
+    _ encodeValue: (inout StructuredEncodingStream) throws -> Void
   ) rethrows {
     try objectEncoder.encodeProperty(
       encodeName: { stream in
         stream.encode(name.staticStringValue)
       },
       encodeValue: { stream in
-        try stream.withEncoder(encodeValue)
+        try stream.withStructuredEncodingStream(encodeValue)
       }
     )
   }
@@ -771,12 +771,12 @@ extension EncodingStream.ObjectEncoder {
 extension StructuredObject {
 
   public func encode<each PropertyDefinition>(
-    to encoder: inout StructuredEncoder
+    to stream: inout StructuredEncodingStream
   ) throws
   where
     StructuredObjectProperties == (repeat StructuredObjectProperty<Self, each PropertyDefinition>)
   {
-    try encoder.stream.encodeObject { objectEncoder in
+    try stream.json.encodeObject { objectEncoder in
       try objectEncoder.withPropertiesEncoder { propertiesEncoder in
         try encodeProperties(to: &propertiesEncoder)
       }
@@ -784,7 +784,7 @@ extension StructuredObject {
   }
 
   public func encodeProperties<each PropertyDefinition>(
-    to encoder: inout StructuredObjectPropertiesEncoder
+    to propertiesEncoder: inout StructuredObjectPropertiesEncoder
   ) throws
   where
     StructuredObjectProperties == (repeat StructuredObjectProperty<Self, each PropertyDefinition>)
@@ -793,7 +793,7 @@ extension StructuredObject {
     let properties = (repeat each propertiesTuple)
     for property in repeat (each properties) {
       let propertyValue = property.taggedKeyPath.accessValue(on: self)
-      try property.definition.encode(propertyValue, forKey: property.name, in: &encoder)
+      try property.definition.encode(propertyValue, forKey: property.name, in: &propertiesEncoder)
     }
   }
 
@@ -849,7 +849,7 @@ extension StructuredObject {
     Accessor: StructuredAccessor & ~Escapable,
     each PropertyDefinition
   >(
-    from decoder: inout StructuredDecoder,
+    from stream: inout StructuredDecodingStream,
     in context: borrowing StructuredDecodingContext,
     using accessor: Accessor,
   ) async throws
@@ -859,7 +859,7 @@ extension StructuredObject {
     ObjectDecoderValues == (repeat (each PropertyDefinition).ObjectDecoderValue)
   {
     try await context.withArena { arena in
-      try await decoder.stream.decodeObjectProperties(in: arena) { propertiesDecoder in
+      try await stream.json.decodeObjectProperties(in: arena) { propertiesDecoder in
         try await decodeProperties(
           from: &propertiesDecoder,
           in: context,
@@ -874,7 +874,7 @@ extension StructuredObject {
     Accessor: StructuredAccessor & ~Escapable,
     each PropertyDefinition
   >(
-    from decoder: inout StructuredObjectPropertiesDecoder,
+    from propertiesDecoder: inout StructuredObjectPropertiesDecoder,
     in context: borrowing StructuredDecodingContext,
     using accessor: Accessor,
     configuration: some StructuredObjectPropertiesDecodingConfiguration
@@ -884,13 +884,13 @@ extension StructuredObject {
     StructuredObjectProperties == (repeat StructuredObjectProperty<Self, each PropertyDefinition>),
     ObjectDecoderValues == (repeat (each PropertyDefinition).ObjectDecoderValue)
   {
-    decoder.undeclaredPropertyBehavior = undeclaredPropertyBehavior
+    propertiesDecoder.undeclaredPropertyBehavior = undeclaredPropertyBehavior
     let properties = (repeat each properties())
     try await context.withArena { arena in
       if initialValueForDecoding(isMutable: accessor.isMutable) != nil {
         try await decodeStreamed(
           properties: (repeat each properties),
-          propertiesDecoder: &decoder,
+          propertiesDecoder: &propertiesDecoder,
           in: context,
           using: accessor,
           arena: arena,
@@ -899,7 +899,7 @@ extension StructuredObject {
       } else {
         try await decodeBuffered(
           properties: (repeat each properties),
-          propertiesDecoder: &decoder,
+          propertiesDecoder: &propertiesDecoder,
           in: context,
           using: accessor,
           arena: arena,
@@ -949,9 +949,9 @@ extension StructuredObject {
             if stateRef.pointee.isDecoded {
               throw ObjectDecodingError.duplicateProperty(property.name.stringValue)
             }
-            let validationPayload = try await stream.withDecoder { decoder in
+            let validationPayload = try await stream.withStructuredDecodingStream { stream in
               try await property.definition.decodeValue(
-                from: &decoder,
+                from: &stream,
                 in: context,
                 using: KeyPathAccessor(
                   base: accessor,
@@ -1042,10 +1042,10 @@ extension StructuredObject {
             if stateRef.pointee.isDecoded {
               throw ObjectDecodingError.duplicateProperty(property.name.stringValue)
             }
-            try await stream.withDecoder { decoder in
+            try await stream.withStructuredDecodingStream { stream in
               if unavailablePropertyCount == 0 {
                 let validationPayload = try await property.definition.decodeValue(
-                  from: &decoder,
+                  from: &stream,
                   in: context,
                   using: KeyPathAccessor(
                     base: accessor,
@@ -1055,7 +1055,7 @@ extension StructuredObject {
                 stateRef.pointee = .streaming(.decoded(Sending(validationPayload)))
               } else if unavailablePropertyCount == 1, stateRef.pointee.isUnavailable {
                 let validationPayload = try await property.definition.decodeValue(
-                  from: &decoder,
+                  from: &stream,
                   in: context,
                   using: InitializingAccessor(
                     arena: copy arena,
@@ -1072,7 +1072,7 @@ extension StructuredObject {
                   unavailablePropertyCount -= 1
                 }
                 let validationPayload = try await property.definition.decodeValue(
-                  from: &decoder,
+                  from: &stream,
                   in: context,
                   using: PreInitializationAccessor(stateRef: stateRef)
                 )
@@ -1157,9 +1157,9 @@ private enum ObjectDecodingError: Error {
 
 public protocol StructuredObjectPropertiesDecodingConfiguration {
   associatedtype DecodingState
-  func prepareForDecoding(from decoder: inout StructuredObjectPropertiesDecoder) -> DecodingState
+  func prepareForDecoding(from propertiesDecoder: inout StructuredObjectPropertiesDecoder) -> DecodingState
   func decodeAdditionalProperties(
-    from decoder: inout StructuredObjectPropertiesDecoder,
+    from propertiesDecoder: inout StructuredObjectPropertiesDecoder,
     with state: DecodingState
   ) async throws
 }
@@ -1167,10 +1167,10 @@ public protocol StructuredObjectPropertiesDecodingConfiguration {
 private struct DefaultObjectPropertiesDecodingConfiguration:
   StructuredObjectPropertiesDecodingConfiguration
 {
-  func prepareForDecoding(from decoder: inout StructuredObjectPropertiesDecoder) {
+  func prepareForDecoding(from propertiesDecoder: inout StructuredObjectPropertiesDecoder) {
   }
   func decodeAdditionalProperties(
-    from decoder: inout StructuredObjectPropertiesDecoder,
+    from propertiesDecoder: inout StructuredObjectPropertiesDecoder,
     with state: Void
   ) async throws {
   }

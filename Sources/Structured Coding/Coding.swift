@@ -51,41 +51,41 @@ public protocol StructuredEncodable: SendableMetatype {
   associatedtype Schema: StructuredCodingSchema
   static var schema: Schema { get }
 
-  func encode(to encoder: inout StructuredEncoder) throws
+  func encode(to stream: inout StructuredEncodingStream) throws
 
 }
 
-public struct StructuredEncoder: ~Copyable {
+public struct StructuredEncodingStream: ~Copyable {
 
   public init(options: EncodingStream.Options = []) {
-    self.stream = EncodingStream()
-    self.stream.options = options
+    self.json = EncodingStream()
+    self.json.options = options
   }
 
   public var stringValue: String {
-    stream.stringValue
+    json.stringValue
   }
 
-  init(stream: consuming EncodingStream) {
-    self.stream = stream
+  init(json: consuming EncodingStream) {
+    self.json = json
   }
 
-  var stream: EncodingStream
+  var json: EncodingStream
 
 }
 
 extension EncodingStream {
 
-  mutating func withEncoder<T>(
-    _ body: (inout StructuredEncoder) throws -> T
+  mutating func withStructuredEncodingStream<T>(
+    _ body: (inout StructuredEncodingStream) throws -> T
   ) rethrows -> T {
-    var encoder = StructuredEncoder(stream: self)
+    var stream = StructuredEncodingStream(json: self)
     do {
-      let result = try body(&encoder)
-      self = encoder.stream
+      let result = try body(&stream)
+      self = stream.json
       return result
     } catch {
-      self = encoder.stream
+      self = stream.json
       throw error
     }
   }
@@ -105,7 +105,7 @@ public protocol StructuredDecodable: SendableMetatype {
   ) -> sending Self?
 
   static func decode<Accessor: StructuredAccessor & ~Escapable>(
-    from decoder: inout StructuredDecoder,
+    from stream: inout StructuredDecodingStream,
     in context: borrowing StructuredDecodingContext,
     using accessor: Accessor
   ) async throws where Accessor.Value == Self
@@ -115,21 +115,21 @@ public protocol StructuredDecodable: SendableMetatype {
 extension StructuredDecodable {
 
   static func decode(
-    from decoder: inout StructuredDecoder,
+    from stream: inout StructuredDecodingStream,
     in context: borrowing StructuredDecodingContext
   ) async throws -> sending Self {
     try await withSendingAccessor(in: context) { accessor in
       if let initialValue = initialValueForDecoding(isMutable: accessor.isMutable) {
         try await accessor.initializeValue(to: initialValue)
       }
-      try await decode(from: &decoder, in: context, using: accessor)
+      try await decode(from: &stream, in: context, using: accessor)
     }
   }
 
 }
 
-public struct StructuredDecoder: ~Copyable, ~Escapable {
-  var stream: DecodingStream
+public struct StructuredDecodingStream: ~Copyable, ~Escapable {
+  var json: DecodingStream
 }
 
 public struct StructuredDecodingContext: ~Copyable, ~Escapable {

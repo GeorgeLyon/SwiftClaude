@@ -16,8 +16,8 @@ extension Optional: StructuredEncodable where Wrapped: StructuredCodable {
     )
   }
 
-  public func encode(to encoder: inout StructuredEncoder) throws {
-    try OptionalStorage(value: self).encode(to: &encoder)
+  public func encode(to stream: inout StructuredEncodingStream) throws {
+    try OptionalStorage(value: self).encode(to: &stream)
   }
 
 }
@@ -31,12 +31,12 @@ extension Optional: StructuredDecodable where Wrapped: StructuredCodable {
   }
 
   public static func decode<Accessor: StructuredAccessor & ~Escapable>(
-    from decoder: inout StructuredDecoder,
+    from stream: inout StructuredDecodingStream,
     in context: borrowing StructuredDecodingContext,
     using accessor: Accessor
   ) async throws where Accessor.Value == Wrapped? {
     try await OptionalStorage<Wrapped>.decode(
-      from: &decoder,
+      from: &stream,
       in: context,
       using: KeyPathAccessor(base: accessor, keyPath: .writable(\.storage))
     )

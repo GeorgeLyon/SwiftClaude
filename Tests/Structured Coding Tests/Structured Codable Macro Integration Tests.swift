@@ -459,7 +459,7 @@ private final class MacroReferenceObject: Equatable, @unchecked Sendable {
 // MARK: - Helper
 
 private func encode<Value: StructuredEncodable>(_ value: Value) throws -> String {
-  var encoder = StructuredEncoder()
-  try value.encode(to: &encoder)
-  return encoder.stringValue
+  var stream = StructuredEncodingStream()
+  try value.encode(to: &stream)
+  return stream.stringValue
 }

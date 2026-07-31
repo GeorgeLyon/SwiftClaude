@@ -15,10 +15,10 @@ struct ToolInputEnvelopeTests {
   /// The envelope's schema is exactly what `ToolDefinition` publishes for a
   /// non-object-input tool.
   @Test func envelopeSchemaEncodesAsObject() throws {
-    var encoder = StructuredEncoder()
-    try ToolInputEnvelope<Int>.schema.encode(to: &encoder)
+    var stream = StructuredEncodingStream()
+    try ToolInputEnvelope<Int>.schema.encode(to: &stream)
     #expect(
-      encoder.stringValue
+      stream.stringValue
         == #"{"properties":{"input":{"type":"integer"}},"required":["input"]}"#
     )
   }
@@ -68,8 +68,8 @@ struct ToolInputEnvelopeTests {
 private func decode<Value: StructuredDecodable>(_ json: String) throws -> Value {
   var jsonDecoder = JavaScriptObjectNotation.Decoder()
   return try jsonDecoder.decode(from: Array(json.utf8)) { stream in
-    let value = try await stream.withDecoder { decoder in
-      try await Value.decode(from: &decoder, in: StructuredDecodingContext())
+    let value = try await stream.withStructuredDecodingStream { stream in
+      try await Value.decode(from: &stream, in: StructuredDecodingContext())
     }
     try await stream.readTrailingWhitespace()
     return value

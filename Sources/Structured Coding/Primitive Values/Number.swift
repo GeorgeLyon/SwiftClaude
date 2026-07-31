@@ -31,32 +31,32 @@ extension Decimal {
 
 extension Double {
 
-  public func encode(to encoder: inout StructuredEncoder) throws {
-    try encoder.stream.encode(self)
+  public func encode(to stream: inout StructuredEncodingStream) throws {
+    try stream.json.encode(self)
   }
 
 }
 
 extension Float {
 
-  public func encode(to encoder: inout StructuredEncoder) throws {
-    try encoder.stream.encode(self)
+  public func encode(to stream: inout StructuredEncodingStream) throws {
+    try stream.json.encode(self)
   }
 
 }
 
 extension Float16 {
 
-  public func encode(to encoder: inout StructuredEncoder) throws {
-    try encoder.stream.encode(self)
+  public func encode(to stream: inout StructuredEncodingStream) throws {
+    try stream.json.encode(self)
   }
 
 }
 
 extension Decimal: StructuredEncodable {
 
-  public func encode(to encoder: inout StructuredEncoder) throws {
-    try encoder.stream.encode(self)
+  public func encode(to stream: inout StructuredEncodingStream) throws {
+    try stream.json.encode(self)
   }
 
 }
@@ -71,11 +71,11 @@ where Self: StructuredDecodable & Sendable & LosslessStringConvertible {
   }
 
   public static func decode<Accessor: StructuredAccessor & ~Escapable>(
-    from decoder: inout StructuredDecoder,
+    from stream: inout StructuredDecodingStream,
     in context: borrowing StructuredDecodingContext,
     using accessor: Accessor
   ) async throws where Accessor.Value == Self {
-    let number = try await decoder.stream.decodeNumber()
+    let number = try await stream.json.decodeNumber()
     let value = try number.decode(as: Self.self)
     try await accessor.initializeValue(to: value)
   }
@@ -89,11 +89,11 @@ extension Decimal: StructuredDecodable {
   }
 
   public static func decode<Accessor: StructuredAccessor & ~Escapable>(
-    from decoder: inout StructuredDecoder,
+    from stream: inout StructuredDecodingStream,
     in context: borrowing StructuredDecodingContext,
     using accessor: Accessor
   ) async throws where Accessor.Value == Self {
-    let number = try await decoder.stream.decodeNumber()
+    let number = try await stream.json.decodeNumber()
     let value = try number.decode(as: Decimal.self)
     try await accessor.initializeValue(to: value)
   }

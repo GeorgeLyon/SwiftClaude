@@ -89,9 +89,9 @@ struct ObjectSchemaEncodingTests {
       decodesAs: .complete(MutableStringObject.schema),
       testEquality: { decoded, _, sourceLocation in
         let decoded = try #require(decoded, sourceLocation: sourceLocation)
-        var encoder = StructuredEncoder()
-        try decoded.encode(to: &encoder)
-        #expect(encoder.stringValue == json, sourceLocation: sourceLocation)
+        var stream = StructuredEncodingStream()
+        try decoded.encode(to: &stream)
+        #expect(stream.stringValue == json, sourceLocation: sourceLocation)
       }
     )
   }
@@ -104,9 +104,9 @@ struct ObjectSchemaEncodingTests {
       decodesAs: .complete(EmptyObject.schema),
       testEquality: { decoded, _, sourceLocation in
         let decoded = try #require(decoded, sourceLocation: sourceLocation)
-        var encoder = StructuredEncoder()
-        try decoded.encode(to: &encoder)
-        #expect(encoder.stringValue == json, sourceLocation: sourceLocation)
+        var stream = StructuredEncodingStream()
+        try decoded.encode(to: &stream)
+        #expect(stream.stringValue == json, sourceLocation: sourceLocation)
       }
     )
   }

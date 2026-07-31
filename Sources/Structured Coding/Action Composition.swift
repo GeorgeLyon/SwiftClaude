@@ -18,7 +18,7 @@ extension StructuredActionSelection: StructuredCodable {
     )
   }
 
-  public func encode(to encoder: inout StructuredEncoder) throws {
+  public func encode(to stream: inout StructuredEncodingStream) throws {
     throw StructuredActionCompositionCodingError.selectionCodingRequiresComposition
   }
 
@@ -27,7 +27,7 @@ extension StructuredActionSelection: StructuredCodable {
   }
 
   public static func decode<Accessor: StructuredAccessor & ~Escapable>(
-    from decoder: inout StructuredDecoder,
+    from stream: inout StructuredDecodingStream,
     in context: borrowing StructuredDecodingContext,
     using accessor: Accessor
   ) async throws where Accessor.Value == Self {
@@ -54,10 +54,10 @@ extension StructuredActionResult: StructuredCodable {
     )
   }
 
-  public func encode(to encoder: inout StructuredEncoder) throws {
+  public func encode(to stream: inout StructuredEncodingStream) throws {
     switch self {
-    case .first(let output): try output.encode(to: &encoder)
-    case .next(let output): try output.encode(to: &encoder)
+    case .first(let output): try output.encode(to: &stream)
+    case .next(let output): try output.encode(to: &stream)
     }
   }
 
@@ -66,7 +66,7 @@ extension StructuredActionResult: StructuredCodable {
   }
 
   public static func decode<Accessor: StructuredAccessor & ~Escapable>(
-    from decoder: inout StructuredDecoder,
+    from stream: inout StructuredDecodingStream,
     in context: borrowing StructuredDecodingContext,
     using accessor: Accessor
   ) async throws where Accessor.Value == Self {
@@ -98,8 +98,8 @@ extension StructuredActionCompositionSchema: StructuredCodingSchema {
     MetaSchema.any(description: nil)
   }
 
-  public func encode(to encoder: inout StructuredEncoder) throws {
-    try wrapped.encode(to: &encoder)
+  public func encode(to stream: inout StructuredEncodingStream) throws {
+    try wrapped.encode(to: &stream)
   }
 
   public static func initialValueForDecoding(isMutable: Bool) -> sending Self? {
@@ -107,11 +107,11 @@ extension StructuredActionCompositionSchema: StructuredCodingSchema {
   }
 
   public static func decode<Accessor: StructuredAccessor & ~Escapable>(
-    from decoder: inout StructuredDecoder,
+    from stream: inout StructuredDecodingStream,
     in context: borrowing StructuredDecodingContext,
     using accessor: Accessor
   ) async throws where Accessor.Value == Self {
-    let wrapped = try await MetaSchema.decode(from: &decoder, in: context)
+    let wrapped = try await MetaSchema.decode(from: &stream, in: context)
     try await accessor.initializeValue(to: Self(wrapping: wrapped))
   }
 

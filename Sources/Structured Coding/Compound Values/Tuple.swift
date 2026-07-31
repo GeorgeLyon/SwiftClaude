@@ -44,12 +44,12 @@ extension StructuredTuple {
 
 extension StructuredTuple: StructuredEncodable where repeat each Element: StructuredEncodable {
 
-  public func encode(to encoder: inout StructuredEncoder) throws {
-    try encoder.stream.encodeArray { arrayEncoder in
+  public func encode(to stream: inout StructuredEncodingStream) throws {
+    try stream.json.encodeArray { arrayEncoder in
       for element in repeat each values {
         try arrayEncoder.encodeElement { stream in
-          try stream.withEncoder { encoder in
-            try element.encode(to: &encoder)
+          try stream.withStructuredEncodingStream { stream in
+            try element.encode(to: &stream)
           }
         }
       }
@@ -69,7 +69,7 @@ extension StructuredTuple: StructuredDecodable {
   }
 
   public static func decode<Accessor: StructuredAccessor & ~Escapable>(
-    from decoder: inout StructuredDecoder,
+    from stream: inout StructuredDecodingStream,
     in context: borrowing StructuredDecodingContext,
     using accessor: Accessor
   ) async throws where Accessor.Value == Self {
@@ -77,14 +77,14 @@ extension StructuredTuple: StructuredDecodable {
       let stateRefs =
         (repeat arena.push(TupleElementDecodingState<each Element>.pending).unsafePointer)
 
-      try await decoder.stream.decodeArray { arrayDecoder in
+      try await stream.json.decodeArray { arrayDecoder in
         for stateRef in repeat each stateRefs {
           guard !arrayDecoder.isAtEnd else {
             throw TupleDecodingError.tooFewElements
           }
           try await arrayDecoder.decodeElement { stream in
-            try await stream.withDecoder { decoder in
-              try await stateRef.pointee.decode(from: &decoder, in: context)
+            try await stream.withStructuredDecodingStream { stream in
+              try await stateRef.pointee.decode(from: &stream, in: context)
             }
           }
         }
@@ -112,10 +112,10 @@ private enum TupleElementDecodingState<Element: StructuredDecodable>: ~Copyable 
   case decoded(Sending<Element>)
 
   mutating func decode(
-    from decoder: inout StructuredDecoder,
+    from stream: inout StructuredDecodingStream,
     in context: borrowing StructuredDecodingContext
   ) async throws {
-    let value = try await Element.decode(from: &decoder, in: context)
+    let value = try await Element.decode(from: &stream, in: context)
     self = .decoded(Sending(value))
   }
 

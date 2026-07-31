@@ -14,8 +14,8 @@ extension String {
 
 extension String: StructuredEncodable {
 
-  public func encode(to encoder: inout StructuredEncoder) throws {
-    encoder.stream.encode(self)
+  public func encode(to stream: inout StructuredEncodingStream) throws {
+    stream.json.encode(self)
   }
 
 }
@@ -29,16 +29,16 @@ extension String: StructuredDecodable {
   }
 
   public static func decode<Accessor: StructuredAccessor & ~Escapable>(
-    from decoder: inout StructuredDecoder,
+    from stream: inout StructuredDecodingStream,
     in context: borrowing StructuredDecodingContext,
     using accessor: Accessor
   ) async throws where Accessor.Value == Self {
     if accessor.isMutable {
-      try await decoder.stream.decodeCharacterRuns { fragment in
+      try await stream.json.decodeCharacterRuns { fragment in
         try await accessor.mutateValue(applying: fragment) { $0.append(contentsOf: $1) }
       }
     } else {
-      try await accessor.initializeValue(to: try await decoder.stream.decodeString())
+      try await accessor.initializeValue(to: try await stream.json.decodeString())
     }
   }
 

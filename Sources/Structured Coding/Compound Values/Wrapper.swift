@@ -38,13 +38,13 @@ extension StructuredWrapper {
   /// `CodingValue` would silently change the wire format of optional
   /// wrappers.
   public func encode<Definition>(
-    to encoder: inout StructuredEncoder
+    to stream: inout StructuredEncodingStream
   ) throws
   where
     StructuredObjectProperties == StructuredObjectProperty<Self, Definition>,
     Definition.PropertyValue: StructuredEncodable
   {
-    try Self.properties().taggedKeyPath.accessValue(on: self).encode(to: &encoder)
+    try Self.properties().taggedKeyPath.accessValue(on: self).encode(to: &stream)
   }
 
 }
@@ -86,7 +86,7 @@ extension StructuredWrapper {
     Accessor: StructuredAccessor & ~Escapable,
     Definition
   >(
-    from decoder: inout StructuredDecoder,
+    from stream: inout StructuredDecodingStream,
     in context: borrowing StructuredDecodingContext,
     using accessor: Accessor
   ) async throws
@@ -98,7 +98,7 @@ extension StructuredWrapper {
     let property = properties()
     if initialValueForDecoding(isMutable: accessor.isMutable) != nil {
       let validationPayload = try await property.definition.decodeValue(
-        from: &decoder,
+        from: &stream,
         in: context,
         using: KeyPathAccessor(base: accessor, keyPath: property.taggedKeyPath)
       )
@@ -118,7 +118,7 @@ extension StructuredWrapper {
           break
         }
         let validationPayload = try await property.definition.decodeValue(
-          from: &decoder,
+          from: &stream,
           in: context,
           using: scratch
         )
@@ -184,7 +184,7 @@ extension StructuredWrapper {
     Accessor: StructuredAccessor & ~Escapable,
     Definition
   >(
-    from decoder: inout StructuredDecoder,
+    from stream: inout StructuredDecodingStream,
     in context: borrowing StructuredDecodingContext,
     using accessor: Accessor
   ) async throws
@@ -197,12 +197,12 @@ extension StructuredWrapper {
     let property = properties()
     if initialValueForDecoding(isMutable: accessor.isMutable) != nil {
       try await Definition.PropertyValue.decode(
-        from: &decoder,
+        from: &stream,
         in: context,
         using: KeyPathAccessor(base: accessor, keyPath: property.taggedKeyPath)
       )
     } else {
-      let value = try await Definition.PropertyValue.decode(from: &decoder, in: context)
+      let value = try await Definition.PropertyValue.decode(from: &stream, in: context)
       try await accessor.initializeValue(
         to: decode(
           from: StructuredObjectDecoder(

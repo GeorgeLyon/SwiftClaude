@@ -135,17 +135,17 @@ extension StructuredEnumeration
 where CodingStyle == StructuredEnumerationCodingStyleObjectProperties {
 
   public func encode<each AssociatedValue: StructuredEncodable>(
-    to encoder: inout StructuredEncoder
+    to stream: inout StructuredEncodingStream
   ) throws
   where Cases == (repeat StructuredEnumerationCase<Self, each AssociatedValue>) {
     let casesTuple = Self.cases()
     let cases = (repeat each casesTuple)
-    try encoder.stream.encodeObject { objectEncoder in
+    try stream.json.encodeObject { objectEncoder in
       for `case` in repeat each cases {
         guard let associatedValue = `case`.accessor(self) else { continue }
         try objectEncoder.encodeProperty(`case`.name.stringValue) { stream in
-          try stream.withEncoder { encoder in
-            try associatedValue.encode(to: &encoder)
+          try stream.withStructuredEncodingStream { stream in
+            try associatedValue.encode(to: &stream)
           }
         }
         return
@@ -160,19 +160,19 @@ extension StructuredEnumeration
 where CodingStyle == StructuredEnumerationCodingStyleInternallyTagged {
 
   public func encode<each AssociatedValue: StructuredObject>(
-    to encoder: inout StructuredEncoder
+    to stream: inout StructuredEncodingStream
   ) throws
   where Cases == (repeat StructuredEnumerationCase<Self, each AssociatedValue>) {
     let discriminatorPropertyName = Self.codingConfiguration.style.discriminatorPropertyName
     let casesTuple = Self.cases()
     let cases = (repeat each casesTuple)
-    try encoder.stream.encodeObject { objectEncoder in
+    try stream.json.encodeObject { objectEncoder in
       try objectEncoder.withPropertiesEncoder { propertiesEncoder in
         for `case` in repeat each cases {
           guard let associatedValue = `case`.accessor(self) else { continue }
           let caseName = `case`.name.stringValue
-          try propertiesEncoder.encodeProperty(named: discriminatorPropertyName) { encoder in
-            try caseName.encode(to: &encoder)
+          try propertiesEncoder.encodeProperty(named: discriminatorPropertyName) { stream in
+            try caseName.encode(to: &stream)
           }
           try associatedValue.encodeProperties(to: &propertiesEncoder)
           return
@@ -188,14 +188,14 @@ extension StructuredEnumeration
 where CodingStyle == StructuredEnumerationCodingStyleTypeDiscriminated {
 
   public func encode<each AssociatedValue: StructuredEncodable>(
-    to encoder: inout StructuredEncoder
+    to stream: inout StructuredEncodingStream
   ) throws
   where Cases == (repeat StructuredEnumerationCase<Self, each AssociatedValue>) {
     let casesTuple = Self.cases()
     let cases = (repeat each casesTuple)
     for `case` in repeat each cases {
       guard let associatedValue = `case`.accessor(self) else { continue }
-      try associatedValue.encode(to: &encoder)
+      try associatedValue.encode(to: &stream)
       return
     }
     throw EnumerationCodingError.noMatchingCase
@@ -210,8 +210,8 @@ where
   RawValue == String
 {
 
-  public func encode(to encoder: inout StructuredEncoder) throws {
-    try rawValue.encode(to: &encoder)
+  public func encode(to stream: inout StructuredEncodingStream) throws {
+    try rawValue.encode(to: &stream)
   }
 
 }
@@ -223,8 +223,8 @@ where
   RawValue: FixedWidthInteger & Sendable
 {
 
-  public func encode(to encoder: inout StructuredEncoder) {
-    encoder.stream.encode(rawValue)
+  public func encode(to stream: inout StructuredEncodingStream) {
+    stream.json.encode(rawValue)
   }
 
 }
@@ -242,7 +242,7 @@ where CodingStyle == StructuredEnumerationCodingStyleObjectProperties {
     Accessor: StructuredAccessor & ~Escapable,
     each AssociatedValue
   >(
-    from decoder: inout StructuredDecoder,
+    from stream: inout StructuredDecodingStream,
     in context: borrowing StructuredDecodingContext,
     using accessor: Accessor
   ) async throws
@@ -250,7 +250,7 @@ where CodingStyle == StructuredEnumerationCodingStyleObjectProperties {
     Accessor.Value == Self,
     Cases == (repeat StructuredEnumerationCase<Self, each AssociatedValue>)
   {
-    try await decoder.stream.decodeObject { objectDecoder in
+    try await stream.json.decodeObject { objectDecoder in
       if objectDecoder.isAtEnd {
         throw EnumerationCodingError.noProperties
       }
@@ -284,7 +284,7 @@ where CodingStyle == StructuredEnumerationCodingStyleInternallyTagged {
     Accessor: StructuredAccessor & ~Escapable,
     each AssociatedValue: StructuredObject
   >(
-    from decoder: inout StructuredDecoder,
+    from stream: inout StructuredDecodingStream,
     in context: borrowing StructuredDecodingContext,
     using accessor: Accessor
   ) async throws
@@ -292,7 +292,7 @@ where CodingStyle == StructuredEnumerationCodingStyleInternallyTagged {
     Accessor.Value == Self,
     Cases == (repeat StructuredEnumerationCase<Self, each AssociatedValue>)
   {
-    try await decoder.stream.decodeObject { objectDecoder in
+    try await stream.json.decodeObject { objectDecoder in
       let discriminator = try await objectDecoder.peekObjectProperty(
         named: codingConfiguration.style.discriminatorPropertyName.stringValue,
         peekPropertyValue: { try await $0.decodeString() }
@@ -333,7 +333,7 @@ where CodingStyle == StructuredEnumerationCodingStyleTypeDiscriminated {
     Accessor: StructuredAccessor & ~Escapable,
     each AssociatedValue
   >(
-    from decoder: inout StructuredDecoder,
+    from stream: inout StructuredDecodingStream,
     in context: borrowing StructuredDecodingContext,
     using accessor: Accessor
   ) async throws
@@ -341,12 +341,12 @@ where CodingStyle == StructuredEnumerationCodingStyleTypeDiscriminated {
     Accessor.Value == Self,
     Cases == (repeat StructuredEnumerationCase<Self, each AssociatedValue>)
   {
-    let kind = try await decoder.stream.peekValueKind()
+    let kind = try await stream.json.peekValueKind()
     for `case` in repeat each cases() {
       guard `case`.kind == kind else {
         continue
       }
-      try await `case`.decode(from: &decoder.stream, in: context, using: accessor)
+      try await `case`.decode(from: &stream.json, in: context, using: accessor)
       return
     }
     throw EnumerationCodingError.unknownKind(kind)
@@ -366,11 +366,11 @@ where
   }
 
   public static func decode<Accessor: StructuredAccessor & ~Escapable>(
-    from decoder: inout StructuredDecoder,
+    from stream: inout StructuredDecodingStream,
     in context: borrowing StructuredDecodingContext,
     using accessor: Accessor
   ) async throws where Accessor.Value == Self {
-    let rawValue = try await decoder.stream.decodeString()
+    let rawValue = try await stream.json.decodeString()
     guard let value = Self(rawValue: rawValue) else {
       throw EnumerationCodingError.unknownRawValue(rawValue)
     }
@@ -391,11 +391,11 @@ where
   }
 
   public static func decode<Accessor: StructuredAccessor & ~Escapable>(
-    from decoder: inout StructuredDecoder,
+    from stream: inout StructuredDecodingStream,
     in context: borrowing StructuredDecodingContext,
     using accessor: Accessor
   ) async throws where Accessor.Value == Self {
-    let number = try await decoder.stream.decodeNumber()
+    let number = try await stream.json.decodeNumber()
     let rawValue = try number.decode(as: RawValue.self)
     guard let value = Self(rawValue: rawValue) else {
       throw EnumerationCodingError.unknownRawValue("\(rawValue)")
@@ -514,7 +514,7 @@ public struct StructuredEnumerationCase<Enumeration, AssociatedValue: Structured
     in context: borrowing StructuredDecodingContext,
     using accessor: Accessor
   ) async throws where Accessor.Value == Enumeration {
-    try await stream.withDecoder { decoder in
+    try await stream.withStructuredDecodingStream { stream in
       try await accessor.withCaseAccessor(for: self) { accessor in
         if let initialValue = AssociatedValue.initialValueForDecoding(
           isMutable: accessor.isMutable
@@ -522,7 +522,7 @@ public struct StructuredEnumerationCase<Enumeration, AssociatedValue: Structured
           try await accessor.initializeValue(to: initialValue)
         }
         try await AssociatedValue.decode(
-          from: &decoder,
+          from: &stream,
           in: context,
           using: accessor
         )
@@ -542,7 +542,7 @@ public struct StructuredEnumerationCase<Enumeration, AssociatedValue: Structured
 
   fileprivate func decodeProperties<Accessor: StructuredAccessor & ~Escapable>(
     discriminatorPropertyName: StructuredCodingKey,
-    from decoder: inout StructuredObjectPropertiesDecoder,
+    from propertiesDecoder: inout StructuredObjectPropertiesDecoder,
     in context: borrowing StructuredDecodingContext,
     using accessor: Accessor
   ) async throws
@@ -557,7 +557,7 @@ public struct StructuredEnumerationCase<Enumeration, AssociatedValue: Structured
         try await accessor.initializeValue(to: initialValue)
       }
       try await AssociatedValue.decodeProperties(
-        from: &decoder,
+        from: &propertiesDecoder,
         in: context,
         using: accessor,
         configuration: InternallyTaggedObjectPropertiesDecodingConfiguration(
@@ -578,15 +578,15 @@ private struct InternallyTaggedObjectPropertiesDecodingConfiguration:
 
   typealias DecodingState = StructuredObjectPropertiesDecoder.Checkpoint<Void>
   func prepareForDecoding(
-    from decoder: inout StructuredObjectPropertiesDecoder
+    from propertiesDecoder: inout StructuredObjectPropertiesDecoder
   ) -> DecodingState {
-    decoder.createCheckpoint()
+    propertiesDecoder.createCheckpoint()
   }
   func decodeAdditionalProperties(
-    from decoder: inout StructuredObjectPropertiesDecoder,
+    from propertiesDecoder: inout StructuredObjectPropertiesDecoder,
     with checkpoint: DecodingState
   ) async throws {
-    try await decoder.decodeIfNextPropertyNamed(
+    try await propertiesDecoder.decodeIfNextPropertyNamed(
       discriminatorPropertyName.stringValue,
       checkpoint: checkpoint,
       decode: { stream in

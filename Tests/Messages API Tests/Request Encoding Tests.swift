@@ -375,7 +375,7 @@ private func encode<Value: StructuredEncodable>(
   _ value: Value,
   pretty: Bool = false
 ) throws -> String {
-  var encoder = StructuredEncoder(options: pretty ? .prettyPrint : [])
-  try value.encode(to: &encoder)
-  return encoder.stringValue
+  var stream = StructuredEncodingStream(options: pretty ? .prettyPrint : [])
+  try value.encode(to: &stream)
+  return stream.stringValue
 }

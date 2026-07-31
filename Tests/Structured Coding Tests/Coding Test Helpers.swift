@@ -181,8 +181,8 @@ private func decode<Value: StructuredDecodable>(
     box = BoxAccessor()
   }
   let session = jsonDecoder.beginDecoding { stream in
-    try await stream.withDecoder { decoder in
-      try await Value.decode(from: &decoder, in: StructuredDecodingContext(), using: box)
+    try await stream.withStructuredDecodingStream { stream in
+      try await Value.decode(from: &stream, in: StructuredDecodingContext(), using: box)
     }
     try await stream.readTrailingWhitespace()
     return try box.value
@@ -255,9 +255,9 @@ func test<Value: StructuredEncodable>(
   encodesAs json: String,
   sourceLocation: SourceLocation = #_sourceLocation
 ) throws {
-  var encoder = StructuredEncoder()
-  try value.encode(to: &encoder)
-  #expect(encoder.stringValue == json, sourceLocation: sourceLocation)
+  var stream = StructuredEncodingStream()
+  try value.encode(to: &stream)
+  #expect(stream.stringValue == json, sourceLocation: sourceLocation)
 }
 
 // MARK: - JSON Fragments

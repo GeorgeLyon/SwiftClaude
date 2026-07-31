@@ -190,7 +190,7 @@ extension MetaSchema {
     caseName: StructuredCodingKey,
     caseSchema: some StructuredEncodable
   ) -> SchemaCodable {
-    SchemaCodable { encoder in
+    SchemaCodable { stream in
       guard var branch = caseSchema as? MetaSchema else {
         throw MetaSchemaEncodingError.internallyTaggedCaseSchemaIsNotAnObjectSchema
       }
@@ -207,7 +207,7 @@ extension MetaSchema {
         properties: [discriminator] + (branch.properties?.properties ?? [])
       )
       branch.required = [discriminatorPropertyName.stringValue] + (branch.required ?? [])
-      try branch.encode(to: &encoder)
+      try branch.encode(to: &stream)
     }
   }
 
@@ -249,24 +249,24 @@ extension MetaSchema {
   struct SchemaCodable {
 
     init(_ schema: some StructuredEncodable) {
-      encodeSchema = { encoder in
-        try schema.encode(to: &encoder)
+      encodeSchema = { stream in
+        try schema.encode(to: &stream)
       }
     }
 
     fileprivate init(decoded: OpaqueValue) {
-      encodeSchema = { encoder in
-        encoder.stream.encode(decoded)
+      encodeSchema = { stream in
+        stream.json.encode(decoded)
       }
     }
 
     fileprivate init(
-      encodeSchema: @escaping (inout StructuredEncoder) throws -> Void
+      encodeSchema: @escaping (inout StructuredEncodingStream) throws -> Void
     ) {
       self.encodeSchema = encodeSchema
     }
 
-    fileprivate let encodeSchema: (inout StructuredEncoder) throws -> Void
+    fileprivate let encodeSchema: (inout StructuredEncodingStream) throws -> Void
 
   }
 
@@ -279,8 +279,8 @@ extension MetaSchema.SchemaCodable: StructuredCodable {
     MetaSchema.any(description: nil)
   }
 
-  func encode(to encoder: inout StructuredEncoder) throws {
-    try encodeSchema(&encoder)
+  func encode(to stream: inout StructuredEncodingStream) throws {
+    try encodeSchema(&stream)
   }
 
   static func initialValueForDecoding(isMutable: Bool) -> sending Self? {
@@ -288,12 +288,12 @@ extension MetaSchema.SchemaCodable: StructuredCodable {
   }
 
   static func decode<Accessor: StructuredAccessor & ~Escapable>(
-    from decoder: inout StructuredDecoder,
+    from stream: inout StructuredDecodingStream,
     in context: borrowing StructuredDecodingContext,
     using accessor: Accessor
   ) async throws where Accessor.Value == Self {
     try await accessor.initializeValue(
-      to: Self(decoded: try await decoder.stream.decodeOpaqueValue())
+      to: Self(decoded: try await stream.json.decodeOpaqueValue())
     )
   }
 
@@ -332,12 +332,12 @@ extension MetaSchema.PropertyMap: StructuredCodable {
     MetaSchema.any(description: nil)
   }
 
-  func encode(to encoder: inout StructuredEncoder) throws {
-    try encoder.stream.encodeObject { objectEncoder in
+  func encode(to stream: inout StructuredEncodingStream) throws {
+    try stream.json.encodeObject { objectEncoder in
       for property in properties {
         try objectEncoder.encodeProperty(property.name) { stream in
-          try stream.withEncoder { encoder in
-            try property.schema.encode(to: &encoder)
+          try stream.withStructuredEncodingStream { stream in
+            try property.schema.encode(to: &stream)
           }
         }
       }
@@ -349,11 +349,11 @@ extension MetaSchema.PropertyMap: StructuredCodable {
   }
 
   static func decode<Accessor: StructuredAccessor & ~Escapable>(
-    from decoder: inout StructuredDecoder,
+    from stream: inout StructuredDecodingStream,
     in context: borrowing StructuredDecodingContext,
     using accessor: Accessor
   ) async throws where Accessor.Value == Self {
-    let propertyMap = try await decoder.stream.decodeObject { objectDecoder in
+    let propertyMap = try await stream.json.decodeObject { objectDecoder in
       var properties: [Property] = []
       while !objectDecoder.isAtEnd {
         properties.append(

@@ -14,8 +14,8 @@ extension Bool {
 
 extension Bool: StructuredEncodable {
 
-  public func encode(to encoder: inout StructuredEncoder) throws {
-    encoder.stream.encode(self)
+  public func encode(to stream: inout StructuredEncodingStream) throws {
+    stream.json.encode(self)
   }
 
 }
@@ -29,11 +29,11 @@ extension Bool: StructuredDecodable {
   }
 
   public static func decode<Accessor: StructuredAccessor & ~Escapable>(
-    from decoder: inout StructuredDecoder,
+    from stream: inout StructuredDecodingStream,
     in context: borrowing StructuredDecodingContext,
     using accessor: Accessor
   ) async throws where Accessor.Value == Self {
-    let value = try await decoder.stream.decodeBoolean()
+    let value = try await stream.json.decodeBoolean()
     try await accessor.initializeValue(to: value)
   }
 
