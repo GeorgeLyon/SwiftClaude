@@ -19,6 +19,7 @@ public import StructuredCoding
     named(codingConfiguration),
     named(undeclaredPropertyBehavior)
 )
+@attached(member, names: named(init))
 public macro APICodable(
   description: String? = nil,
   style: any StructuredEnumerationCodingStyle = .internallyTagged(discriminatorPropertyName: "type"),

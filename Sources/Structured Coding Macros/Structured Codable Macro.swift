@@ -14,7 +14,7 @@ enum StructuredCodableMacro: StructuredCodableMacroProtocol {
 
 // MARK: - Protocol
 
-protocol StructuredCodableMacroProtocol: ExtensionMacro {
+protocol StructuredCodableMacroProtocol: ExtensionMacro, MemberMacro {
   static var structuredCodingNamespace: StructuredCodingNamespace { get }
   static var structuredCodableMacroAttribute: TypeSyntax { get }
   static var defaultKeyConversionStrategy: KeyConversionStrategy { get }
@@ -53,6 +53,39 @@ extension StructuredCodableMacroProtocol {
         structuredCodableType.members
       }
     ]
+  }
+
+  /// The member role exists for classes: their decoder initializer must be
+  /// declared directly in the class body (a stored-property-assigning
+  /// initializer is designated, and both designated and `required`
+  /// initializers are forbidden in extensions). Structs and enums produce no
+  /// body members — bailing out before parsing also keeps their diagnostics
+  /// from being emitted twice, and a non-final class bails silently so the
+  /// extension role diagnoses the finality requirement exactly once.
+  static func expansion(
+    of node: AttributeSyntax,
+    providingMembersOf declaration: some DeclGroupSyntax,
+    conformingTo protocols: [TypeSyntax],
+    in context: some MacroExpansionContext
+  ) throws -> [DeclSyntax] {
+    guard let classDecl = declaration.as(ClassDeclSyntax.self),
+      classDecl.modifiers.contains(where: \.isFinal)
+    else {
+      return []
+    }
+    let context = StructuredCodableMacroContext(
+      namespace: Self.structuredCodingNamespace,
+      macroAttribute: Self.structuredCodableMacroAttribute,
+      defaultKeyConversionStrategy: Self.defaultKeyConversionStrategy,
+      defaultEnumStyle: Self.defaultEnumStyle,
+      extendedType: TypeSyntax(IdentifierTypeSyntax(name: classDecl.name.trimmed)),
+      inferredCompatibilityModes: CompatibilityModes(inferredFrom: declaration, in: context),
+      expansionContext: context
+    )
+    guard let structuredCodableType = declaration.structuredCodableType(in: context) else {
+      return []
+    }
+    return structuredCodableType.bodyMembers
   }
 
 }

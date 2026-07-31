@@ -36,9 +36,32 @@ extension StructuredCodableType {
   var members: MemberBlockItemListSyntax {
     switch kind {
     case .object(let schema), .wrapper(let schema):
-      schema.conformanceMembers(isPublic: isPublic)
+      schema.conformanceMembers(
+        isPublic: isPublic,
+        decoderInitializerHome: decoderInitializerHome
+      )
     case .enumeration(let schema):
       schema.conformanceMembers(isPublic: isPublic)
+    }
+  }
+
+  /// The declarations the macro's member role adds to the decorated type's
+  /// body: the decoder initializer when it cannot live in the extension —
+  /// i.e. for a class, where it must be `required` so `decode`'s
+  /// `Self(from: objectDecoder)` can construct through the metatype.
+  var bodyMembers: [DeclSyntax] {
+    guard decoderInitializerHome == .typeBody else {
+      return []
+    }
+    switch kind {
+    case .object(let schema), .wrapper(let schema):
+      return [
+        DeclSyntax(
+          schema.decoderInitializer(modifiers: .requiredInitializer(isPublic: isPublic))
+        )
+      ]
+    case .enumeration:
+      return []
     }
   }
 
@@ -49,9 +72,28 @@ extension StructuredCodableType {
 extension ObjectSchema {
 
   /// The `StructuredObject` witnesses to add to the decorated type's conformance.
+  /// `decoderInitializerHome` controls whether the decoder initializer is
+  /// emitted here (`.extensionBody`, the struct case) or left to the macro's
+  /// member role (`.typeBody`, the class case) — see
+  /// `StructuredCodableType.DecoderInitializerHome`.
   @MemberBlockItemListBuilder
-  func conformanceMembers(isPublic: Bool) -> MemberBlockItemListSyntax {
-    // typealias <unique> = {ns}.StructuredObjectProperty<Self, {definition}>
+  func conformanceMembers(
+    isPublic: Bool,
+    decoderInitializerHome: StructuredCodableType.DecoderInitializerHome = .extensionBody
+  ) -> MemberBlockItemListSyntax {
+    // typealias <root> = {extended type} — the anchor every other member roots
+    // itself in, spelled by name rather than `Self` because covariant `Self`
+    // cannot appear in a non-top-level position on classes. A synthesized
+    // object needs no anchor: its `rootType` names its own struct declaration.
+    if case .declared(let extendedType) = origin {
+      TypeAliasDeclSyntax(
+        modifiers: .visibility(isPublic),
+        name: rootType,
+        initializer: TypeInitializerClauseSyntax(value: extendedType)
+      )
+    }
+
+    // typealias <unique> = {ns}.StructuredObjectProperty<{rootType}, {definition}>
     for property in properties {
       TypeAliasDeclSyntax(
         modifiers: .visibility(isPublic),
@@ -61,7 +103,7 @@ extension ObjectSchema {
             name: "StructuredObjectProperty",
             genericArgumentClause: GenericArgumentClauseSyntax {
               GenericArgumentSyntax(
-                argument: GenericArgumentSyntax.Argument(IdentifierTypeSyntax(name: "Self"))
+                argument: GenericArgumentSyntax.Argument(IdentifierTypeSyntax(name: rootType))
               )
               GenericArgumentSyntax(
                 argument: GenericArgumentSyntax.Argument(property.definition.typeSyntax(in: namespace))
@@ -149,13 +191,14 @@ extension ObjectSchema {
         )
       ),
       body: CodeBlockSyntax {
-        if isSynthesized {
+        switch origin {
+        case .synthesized:
           // A synthesized associated-value object has no user-written initializer,
           // so its implicit memberwise initializer is always available — and it must
           // stay available for the enum case's accessor to construct it, which an
           // in-body `private init` would suppress.
           decodeInitializerCallExpr()
-        } else {
+        case .declared:
           // Self(from: objectDecoder)
           FunctionCallExprSyntax(
             calledExpression: DeclReferenceExprSyntax(baseName: "Self"),
@@ -175,9 +218,11 @@ extension ObjectSchema {
 
     // private init(from objectDecoder: …) { self.x = … } — assigns the stored
     // properties directly rather than relying on a memberwise initializer the type
-    // may not have. Synthesized objects use the memberwise path above instead.
-    if !isSynthesized {
-      decoderInitializer()
+    // may not have. Synthesized objects use the memberwise path above instead,
+    // and a class's initializer is emitted into the class body by the macro's
+    // member role rather than here.
+    if case .declared = origin, decoderInitializerHome == .extensionBody {
+      decoderInitializer(modifiers: .private)
     }
   }
 
@@ -306,13 +351,17 @@ extension ObjectSchema {
     }
   }
 
-  /// `private init(from objectDecoder: …) { self.x = … }` — assigns each stored
+  /// `init(from objectDecoder: …) { self.x = … }` — assigns each stored
   /// property directly so the type need not expose a memberwise initializer:
   /// - plain properties are assigned unconditionally;
   /// - default-initialized `var`s are assigned only when a value was decoded
   ///   (`if let`), otherwise keeping their declared default;
   /// - default-initialized `let`s keep their declared value (left as a comment).
-  private func decoderInitializer() -> InitializerDeclSyntax {
+  ///
+  /// `modifiers` is `private` when the initializer lives in the extension
+  /// (structs) and `[public] required` when it lives in a class body, where
+  /// `required` must be as accessible as the class.
+  func decoderInitializer(modifiers: DeclModifierListSyntax) -> InitializerDeclSyntax {
     let isSingle = properties.count == 1
     var statements = CodeBlockItemListSyntax()
     var pendingTrivia = Trivia()
@@ -379,7 +428,7 @@ extension ObjectSchema {
     }
 
     return InitializerDeclSyntax(
-      modifiers: .private,
+      modifiers: modifiers,
       signature: FunctionSignatureSyntax(parameterClause: decoderParameterClause()),
       body: CodeBlockSyntax(
         statements: statements,
@@ -1304,6 +1353,18 @@ extension DeclModifierListSyntax {
       if isStatic {
         DeclModifierSyntax(name: .keyword(.static))
       }
+    }
+  }
+
+  /// `[public] required` — the modifiers of a class's decoder initializer,
+  /// which must be `required` (so `decode` can construct through the `Self`
+  /// metatype) and therefore as accessible as the class itself.
+  static func requiredInitializer(isPublic: Bool) -> DeclModifierListSyntax {
+    DeclModifierListSyntax {
+      if isPublic {
+        DeclModifierSyntax(name: "public")
+      }
+      DeclModifierSyntax(name: .keyword(.required))
     }
   }
 

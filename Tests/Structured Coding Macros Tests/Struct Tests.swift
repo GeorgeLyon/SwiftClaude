@@ -25,8 +25,9 @@ struct StructuredCodableStructTests {
       }
 
       extension Point: StructuredCoding.StructuredObject, StructuredCoding.StructuredObjectRepresentable {
-        typealias __macro_local_1xfMu_ = StructuredCoding.StructuredObjectProperty<Self, Int._StructuredObjectPropertyDefinition>
-        typealias __macro_local_1yfMu_ = StructuredCoding.StructuredObjectProperty<Self, Int._StructuredObjectPropertyDefinition>
+        typealias __macro_local_4RootfMu_ = Point
+        typealias __macro_local_1xfMu_ = StructuredCoding.StructuredObjectProperty<__macro_local_4RootfMu_, Int._StructuredObjectPropertyDefinition>
+        typealias __macro_local_1yfMu_ = StructuredCoding.StructuredObjectProperty<__macro_local_4RootfMu_, Int._StructuredObjectPropertyDefinition>
         static var schema: some StructuredCoding.StructuredCodingSchema {
           _schema()
         }
@@ -78,10 +79,11 @@ struct StructuredCodableStructTests {
       }
 
       extension S: StructuredCoding.StructuredObject, StructuredCoding.StructuredObjectRepresentable {
-        typealias __macro_local_5firstfMu_ = StructuredCoding.StructuredObjectProperty<Self, String._StructuredObjectPropertyDefinition>
-        typealias __macro_local_6secondfMu_ = StructuredCoding.StructuredObjectProperty<Self, String?._StructuredObjectPropertyDefinition>
-        typealias __macro_local_4kindfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredImmutableDefaultInitializedPropertyDefinition<String._StructuredObjectPropertyDefinition>>
-        typealias __macro_local_5countfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredMutableDefaultInitializedPropertyDefinition<Int._StructuredObjectPropertyDefinition>>
+        typealias __macro_local_4RootfMu_ = S
+        typealias __macro_local_5firstfMu_ = StructuredCoding.StructuredObjectProperty<__macro_local_4RootfMu_, String._StructuredObjectPropertyDefinition>
+        typealias __macro_local_6secondfMu_ = StructuredCoding.StructuredObjectProperty<__macro_local_4RootfMu_, String?._StructuredObjectPropertyDefinition>
+        typealias __macro_local_4kindfMu_ = StructuredCoding.StructuredObjectProperty<__macro_local_4RootfMu_, StructuredCoding.StructuredImmutableDefaultInitializedPropertyDefinition<String._StructuredObjectPropertyDefinition>>
+        typealias __macro_local_5countfMu_ = StructuredCoding.StructuredObjectProperty<__macro_local_4RootfMu_, StructuredCoding.StructuredMutableDefaultInitializedPropertyDefinition<Int._StructuredObjectPropertyDefinition>>
         static var schema: some StructuredCoding.StructuredCodingSchema {
           _schema()
         }
@@ -139,7 +141,8 @@ struct StructuredCodableStructTests {
       }
 
       extension Single: StructuredCoding.StructuredObject, StructuredCoding.StructuredObjectRepresentable {
-        typealias __macro_local_5valuefMu_ = StructuredCoding.StructuredObjectProperty<Self, Int._StructuredObjectPropertyDefinition>
+        typealias __macro_local_4RootfMu_ = Single
+        typealias __macro_local_5valuefMu_ = StructuredCoding.StructuredObjectProperty<__macro_local_4RootfMu_, Int._StructuredObjectPropertyDefinition>
         static var schema: some StructuredCoding.StructuredCodingSchema {
           _schema()
         }
@@ -185,8 +188,9 @@ struct StructuredCodableStructTests {
       }
 
       extension PackBox: StructuredCoding.StructuredObject, StructuredCoding.StructuredObjectRepresentable {
-        typealias __macro_local_5firstfMu_ = StructuredCoding.StructuredObjectProperty<Self, String._StructuredObjectPropertyDefinition>
-        typealias __macro_local_6secondfMu_ = StructuredCoding.StructuredObjectProperty<Self, String?._StructuredObjectPropertyDefinition>
+        typealias __macro_local_4RootfMu_ = PackBox
+        typealias __macro_local_5firstfMu_ = StructuredCoding.StructuredObjectProperty<__macro_local_4RootfMu_, String._StructuredObjectPropertyDefinition>
+        typealias __macro_local_6secondfMu_ = StructuredCoding.StructuredObjectProperty<__macro_local_4RootfMu_, String?._StructuredObjectPropertyDefinition>
         static var schema: some StructuredCoding.StructuredCodingSchema {
           _schema()
         }
@@ -243,9 +247,10 @@ struct StructuredCodableStructTests {
       }
 
       extension Line: StructuredCoding.StructuredObject, StructuredCoding.StructuredObjectRepresentable {
-        typealias __macro_local_9endpointsfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredTuple<Int, Int>._StructuredObjectPropertyDefinition>
-        typealias __macro_local_5labelfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredTuple<Int, String>?._StructuredObjectPropertyDefinition>
-        typealias __macro_local_6originfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredMutableDefaultInitializedPropertyDefinition<StructuredCoding.StructuredTuple<Int, Int>._StructuredObjectPropertyDefinition>>
+        typealias __macro_local_4RootfMu_ = Line
+        typealias __macro_local_9endpointsfMu_ = StructuredCoding.StructuredObjectProperty<__macro_local_4RootfMu_, StructuredCoding.StructuredTuple<Int, Int>._StructuredObjectPropertyDefinition>
+        typealias __macro_local_5labelfMu_ = StructuredCoding.StructuredObjectProperty<__macro_local_4RootfMu_, StructuredCoding.StructuredTuple<Int, String>?._StructuredObjectPropertyDefinition>
+        typealias __macro_local_6originfMu_ = StructuredCoding.StructuredObjectProperty<__macro_local_4RootfMu_, StructuredCoding.StructuredMutableDefaultInitializedPropertyDefinition<StructuredCoding.StructuredTuple<Int, Int>._StructuredObjectPropertyDefinition>>
         static var schema: some StructuredCoding.StructuredCodingSchema {
           _schema()
         }
@@ -307,7 +312,8 @@ struct StructuredCodableStructTests {
       }
 
       extension PackBox: StructuredCoding.StructuredObject, StructuredCoding.StructuredObjectRepresentable {
-        typealias __macro_local_5firstfMu_ = StructuredCoding.StructuredObjectProperty<Self, String._StructuredObjectPropertyDefinition>
+        typealias __macro_local_4RootfMu_ = PackBox
+        typealias __macro_local_5firstfMu_ = StructuredCoding.StructuredObjectProperty<__macro_local_4RootfMu_, String._StructuredObjectPropertyDefinition>
         static var schema: some StructuredCoding.StructuredCodingSchema {
           _schema()
         }
@@ -350,7 +356,8 @@ struct StructuredCodableStructTests {
       }
 
       extension Point: StructuredCoding.StructuredObject, StructuredCoding.StructuredObjectRepresentable {
-        typealias __macro_local_1xfMu_ = StructuredCoding.StructuredObjectProperty<Self, Int._StructuredObjectPropertyDefinition>
+        typealias __macro_local_4RootfMu_ = Point
+        typealias __macro_local_1xfMu_ = StructuredCoding.StructuredObjectProperty<__macro_local_4RootfMu_, Int._StructuredObjectPropertyDefinition>
         static var schema: some StructuredCoding.StructuredCodingSchema {
           _schema(typeDescription: "A 2D point")
         }
@@ -395,8 +402,9 @@ struct StructuredCodableStructTests {
       }
 
       extension Point: StructuredCoding.StructuredObject, StructuredCoding.StructuredObjectRepresentable {
-        typealias __macro_local_1xfMu_ = StructuredCoding.StructuredObjectProperty<Self, Int._StructuredObjectPropertyDefinition>
-        typealias __macro_local_1yfMu_ = StructuredCoding.StructuredObjectProperty<Self, Int._StructuredObjectPropertyDefinition>
+        typealias __macro_local_4RootfMu_ = Point
+        typealias __macro_local_1xfMu_ = StructuredCoding.StructuredObjectProperty<__macro_local_4RootfMu_, Int._StructuredObjectPropertyDefinition>
+        typealias __macro_local_1yfMu_ = StructuredCoding.StructuredObjectProperty<__macro_local_4RootfMu_, Int._StructuredObjectPropertyDefinition>
         static var schema: some StructuredCoding.StructuredCodingSchema {
           _schema()
         }
@@ -444,7 +452,8 @@ struct StructuredCodableStructTests {
       }
 
       extension Point: StructuredCoding.StructuredObject, StructuredCoding.StructuredObjectRepresentable {
-        typealias __macro_local_1xfMu_ = StructuredCoding.StructuredObjectProperty<Self, Int._StructuredObjectPropertyDefinition>
+        typealias __macro_local_4RootfMu_ = Point
+        typealias __macro_local_1xfMu_ = StructuredCoding.StructuredObjectProperty<__macro_local_4RootfMu_, Int._StructuredObjectPropertyDefinition>
         static var undeclaredPropertyBehavior: StructuredCoding.StructuredUndeclaredPropertyBehavior {
           .discard
         }
@@ -488,7 +497,8 @@ struct StructuredCodableStructTests {
       }
 
       extension MediaType: StructuredCoding.StructuredWrapper {
-        typealias __macro_local_11stringValuefMu_ = StructuredCoding.StructuredObjectProperty<Self, String._StructuredObjectPropertyDefinition>
+        typealias __macro_local_4RootfMu_ = MediaType
+        typealias __macro_local_11stringValuefMu_ = StructuredCoding.StructuredObjectProperty<__macro_local_4RootfMu_, String._StructuredObjectPropertyDefinition>
         static var schema: some StructuredCoding.StructuredCodingSchema {
           _schema()
         }
@@ -538,7 +548,8 @@ struct StructuredCodableStructTests {
       }
 
       extension MediaType: StructuredCoding.StructuredWrapper {
-        typealias __macro_local_11stringValuefMu_ = StructuredCoding.StructuredObjectProperty<Self, String._StructuredObjectPropertyDefinition>
+        typealias __macro_local_4RootfMu_ = MediaType
+        typealias __macro_local_11stringValuefMu_ = StructuredCoding.StructuredObjectProperty<__macro_local_4RootfMu_, String._StructuredObjectPropertyDefinition>
         static var schema: some StructuredCoding.StructuredCodingSchema {
           _schema()
         }
@@ -581,7 +592,8 @@ struct StructuredCodableStructTests {
       }
 
       extension MaybeName: StructuredCoding.StructuredWrapper {
-        typealias __macro_local_4namefMu_ = StructuredCoding.StructuredObjectProperty<Self, String?._StructuredObjectPropertyDefinition>
+        typealias __macro_local_4RootfMu_ = MaybeName
+        typealias __macro_local_4namefMu_ = StructuredCoding.StructuredObjectProperty<__macro_local_4RootfMu_, String?._StructuredObjectPropertyDefinition>
         static var schema: some StructuredCoding.StructuredCodingSchema {
           _schema()
         }
@@ -623,7 +635,8 @@ struct StructuredCodableStructTests {
       }
 
       extension Tag: StructuredCoding.StructuredWrapper {
-        typealias __macro_local_4textfMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredMutableDefaultInitializedPropertyDefinition<String._StructuredObjectPropertyDefinition>>
+        typealias __macro_local_4RootfMu_ = Tag
+        typealias __macro_local_4textfMu_ = StructuredCoding.StructuredObjectProperty<__macro_local_4RootfMu_, StructuredCoding.StructuredMutableDefaultInitializedPropertyDefinition<String._StructuredObjectPropertyDefinition>>
         static var schema: some StructuredCoding.StructuredCodingSchema {
           _schema()
         }
@@ -662,6 +675,7 @@ struct StructuredCodableStructTests {
       }
 
       extension Empty: StructuredCoding.StructuredObject, StructuredCoding.StructuredObjectRepresentable {
+        typealias __macro_local_4RootfMu_ = Empty
         static var schema: some StructuredCoding.StructuredCodingSchema {
           _schema()
         }

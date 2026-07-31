@@ -62,6 +62,19 @@ struct StructuredCodableType {
   }
   let kind: Kind
 
+  /// Where the generated decoder initializer must be declared. An extension
+  /// can declare a struct's initializer (keeping the struct's implicit
+  /// memberwise initializer available, which an in-body initializer — even a
+  /// macro-expanded one — would suppress). A class's initializer assigns
+  /// stored properties, making it *designated*, and designated (and
+  /// `required`) initializers must be declared directly in the class body —
+  /// so the macro's member role emits it there instead.
+  enum DecoderInitializerHome {
+    case extensionBody
+    case typeBody
+  }
+  let decoderInitializerHome: DecoderInitializerHome
+
   var namespace: StructuredCodingNamespace {
     switch kind {
     case .object(let schema), .wrapper(let schema): schema.namespace
@@ -82,15 +95,35 @@ struct ObjectSchema {
 
   let namespace: StructuredCodingNamespace
 
-  /// The type the generated key paths are rooted in — `"Self"` for the decorated
-  /// type, or the synthesized name when this object stands in for an all-labeled
-  /// enum case (see `AssociatedValue.object`).
+  /// The name generated code uses for the type it is rooted in — see `Origin`
+  /// for what it names. Always a bare token: covariant `Self` cannot appear
+  /// in a non-top-level position on classes, and a bare name is found by
+  /// unqualified lookup even when the decorated type is nested (whose
+  /// qualified name an extension's unqualified lookup could not otherwise
+  /// resolve).
   let rootType: TokenSyntax
 
-  /// Whether generation must also emit the type declaration and its stored
-  /// properties (true for a synthesized associated-value object) rather than only
-  /// the conformance members on an existing declaration.
-  let isSynthesized: Bool
+  /// Where the object's type declaration comes from — which decides both what
+  /// `rootType` names and how `decode` constructs values.
+  enum Origin {
+    /// The macro decorates an existing declaration. `rootType` is a
+    /// macro-unique alias that generation binds with an anchor
+    /// `typealias <rootType> = <extendedType>`, and `decode` constructs
+    /// through a generated initializer that assigns the stored properties
+    /// directly — the declaration may not expose a memberwise initializer.
+    /// `extendedType` is spelled as the extension spells it: qualified for
+    /// nested types, with no generic parameter clause (inside the extension
+    /// the type's own parameters bind).
+    case declared(extendedType: TypeSyntax)
+    /// The macro emits the declaration itself — an object standing in for an
+    /// all-labeled enum case or callable clause (see
+    /// `ParameterClauseSchema.object`). `rootType` names the emitted struct,
+    /// and `decode` constructs through its implicit memberwise initializer,
+    /// which must stay available for case accessors to construct payloads —
+    /// so no initializer is generated.
+    case synthesized
+  }
+  let origin: Origin
 
   /// Applied to each property's Swift name to produce its JSON key.
   let keyConversionStrategy: KeyConversionStrategy

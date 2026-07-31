@@ -25,6 +25,10 @@ extension DeclModifierSyntax {
     name.tokenKind == .keyword(.public)
   }
 
+  var isFinal: Bool {
+    name.tokenKind == .keyword(.final)
+  }
+
   var isStatic: Bool {
     name.tokenKind == .keyword(.static)
   }

@@ -16,6 +16,7 @@
     named(codingConfiguration),
     named(undeclaredPropertyBehavior)
 )
+@attached(member, names: named(init))
 public macro StructuredCodable(
   description: String? = nil,
   style: any StructuredEnumerationCodingStyle = .objectProperties,

@@ -252,6 +252,53 @@ struct StructuredCodableMacroIntegrationTests {
     #expect(!(String.self is any StructuredObjectRepresentable.Type))
   }
 
+  // MARK: - Classes
+
+  /// A (non-final) class codes exactly like the equivalent struct; `decode`
+  /// constructs it through the macro-generated `required init(from:)`.
+  @Test func classRoundTrips() throws {
+    try #expect(
+      encode(MacroCounter(id: 1, label: "a", note: nil, count: 5))
+        == #"{"id":1,"label":"a","kind":"counter","count":5}"#
+    )
+    try test(
+      #"{"id":1,"label":"a","kind":"counter","count":5}"#,
+      decodesAs: MacroCounter(id: 1, label: "a", note: nil, count: 5)
+    )
+  }
+
+  /// The optional property may be omitted; the constant and default-initialized
+  /// properties behave exactly as on a struct.
+  @Test func classOptionalAndDefaultedProperties() throws {
+    try #expect(
+      encode(MacroCounter(id: 1, label: "a", note: "n", count: 10))
+        == #"{"id":1,"label":"a","note":"n","kind":"counter","count":10}"#
+    )
+    try test(
+      [#"{"id":1,"la"#, #"bel":"a","kind":"count"#, #"er","count":5}"#],
+      decodesAs: MacroCounter(id: 1, label: "a", note: nil, count: 5)
+    )
+    #expect(throws: (any Error).self) {
+      try test(
+        #"{"id":1,"label":"a","kind":"other","count":5}"#,
+        decodesAs: MacroCounter(id: 1, label: "a", note: nil, count: 5)
+      )
+    }
+  }
+
+  /// A class whose every stored property is a reference-writable `var` is
+  /// constructed up front and streamed in place.
+  @Test func classStreamsInPlace() throws {
+    try test(
+      #"{"name":"abc"}"#,
+      decodesAs: MacroReferenceObject(name: "abc")
+    )
+    try test(
+      #"{"name":"ab"#,
+      decodesAs: .partial(MacroReferenceObject(name: "a"))
+    )
+  }
+
 }
 
 // MARK: - Fixtures
@@ -366,6 +413,47 @@ private enum MacroAnnotatedEnum: Equatable, Sendable {
 private struct MacroAnnotatedContainer: Equatable, Sendable {
   @StructuredProperty(description: "The annotated object")
   var object: MacroAnnotatedObject
+}
+
+/// Mirrors `MacroProfile`'s property kinds on a deliberately non-final class:
+/// `decode`'s `Self` return is covariant, so construction goes through the
+/// macro-generated `required init(from:)` in the class body. The `let id`
+/// property has no initial value, exercising the buffered decode branch.
+@StructuredCodable
+private final class MacroCounter: Equatable, @unchecked Sendable {
+  let id: Int
+  var label: String
+  var note: String?
+  let kind: String = "counter"
+  var count: Int = 10
+
+  init(id: Int, label: String, note: String?, count: Int) {
+    self.id = id
+    self.label = label
+    self.note = note
+    self.count = count
+  }
+
+  static func == (lhs: MacroCounter, rhs: MacroCounter) -> Bool {
+    lhs.id == rhs.id && lhs.label == rhs.label && lhs.note == rhs.note
+      && lhs.count == rhs.count
+  }
+}
+
+/// Every stored property is a reference-writable `var`, so the instance is
+/// created up front (through the required initializer, seeded with streaming
+/// initial values) and decoded values stream into place.
+@StructuredCodable
+private final class MacroReferenceObject: Equatable, @unchecked Sendable {
+  var name: String
+
+  init(name: String) {
+    self.name = name
+  }
+
+  static func == (lhs: MacroReferenceObject, rhs: MacroReferenceObject) -> Bool {
+    lhs.name == rhs.name
+  }
 }
 
 // MARK: - Helper

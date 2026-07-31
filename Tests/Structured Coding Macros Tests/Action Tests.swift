@@ -36,8 +36,8 @@ struct StructuredActionTests {
         struct __macro_local_45foo_bar_Bool___Bool__a__Bool__b__Bool__OutputfMu_: StructuredCoding.StructuredObject {
           var a: Bool
           var b: Bool
-          typealias __macro_local_1afMu_ = StructuredCoding.StructuredObjectProperty<Self, Bool._StructuredObjectPropertyDefinition>
-          typealias __macro_local_1bfMu_ = StructuredCoding.StructuredObjectProperty<Self, Bool._StructuredObjectPropertyDefinition>
+          typealias __macro_local_1afMu_ = StructuredCoding.StructuredObjectProperty<__macro_local_45foo_bar_Bool___Bool__a__Bool__b__Bool__OutputfMu_, Bool._StructuredObjectPropertyDefinition>
+          typealias __macro_local_1bfMu_ = StructuredCoding.StructuredObjectProperty<__macro_local_45foo_bar_Bool___Bool__a__Bool__b__Bool__OutputfMu_, Bool._StructuredObjectPropertyDefinition>
           static var schema: some StructuredCoding.StructuredCodingSchema {
             _schema()
           }
@@ -202,7 +202,7 @@ struct StructuredActionTests {
 
         struct __macro_local_30greet_name_String_String_InputfMu_: StructuredCoding.StructuredObject {
           var name: String
-          typealias __macro_local_4namefMu_ = StructuredCoding.StructuredObjectProperty<Self, String._StructuredObjectPropertyDefinition>
+          typealias __macro_local_4namefMu_ = StructuredCoding.StructuredObjectProperty<__macro_local_30greet_name_String_String_InputfMu_, String._StructuredObjectPropertyDefinition>
           static var schema: some StructuredCoding.StructuredCodingSchema {
             _schema()
           }
@@ -270,7 +270,7 @@ struct StructuredActionTests {
 
         struct __macro_local_30greet_name_String_String_InputfMu_: StructuredCoding.StructuredObject {
           var name: String
-          typealias __macro_local_4namefMu_ = StructuredCoding.StructuredObjectProperty<Self, StructuredCoding.StructuredMutableDefaultInitializedPropertyDefinition<String._StructuredObjectPropertyDefinition>>
+          typealias __macro_local_4namefMu_ = StructuredCoding.StructuredObjectProperty<__macro_local_30greet_name_String_String_InputfMu_, StructuredCoding.StructuredMutableDefaultInitializedPropertyDefinition<String._StructuredObjectPropertyDefinition>>
           static var schema: some StructuredCoding.StructuredCodingSchema {
             _schema()
           }
@@ -385,7 +385,7 @@ struct StructuredActionTests {
 
         struct __macro_local_31fetch_id_Int_String_async_InputfMu_: StructuredCoding.StructuredObject {
           var id: Int
-          typealias __macro_local_2idfMu_ = StructuredCoding.StructuredObjectProperty<Self, Int._StructuredObjectPropertyDefinition>
+          typealias __macro_local_2idfMu_ = StructuredCoding.StructuredObjectProperty<__macro_local_31fetch_id_Int_String_async_InputfMu_, Int._StructuredObjectPropertyDefinition>
           static var schema: some StructuredCoding.StructuredCodingSchema {
             _schema()
           }
@@ -546,7 +546,7 @@ struct StructuredActionTests {
 
         public struct __macro_local_25run_name_String_Int_InputfMu_: StructuredCoding.StructuredObject {
           public var name: String
-          public typealias __macro_local_4namefMu_ = StructuredCoding.StructuredObjectProperty<Self, String._StructuredObjectPropertyDefinition>
+          public typealias __macro_local_4namefMu_ = StructuredCoding.StructuredObjectProperty<__macro_local_25run_name_String_Int_InputfMu_, String._StructuredObjectPropertyDefinition>
           public static var schema: some StructuredCoding.StructuredCodingSchema {
             _schema()
           }
@@ -615,8 +615,8 @@ struct StructuredActionTests {
         struct __macro_local_25add_a_Int_b_Int_Int_InputfMu_: StructuredCoding.StructuredObject {
           var a: Int
           var b: Int
-          typealias __macro_local_1afMu_ = StructuredCoding.StructuredObjectProperty<Self, Int._StructuredObjectPropertyDefinition>
-          typealias __macro_local_1bfMu_ = StructuredCoding.StructuredObjectProperty<Self, Int._StructuredObjectPropertyDefinition>
+          typealias __macro_local_1afMu_ = StructuredCoding.StructuredObjectProperty<__macro_local_25add_a_Int_b_Int_Int_InputfMu_, Int._StructuredObjectPropertyDefinition>
+          typealias __macro_local_1bfMu_ = StructuredCoding.StructuredObjectProperty<__macro_local_25add_a_Int_b_Int_Int_InputfMu_, Int._StructuredObjectPropertyDefinition>
           static var schema: some StructuredCoding.StructuredCodingSchema {
             _schema()
           }
@@ -691,8 +691,8 @@ struct StructuredActionTests {
         struct __macro_local_38set_userName_String_maxCount_Int_InputfMu_: StructuredCoding.StructuredObject {
           var userName: String
           var maxCount: Int
-          typealias __macro_local_8userNamefMu_ = StructuredCoding.StructuredObjectProperty<Self, String._StructuredObjectPropertyDefinition>
-          typealias __macro_local_8maxCountfMu_ = StructuredCoding.StructuredObjectProperty<Self, Int._StructuredObjectPropertyDefinition>
+          typealias __macro_local_8userNamefMu_ = StructuredCoding.StructuredObjectProperty<__macro_local_38set_userName_String_maxCount_Int_InputfMu_, String._StructuredObjectPropertyDefinition>
+          typealias __macro_local_8maxCountfMu_ = StructuredCoding.StructuredObjectProperty<__macro_local_38set_userName_String_maxCount_Int_InputfMu_, Int._StructuredObjectPropertyDefinition>
           static var schema: some StructuredCoding.StructuredCodingSchema {
             _schema()
           }

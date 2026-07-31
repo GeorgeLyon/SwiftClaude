@@ -53,15 +53,34 @@ extension DeclGroupSyntax {
         typeSyntax: context.extendedType.bindingGenericParameters(
           structDecl.genericParameterClause
         ),
-        kind: kind
+        kind: kind,
+        decoderInitializerHome: .extensionBody
       )
     } else if let classDecl = self.as(ClassDeclSyntax.self) {
+      // The conformance's protocol-extension members (`encode`, `_schema`,
+      // `decodeProperties`, …) are constrained on `StructuredObjectProperties
+      // == (repeat StructuredObjectProperty<Self, …>)`. On a non-final class
+      // `Self` covers subclasses, for which the same-type constraint cannot
+      // hold — so the witnesses only exist when `Self` is exactly the
+      // decorated class.
+      guard classDecl.modifiers.contains(where: \.isFinal) else {
+        context.expansionContext.diagnose(
+          DiagnosticError(
+            node: classDecl.name,
+            severity: .error,
+            message:
+              "@\(context.macroAttribute) requires classes to be final: the generated conformance is rooted in the concrete class type and cannot be inherited by subclasses."
+          )
+        )
+        return nil
+      }
       return StructuredCodableType(
         isPublic: classDecl.modifiers.contains(where: \.isPublic),
         typeSyntax: context.extendedType.bindingGenericParameters(
           classDecl.genericParameterClause
         ),
-        kind: .object(classDecl.objectSchema(in: context))
+        kind: .object(classDecl.objectSchema(in: context)),
+        decoderInitializerHome: .typeBody
       )
     } else if let enumDecl = self.as(EnumDeclSyntax.self) {
       return StructuredCodableType(
@@ -69,7 +88,8 @@ extension DeclGroupSyntax {
         typeSyntax: context.extendedType.bindingGenericParameters(
           enumDecl.genericParameterClause
         ),
-        kind: .enumeration(enumDecl.enumerationSchema(in: context))
+        kind: .enumeration(enumDecl.enumerationSchema(in: context)),
+        decoderInitializerHome: .extensionBody
       )
     } else {
       context.expansionContext.diagnose(
@@ -179,8 +199,8 @@ extension MemberBlockSyntax {
   ) -> ObjectSchema {
     ObjectSchema(
       namespace: context.namespace,
-      rootType: "Self",
-      isSynthesized: false,
+      rootType: context.expansionContext.makeUniqueName("Root"),
+      origin: .declared(extendedType: context.extendedType.trimmed),
       keyConversionStrategy: keyConversionStrategy?.value
         ?? context.defaultKeyConversionStrategy,
       compatibilityModes: (compatibilityMode?.modes ?? [])
@@ -413,7 +433,7 @@ extension EnumDeclSyntax {
       emptyCasePayloadObject = ObjectSchema(
         namespace: context.namespace,
         rootType: context.expansionContext.makeUniqueName("EmptyPayload"),
-        isSynthesized: true,
+        origin: .synthesized,
         keyConversionStrategy: keyConversionStrategy,
         compatibilityModes: compatibilityModes,
         description: nil,
@@ -472,7 +492,7 @@ extension ParameterClauseSchema {
         ObjectSchema(
           namespace: namespace,
           rootType: expansionContext.makeUniqueName(nameSeed),
-          isSynthesized: true,
+          origin: .synthesized,
           keyConversionStrategy: keyConversionStrategy,
           compatibilityModes: compatibilityModes,
           description: nil,
