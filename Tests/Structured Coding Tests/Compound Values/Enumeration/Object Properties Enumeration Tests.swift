@@ -24,8 +24,8 @@ struct ObjectPropertiesEnumerationTests {
 
   /// `Value`'s hand-written conformance declares the structural enumeration
   /// schema explicitly, covering every associated-value shape.
-  @Test func encodesSchema() throws {
-    try test(
+  @Test func encodesSchema() async throws {
+    try await test(
       Value.schema,
       encodesAs:
         #"{"properties":{"text":{"type":"string"},"count":{"type":"integer"},"message":{"properties":{"body":{"type":"string"}},"required":["body"]},"move":{"properties":{"x":{"type":"integer"},"y":{"type":"integer"}},"required":["x","y"]},"ping":{"properties":{}}},"maxProperties":1}"#
@@ -34,15 +34,15 @@ struct ObjectPropertiesEnumerationTests {
 
   // MARK: - Happy path
 
-  @Test func decodesPrimitiveCase() throws {
-    try test(
+  @Test func decodesPrimitiveCase() async throws {
+    try await test(
       #"{"text":"hello"}"#,
       decodesAs: Value.text("hello")
     )
   }
 
-  @Test func decodesSecondPrimitiveCase() throws {
-    try test(
+  @Test func decodesSecondPrimitiveCase() async throws {
+    try await test(
       #"{"count":42}"#,
       decodesAs: Value.count(42)
     )
@@ -50,8 +50,8 @@ struct ObjectPropertiesEnumerationTests {
 
   /// A case whose associated value is a Branch-A object decodes from a nested
   /// object value.
-  @Test func decodesObjectCase() throws {
-    try test(
+  @Test func decodesObjectCase() async throws {
+    try await test(
       #"{"message":{"body":"hi"}}"#,
       decodesAs: Value.message(Message(body: "hi"))
     )
@@ -59,8 +59,8 @@ struct ObjectPropertiesEnumerationTests {
 
   /// A case whose associated value is a Branch-B object (no-initial-value `Int`
   /// properties) decodes through the deferred path.
-  @Test func decodesDeferredObjectCase() throws {
-    try test(
+  @Test func decodesDeferredObjectCase() async throws {
+    try await test(
       #"{"move":{"x":1,"y":2}}"#,
       decodesAs: Value.move(Move(x: 1, y: 2))
     )
@@ -68,15 +68,15 @@ struct ObjectPropertiesEnumerationTests {
 
   /// A case wrapping an object with no properties of its own decodes from an
   /// empty nested object.
-  @Test func decodesEmptyObjectCase() throws {
-    try test(
+  @Test func decodesEmptyObjectCase() async throws {
+    try await test(
       #"{"ping":{}}"#,
       decodesAs: Value.ping(Ping())
     )
   }
 
-  @Test func decodesWithSurroundingAndInternalWhitespace() throws {
-    try test(
+  @Test func decodesWithSurroundingAndInternalWhitespace() async throws {
+    try await test(
       #"{ "text" : "hello" }"#,
       decodesAs: Value.text("hello")
     )
@@ -84,15 +84,15 @@ struct ObjectPropertiesEnumerationTests {
 
   // MARK: - Chunk boundaries
 
-  @Test func chunkedAcrossCaseName() throws {
-    try test(
+  @Test func chunkedAcrossCaseName() async throws {
+    try await test(
       [#"{"me"#, #"ssage":{"body":"hi"}}"#],
       decodesAs: Value.message(Message(body: "hi"))
     )
   }
 
-  @Test func chunkedAcrossValue() throws {
-    try test(
+  @Test func chunkedAcrossValue() async throws {
+    try await test(
       [#"{"text":"hel"#, #"lo"}"#],
       decodesAs: Value.text("hello")
     )
@@ -101,29 +101,29 @@ struct ObjectPropertiesEnumerationTests {
   // MARK: - Errors
 
   /// An empty object names no case.
-  @Test func emptyObjectThrows() throws {
-    #expect(throws: (any Error).self) {
-      try test(#"{}"#, decodesAs: Value.ping(Ping()))
+  @Test func emptyObjectThrows() async throws {
+    await #expect(throws: (any Error).self) {
+      try await test(#"{}"#, decodesAs: Value.ping(Ping()))
     }
   }
 
-  @Test func unknownCaseThrows() throws {
-    #expect(throws: (any Error).self) {
-      try test(#"{"explode":1}"#, decodesAs: Value.count(1))
+  @Test func unknownCaseThrows() async throws {
+    await #expect(throws: (any Error).self) {
+      try await test(#"{"explode":1}"#, decodesAs: Value.count(1))
     }
   }
 
   /// A second property has no case to belong to; the single-property invariant is
   /// enforced after the first property decodes.
-  @Test func moreThanOnePropertyThrows() throws {
-    #expect(throws: (any Error).self) {
-      try test(#"{"text":"hi","count":1}"#, decodesAs: Value.text("hi"))
+  @Test func moreThanOnePropertyThrows() async throws {
+    await #expect(throws: (any Error).self) {
+      try await test(#"{"text":"hi","count":1}"#, decodesAs: Value.text("hi"))
     }
   }
 
-  @Test func wrongValueTypeThrows() throws {
-    #expect(throws: (any Error).self) {
-      try test(#"{"count":"not a number"}"#, decodesAs: Value.count(0))
+  @Test func wrongValueTypeThrows() async throws {
+    await #expect(throws: (any Error).self) {
+      try await test(#"{"count":"not a number"}"#, decodesAs: Value.count(0))
     }
   }
 
@@ -131,8 +131,8 @@ struct ObjectPropertiesEnumerationTests {
 
   /// Before the property name has finished, the case cannot be selected, so the
   /// enumeration is not observable.
-  @Test func incompleteBeforeCaseKnown() throws {
-    try test(
+  @Test func incompleteBeforeCaseKnown() async throws {
+    try await test(
       #"{"te"#,
       decodesAs: DecodingOutcome<Value>.incomplete
     )
@@ -141,8 +141,8 @@ struct ObjectPropertiesEnumerationTests {
   /// The instant the case is known, a Branch-A associated value (`String`) is
   /// seeded with its initial value (`""`) — observable before any value
   /// characters arrive.
-  @Test func seedsBranchACaseOnceValueBegins() throws {
-    try test(
+  @Test func seedsBranchACaseOnceValueBegins() async throws {
+    try await test(
       #"{"text":""#,
       decodesAs: .partial(Value.text(""))
     )
@@ -150,8 +150,8 @@ struct ObjectPropertiesEnumerationTests {
 
   /// Once associated-value characters arrive the case reflects them (the streamed
   /// string lags by one buffered character).
-  @Test func reflectsStreamingAssociatedValue() throws {
-    try test(
+  @Test func reflectsStreamingAssociatedValue() async throws {
+    try await test(
       #"{"text":"hel"#,
       decodesAs: .partial(Value.text("he"))
     )
@@ -160,8 +160,8 @@ struct ObjectPropertiesEnumerationTests {
   /// A Branch-B primitive (`Int`) has no initial value, so the case is not
   /// observable until the value terminates — and a bare `4` has not been
   /// terminated by a delimiter yet.
-  @Test func branchBPrimitiveNotObservableUntilTerminated() throws {
-    try test(
+  @Test func branchBPrimitiveNotObservableUntilTerminated() async throws {
+    try await test(
       #"{"count":4"#,
       decodesAs: DecodingOutcome<Value>.incomplete
     )
@@ -169,8 +169,8 @@ struct ObjectPropertiesEnumerationTests {
 
   /// A Branch-A object associated value is seeded the moment the case is known,
   /// even before its own properties stream in.
-  @Test func seedsBranchAObjectCase() throws {
-    try test(
+  @Test func seedsBranchAObjectCase() async throws {
+    try await test(
       #"{"message":{"body":""#,
       decodesAs: .partial(Value.message(Message(body: "")))
     )
@@ -179,8 +179,8 @@ struct ObjectPropertiesEnumerationTests {
   /// A Branch-B object cannot be constructed until its buffered properties are all
   /// present, so the case stays unobservable even with every byte but the brace
   /// that terminates the final property.
-  @Test func branchBObjectNotObservableUntilBuilt() throws {
-    try test(
+  @Test func branchBObjectNotObservableUntilBuilt() async throws {
+    try await test(
       #"{"move":{"x":1,"y":2"#,
       decodesAs: DecodingOutcome<Value>.incomplete
     )
@@ -189,8 +189,8 @@ struct ObjectPropertiesEnumerationTests {
   /// Once the nested object's closing brace terminates its final property, the
   /// Branch-B object is constructed and the case becomes observable — before the
   /// enumeration's own object closes.
-  @Test func branchBObjectObservableOnceBuilt() throws {
-    try test(
+  @Test func branchBObjectObservableOnceBuilt() async throws {
+    try await test(
       #"{"move":{"x":1,"y":2}"#,
       decodesAs: .partial(Value.move(Move(x: 1, y: 2)))
     )
@@ -200,15 +200,15 @@ struct ObjectPropertiesEnumerationTests {
 
   /// A single labeled value is macro-synthesized into a one-property payload
   /// object, so the label survives as a property name in the JSON.
-  @Test func encodesSingleLabeledValueCase() throws {
-    try test(
+  @Test func encodesSingleLabeledValueCase() async throws {
+    try await test(
       Feedback.rating(stars: 5),
       encodesAs: #"{"rating":{"stars":5}}"#
     )
   }
 
-  @Test func decodesSingleLabeledValueCase() throws {
-    try test(
+  @Test func decodesSingleLabeledValueCase() async throws {
+    try await test(
       #"{"rating":{"stars":5}}"#,
       decodesAs: Feedback.rating(stars: 5)
     )

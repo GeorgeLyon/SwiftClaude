@@ -25,11 +25,11 @@ struct SchemaMetadataTests {
   // MARK: - Metadata
 
   /// `metadata` is the read/write channel for a schema's description.
-  @Test func metadataDescriptionIsReadWrite() throws {
+  @Test func metadataDescriptionIsReadWrite() async throws {
     var schema = String.schema.prependDescription("before")
     #expect(schema.metadata.description == "before")
     schema.metadata.description = "after"
-    try test(schema, encodesAs: #"{"description":"after","type":"string"}"#)
+    try await test(schema, encodesAs: #"{"description":"after","type":"string"}"#)
   }
 
 }

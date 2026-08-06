@@ -6,34 +6,34 @@ import StructuredCoding
 struct BooleanTests {
 
   @Test
-  func encodesTrue() throws {
-    try test(true, encodesAs: "true")
+  func encodesTrue() async throws {
+    try await test(true, encodesAs: "true")
   }
 
   @Test
-  func encodesFalse() throws {
-    try test(false, encodesAs: "false")
+  func encodesFalse() async throws {
+    try await test(false, encodesAs: "false")
   }
 
   @Test
-  func decodesTrue() throws {
-    try test("true", decodesAs: true)
+  func decodesTrue() async throws {
+    try await test("true", decodesAs: true)
   }
 
   @Test
-  func decodesFalse() throws {
-    try test("false", decodesAs: false)
+  func decodesFalse() async throws {
+    try await test("false", decodesAs: false)
   }
 
   @Test
-  func decodesAcrossChunks() throws {
-    try test(["tr", "ue"], decodesAs: true)
+  func decodesAcrossChunks() async throws {
+    try await test(["tr", "ue"], decodesAs: true)
   }
 
   @Test
-  func exposesNoValueMidStream() throws {
+  func exposesNoValueMidStream() async throws {
     // Booleans cannot expose a partial value mid-stream.
-    try test("tru", decodesAs: DecodingOutcome<Bool>.incomplete)
+    try await test("tru", decodesAs: DecodingOutcome<Bool>.incomplete)
   }
 
 }

@@ -8,96 +8,96 @@ struct ArrayTests {
   // MARK: - Encoding
 
   @Test
-  func encodesEmptyArray() throws {
-    try test([Int](), encodesAs: "[]")
+  func encodesEmptyArray() async throws {
+    try await test([Int](), encodesAs: "[]")
   }
 
   @Test
-  func encodesIntArray() throws {
-    try test([1, 2, 3], encodesAs: "[1,2,3]")
+  func encodesIntArray() async throws {
+    try await test([1, 2, 3], encodesAs: "[1,2,3]")
   }
 
   @Test
-  func encodesStringArray() throws {
-    try test(["a", "b"], encodesAs: #"["a","b"]"#)
+  func encodesStringArray() async throws {
+    try await test(["a", "b"], encodesAs: #"["a","b"]"#)
   }
 
   @Test
-  func encodesNestedArray() throws {
-    try test([[1], [2, 3]], encodesAs: "[[1],[2,3]]")
+  func encodesNestedArray() async throws {
+    try await test([[1], [2, 3]], encodesAs: "[[1],[2,3]]")
   }
 
   // MARK: - Decoding
 
   @Test
-  func decodesEmptyArray() throws {
-    try test("[]", decodesAs: [Int]())
+  func decodesEmptyArray() async throws {
+    try await test("[]", decodesAs: [Int]())
   }
 
   @Test
-  func decodesIntArray() throws {
-    try test("[1,2,3]", decodesAs: [1, 2, 3])
+  func decodesIntArray() async throws {
+    try await test("[1,2,3]", decodesAs: [1, 2, 3])
   }
 
   @Test
-  func decodesStringArray() throws {
-    try test(#"["a","b"]"#, decodesAs: ["a", "b"])
+  func decodesStringArray() async throws {
+    try await test(#"["a","b"]"#, decodesAs: ["a", "b"])
   }
 
   @Test
-  func decodesNestedArray() throws {
-    try test("[[1],[2,3]]", decodesAs: [[1], [2, 3]])
+  func decodesNestedArray() async throws {
+    try await test("[[1],[2,3]]", decodesAs: [[1], [2, 3]])
   }
 
   @Test
-  func decodesWithWhitespace() throws {
-    try test("[ 1 , 2 , 3 ]", decodesAs: [1, 2, 3])
+  func decodesWithWhitespace() async throws {
+    try await test("[ 1 , 2 , 3 ]", decodesAs: [1, 2, 3])
   }
 
   @Test
-  func decodesAcrossChunks() throws {
-    try test([#"["he"#, #"llo","wor"#, #"ld"]"#], decodesAs: ["hello", "world"])
+  func decodesAcrossChunks() async throws {
+    try await test([#"["he"#, #"llo","wor"#, #"ld"]"#], decodesAs: ["hello", "world"])
   }
 
   // MARK: - Partial Streaming
 
   @Test
-  func exposesEmptyArrayBeforeFirstElement() throws {
-    try test("[", decodesAs: DecodingOutcome.partial([Int]()))
+  func exposesEmptyArrayBeforeFirstElement() async throws {
+    try await test("[", decodesAs: DecodingOutcome.partial([Int]()))
   }
 
   @Test
-  func exposesElementsAsTheyComplete() throws {
+  func exposesElementsAsTheyComplete() async throws {
     // "2" may still gain digits, so only the first element has been appended.
-    try test("[1,2", decodesAs: DecodingOutcome.partial([1]))
+    try await test("[1,2", decodesAs: DecodingOutcome.partial([1]))
   }
 
   @Test
-  func exposesPartialStreamingElement() throws {
+  func exposesPartialStreamingElement() async throws {
     // A streamed string element surfaces all but the last buffered character.
-    try test(#"["hel"#, decodesAs: DecodingOutcome.partial(["he"]))
+    try await test(#"["hel"#, decodesAs: DecodingOutcome.partial(["he"]))
   }
 
   // MARK: - Errors
 
   @Test
-  func unterminatedArrayThrows() throws {
-    #expect(throws: (any Error).self) {
-      try test("[1,2", decodesAs: [1, 2])
+  func unterminatedArrayThrows() async throws {
+    await #expect(throws: (any Error).self) {
+      try await test("[1,2", decodesAs: [1, 2])
     }
   }
 
   @Test
-  func mismatchedElementTypeThrows() throws {
-    #expect(throws: (any Error).self) {
-      try test(#"[1,"two"]"#, decodesAs: [1, 2])
+  func mismatchedElementTypeThrows() async throws {
+    await #expect(throws: (any Error).self) {
+      try await test(#"[1,"two"]"#, decodesAs: [1, 2])
     }
   }
 
   @Test
-  func missingOpenBracketThrows() throws {
-    #expect(throws: (any Error).self) {
-      try test("1,2]", decodesAs: [1, 2])
+  func missingOpenBracketThrows() async throws {
+    await #expect(throws: (any Error).self) {
+      try await test("1,2]", decodesAs: [1, 2])
     }
   }
 
@@ -106,16 +106,16 @@ struct ArrayTests {
   /// A `let` property's accessor is immutable, so the array cannot be streamed
   /// into place — its elements are buffered and initialized all at once.
   @Test
-  func decodesIntoImmutableProperty() throws {
-    try test(
+  func decodesIntoImmutableProperty() async throws {
+    try await test(
       #"{"strings":["a","b"]}"#,
       decodesAs: ImmutableArrayObject(strings: ["a", "b"])
     )
   }
 
   @Test
-  func decodesIntoImmutableOptionalProperty() throws {
-    try test(
+  func decodesIntoImmutableOptionalProperty() async throws {
+    try await test(
       #"{"strings":["a","b"]}"#,
       decodesAs: ImmutableOptionalArrayObject(strings: ["a", "b"])
     )

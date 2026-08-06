@@ -23,8 +23,8 @@ func test<Value: StructuredDecodable & Equatable>(
   _ jsonFragments: JSONFragments,
   decodesAs value: Value,
   sourceLocation: SourceLocation = #_sourceLocation
-) throws {
-  try test(
+) async throws {
+  try await test(
     jsonFragments,
     decodesAs: .complete(value),
     sourceLocation: sourceLocation
@@ -35,8 +35,8 @@ func test<Value: StructuredDecodable & Equatable>(
   _ jsonFragments: JSONFragments,
   decodesAs outcome: DecodingOutcome<Value>,
   sourceLocation: SourceLocation = #_sourceLocation
-) throws {
-  try test(
+) async throws {
+  try await test(
     jsonFragments,
     decodesAs: outcome,
     testEquality: { decoded, expected, sourceLocation in
@@ -53,8 +53,8 @@ func test<Value: StructuredDecodable, each Element: Equatable>(
   decodesAs value: Value,
   decompose: (Value) -> (repeat each Element),
   sourceLocation: SourceLocation = #_sourceLocation
-) throws {
-  try test(
+) async throws {
+  try await test(
     jsonFragments,
     decodesAs: .complete(value),
     testEquality: { decoded, expected, sourceLocation in
@@ -95,7 +95,7 @@ func test<Value: StructuredDecodable>(
   decodesAs outcome: DecodingOutcome<Value>,
   testEquality: (Value?, Value?, SourceLocation) throws -> Void,
   sourceLocation: SourceLocation = #_sourceLocation
-) throws {
+) async throws {
   let expected: Value?
   let isComplete: Bool
   switch outcome {
@@ -114,9 +114,9 @@ func test<Value: StructuredDecodable>(
   let json = jsonFragments.joined()
 
   func testDecoding(
-    _ body: (DecodingSessionStorage<Value>) throws -> Void
+    _ body: (DecodingSession<Value>) throws -> Void
   ) throws {
-    try decode { (session: DecodingSessionStorage<Value>, provider: any ValueProvider<Value>) in
+    try decode { (session: DecodingSession<Value>, provider: any ValueProvider<Value>) in
       try body(session)
 
       if isComplete {
@@ -168,41 +168,83 @@ func test<Value: StructuredDecodable>(
     }
     session.stream([bytes.last!])
   }
+
+  /// Test the same streaming shapes through the actor-based `Decoder`, which
+  /// pulls chunks from an async sequence. It exposes no session to observe
+  /// mid-stream state, so only complete outcomes can be verified this way
+  /// (an outcome that is incomplete mid-stream, like a bare `4`, may still
+  /// decode successfully once the stream ends).
+  if isComplete {
+    for chunks in [
+      [Array(json.utf8)],
+      jsonFragments.map { Array($0.utf8) },
+      Array(json.utf8).map { [$0] },
+    ] {
+      let decoded: Value = try await decode(chunks: chunks)
+      try testEquality(decoded, expected, sourceLocation)
+    }
+  }
 }
 
 private func decode<Value: StructuredDecodable>(
-  _ body: (DecodingSessionStorage<Value>, any ValueProvider<Value>) throws -> Void
-) throws {
-  var jsonDecoder = JavaScriptObjectNotation.Decoder()
-  let box: BoxAccessor<Value>
-  if let initialValue = Value.initialValueForDecoding(isMutable: true) {
-    box = BoxAccessor(initialValue: initialValue)
-  } else {
-    box = BoxAccessor()
+  chunks: [[UInt8]]
+) async throws -> Value {
+  let (bytes, continuation) = AsyncStream<[UInt8]>.makeStream()
+  for chunk in chunks {
+    continuation.yield(chunk)
   }
-  let session = jsonDecoder.beginDecoding { stream in
+  continuation.finish()
+
+  let decoder = JavaScriptObjectNotation.Decoder()
+  return try await decoder.decode(from: bytes) { stream in
+    let box: BoxAccessor<Value> = makeBoxAccessor()
     try await stream.withStructuredDecodingStream { stream in
       try await Value.decode(from: &stream, in: StructuredDecodingContext(), using: box)
     }
     try await stream.readTrailingWhitespace()
     return try box.value
   }
-  /// The test-facing driver is the session's reference-typed storage rather
-  /// than the `~Escapable` session itself so `#expect`/`#require` in test
-  /// closures can introspect it (the testing macros require `Copyable`).
-  try body(session.storage, box)
+}
+
+private func decode<Value: StructuredDecodable>(
+  _ body: (DecodingSession<Value>, any ValueProvider<Value>) throws -> Void
+) throws {
+  let decoder = SynchronousDecoder()
+  let box: BoxAccessor<Value> = makeBoxAccessor()
+  let session = decoder.startDecoding { stream in
+    try await stream.withStructuredDecodingStream { stream in
+      try await Value.decode(from: &stream, in: StructuredDecodingContext(), using: box)
+    }
+    try await stream.readTrailingWhitespace()
+    return try box.value
+  }
+  try body(session, box)
+}
+
+private func makeBoxAccessor<Value: StructuredDecodable>() -> BoxAccessor<Value> {
+  if let initialValue = Value.initialValueForDecoding(isMutable: true) {
+    BoxAccessor(initialValue: initialValue)
+  } else {
+    BoxAccessor()
+  }
 }
 
 // MARK: - Value Provider
 
 /// Exposes the value being decoded, whether that is the final value produced by
-/// a decoding session or the in-progress value held by a `BoxAccessor`.
+/// a `DecodingSession` or the in-progress value held by a `BoxAccessor`.
 private protocol ValueProvider<Value> {
   associatedtype Value
   var value: Value { get throws }
 }
 
-private final class BoxAccessor<Value>: StructuredAccessor, ValueProvider {
+extension DecodingSession: ValueProvider {}
+
+/// `@unchecked Sendable` because access is externally synchronized: the
+/// decoder (the synchronous pump, or the actor-based `Decoder`'s operation)
+/// writes while decoding, and the test driver only reads between pushes or
+/// after the decode completes.
+private final class BoxAccessor<Value>: StructuredAccessor, ValueProvider, @unchecked Sendable {
 
   init(initialValue: Value) {
     stored = initialValue
@@ -250,11 +292,13 @@ private final class BoxAccessor<Value>: StructuredAccessor, ValueProvider {
 
 // MARK: - Encoding
 
+/// Async for uniformity with the decoding helpers, so every `test` call site
+/// is `try await`.
 func test<Value: StructuredEncodable>(
   _ value: Value,
   encodesAs json: String,
   sourceLocation: SourceLocation = #_sourceLocation
-) throws {
+) async throws {
   var stream = StructuredEncodingStream()
   try value.encode(to: &stream)
   #expect(stream.stringValue == json, sourceLocation: sourceLocation)

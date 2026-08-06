@@ -91,16 +91,16 @@ private enum Level: Int, CaseIterable, StructuredEnumeration, Sendable {
 @Suite("Enumeration Schema Encoding")
 struct EnumerationSchemaEncodingTests {
 
-  @Test func encodesCaseProperties() throws {
-    try test(
+  @Test func encodesCaseProperties() async throws {
+    try await test(
       Reaction.schema,
       encodesAs:
         #"{"properties":{"text":{"type":"string"},"point":{"properties":{"x":{"type":"integer"},"y":{"type":"integer"}},"required":["x","y"]},"ping":{"properties":{}}},"maxProperties":1}"#
     )
   }
 
-  @Test func encodesDescription() throws {
-    try test(
+  @Test func encodesDescription() async throws {
+    try await test(
       Reaction.schema.prependDescription("A reaction"),
       encodesAs:
         #"{"description":"A reaction","properties":{"text":{"type":"string"},"point":{"properties":{"x":{"type":"integer"},"y":{"type":"integer"}},"required":["x","y"]},"ping":{"properties":{}}},"maxProperties":1}"#
@@ -110,8 +110,8 @@ struct EnumerationSchemaEncodingTests {
   /// An enumeration-typed property contributes its structural schema to the
   /// containing object's schema (and the property descriptor's metadata
   /// instantiation resolves the enumeration's `Schema` witness).
-  @Test func encodesAsObjectProperty() throws {
-    try test(
+  @Test func encodesAsObjectProperty() async throws {
+    try await test(
       Container.schema,
       encodesAs:
         #"{"properties":{"reaction":{"properties":{"text":{"type":"string"},"point":{"properties":{"x":{"type":"integer"},"y":{"type":"integer"}},"required":["x","y"]},"ping":{"properties":{}}},"maxProperties":1}},"required":["reaction"]}"#
@@ -120,8 +120,8 @@ struct EnumerationSchemaEncodingTests {
 
   /// A single labeled value synthesizes a one-property payload object in the
   /// default style too, so the label survives as a schema property name.
-  @Test func encodesSingleLabeledValueAsObject() throws {
-    try test(
+  @Test func encodesSingleLabeledValueAsObject() async throws {
+    try await test(
       Feedback.schema,
       encodesAs:
         #"{"properties":{"rating":{"properties":{"stars":{"type":"integer"}},"required":["stars"]},"comment":{"type":"string"}},"maxProperties":1}"#
@@ -131,8 +131,8 @@ struct EnumerationSchemaEncodingTests {
   /// A `@StructuredCase` description becomes the description of the case's
   /// property schema, whatever the associated-value shape; undescribed cases
   /// are unchanged.
-  @Test func encodesCaseDescriptions() throws {
-    try test(
+  @Test func encodesCaseDescriptions() async throws {
+    try await test(
       DescribedFeedback.schema,
       encodesAs:
         #"{"properties":{"comment":{"description":"A free-form comment","type":"string"},"rating":{"properties":{"stars":{"type":"integer"}},"required":["stars"]},"point":{"description":"A 2D point","properties":{"x":{"type":"integer"},"y":{"type":"integer"}},"required":["x","y"]},"ping":{"description":"An empty ping","properties":{}}},"maxProperties":1}"#
@@ -145,16 +145,16 @@ struct EnumerationSchemaEncodingTests {
   /// property spliced in first, pinned to the case's name by `const` and
   /// always required. A single labeled value (`circle(radius:)`) synthesizes
   /// a one-property payload object just as multi-value cases do.
-  @Test func encodesInternallyTaggedBranches() throws {
-    try test(
+  @Test func encodesInternallyTaggedBranches() async throws {
+    try await test(
       Shape.schema,
       encodesAs:
         #"{"oneOf":[{"properties":{"kind":{"const":"circle"},"radius":{"type":"number"}},"required":["kind","radius"]},{"properties":{"kind":{"const":"rectangle"},"width":{"type":"number"},"height":{"type":"number"}},"required":["kind","width","height"]}]}"#
     )
   }
 
-  @Test func encodesInternallyTaggedDescription() throws {
-    try test(
+  @Test func encodesInternallyTaggedDescription() async throws {
+    try await test(
       Shape.schema.prependDescription("A shape"),
       encodesAs:
         #"{"description":"A shape","oneOf":[{"properties":{"kind":{"const":"circle"},"radius":{"type":"number"}},"required":["kind","radius"]},{"properties":{"kind":{"const":"rectangle"},"width":{"type":"number"},"height":{"type":"number"}},"required":["kind","width","height"]}]}"#
@@ -163,8 +163,8 @@ struct EnumerationSchemaEncodingTests {
 
   /// A `@StructuredCase` description becomes the description of the case's
   /// `oneOf` branch, alongside the spliced-in discriminator.
-  @Test func encodesInternallyTaggedCaseDescriptions() throws {
-    try test(
+  @Test func encodesInternallyTaggedCaseDescriptions() async throws {
+    try await test(
       DescribedShape.schema,
       encodesAs:
         #"{"oneOf":[{"description":"A circle","properties":{"kind":{"const":"circle"},"radius":{"type":"number"}},"required":["kind","radius"]},{"properties":{"kind":{"const":"rectangle"},"width":{"type":"number"},"height":{"type":"number"}},"required":["kind","width","height"]}]}"#
@@ -175,8 +175,8 @@ struct EnumerationSchemaEncodingTests {
 
   /// A `@StructuredCase` description becomes the description of the case's
   /// `oneOf` branch.
-  @Test func encodesTypeDiscriminatedCaseDescriptions() throws {
-    try test(
+  @Test func encodesTypeDiscriminatedCaseDescriptions() async throws {
+    try await test(
       DescribedNode.schema,
       encodesAs:
         #"{"oneOf":[{"description":"A leaf string","type":"string"},{"properties":{"x":{"type":"integer"},"y":{"type":"integer"}},"required":["x","y"]}]}"#
@@ -187,22 +187,22 @@ struct EnumerationSchemaEncodingTests {
 
   /// A `CaseIterable` raw-value enumeration encodes as the `enum` keyword
   /// listing every case's raw value in declaration order — no `type` keyword.
-  @Test func encodesStringRawValues() throws {
-    try test(
+  @Test func encodesStringRawValues() async throws {
+    try await test(
       Alignment.schema,
       encodesAs: #"{"enum":["left","center","right"]}"#
     )
   }
 
-  @Test func encodesIntegerRawValues() throws {
-    try test(
+  @Test func encodesIntegerRawValues() async throws {
+    try await test(
       Level.schema,
       encodesAs: #"{"enum":[1,2,3]}"#
     )
   }
 
-  @Test func encodesRawValueDescription() throws {
-    try test(
+  @Test func encodesRawValueDescription() async throws {
+    try await test(
       Alignment.schema.prependDescription("Text alignment"),
       encodesAs: #"{"description":"Text alignment","enum":["left","center","right"]}"#
     )
@@ -212,10 +212,10 @@ struct EnumerationSchemaEncodingTests {
 
   /// Schemas aren't `Equatable`, so decoding is verified by re-encoding — this
   /// exercises the case-properties carrier's hand-written decoding.
-  @Test func decodesByRoundTrip() throws {
+  @Test func decodesByRoundTrip() async throws {
     let json =
       #"{"description":"A reaction","properties":{"text":{"type":"string"},"point":{"properties":{"x":{"type":"integer"},"y":{"type":"integer"}},"required":["x","y"]},"ping":{"properties":{}}},"maxProperties":1}"#
-    try test(
+    try await test(
       JSONFragments(stringLiteral: json),
       decodesAs: .complete(Reaction.schema),
       testEquality: { decoded, _, sourceLocation in

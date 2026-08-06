@@ -9,16 +9,16 @@ import Testing
 @Suite("Reference Object Decoding")
 struct ReferenceObjectTests {
 
-  @Test func decodesReferenceObject() throws {
-    try test(#"{"name":"abc"}"#, decodesAs: ReferenceObject(name: "abc"))
+  @Test func decodesReferenceObject() async throws {
+    try await test(#"{"name":"abc"}"#, decodesAs: ReferenceObject(name: "abc"))
   }
 
-  @Test func decodesReferenceObjectChunked() throws {
-    try test([#"{"na"#, #"me":"ab"#, #"c"}"#], decodesAs: ReferenceObject(name: "abc"))
+  @Test func decodesReferenceObjectChunked() async throws {
+    try await test([#"{"na"#, #"me":"ab"#, #"c"}"#], decodesAs: ReferenceObject(name: "abc"))
   }
 
-  @Test func partialMidProperty() throws {
-    try test(#"{"name":"ab"#, decodesAs: .partial(ReferenceObject(name: "a")))
+  @Test func partialMidProperty() async throws {
+    try await test(#"{"name":"ab"#, decodesAs: .partial(ReferenceObject(name: "a")))
   }
 }
 

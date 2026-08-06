@@ -11,23 +11,23 @@ import Testing
 @Suite("Default Initialized Properties")
 struct DefaultInitializedPropertyTests {
 
-  @Test func presentValuesOverrideDefaults() throws {
-    try test(#"{"count":5,"note":"hi"}"#, decodesAs: DefaultObject(count: 5, note: "hi"))
+  @Test func presentValuesOverrideDefaults() async throws {
+    try await test(#"{"count":5,"note":"hi"}"#, decodesAs: DefaultObject(count: 5, note: "hi"))
   }
 
-  @Test func omittedOptionalKeepsDefault() throws {
-    try test(#"{"count":5}"#, decodesAs: DefaultObject(count: 5, note: nil))
+  @Test func omittedOptionalKeepsDefault() async throws {
+    try await test(#"{"count":5}"#, decodesAs: DefaultObject(count: 5, note: nil))
   }
 
-  @Test func omittedRequiredThrows() throws {
-    #expect(throws: (any Error).self) {
-      try test(#"{"note":"hi"}"#, decodesAs: DefaultObject(count: 10, note: "hi"))
+  @Test func omittedRequiredThrows() async throws {
+    await #expect(throws: (any Error).self) {
+      try await test(#"{"note":"hi"}"#, decodesAs: DefaultObject(count: 10, note: "hi"))
     }
   }
 
-  @Test func emptyObjectThrowsForRequiredDefault() throws {
-    #expect(throws: (any Error).self) {
-      try test(#"{}"#, decodesAs: DefaultObject(count: 10, note: nil))
+  @Test func emptyObjectThrowsForRequiredDefault() async throws {
+    await #expect(throws: (any Error).self) {
+      try await test(#"{}"#, decodesAs: DefaultObject(count: 10, note: nil))
     }
   }
 
@@ -35,13 +35,13 @@ struct DefaultInitializedPropertyTests {
 
   /// The object is constructed up front seeded with its defaults, so before any
   /// property arrives it is observable with those defaults.
-  @Test func partialExposesDefaults() throws {
-    try test(#"{"#, decodesAs: .partial(DefaultObject(count: 10, note: nil)))
+  @Test func partialExposesDefaults() async throws {
+    try await test(#"{"#, decodesAs: .partial(DefaultObject(count: 10, note: nil)))
   }
 
   /// Once properties stream in, the observable value reflects the overrides.
-  @Test func partialReflectsStreamedOverrides() throws {
-    try test(
+  @Test func partialReflectsStreamedOverrides() async throws {
+    try await test(
       #"{"count":5,"note":"he"#,
       decodesAs: .partial(DefaultObject(count: 5, note: "h"))
     )

@@ -46,31 +46,31 @@ extension PackTupleObject: Equatable where repeat each T: Equatable {
 @Suite("Tuple Properties")
 struct TuplePropertyTests {
 
-  @Test func encodes() throws {
-    try test(
+  @Test func encodes() async throws {
+    try await test(
       Line(endpoints: (1, 2), label: (x: 3, name: "point"), origin: (4, 5)),
       encodesAs: #"{"endpoints":[1,2],"label":[3,"point"],"origin":[4,5]}"#
     )
   }
 
   /// A `nil` tuple is omitted, like any optional property.
-  @Test func encodesNilTupleAsOmitted() throws {
-    try test(
+  @Test func encodesNilTupleAsOmitted() async throws {
+    try await test(
       Line(endpoints: (1, 2)),
       encodesAs: #"{"endpoints":[1,2],"origin":[0,0]}"#
     )
   }
 
-  @Test func decodes() throws {
-    try test(
+  @Test func decodes() async throws {
+    try await test(
       #"{"endpoints":[1,2],"label":[3,"point"],"origin":[4,5]}"#,
       decodesAs: Line(endpoints: (1, 2), label: (x: 3, name: "point"), origin: (4, 5))
     )
   }
 
   /// An omitted optional tuple decodes to `nil`.
-  @Test func decodesOmittedOptionalTuple() throws {
-    try test(
+  @Test func decodesOmittedOptionalTuple() async throws {
+    try await test(
       #"{"endpoints":[1,2],"origin":[0,0]}"#,
       decodesAs: Line(endpoints: (1, 2))
     )
@@ -78,30 +78,30 @@ struct TuplePropertyTests {
 
   /// A defaulted tuple follows the required-defaulted-property rule: the
   /// default seeds streaming, it does not permit omission.
-  @Test func omittedDefaultedTupleThrows() throws {
-    #expect(throws: (any Error).self) {
-      try test(#"{"endpoints":[1,2]}"#, decodesAs: Line(endpoints: (1, 2)))
+  @Test func omittedDefaultedTupleThrows() async throws {
+    await #expect(throws: (any Error).self) {
+      try await test(#"{"endpoints":[1,2]}"#, decodesAs: Line(endpoints: (1, 2)))
     }
   }
 
   /// Tuple properties get `StructuredTuple`'s `prefixItems` schema.
-  @Test func schemaEncodesStructurally() throws {
-    try test(
+  @Test func schemaEncodesStructurally() async throws {
+    try await test(
       Line.schema,
       encodesAs:
         #"{"properties":{"endpoints":{"prefixItems":[{"type":"integer"},{"type":"integer"}]},"label":{"prefixItems":[{"type":"integer"},{"type":"string"}]},"origin":{"prefixItems":[{"type":"integer"},{"type":"integer"}]}},"required":["endpoints","origin"]}"#
     )
   }
 
-  @Test func packTupleEncodes() throws {
-    try test(
+  @Test func packTupleEncodes() async throws {
+    try await test(
       PackTupleObject<Int, String>(items: (1, "a")),
       encodesAs: #"{"items":[1,"a"]}"#
     )
   }
 
-  @Test func packTupleDecodes() throws {
-    try test(
+  @Test func packTupleDecodes() async throws {
+    try await test(
       #"{"items":[1,"a"]}"#,
       decodesAs: PackTupleObject<Int, String>(items: (1, "a"))
     )

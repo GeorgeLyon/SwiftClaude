@@ -70,7 +70,7 @@ struct StructuredActionRuntimeTests {
   }
 
   @Test
-  func descriptionsBakeIntoSchemas() throws {
+  func descriptionsBakeIntoSchemas() async throws {
     let action = StructuredAction(
       name: "describedDouble",
       description: "Doubles a number",
@@ -79,11 +79,11 @@ struct StructuredActionRuntimeTests {
       invoke: { (_: Toolbox, value: Int) in value * 2 }
     )
     #expect(action.description == "Doubles a number")
-    try test(
+    try await test(
       action.inputSchema,
       encodesAs: #"{"description":"The number to double","type":"integer"}"#
     )
-    try test(
+    try await test(
       action.outputSchema,
       encodesAs: #"{"description":"The doubled number","type":"integer"}"#
     )
@@ -98,14 +98,14 @@ struct StructuredActionRuntimeTests {
 struct EnumerationCaseDefaultTests {
 
   @Test
-  func enumCaseDefaultsFollowStructSemantics() throws {
-    try test(#"{"retry": {"count": 5}}"#, decodesAs: Policy.retry(count: 5, delay: nil))
-    try test(
+  func enumCaseDefaultsFollowStructSemantics() async throws {
+    try await test(#"{"retry": {"count": 5}}"#, decodesAs: Policy.retry(count: 5, delay: nil))
+    try await test(
       #"{"retry": {"count": 5, "delay": 0.5}}"#,
       decodesAs: Policy.retry(count: 5, delay: 0.5)
     )
-    #expect(throws: (any Error).self) {
-      try test(#"{"retry": {}}"#, decodesAs: Policy.retry(count: 3, delay: nil))
+    await #expect(throws: (any Error).self) {
+      try await test(#"{"retry": {}}"#, decodesAs: Policy.retry(count: 3, delay: nil))
     }
   }
 

@@ -27,16 +27,16 @@ private struct ParentObject {
 @Suite("Object Schema Encoding")
 struct ObjectSchemaEncodingTests {
 
-  @Test func encodesPropertiesAndRequired() throws {
-    try test(
+  @Test func encodesPropertiesAndRequired() async throws {
+    try await test(
       MutableStringObject.schema,
       encodesAs:
         #"{"properties":{"first":{"type":"string"},"second":{"type":"string"}},"required":["first"]}"#
     )
   }
 
-  @Test func encodesDescription() throws {
-    try test(
+  @Test func encodesDescription() async throws {
+    try await test(
       MutableStringObject.schema.prependDescription("A mutable pair of strings"),
       encodesAs:
         #"{"description":"A mutable pair of strings","properties":{"first":{"type":"string"},"second":{"type":"string"}},"required":["first"]}"#
@@ -44,16 +44,16 @@ struct ObjectSchemaEncodingTests {
   }
 
   /// Every property is omittable, so the `required` key is omitted entirely.
-  @Test func omitsEmptyRequired() throws {
-    try test(
+  @Test func omitsEmptyRequired() async throws {
+    try await test(
       OptionalMutableObject.schema,
       encodesAs:
         #"{"properties":{"a":{"type":"string"},"b":{"type":"string"}}}"#
     )
   }
 
-  @Test func encodesEmptyObjectSchema() throws {
-    try test(
+  @Test func encodesEmptyObjectSchema() async throws {
+    try await test(
       EmptyObject.schema,
       encodesAs: #"{"properties":{}}"#
     )
@@ -62,16 +62,16 @@ struct ObjectSchemaEncodingTests {
   /// `required` mirrors the decoder: default-initialized properties with a
   /// required core (`kind`, `count`) may not be omitted, while optional cores
   /// (`second`, `note`) may.
-  @Test func requiredReflectsDefaultedProperties() throws {
-    try test(
+  @Test func requiredReflectsDefaultedProperties() async throws {
+    try await test(
       DefaultedObject.schema,
       encodesAs:
         #"{"properties":{"first":{"type":"string"},"second":{"type":"string"},"kind":{"type":"string"},"count":{"type":"integer"},"note":{"type":"string"}},"required":["first","kind","count"]}"#
     )
   }
 
-  @Test func encodesNestedObjectSchema() throws {
-    try test(
+  @Test func encodesNestedObjectSchema() async throws {
+    try await test(
       ParentObject.schema,
       encodesAs:
         #"{"properties":{"label":{"type":"string"},"child":{"properties":{"first":{"type":"string"},"second":{"type":"string"}},"required":["first"]}},"required":["label","child"]}"#
@@ -81,10 +81,10 @@ struct ObjectSchemaEncodingTests {
   // MARK: - Decoding
 
   /// Schemas aren't `Equatable`, so decoding is verified by re-encoding.
-  @Test func decodesByRoundTrip() throws {
+  @Test func decodesByRoundTrip() async throws {
     let json =
       #"{"properties":{"first":{"type":"string"},"second":{"type":"string"}},"required":["first"]}"#
-    try test(
+    try await test(
       JSONFragments(stringLiteral: json),
       decodesAs: .complete(MutableStringObject.schema),
       testEquality: { decoded, _, sourceLocation in
@@ -97,9 +97,9 @@ struct ObjectSchemaEncodingTests {
   }
 
   /// The empty-pack edge: no property schemas to decode, `required` omitted.
-  @Test func decodesEmptyObjectSchemaByRoundTrip() throws {
+  @Test func decodesEmptyObjectSchemaByRoundTrip() async throws {
     let json = #"{"properties":{}}"#
-    try test(
+    try await test(
       JSONFragments(stringLiteral: json),
       decodesAs: .complete(EmptyObject.schema),
       testEquality: { decoded, _, sourceLocation in

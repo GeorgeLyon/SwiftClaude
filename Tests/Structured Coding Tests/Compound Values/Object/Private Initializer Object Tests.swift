@@ -17,8 +17,8 @@ struct PrivateInitializerObjectTests {
 
   // MARK: - Branch B (required `let`)
 
-  @Test func decodesAllPropertyKinds() throws {
-    try test(
+  @Test func decodesAllPropertyKinds() async throws {
+    try await test(
       #"{"id":1,"name":"a","note":"b","kind":"fixed","count":5}"#,
       decodesAs: PrivateInitObject(id: 1, name: "a", note: "b", count: 5)
     )
@@ -26,8 +26,8 @@ struct PrivateInitializerObjectTests {
 
   /// The optional `note` may be omitted (decoding to `nil`); the constant `kind`
   /// is supplied by the type's own initializer.
-  @Test func omittedOptionalDecodesAsNil() throws {
-    try test(
+  @Test func omittedOptionalDecodesAsNil() async throws {
+    try await test(
       #"{"id":1,"name":"a","kind":"fixed","count":5}"#,
       decodesAs: PrivateInitObject(id: 1, name: "a", note: nil, count: 5)
     )
@@ -35,18 +35,18 @@ struct PrivateInitializerObjectTests {
 
   /// `count` (a `var = 10` wrapping a required definition) must still be present —
   /// its default is the streaming seed, not a JSON-omittable default.
-  @Test func omittedRequiredDefaultThrows() throws {
-    #expect(throws: (any Error).self) {
-      try test(
+  @Test func omittedRequiredDefaultThrows() async throws {
+    await #expect(throws: (any Error).self) {
+      try await test(
         #"{"id":1,"name":"a","kind":"fixed"}"#,
         decodesAs: PrivateInitObject(id: 1, name: "a", note: nil, count: 10)
       )
     }
   }
 
-  @Test func presentMismatchedConstantThrows() throws {
-    #expect(throws: (any Error).self) {
-      try test(
+  @Test func presentMismatchedConstantThrows() async throws {
+    await #expect(throws: (any Error).self) {
+      try await test(
         #"{"id":1,"name":"a","kind":"other","count":5}"#,
         decodesAs: PrivateInitObject(id: 1, name: "a", note: nil, count: 5)
       )
@@ -55,15 +55,15 @@ struct PrivateInitializerObjectTests {
 
   // MARK: - Branch A (streamed required/optional `var`)
 
-  @Test func streamsInPlace() throws {
-    try test(
+  @Test func streamsInPlace() async throws {
+    try await test(
       #"{"first":"hello","second":"world"}"#,
       decodesAs: StreamingObject(first: "hello", second: "world")
     )
   }
 
-  @Test func partialReflectsStreaming() throws {
-    try test(
+  @Test func partialReflectsStreaming() async throws {
+    try await test(
       #"{"first":"hel"#,
       decodesAs: .partial(StreamingObject(first: "he", second: nil))
     )
@@ -73,19 +73,19 @@ struct PrivateInitializerObjectTests {
 
   /// Constructed up front seeded with its property defaults, so before any value
   /// streams in the `if let` bindings see `nil` and keep `count == 10` / `note == nil`.
-  @Test func partialExposesDefaults() throws {
-    try test(#"{"#, decodesAs: .partial(DefaultStreamingObject(count: 10, note: nil)))
+  @Test func partialExposesDefaults() async throws {
+    try await test(#"{"#, decodesAs: .partial(DefaultStreamingObject(count: 10, note: nil)))
   }
 
-  @Test func streamedValuesOverrideDefaults() throws {
-    try test(
+  @Test func streamedValuesOverrideDefaults() async throws {
+    try await test(
       #"{"count":5,"note":"hi"}"#,
       decodesAs: DefaultStreamingObject(count: 5, note: "hi")
     )
   }
 
-  @Test func omittedOptionalKeepsDefault() throws {
-    try test(#"{"count":5}"#, decodesAs: DefaultStreamingObject(count: 5, note: nil))
+  @Test func omittedOptionalKeepsDefault() async throws {
+    try await test(#"{"count":5}"#, decodesAs: DefaultStreamingObject(count: 5, note: nil))
   }
 }
 

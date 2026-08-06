@@ -14,15 +14,15 @@ import Testing
 @Suite("Enumeration Property")
 struct EnumerationPropertyTests {
 
-  @Test func decodesObjectWithEnumProperty() throws {
-    try test(
+  @Test func decodesObjectWithEnumProperty() async throws {
+    try await test(
       #"{"x":4,"choice":{"text":"hello"}}"#,
       decodesAs: EnumHolder(x: 4, choice: .text("hello"))
     )
   }
 
-  @Test func decodesObjectWithEnumPropertyChunked() throws {
-    try test(
+  @Test func decodesObjectWithEnumPropertyChunked() async throws {
+    try await test(
       [#"{"x":4,"choice":{"te"#, #"xt":"hel"#, #"lo"}}"#],
       decodesAs: EnumHolder(x: 4, choice: .text("hello"))
     )
@@ -31,8 +31,8 @@ struct EnumerationPropertyTests {
   /// The key case: as soon as the inner case name is read, the enum seeds
   /// `.text("")`, which constructs the outer object. The associated string has
   /// not produced any characters yet, so the observable value is `.text("")`.
-  @Test func outerObjectInitializesOnceInnerCaseKnown() throws {
-    try test(
+  @Test func outerObjectInitializesOnceInnerCaseKnown() async throws {
+    try await test(
       #"{"x":4,"choice":{"text":""#,
       decodesAs: .partial(EnumHolder(x: 4, choice: .text("")))
     )
@@ -40,16 +40,16 @@ struct EnumerationPropertyTests {
 
   /// Once associated-value characters arrive, the outer object reflects them
   /// (lagging by one buffered character, like any streamed string).
-  @Test func outerObjectReflectsStreamingAssociatedValue() throws {
-    try test(
+  @Test func outerObjectReflectsStreamingAssociatedValue() async throws {
+    try await test(
       #"{"x":4,"choice":{"text":"hel"#,
       decodesAs: .partial(EnumHolder(x: 4, choice: .text("he")))
     )
   }
 
   /// Before the inner case is known, the outer object cannot exist yet.
-  @Test func outerObjectIncompleteBeforeInnerCaseKnown() throws {
-    try test(
+  @Test func outerObjectIncompleteBeforeInnerCaseKnown() async throws {
+    try await test(
       #"{"x":4,"choice":{"#,
       decodesAs: DecodingOutcome<EnumHolder>.incomplete
     )
@@ -58,8 +58,8 @@ struct EnumerationPropertyTests {
   /// A case with an Optional associated value initializes twice during its
   /// decode — once to seed the wrapper and once for the wrapped value — so the
   /// re-entrant `initializeValue` must not re-stream already-streaming siblings.
-  @Test func decodesObjectWithEnumPropertyCarryingOptionalPayload() throws {
-    try test(
+  @Test func decodesObjectWithEnumPropertyCarryingOptionalPayload() async throws {
+    try await test(
       #"{"x":4,"choice":{"maybe":{"value":7}}}"#,
       decodesAs: OptionalPayloadHolder(x: 4, choice: .maybe(7))
     )

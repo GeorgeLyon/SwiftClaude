@@ -8,8 +8,8 @@ struct NestedObjectTests {
 
   // MARK: - Branch-A child
 
-  @Test func decodesNestedObject() throws {
-    try test(
+  @Test func decodesNestedObject() async throws {
+    try await test(
       #"{"label":"outer","inner":{"first":"hello","second":"world"}}"#,
       decodesAs: NestingObject(
         label: "outer",
@@ -18,8 +18,8 @@ struct NestedObjectTests {
     )
   }
 
-  @Test func decodesNestedObjectChunked() throws {
-    try test(
+  @Test func decodesNestedObjectChunked() async throws {
+    try await test(
       [
         #"{"label":"out"#,
         #"er","inner":{"first":"hel"#,
@@ -32,8 +32,8 @@ struct NestedObjectTests {
     )
   }
 
-  @Test func partialMidInnerObject() throws {
-    try test(
+  @Test func partialMidInnerObject() async throws {
+    try await test(
       #"{"label":"outer","inner":{"first":"hel"#,
       decodesAs: .partial(
         NestingObject(
@@ -49,15 +49,15 @@ struct NestedObjectTests {
   /// The inner object cannot be constructed up front (its `value` is an `Int`),
   /// so the whole tree decodes through the deferred path — a Branch-B object
   /// nested inside a Branch-B object.
-  @Test func decodesNestedDeferredObject() throws {
-    try test(
+  @Test func decodesNestedDeferredObject() async throws {
+    try await test(
       #"{"inner":{"value":7}}"#,
       decodesAs: DeferredParent(inner: SingleScalarObject(value: 7))
     )
   }
 
-  @Test func decodesNestedDeferredObjectChunked() throws {
-    try test(
+  @Test func decodesNestedDeferredObjectChunked() async throws {
+    try await test(
       [#"{"inner":{"val"#, #"ue":7}}"#],
       decodesAs: DeferredParent(inner: SingleScalarObject(value: 7))
     )

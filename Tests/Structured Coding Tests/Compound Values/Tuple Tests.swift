@@ -30,30 +30,30 @@ private func schema<each Element: StructuredDecodable>(
 @Suite("Tuple Schema")
 struct TupleSchemaTests {
 
-  @Test func encodesPrefixItems() throws {
-    try test(
+  @Test func encodesPrefixItems() async throws {
+    try await test(
       StructuredTuple<Int, String>.schema,
       encodesAs: #"{"prefixItems":[{"type":"integer"},{"type":"string"}]}"#
     )
   }
 
-  @Test func encodesDescription() throws {
-    try test(
+  @Test func encodesDescription() async throws {
+    try await test(
       StructuredTuple<Int, String>.schema.prependDescription("A labeled pair"),
       encodesAs:
         #"{"description":"A labeled pair","prefixItems":[{"type":"integer"},{"type":"string"}]}"#
     )
   }
 
-  @Test func encodesEmptyTupleSchema() throws {
-    try test(
+  @Test func encodesEmptyTupleSchema() async throws {
+    try await test(
       schema(of: StructuredTuple()),
       encodesAs: #"{"prefixItems":[]}"#
     )
   }
 
-  @Test func encodesNestedTupleSchema() throws {
-    try test(
+  @Test func encodesNestedTupleSchema() async throws {
+    try await test(
       StructuredTuple<Int, StructuredTuple<Bool, String>>.schema,
       encodesAs:
         #"{"prefixItems":[{"type":"integer"},{"prefixItems":[{"type":"boolean"},{"type":"string"}]}]}"#
@@ -62,14 +62,14 @@ struct TupleSchemaTests {
   
   /// Instantiating the property descriptor forces
   /// `Definition.CodingSchema == StructuredTuple<Int, String>.Schema`.
-  @Test func tuplePropertyMetadataInstantiates() throws {
+  @Test func tuplePropertyMetadataInstantiates() async throws {
     _ = TuplePropertyObject.properties()
   }
 
   /// A tuple-typed property now contributes a structural schema rather than
   /// the any-schema fallback's `{}`.
-  @Test func tuplePropertySchemaEncodes() throws {
-    try test(
+  @Test func tuplePropertySchemaEncodes() async throws {
+    try await test(
       TuplePropertyObject.schema,
       encodesAs:
         #"{"properties":{"pair":{"prefixItems":[{"type":"integer"},{"type":"string"}]}},"required":["pair"]}"#
@@ -78,10 +78,10 @@ struct TupleSchemaTests {
 
   /// Schemas aren't `Equatable`, so decoding is verified by re-encoding —
   /// this exercises `PrefixItems`' hand-written `decode`.
-  @Test func decodesByRoundTrip() throws {
+  @Test func decodesByRoundTrip() async throws {
     let json =
       #"{"description":"A labeled pair","prefixItems":[{"type":"integer"},{"type":"string"}]}"#
-    try test(
+    try await test(
       JSONFragments(stringLiteral: json),
       decodesAs: .complete(StructuredTuple<Int, String>.schema),
       testEquality: { decoded, _, sourceLocation in
@@ -98,12 +98,12 @@ struct TupleSchemaTests {
 @Suite("Tuple Encoding")
 struct TupleEncodingTests {
 
-  @Test func encodesEmptyTupleAsEmptyArray() throws {
-    try test(StructuredTuple(), encodesAs: "[]")
+  @Test func encodesEmptyTupleAsEmptyArray() async throws {
+    try await test(StructuredTuple(), encodesAs: "[]")
   }
 
-  @Test func encodesPairTuple() throws {
-    try test(StructuredTuple<Int, String>(1, "two"), encodesAs: #"[1,"two"]"#)
+  @Test func encodesPairTuple() async throws {
+    try await test(StructuredTuple<Int, String>(1, "two"), encodesAs: #"[1,"two"]"#)
   }
 
 }
@@ -113,50 +113,50 @@ struct TupleDecodingTests {
 
   // MARK: - Empty
 
-  @Test func decodesEmptyTuple() throws {
-    try test("[]", decodesAs: StructuredTuple())
+  @Test func decodesEmptyTuple() async throws {
+    try await test("[]", decodesAs: StructuredTuple())
   }
 
-  @Test func decodesEmptyTupleWithInternalWhitespace() throws {
-    try test("[ ]", decodesAs: StructuredTuple())
+  @Test func decodesEmptyTupleWithInternalWhitespace() async throws {
+    try await test("[ ]", decodesAs: StructuredTuple())
   }
 
   // MARK: - Single Element
 
-  @Test func decodesSingleIntElement() throws {
-    try test("[42]", decodesAs: StructuredTuple<Int>(42))
+  @Test func decodesSingleIntElement() async throws {
+    try await test("[42]", decodesAs: StructuredTuple<Int>(42))
   }
 
-  @Test func decodesSingleStringElement() throws {
-    try test(#"["hello"]"#, decodesAs: StructuredTuple<String>("hello"))
+  @Test func decodesSingleStringElement() async throws {
+    try await test(#"["hello"]"#, decodesAs: StructuredTuple<String>("hello"))
   }
 
-  @Test func decodesSingleBoolElement() throws {
-    try test("[true]", decodesAs: StructuredTuple<Bool>(true))
+  @Test func decodesSingleBoolElement() async throws {
+    try await test("[true]", decodesAs: StructuredTuple<Bool>(true))
   }
 
   // MARK: - Multiple Elements
 
-  @Test func decodesPairOfInts() throws {
-    try test("[1,2]", decodesAs: StructuredTuple<Int, Int>(1, 2))
+  @Test func decodesPairOfInts() async throws {
+    try await test("[1,2]", decodesAs: StructuredTuple<Int, Int>(1, 2))
   }
 
-  @Test func decodesMixedElementTypes() throws {
-    try test(#"[1,"hello",true]"#, decodesAs: StructuredTuple<Int, String, Bool>(1, "hello", true))
+  @Test func decodesMixedElementTypes() async throws {
+    try await test(#"[1,"hello",true]"#, decodesAs: StructuredTuple<Int, String, Bool>(1, "hello", true))
   }
 
-  @Test func decodesHeterogeneousNumericAndString() throws {
-    try test(#"[1.5,"text",42]"#, decodesAs: StructuredTuple<Double, String, Int>(1.5, "text", 42))
+  @Test func decodesHeterogeneousNumericAndString() async throws {
+    try await test(#"[1.5,"text",42]"#, decodesAs: StructuredTuple<Double, String, Int>(1.5, "text", 42))
   }
 
   // MARK: - Whitespace
 
-  @Test func decodesWithSurroundingAndInternalWhitespace() throws {
-    try test(#"[ 1 , "two" , 3 ]"#, decodesAs: StructuredTuple<Int, String, Int>(1, "two", 3))
+  @Test func decodesWithSurroundingAndInternalWhitespace() async throws {
+    try await test(#"[ 1 , "two" , 3 ]"#, decodesAs: StructuredTuple<Int, String, Int>(1, "two", 3))
   }
 
-  @Test func decodesWithMultilineWhitespace() throws {
-    try test(
+  @Test func decodesWithMultilineWhitespace() async throws {
+    try await test(
       """
       [
         1,
@@ -168,85 +168,85 @@ struct TupleDecodingTests {
     )
   }
 
-  @Test func decodesWithLeadingAndTrailingWhitespace() throws {
-    try test(#"  [1,"two",3]  "#, decodesAs: StructuredTuple<Int, String, Int>(1, "two", 3))
+  @Test func decodesWithLeadingAndTrailingWhitespace() async throws {
+    try await test(#"  [1,"two",3]  "#, decodesAs: StructuredTuple<Int, String, Int>(1, "two", 3))
   }
 
   // MARK: - Unicode & Escapes
 
-  @Test func decodesUnicodeStringElement() throws {
-    try test(#"["日本語",1]"#, decodesAs: StructuredTuple<String, Int>("日本語", 1))
+  @Test func decodesUnicodeStringElement() async throws {
+    try await test(#"["日本語",1]"#, decodesAs: StructuredTuple<String, Int>("日本語", 1))
   }
 
-  @Test func decodesEscapedStringElement() throws {
-    try test(#"["line1\nline2",42]"#, decodesAs: StructuredTuple<String, Int>("line1\nline2", 42))
+  @Test func decodesEscapedStringElement() async throws {
+    try await test(#"["line1\nline2",42]"#, decodesAs: StructuredTuple<String, Int>("line1\nline2", 42))
   }
 
   // MARK: - Nested Compound Elements
 
-  @Test func decodesTupleContainingArray() throws {
-    try test(#"[[1,2,3],"end"]"#, decodesAs: StructuredTuple<[Int], String>([1, 2, 3], "end"))
+  @Test func decodesTupleContainingArray() async throws {
+    try await test(#"[[1,2,3],"end"]"#, decodesAs: StructuredTuple<[Int], String>([1, 2, 3], "end"))
   }
 
-  @Test func decodesTupleContainingEmptyArray() throws {
-    try test(#"[[],"end"]"#, decodesAs: StructuredTuple<[Int], String>([], "end"))
+  @Test func decodesTupleContainingEmptyArray() async throws {
+    try await test(#"[[],"end"]"#, decodesAs: StructuredTuple<[Int], String>([], "end"))
   }
 
   // MARK: - Errors
 
-  @Test func tooFewElementsThrows() throws {
-    #expect(throws: (any Error).self) {
-      try test("[1,2]", decodesAs: StructuredTuple<Int, Int, Int>(1, 2, 3))
+  @Test func tooFewElementsThrows() async throws {
+    await #expect(throws: (any Error).self) {
+      try await test("[1,2]", decodesAs: StructuredTuple<Int, Int, Int>(1, 2, 3))
     }
   }
 
-  @Test func tooManyElementsThrows() throws {
-    #expect(throws: (any Error).self) {
-      try test("[1,2,3]", decodesAs: StructuredTuple<Int, Int>(1, 2))
+  @Test func tooManyElementsThrows() async throws {
+    await #expect(throws: (any Error).self) {
+      try await test("[1,2,3]", decodesAs: StructuredTuple<Int, Int>(1, 2))
     }
   }
 
-  @Test func emptyArrayWhenElementsExpectedThrows() throws {
-    #expect(throws: (any Error).self) {
-      try test("[]", decodesAs: StructuredTuple<Int>(0))
+  @Test func emptyArrayWhenElementsExpectedThrows() async throws {
+    await #expect(throws: (any Error).self) {
+      try await test("[]", decodesAs: StructuredTuple<Int>(0))
     }
   }
 
-  @Test func wrongElementTypeThrows() throws {
-    #expect(throws: (any Error).self) {
-      try test(#"[1,"two"]"#, decodesAs: StructuredTuple<Int, Int>(1, 2))
+  @Test func wrongElementTypeThrows() async throws {
+    await #expect(throws: (any Error).self) {
+      try await test(#"[1,"two"]"#, decodesAs: StructuredTuple<Int, Int>(1, 2))
     }
   }
 
-  @Test func unterminatedArrayThrows() throws {
-    #expect(throws: (any Error).self) {
-      try test("[1,2", decodesAs: StructuredTuple<Int, Int>(1, 2))
+  @Test func unterminatedArrayThrows() async throws {
+    await #expect(throws: (any Error).self) {
+      try await test("[1,2", decodesAs: StructuredTuple<Int, Int>(1, 2))
     }
   }
 
-  @Test func missingOpenBracketThrows() throws {
-    #expect(throws: (any Error).self) {
-      try test("1,2]", decodesAs: StructuredTuple<Int, Int>(1, 2))
+  @Test func missingOpenBracketThrows() async throws {
+    await #expect(throws: (any Error).self) {
+      try await test("1,2]", decodesAs: StructuredTuple<Int, Int>(1, 2))
     }
   }
 
   // MARK: - Streaming (non-streaming type)
 
   /// `StructuredTuple` is not streamable, so it cannot expose a partial value mid-stream.
-  @Test func partialBeforeCloseBracketIsIncomplete() throws {
-    try test("[1,2", decodesAs: .incomplete as DecodingOutcome<StructuredTuple<Int, Int>>)
+  @Test func partialBeforeCloseBracketIsIncomplete() async throws {
+    try await test("[1,2", decodesAs: .incomplete as DecodingOutcome<StructuredTuple<Int, Int>>)
   }
 
-  @Test func streamingChunkedAcrossElementValue() throws {
-    try test([#"["hel"#, #"lo",4"#, #"2]"#], decodesAs: StructuredTuple<String, Int>("hello", 42))
+  @Test func streamingChunkedAcrossElementValue() async throws {
+    try await test([#"["hel"#, #"lo",4"#, #"2]"#], decodesAs: StructuredTuple<String, Int>("hello", 42))
   }
 
-  @Test func streamingChunkedAcrossElementSeparator() throws {
-    try test([#"[1"#, #",2,3]"#], decodesAs: StructuredTuple<Int, Int, Int>(1, 2, 3))
+  @Test func streamingChunkedAcrossElementSeparator() async throws {
+    try await test([#"[1"#, #",2,3]"#], decodesAs: StructuredTuple<Int, Int, Int>(1, 2, 3))
   }
 
-  @Test func streamingChunkedAcrossOpenBracket() throws {
-    try test([#"["#, #"1,2]"#], decodesAs: StructuredTuple<Int, Int>(1, 2))
+  @Test func streamingChunkedAcrossOpenBracket() async throws {
+    try await test([#"["#, #"1,2]"#], decodesAs: StructuredTuple<Int, Int>(1, 2))
   }
 
 }

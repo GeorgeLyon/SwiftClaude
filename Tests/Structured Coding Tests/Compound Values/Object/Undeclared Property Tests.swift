@@ -12,22 +12,22 @@ struct UndeclaredPropertyTests {
 
   // MARK: - Streamed path (constructible up front)
 
-  @Test func discardsUnknownBeforeDeclaredProperties() throws {
-    try test(
+  @Test func discardsUnknownBeforeDeclaredProperties() async throws {
+    try await test(
       #"{"junk":1,"first":"a","second":"b"}"#,
       decodesAs: DiscardingStreamedObject(first: "a", second: "b")
     )
   }
 
-  @Test func discardsUnknownBetweenDeclaredProperties() throws {
-    try test(
+  @Test func discardsUnknownBetweenDeclaredProperties() async throws {
+    try await test(
       #"{"first":"a","junk":true,"second":"b"}"#,
       decodesAs: DiscardingStreamedObject(first: "a", second: "b")
     )
   }
 
-  @Test func discardsUnknownAfterDeclaredProperties() throws {
-    try test(
+  @Test func discardsUnknownAfterDeclaredProperties() async throws {
+    try await test(
       #"{"first":"a","second":"b","junk":null}"#,
       decodesAs: DiscardingStreamedObject(first: "a", second: "b")
     )
@@ -35,15 +35,15 @@ struct UndeclaredPropertyTests {
 
   /// The skipped value can be arbitrarily nested — the whole subtree is
   /// consumed.
-  @Test func discardsNestedUnknownValue() throws {
-    try test(
+  @Test func discardsNestedUnknownValue() async throws {
+    try await test(
       #"{"first":"a","junk":{"nested":{"deep":[1,2,{"x":null}]}},"second":"b"}"#,
       decodesAs: DiscardingStreamedObject(first: "a", second: "b")
     )
   }
 
-  @Test func discardsMultipleUnknownProperties() throws {
-    try test(
+  @Test func discardsMultipleUnknownProperties() async throws {
+    try await test(
       #"{"i":1,"first":"a","j":[],"k":"x","second":"b"}"#,
       decodesAs: DiscardingStreamedObject(first: "a", second: "b")
     )
@@ -51,8 +51,8 @@ struct UndeclaredPropertyTests {
 
   /// Discarding an unknown property does not disturb optional-omission — the
   /// omitted `second` still decodes as `nil`.
-  @Test func discardsWithOmittedOptionalProperty() throws {
-    try test(
+  @Test func discardsWithOmittedOptionalProperty() async throws {
+    try await test(
       #"{"junk":1,"first":"a"}"#,
       decodesAs: DiscardingStreamedObject(first: "a", second: nil)
     )
@@ -60,22 +60,22 @@ struct UndeclaredPropertyTests {
 
   // MARK: - Buffered path (constructed mid-stream)
 
-  @Test func discardsUnknownBeforeBufferedProperties() throws {
-    try test(
+  @Test func discardsUnknownBeforeBufferedProperties() async throws {
+    try await test(
       #"{"junk":{},"a":1,"b":2}"#,
       decodesAs: DiscardingBufferedObject(a: 1, b: 2)
     )
   }
 
-  @Test func discardsUnknownBetweenBufferedProperties() throws {
-    try test(
+  @Test func discardsUnknownBetweenBufferedProperties() async throws {
+    try await test(
       #"{"a":1,"junk":[false],"b":2}"#,
       decodesAs: DiscardingBufferedObject(a: 1, b: 2)
     )
   }
 
-  @Test func discardsUnknownAfterBufferedProperties() throws {
-    try test(
+  @Test func discardsUnknownAfterBufferedProperties() async throws {
+    try await test(
       #"{"a":1,"b":2,"junk":"x"}"#,
       decodesAs: DiscardingBufferedObject(a: 1, b: 2)
     )
@@ -83,15 +83,15 @@ struct UndeclaredPropertyTests {
 
   // MARK: - Zero-property objects
 
-  @Test func emptyObjectStillDecodesFromEmptyJSON() throws {
-    try test(
+  @Test func emptyObjectStillDecodesFromEmptyJSON() async throws {
+    try await test(
       #"{}"#,
       decodesAs: DiscardingEmptyObject()
     )
   }
 
-  @Test func emptyObjectDiscardsEveryProperty() throws {
-    try test(
+  @Test func emptyObjectDiscardsEveryProperty() async throws {
+    try await test(
       #"{"any":1,"other":[false],"more":{"a":"b"}}"#,
       decodesAs: DiscardingEmptyObject()
     )
@@ -101,9 +101,9 @@ struct UndeclaredPropertyTests {
 
   /// Discarding is only for *undeclared* properties — a duplicated declared
   /// property is still an error.
-  @Test func duplicateDeclaredPropertyStillThrows() throws {
-    #expect(throws: (any Error).self) {
-      try test(
+  @Test func duplicateDeclaredPropertyStillThrows() async throws {
+    await #expect(throws: (any Error).self) {
+      try await test(
         #"{"first":"a","first":"b"}"#,
         decodesAs: DiscardingStreamedObject(first: "b", second: nil)
       )
@@ -112,9 +112,9 @@ struct UndeclaredPropertyTests {
 
   /// A missing required property is still an error, however many unknowns
   /// were discarded along the way.
-  @Test func missingRequiredPropertyStillThrows() throws {
-    #expect(throws: (any Error).self) {
-      try test(
+  @Test func missingRequiredPropertyStillThrows() async throws {
+    await #expect(throws: (any Error).self) {
+      try await test(
         #"{"junk":1}"#,
         decodesAs: DiscardingBufferedObject(a: 0, b: 0)
       )

@@ -26,6 +26,21 @@ public struct DecodingStream: ~Copyable, ~Escapable {
     DecodingStream(mutating: &self)
   }
 
+  /// Performs arbitrary asynchronous work as part of a decoding operation.
+  ///
+  /// Decoding driven by a `SynchronousDecoder` is pumped manually and can only resume
+  /// suspensions triggered by stream updates; an arbitrary suspension would stall the pump.
+  /// In that mode this throws `DecodingError.asyncOperationsUnsupported` without running
+  /// `operation`.
+  public func performAsync<T: ~Copyable>(
+    _ operation: () async throws -> sending T
+  ) async throws -> sending T {
+    guard state.supportsAsyncOperations else {
+      throw DecodingError.asyncOperationsUnsupported
+    }
+    return try await operation()
+  }
+
   @discardableResult
   func readByteIfPresent(in acceptSet: ByteSet) async throws(DecodingError) -> Bool {
     try await ensureReadableByteCount(isAtLeast: 1, allowLessIfStreamingFinished: true)
@@ -293,6 +308,23 @@ extension DecodingError {
 // MARK: - State
 
 final class DecodingStreamState {
+
+  /// Whether the decoder driving this stream runs decoding operations in a genuinely
+  /// concurrent context. Manually-pumped decoders can only resume suspensions triggered
+  /// by stream updates, so they do not support arbitrary asynchronous operations.
+  let supportsAsyncOperations: Bool
+
+  init(supportsAsyncOperations: Bool) {
+    self.supportsAsyncOperations = supportsAsyncOperations
+  }
+
+  /// A manually-pumped decoder can only resume suspensions triggered by stream updates,
+  /// so when its pump runs out of jobs, an in-flight decode must be parked on a stream
+  /// update. Mid-decode with no stored continuation means the operation suspended on
+  /// arbitrary asynchronous work and will stall.
+  var hasStalled: Bool {
+    isDecoding && continuation == nil
+  }
 
   fileprivate func reset() {
     guard isDecoding == false, positionCount == 0 else {

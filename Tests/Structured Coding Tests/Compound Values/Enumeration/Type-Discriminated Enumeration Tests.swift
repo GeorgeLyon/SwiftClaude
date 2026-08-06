@@ -24,8 +24,8 @@ struct TypeDiscriminatedEnumerationTests {
 
   /// The schema is a `oneOf` of the cases' associated-value schemas — the
   /// value's JSON kind is the discriminator, so the cases need no wrapper.
-  @Test func encodesSchema() throws {
-    try test(
+  @Test func encodesSchema() async throws {
+    try await test(
       Node.schema,
       encodesAs:
         #"{"oneOf":[{"type":"string"},{"type":"integer"},{"type":"boolean"},{"properties":{"x":{"type":"integer"},"y":{"type":"integer"}},"required":["x","y"]}]}"#
@@ -33,10 +33,10 @@ struct TypeDiscriminatedEnumerationTests {
   }
 
   /// Schemas aren't `Equatable`, so decoding is verified by re-encoding.
-  @Test func decodesSchemaByRoundTrip() throws {
+  @Test func decodesSchemaByRoundTrip() async throws {
     let json =
       #"{"description":"A JSON node","oneOf":[{"type":"string"},{"type":"integer"},{"type":"boolean"},{"properties":{"x":{"type":"integer"},"y":{"type":"integer"}},"required":["x","y"]}]}"#
-    try test(
+    try await test(
       JSONFragments(stringLiteral: json),
       decodesAs: .complete(Node.schema),
       testEquality: { decoded, _, sourceLocation in
@@ -50,36 +50,36 @@ struct TypeDiscriminatedEnumerationTests {
 
   // MARK: - Happy path
 
-  @Test func decodesStringCase() throws {
-    try test(
+  @Test func decodesStringCase() async throws {
+    try await test(
       #""hi""#,
       decodesAs: Node.string("hi")
     )
   }
 
-  @Test func decodesNumberCase() throws {
-    try test(
+  @Test func decodesNumberCase() async throws {
+    try await test(
       #"42"#,
       decodesAs: Node.integer(42)
     )
   }
 
-  @Test func decodesBooleanCase() throws {
-    try test(
+  @Test func decodesBooleanCase() async throws {
+    try await test(
       #"true"#,
       decodesAs: Node.boolean(true)
     )
   }
 
-  @Test func decodesObjectCase() throws {
-    try test(
+  @Test func decodesObjectCase() async throws {
+    try await test(
       #"{"x":1,"y":2}"#,
       decodesAs: Node.point(Point(x: 1, y: 2))
     )
   }
 
-  @Test func decodesWithSurroundingWhitespace() throws {
-    try test(
+  @Test func decodesWithSurroundingWhitespace() async throws {
+    try await test(
       #"   "hi"   "#,
       decodesAs: Node.string("hi")
     )
@@ -90,22 +90,22 @@ struct TypeDiscriminatedEnumerationTests {
   /// The kind is settled by the first non-whitespace character, so a chunk of
   /// pure whitespace cannot identify the case yet — the peek resumes once the
   /// value's opening character arrives in a later chunk.
-  @Test func chunkedBeforeDiscriminatingCharacter() throws {
-    try test(
+  @Test func chunkedBeforeDiscriminatingCharacter() async throws {
+    try await test(
       [#"   "#, #""hi""#],
       decodesAs: Node.string("hi")
     )
   }
 
-  @Test func chunkedAcrossStringValue() throws {
-    try test(
+  @Test func chunkedAcrossStringValue() async throws {
+    try await test(
       [#""he"#, #"llo""#],
       decodesAs: Node.string("hello")
     )
   }
 
-  @Test func chunkedAcrossObjectValue() throws {
-    try test(
+  @Test func chunkedAcrossObjectValue() async throws {
+    try await test(
       [#"{"x":1,"#, #""y":2}"#],
       decodesAs: Node.point(Point(x: 1, y: 2))
     )
@@ -114,16 +114,16 @@ struct TypeDiscriminatedEnumerationTests {
   // MARK: - Errors
 
   /// A JSON kind no case claims (`null`) is rejected.
-  @Test func unmatchedNullKindThrows() throws {
-    #expect(throws: (any Error).self) {
-      try test(#"null"#, decodesAs: Node.string(""))
+  @Test func unmatchedNullKindThrows() async throws {
+    await #expect(throws: (any Error).self) {
+      try await test(#"null"#, decodesAs: Node.string(""))
     }
   }
 
   /// Likewise an array, which no case claims.
-  @Test func unmatchedArrayKindThrows() throws {
-    #expect(throws: (any Error).self) {
-      try test(#"[1,2]"#, decodesAs: Node.integer(0))
+  @Test func unmatchedArrayKindThrows() async throws {
+    await #expect(throws: (any Error).self) {
+      try await test(#"[1,2]"#, decodesAs: Node.integer(0))
     }
   }
 
@@ -131,8 +131,8 @@ struct TypeDiscriminatedEnumerationTests {
 
   /// Before the first non-whitespace character arrives the kind is unknown, so
   /// the case cannot be selected and the enumeration is not observable.
-  @Test func incompleteBeforeKindKnown() throws {
-    try test(
+  @Test func incompleteBeforeKindKnown() async throws {
+    try await test(
       #"   "#,
       decodesAs: DecodingOutcome<Node>.incomplete
     )
@@ -141,8 +141,8 @@ struct TypeDiscriminatedEnumerationTests {
   /// The opening quote settles the kind as a string and selects the case, which
   /// seeds its `String` associated value with the initial value (`""`) — observable
   /// before any characters arrive.
-  @Test func seedsStringCaseOnceKindKnown() throws {
-    try test(
+  @Test func seedsStringCaseOnceKindKnown() async throws {
+    try await test(
       #"""#,
       decodesAs: .partial(Node.string(""))
     )
@@ -150,8 +150,8 @@ struct TypeDiscriminatedEnumerationTests {
 
   /// Once string characters arrive the case reflects them (the streamed string
   /// lags by one buffered character).
-  @Test func reflectsStreamingStringValue() throws {
-    try test(
+  @Test func reflectsStreamingStringValue() async throws {
+    try await test(
       #""hel"#,
       decodesAs: .partial(Node.string("he"))
     )
@@ -160,8 +160,8 @@ struct TypeDiscriminatedEnumerationTests {
   /// A Branch-B `Int` has no initial value, so even though the leading digit has
   /// identified the case, the value is not observable until a delimiter
   /// terminates it — and a bare `4` has none yet.
-  @Test func numberNotObservableUntilTerminated() throws {
-    try test(
+  @Test func numberNotObservableUntilTerminated() async throws {
+    try await test(
       #"4"#,
       decodesAs: DecodingOutcome<Node>.incomplete
     )
@@ -170,8 +170,8 @@ struct TypeDiscriminatedEnumerationTests {
   /// A Branch-B object cannot be constructed until its buffered properties are all
   /// present, so the case stays unobservable even with every byte but the one that
   /// terminates the final property's value.
-  @Test func objectNotObservableUntilBuilt() throws {
-    try test(
+  @Test func objectNotObservableUntilBuilt() async throws {
+    try await test(
       #"{"x":1,"y":2"#,
       decodesAs: DecodingOutcome<Node>.incomplete
     )
@@ -180,8 +180,8 @@ struct TypeDiscriminatedEnumerationTests {
   /// Once a delimiter terminates the final property (here a trailing comma
   /// terminates `2`), the Branch-B object is constructed and the case becomes
   /// observable — before the object itself closes.
-  @Test func objectObservableOnceBuilt() throws {
-    try test(
+  @Test func objectObservableOnceBuilt() async throws {
+    try await test(
       #"{"x":1,"y":2,"#,
       decodesAs: .partial(Node.point(Point(x: 1, y: 2)))
     )

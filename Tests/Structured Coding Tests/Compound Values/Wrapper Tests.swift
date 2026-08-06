@@ -17,78 +17,78 @@ struct WrapperTests {
 
   /// A wrapper's schema is its wrapped value's schema — there is no object
   /// structure of its own.
-  @Test func schemaIsWrappedValueSchema() throws {
-    try test(MediaType.schema, encodesAs: #"{"type":"string"}"#)
-    try test(Count.schema, encodesAs: #"{"type":"integer"}"#)
+  @Test func schemaIsWrappedValueSchema() async throws {
+    try await test(MediaType.schema, encodesAs: #"{"type":"string"}"#)
+    try await test(Count.schema, encodesAs: #"{"type":"integer"}"#)
   }
 
   // MARK: - Encoding
 
-  @Test func encodesAsBareString() throws {
-    try test(MediaType(stringValue: "image/png"), encodesAs: #""image/png""#)
+  @Test func encodesAsBareString() async throws {
+    try await test(MediaType(stringValue: "image/png"), encodesAs: #""image/png""#)
   }
 
-  @Test func encodesAsBareInteger() throws {
-    try test(Count(value: 42), encodesAs: #"42"#)
+  @Test func encodesAsBareInteger() async throws {
+    try await test(Count(value: 42), encodesAs: #"42"#)
   }
 
   // MARK: - Happy path
 
-  @Test func decodesFromBareString() throws {
-    try test(#""image/png""#, decodesAs: MediaType(stringValue: "image/png"))
+  @Test func decodesFromBareString() async throws {
+    try await test(#""image/png""#, decodesAs: MediaType(stringValue: "image/png"))
   }
 
-  @Test func decodesFromBareInteger() throws {
-    try test(#"42"#, decodesAs: Count(value: 42))
+  @Test func decodesFromBareInteger() async throws {
+    try await test(#"42"#, decodesAs: Count(value: 42))
   }
 
-  @Test func decodesWithSurroundingWhitespace() throws {
-    try test(#"  "image/png"  "#, decodesAs: MediaType(stringValue: "image/png"))
+  @Test func decodesWithSurroundingWhitespace() async throws {
+    try await test(#"  "image/png"  "#, decodesAs: MediaType(stringValue: "image/png"))
   }
 
   // MARK: - Chunk boundaries
 
-  @Test func chunkedAcrossStringValue() throws {
-    try test([#""image"#, #"/png""#], decodesAs: MediaType(stringValue: "image/png"))
+  @Test func chunkedAcrossStringValue() async throws {
+    try await test([#""image"#, #"/png""#], decodesAs: MediaType(stringValue: "image/png"))
   }
 
-  @Test func chunkedAcrossIntegerValue() throws {
-    try test([#"4"#, #"2"#], decodesAs: Count(value: 42))
+  @Test func chunkedAcrossIntegerValue() async throws {
+    try await test([#"4"#, #"2"#], decodesAs: Count(value: 42))
   }
 
   // MARK: - Partial streaming
 
   /// A `var`-backed `String` wrapper is seeded around the empty string the
   /// instant the opening quote arrives, exactly like a `var` object property.
-  @Test func mutableWrapperSeedsOnceKindKnown() throws {
-    try test(#"""#, decodesAs: .partial(Tag(text: "")))
+  @Test func mutableWrapperSeedsOnceKindKnown() async throws {
+    try await test(#"""#, decodesAs: .partial(Tag(text: "")))
   }
 
   /// Once characters arrive the wrapper reflects them (the streamed string
   /// lags by one buffered character).
-  @Test func mutableWrapperStreams() throws {
-    try test(#""hel"#, decodesAs: .partial(Tag(text: "he")))
+  @Test func mutableWrapperStreams() async throws {
+    try await test(#""hel"#, decodesAs: .partial(Tag(text: "he")))
   }
 
   /// A `let`-backed wrapper cannot be written through its key path, so — like
   /// a `let` object property — it buffers and stays unobservable until the
   /// value is complete.
-  @Test func immutableWrapperNotObservableUntilComplete() throws {
-    try test(#""imag"#, decodesAs: DecodingOutcome<MediaType>.incomplete)
+  @Test func immutableWrapperNotObservableUntilComplete() async throws {
+    try await test(#""imag"#, decodesAs: DecodingOutcome<MediaType>.incomplete)
   }
 
   /// An `Int` has no initial value, so the wrapper is unobservable until a
   /// delimiter terminates the number — a bare digit has none yet.
-  @Test func integerWrapperNotObservableUntilTerminated() throws {
-    try test(#"4"#, decodesAs: DecodingOutcome<Count>.incomplete)
+  @Test func integerWrapperNotObservableUntilTerminated() async throws {
+    try await test(#"4"#, decodesAs: DecodingOutcome<Count>.incomplete)
   }
 
   // MARK: - Errors
 
   /// The wrapped value's own validation applies unchanged.
-  @Test func wrongKindThrows() throws {
-    #expect(throws: (any Error).self) {
-      try test(#"42"#, decodesAs: MediaType(stringValue: ""))
+  @Test func wrongKindThrows() async throws {
+    await #expect(throws: (any Error).self) {
+      try await test(#"42"#, decodesAs: MediaType(stringValue: ""))
     }
   }
 

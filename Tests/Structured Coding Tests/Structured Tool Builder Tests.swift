@@ -45,8 +45,8 @@ struct StructuredToolBuilderTests {
   /// each action by name, folding the action descriptions into the keyed
   /// properties.
   @Test
-  func twoActionBuilderSynthesizesEnumeration() throws {
-    try test(
+  func twoActionBuilderSynthesizesEnumeration() async throws {
+    try await test(
       Toolbox.definition.actions.inputSchema,
       encodesAs:
         #"{"properties":{"double":{"type":"integer"},"shout":{"description":"Uppercases text","type":"string"}},"maxProperties":1}"#
@@ -81,8 +81,8 @@ struct StructuredToolBuilderTests {
   /// schemas — a result is untagged on the wire (matching-output components
   /// collapse, so a payload can't be keyed by the action that produced it).
   @Test
-  func mismatchedOutputsSynthesizeOneOfSchema() throws {
-    try test(
+  func mismatchedOutputsSynthesizeOneOfSchema() async throws {
+    try await test(
       Toolbox.definition.actions.outputSchema,
       encodesAs: #"{"oneOf":[{"type":"integer"},{"type":"string"}]}"#
     )
@@ -227,9 +227,9 @@ struct StructuredToolBuilderTests {
 
   /// A result encodes untagged: the selected component's bare output.
   @Test
-  func resultEncodesUntagged() throws {
-    try test(StructuredActionResult<Int, String>.first(7), encodesAs: "7")
-    try test(StructuredActionResult<Int, String>.next("up"), encodesAs: #""up""#)
+  func resultEncodesUntagged() async throws {
+    try await test(StructuredActionResult<Int, String>.first(7), encodesAs: "7")
+    try await test(StructuredActionResult<Int, String>.next("up"), encodesAs: #""up""#)
   }
 
   /// A standalone leaf keeps the typed invoke surface a future dispatch
@@ -249,8 +249,8 @@ struct StructuredToolBuilderTests {
   /// itself, and its object input schema is the action's raw schema — no
   /// envelope, no enumeration.
   @Test
-  func singleObjectActionBuilderUsesActionInputSchemaDirectly() throws {
-    try test(
+  func singleObjectActionBuilderUsesActionInputSchemaDirectly() async throws {
+    try await test(
       Greeter.definition.actions.inputSchema,
       encodesAs:
         #"{"properties":{"name":{"type":"string"}},"required":["name"]}"#
@@ -268,12 +268,17 @@ struct StructuredToolBuilderTests {
   /// it for a wire format that requires top-level objects is the consumer's
   /// business — and invokes with the bare typed input.
   @Test
-  func singleScalarActionBuilderStaysRaw() throws {
-    try test(
+  func singleScalarActionBuilderStaysRaw() async throws {
+    try await test(
       Doubler.definition.actions.inputSchema,
       encodesAs: #"{"type":"integer"}"#
     )
-    #expect(Doubler.definition.actions.invoke(on: Doubler(), with: 21) == 42)
+    /// Typed explicitly synchronous so overload resolution picks the typed
+    /// synchronous `invoke(on:with:)` despite the enclosing async context.
+    let invokeSynchronously: () -> Int = {
+      Doubler.definition.actions.invoke(on: Doubler(), with: 21)
+    }
+    #expect(invokeSynchronously() == 42)
   }
 
 }

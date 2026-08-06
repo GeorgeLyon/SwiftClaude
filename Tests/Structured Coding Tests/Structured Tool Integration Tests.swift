@@ -25,8 +25,8 @@ struct StructuredToolIntegrationTests {
   /// by action name, each property carrying that action's input schema with
   /// the action description prepended.
   @Test
-  func multiActionSchemaSynthesizesEnumeration() throws {
-    try test(
+  func multiActionSchemaSynthesizesEnumeration() async throws {
+    try await test(
       Calculator.definition.actions.inputSchema,
       encodesAs:
         #"{"properties":{"add":{"properties":{"amount":{"type":"integer"}},"required":["amount"]},"fetch":{"description":"Fetches an item","properties":{"id":{"type":"integer"}},"required":["id"]},"parity":{"properties":{"of":{"type":"integer"}},"required":["of"]}},"maxProperties":1}"#
@@ -37,8 +37,8 @@ struct StructuredToolIntegrationTests {
   /// directly. The tool description is not folded in — it travels separately
   /// (`Greeter.definition.description`).
   @Test
-  func singleActionToolUsesActionInputSchema() throws {
-    try test(
+  func singleActionToolUsesActionInputSchema() async throws {
+    try await test(
       Greeter.definition.actions.inputSchema,
       encodesAs:
         #"{"properties":{"name":{"type":"string"}},"required":["name"]}"#
@@ -50,8 +50,8 @@ struct StructuredToolIntegrationTests {
   /// requires top-level objects is the consumer's business (the Messages
   /// API's `ToolInputEnvelope`).
   @Test
-  func scalarInputSchemaIsRaw() throws {
-    try test(
+  func scalarInputSchemaIsRaw() async throws {
+    try await test(
       Doubler.definition.actions.inputSchema,
       encodesAs: #"{"type":"integer"}"#
     )
@@ -64,8 +64,8 @@ struct StructuredToolIntegrationTests {
   /// `StructuredObjectRepresentable` marker records for consumers that
   /// constrain on it.
   @Test
-  func singleActionInternallyTaggedInputSchemaIsRaw() throws {
-    try test(
+  func singleActionInternallyTaggedInputSchemaIsRaw() async throws {
+    try await test(
       Router.definition.actions.inputSchema,
       encodesAs:
         #"{"oneOf":[{"properties":{"kind":{"const":"set"},"value":{"type":"integer"}},"required":["kind","value"]},{"properties":{"kind":{"const":"reset"},"hard":{"type":"boolean"}},"required":["kind","hard"]}]}"#

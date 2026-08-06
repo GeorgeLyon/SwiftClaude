@@ -6,39 +6,39 @@ import StructuredCoding
 struct StringTests {
 
   @Test
-  func encodesSimpleString() throws {
-    try test("hello", encodesAs: #""hello""#)
+  func encodesSimpleString() async throws {
+    try await test("hello", encodesAs: #""hello""#)
   }
 
   @Test
-  func encodesEmptyString() throws {
-    try test("", encodesAs: #""""#)
+  func encodesEmptyString() async throws {
+    try await test("", encodesAs: #""""#)
   }
 
   @Test
-  func encodesEscapes() throws {
-    try test("line1\nline2", encodesAs: #""line1\nline2""#)
+  func encodesEscapes() async throws {
+    try await test("line1\nline2", encodesAs: #""line1\nline2""#)
   }
 
   @Test
-  func decodesSimpleString() throws {
-    try test("\"hello\"", decodesAs: "hello")
+  func decodesSimpleString() async throws {
+    try await test("\"hello\"", decodesAs: "hello")
   }
 
   @Test
-  func decodesEmptyString() throws {
-    try test("\"\"", decodesAs: "")
+  func decodesEmptyString() async throws {
+    try await test("\"\"", decodesAs: "")
   }
 
   @Test
-  func decodesAcrossChunks() throws {
-    try test(["\"hel", "lo\""], decodesAs: "hello")
+  func decodesAcrossChunks() async throws {
+    try await test(["\"hel", "lo\""], decodesAs: "hello")
   }
 
   @Test
-  func exposesPartialValueMidStream() throws {
+  func exposesPartialValueMidStream() async throws {
     // The decoder surfaces all but the last buffered character of a pending run.
-    try test("\"hel", decodesAs: DecodingOutcome.partial("he"))
+    try await test("\"hel", decodesAs: DecodingOutcome.partial("he"))
   }
 
 }

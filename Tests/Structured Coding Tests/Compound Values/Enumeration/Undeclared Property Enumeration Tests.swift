@@ -14,22 +14,22 @@ struct UndeclaredPropertyEnumerationTests {
 
   // MARK: - Object-properties style
 
-  @Test func discardsUnknownPayloadProperty() throws {
-    try test(
+  @Test func discardsUnknownPayloadProperty() async throws {
+    try await test(
       #"{"note":{"text":"hi","junk":1}}"#,
       decodesAs: LenientEvent.note(text: "hi")
     )
   }
 
-  @Test func discardsUnknownPropertiesInEmptyCasePayload() throws {
-    try test(
+  @Test func discardsUnknownPropertiesInEmptyCasePayload() async throws {
+    try await test(
       #"{"ping":{"junk":true,"more":[1,2]}}"#,
       decodesAs: LenientEvent.ping
     )
   }
 
-  @Test func emptyCaseStillDecodesFromEmptyPayload() throws {
-    try test(
+  @Test func emptyCaseStillDecodesFromEmptyPayload() async throws {
+    try await test(
       #"{"ping":{}}"#,
       decodesAs: LenientEvent.ping
     )
@@ -37,8 +37,8 @@ struct UndeclaredPropertyEnumerationTests {
 
   /// The synthesized empty payload object encodes exactly like
   /// `StructuredEmptyObject` did.
-  @Test func emptyCaseStillEncodesAsEmptyObject() throws {
-    try test(
+  @Test func emptyCaseStillEncodesAsEmptyObject() async throws {
+    try await test(
       LenientEvent.ping,
       encodesAs: #"{"ping":{}}"#
     )
@@ -47,9 +47,9 @@ struct UndeclaredPropertyEnumerationTests {
   /// The setting governs case *payloads*; the single-property wrapper object
   /// naming the case stays strict — a second property is structurally a
   /// different case, not an undeclared payload property.
-  @Test func caseNamingObjectStaysStrict() throws {
-    #expect(throws: (any Error).self) {
-      try test(
+  @Test func caseNamingObjectStaysStrict() async throws {
+    await #expect(throws: (any Error).self) {
+      try await test(
         #"{"note":{"text":"hi"},"extra":{}}"#,
         decodesAs: LenientEvent.note(text: "hi")
       )
@@ -58,33 +58,33 @@ struct UndeclaredPropertyEnumerationTests {
 
   // MARK: - Internally-tagged style
 
-  @Test func discardsUnknownPropertyAfterDiscriminator() throws {
-    try test(
+  @Test func discardsUnknownPropertyAfterDiscriminator() async throws {
+    try await test(
       #"{"kind":"circle","radius":1.5,"junk":"x"}"#,
       decodesAs: LenientShape.circle(radius: 1.5)
     )
   }
 
-  @Test func discardsUnknownPropertyBeforeDiscriminator() throws {
-    try test(
+  @Test func discardsUnknownPropertyBeforeDiscriminator() async throws {
+    try await test(
       #"{"junk":{},"kind":"circle","radius":1.5}"#,
       decodesAs: LenientShape.circle(radius: 1.5)
     )
   }
 
-  @Test func discardsUnknownPropertiesInEmptyInternallyTaggedCase() throws {
-    try test(
+  @Test func discardsUnknownPropertiesInEmptyInternallyTaggedCase() async throws {
+    try await test(
       #"{"kind":"ping","junk":1}"#,
       decodesAs: LenientShape.ping
     )
   }
 
-  @Test func emptyInternallyTaggedCaseRoundTrips() throws {
-    try test(
+  @Test func emptyInternallyTaggedCaseRoundTrips() async throws {
+    try await test(
       LenientShape.ping,
       encodesAs: #"{"kind":"ping"}"#
     )
-    try test(
+    try await test(
       #"{"kind":"ping"}"#,
       decodesAs: LenientShape.ping
     )
@@ -92,13 +92,13 @@ struct UndeclaredPropertyEnumerationTests {
 
   /// A single-object case's payload keeps its own (default, rejecting)
   /// setting even though the enumeration discards.
-  @Test func singleObjectCaseRespectsPayloadSetting() throws {
-    try test(
+  @Test func singleObjectCaseRespectsPayloadSetting() async throws {
+    try await test(
       #"{"kind":"wrapped","value":1}"#,
       decodesAs: LenientShape.wrapped(StrictPayload(value: 1))
     )
-    #expect(throws: (any Error).self) {
-      try test(
+    await #expect(throws: (any Error).self) {
+      try await test(
         #"{"kind":"wrapped","value":1,"junk":2}"#,
         decodesAs: LenientShape.wrapped(StrictPayload(value: 1))
       )
@@ -107,16 +107,16 @@ struct UndeclaredPropertyEnumerationTests {
 
   /// The converse: a rejecting enumeration with a discarding payload type —
   /// the payload's own setting still governs.
-  @Test func discardingPayloadGovernsInRejectingEnumeration() throws {
-    try test(
+  @Test func discardingPayloadGovernsInRejectingEnumeration() async throws {
+    try await test(
       #"{"kind":"lenient","text":"hi","junk":1}"#,
       decodesAs: StrictShape.lenient(LenientPayload(text: "hi"))
     )
   }
 
-  @Test func rejectingEnumerationStillRejectsSynthesizedPayloads() throws {
-    #expect(throws: (any Error).self) {
-      try test(
+  @Test func rejectingEnumerationStillRejectsSynthesizedPayloads() async throws {
+    await #expect(throws: (any Error).self) {
+      try await test(
         #"{"kind":"boxed","width":1.0,"junk":2}"#,
         decodesAs: StrictShape.boxed(width: 1.0)
       )

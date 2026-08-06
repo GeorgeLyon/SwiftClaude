@@ -66,8 +66,7 @@ struct ToolInputEnvelopeTests {
 /// decode-from-JSON-text entry point the dispatch round will add as general
 /// library surface.
 private func decode<Value: StructuredDecodable>(_ json: String) throws -> Value {
-  var jsonDecoder = JavaScriptObjectNotation.Decoder()
-  return try jsonDecoder.decode(from: Array(json.utf8)) { stream in
+  try SynchronousDecoder().decode(from: Array(json.utf8)) { stream in
     let value = try await stream.withStructuredDecodingStream { stream in
       try await Value.decode(from: &stream, in: StructuredDecodingContext())
     }

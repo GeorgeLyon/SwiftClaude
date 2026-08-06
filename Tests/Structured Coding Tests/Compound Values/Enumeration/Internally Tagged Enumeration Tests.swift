@@ -22,22 +22,22 @@ struct InternallyTaggedEnumerationTests {
 
   // MARK: - Happy path
 
-  @Test func decodesDiscriminatorFirst() throws {
-    try test(
+  @Test func decodesDiscriminatorFirst() async throws {
+    try await test(
       #"{"type":"message","body":"hi"}"#,
       decodesAs: Event.message(Message(body: "hi"))
     )
   }
 
-  @Test func decodesDiscriminatorLast() throws {
-    try test(
+  @Test func decodesDiscriminatorLast() async throws {
+    try await test(
       #"{"body":"hi","type":"message"}"#,
       decodesAs: Event.message(Message(body: "hi"))
     )
   }
 
-  @Test func decodesSecondCase() throws {
-    try test(
+  @Test func decodesSecondCase() async throws {
+    try await test(
       #"{"type":"move","x":1,"y":2}"#,
       decodesAs: Event.move(Move(x: 1, y: 2))
     )
@@ -45,15 +45,15 @@ struct InternallyTaggedEnumerationTests {
 
   /// The discriminator sits between two associated-value properties; the peek
   /// still finds it and the remaining properties decode around it.
-  @Test func decodesDiscriminatorBetweenProperties() throws {
-    try test(
+  @Test func decodesDiscriminatorBetweenProperties() async throws {
+    try await test(
       #"{"x":1,"type":"move","y":2}"#,
       decodesAs: Event.move(Move(x: 1, y: 2))
     )
   }
 
-  @Test func decodesDiscriminatorAfterMultipleProperties() throws {
-    try test(
+  @Test func decodesDiscriminatorAfterMultipleProperties() async throws {
+    try await test(
       #"{"x":1,"y":2,"type":"move"}"#,
       decodesAs: Event.move(Move(x: 1, y: 2))
     )
@@ -61,15 +61,15 @@ struct InternallyTaggedEnumerationTests {
 
   /// A case whose associated value has no properties of its own decodes from an
   /// object containing only the discriminator.
-  @Test func decodesCaseWithNoAssociatedProperties() throws {
-    try test(
+  @Test func decodesCaseWithNoAssociatedProperties() async throws {
+    try await test(
       #"{"type":"ping"}"#,
       decodesAs: Event.ping(Ping())
     )
   }
 
-  @Test func decodesWithSurroundingAndInternalWhitespace() throws {
-    try test(
+  @Test func decodesWithSurroundingAndInternalWhitespace() async throws {
+    try await test(
       #"{ "type" : "message" , "body" : "hi" }"#,
       decodesAs: Event.message(Message(body: "hi"))
     )
@@ -77,22 +77,22 @@ struct InternallyTaggedEnumerationTests {
 
   // MARK: - Chunk boundaries
 
-  @Test func chunkedAcrossDiscriminatorName() throws {
-    try test(
+  @Test func chunkedAcrossDiscriminatorName() async throws {
+    try await test(
       [#"{"ty"#, #"pe":"message","body":"hi"}"#],
       decodesAs: Event.message(Message(body: "hi"))
     )
   }
 
-  @Test func chunkedAcrossDiscriminatorValue() throws {
-    try test(
+  @Test func chunkedAcrossDiscriminatorValue() async throws {
+    try await test(
       [#"{"type":"mes"#, #"sage","body":"hi"}"#],
       decodesAs: Event.message(Message(body: "hi"))
     )
   }
 
-  @Test func chunkedWithTrailingDiscriminator() throws {
-    try test(
+  @Test func chunkedWithTrailingDiscriminator() async throws {
+    try await test(
       [#"{"x":1,"y":2,"ty"#, #"pe":"move"}"#],
       decodesAs: Event.move(Move(x: 1, y: 2))
     )
@@ -100,29 +100,29 @@ struct InternallyTaggedEnumerationTests {
 
   // MARK: - Errors
 
-  @Test func unknownDiscriminatorThrows() throws {
-    #expect(throws: (any Error).self) {
-      try test(#"{"type":"explode"}"#, decodesAs: Event.ping(Ping()))
+  @Test func unknownDiscriminatorThrows() async throws {
+    await #expect(throws: (any Error).self) {
+      try await test(#"{"type":"explode"}"#, decodesAs: Event.ping(Ping()))
     }
   }
 
-  @Test func missingDiscriminatorThrows() throws {
-    #expect(throws: (any Error).self) {
-      try test(#"{"body":"hi"}"#, decodesAs: Event.message(Message(body: "hi")))
+  @Test func missingDiscriminatorThrows() async throws {
+    await #expect(throws: (any Error).self) {
+      try await test(#"{"body":"hi"}"#, decodesAs: Event.message(Message(body: "hi")))
     }
   }
 
-  @Test func nonStringDiscriminatorThrows() throws {
-    #expect(throws: (any Error).self) {
-      try test(#"{"type":5,"body":"hi"}"#, decodesAs: Event.message(Message(body: "hi")))
+  @Test func nonStringDiscriminatorThrows() async throws {
+    await #expect(throws: (any Error).self) {
+      try await test(#"{"type":5,"body":"hi"}"#, decodesAs: Event.message(Message(body: "hi")))
     }
   }
 
   /// A non-discriminator property the case's associated value doesn't declare is
   /// still rejected.
-  @Test func unknownAssociatedPropertyThrows() throws {
-    #expect(throws: (any Error).self) {
-      try test(
+  @Test func unknownAssociatedPropertyThrows() async throws {
+    await #expect(throws: (any Error).self) {
+      try await test(
         #"{"type":"message","body":"hi","mystery":"x"}"#,
         decodesAs: Event.message(Message(body: "hi"))
       )
@@ -133,8 +133,8 @@ struct InternallyTaggedEnumerationTests {
 
   /// Before the discriminator has been read the case is unknown, so the
   /// enumeration cannot be observed yet.
-  @Test func incompleteBeforeDiscriminatorKnown() throws {
-    try test(
+  @Test func incompleteBeforeDiscriminatorKnown() async throws {
+    try await test(
       #"{"type":"mess"#,
       decodesAs: DecodingOutcome<Event>.incomplete
     )
@@ -143,8 +143,8 @@ struct InternallyTaggedEnumerationTests {
   /// Reading the discriminator property is not done until its trailing
   /// delimiter arrives, so even a fully-quoted discriminator value leaves the
   /// case unidentified — and the enumeration unobservable.
-  @Test func incompleteUntilDiscriminatorDelimiter() throws {
-    try test(
+  @Test func incompleteUntilDiscriminatorDelimiter() async throws {
+    try await test(
       #"{"type":"message"#,
       decodesAs: DecodingOutcome<Event>.incomplete
     )
@@ -155,8 +155,8 @@ struct InternallyTaggedEnumerationTests {
   /// even though no associated-value characters have arrived. Reading the
   /// discriminator requires its trailing delimiter (the `,`), so a bare
   /// `{"type":"message"` would not yet identify the case.
-  @Test func seedsBranchACaseOnceDiscriminatorKnown() throws {
-    try test(
+  @Test func seedsBranchACaseOnceDiscriminatorKnown() async throws {
+    try await test(
       #"{"type":"message","#,
       decodesAs: .partial(Event.message(Message(body: "")))
     )
@@ -164,8 +164,8 @@ struct InternallyTaggedEnumerationTests {
 
   /// Once associated-value characters arrive the case reflects them (the
   /// streamed string lags by one buffered character).
-  @Test func reflectsStreamingAssociatedValue() throws {
-    try test(
+  @Test func reflectsStreamingAssociatedValue() async throws {
+    try await test(
       #"{"type":"message","body":"hel"#,
       decodesAs: .partial(Event.message(Message(body: "he")))
     )
@@ -175,8 +175,8 @@ struct InternallyTaggedEnumerationTests {
   /// cannot be constructed until its buffered properties are all present, so the
   /// case is not observable even with every byte but the closing brace — the
   /// final `2` has not yet been terminated.
-  @Test func branchBCaseNotObservableUntilBuilt() throws {
-    try test(
+  @Test func branchBCaseNotObservableUntilBuilt() async throws {
+    try await test(
       #"{"type":"move","x":1,"y":2"#,
       decodesAs: DecodingOutcome<Event>.incomplete
     )
@@ -185,8 +185,8 @@ struct InternallyTaggedEnumerationTests {
   /// Once the buffered properties terminate (here the trailing comma terminates
   /// `2`), the Branch-B object is constructed and the case becomes observable —
   /// before the object itself closes.
-  @Test func branchBCaseObservableOnceBuilt() throws {
-    try test(
+  @Test func branchBCaseObservableOnceBuilt() async throws {
+    try await test(
       #"{"type":"move","x":1,"y":2,"#,
       decodesAs: .partial(Event.move(Move(x: 1, y: 2)))
     )
@@ -196,15 +196,15 @@ struct InternallyTaggedEnumerationTests {
 
   /// A single labeled value is synthesized into a one-property payload object,
   /// so it codes exactly like a multi-value case.
-  @Test func encodesSingleLabeledValueCase() throws {
-    try test(
+  @Test func encodesSingleLabeledValueCase() async throws {
+    try await test(
       Shape.circle(radius: 1.5),
       encodesAs: #"{"kind":"circle","radius":1.5}"#
     )
   }
 
-  @Test func decodesSingleLabeledValueCase() throws {
-    try test(
+  @Test func decodesSingleLabeledValueCase() async throws {
+    try await test(
       #"{"kind":"circle","radius":1.5}"#,
       decodesAs: Shape.circle(radius: 1.5)
     )

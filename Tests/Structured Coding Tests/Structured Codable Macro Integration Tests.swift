@@ -12,33 +12,33 @@ struct StructuredCodableMacroIntegrationTests {
 
   // MARK: - Objects
 
-  @Test func pointRoundTrips() throws {
+  @Test func pointRoundTrips() async throws {
     try #expect(encode(MacroPoint(x: 1, y: 2)) == #"{"x":1,"y":2}"#)
-    try test(#"{"x":1,"y":2}"#, decodesAs: MacroPoint(x: 1, y: 2))
+    try await test(#"{"x":1,"y":2}"#, decodesAs: MacroPoint(x: 1, y: 2))
   }
 
   /// Optional, constant, and default-initialized properties.
-  @Test func profileRoundTrips() throws {
+  @Test func profileRoundTrips() async throws {
     try #expect(
       encode(MacroProfile(name: "ada", nickname: nil, count: 5))
         == #"{"name":"ada","kind":"profile","count":5}"#
     )
-    try test(
+    try await test(
       #"{"name":"ada","kind":"profile","count":5}"#,
       decodesAs: MacroProfile(name: "ada", nickname: nil, count: 5)
     )
   }
 
-  @Test func profileEncodesPresentOptional() throws {
+  @Test func profileEncodesPresentOptional() async throws {
     try #expect(
       encode(MacroProfile(name: "ada", nickname: "al", count: 10))
         == #"{"name":"ada","nickname":"al","kind":"profile","count":10}"#
     )
   }
 
-  @Test func mismatchedConstantThrows() throws {
-    #expect(throws: (any Error).self) {
-      try test(
+  @Test func mismatchedConstantThrows() async throws {
+    await #expect(throws: (any Error).self) {
+      try await test(
         #"{"name":"ada","kind":"other","count":5}"#,
         decodesAs: MacroProfile(name: "ada", nickname: nil, count: 5)
       )
@@ -47,33 +47,33 @@ struct StructuredCodableMacroIntegrationTests {
 
   // MARK: - Enumerations (object-properties style)
 
-  @Test func singleValueCaseRoundTrips() throws {
+  @Test func singleValueCaseRoundTrips() async throws {
     try #expect(encode(MacroEvent.text("hi")) == #"{"text":"hi"}"#)
-    try test(#"{"text":"hi"}"#, decodesAs: MacroEvent.text("hi"))
+    try await test(#"{"text":"hi"}"#, decodesAs: MacroEvent.text("hi"))
   }
 
   /// A value-less case is represented by `StructuredEmptyObject`.
-  @Test func valuelessCaseRoundTrips() throws {
+  @Test func valuelessCaseRoundTrips() async throws {
     try #expect(encode(MacroEvent.ping) == #"{"ping":{}}"#)
-    try test(#"{"ping":{}}"#, decodesAs: MacroEvent.ping)
+    try await test(#"{"ping":{}}"#, decodesAs: MacroEvent.ping)
   }
 
   // MARK: - Enumerations (internally tagged)
 
-  @Test func internallyTaggedObjectCaseRoundTrips() throws {
+  @Test func internallyTaggedObjectCaseRoundTrips() async throws {
     try #expect(
       encode(MacroMessage.note(MacroNote(body: "hi"))) == #"{"type":"note","body":"hi"}"#
     )
-    try test(
+    try await test(
       #"{"type":"note","body":"hi"}"#,
       decodesAs: MacroMessage.note(MacroNote(body: "hi"))
     )
   }
 
   /// An all-labeled case is wrapped in a macro-synthesized `StructuredObject`.
-  @Test func internallyTaggedLabeledCaseRoundTrips() throws {
+  @Test func internallyTaggedLabeledCaseRoundTrips() async throws {
     try #expect(encode(MacroMessage.move(x: 1, y: 2)) == #"{"type":"move","x":1,"y":2}"#)
-    try test(#"{"type":"move","x":1,"y":2}"#, decodesAs: MacroMessage.move(x: 1, y: 2))
+    try await test(#"{"type":"move","x":1,"y":2}"#, decodesAs: MacroMessage.move(x: 1, y: 2))
   }
 
   // MARK: - Typealiased Optionals
@@ -82,7 +82,7 @@ struct StructuredCodableMacroIntegrationTests {
   /// cannot see through `typealias MacroAliasedOptional = String?`, but the
   /// type system can — the aliased property codes with omission semantics
   /// exactly like a spelled-out `String?`.
-  @Test func typealiasedOptionalPropertyOmitsNil() throws {
+  @Test func typealiasedOptionalPropertyOmitsNil() async throws {
     try #expect(
       encode(MacroAliasedProfile(name: "ada", nickname: nil)) == #"{"name":"ada"}"#
     )
@@ -90,11 +90,11 @@ struct StructuredCodableMacroIntegrationTests {
       encode(MacroAliasedProfile(name: "ada", nickname: "al"))
         == #"{"name":"ada","nickname":"al"}"#
     )
-    try test(
+    try await test(
       #"{"name":"ada"}"#,
       decodesAs: MacroAliasedProfile(name: "ada", nickname: nil)
     )
-    try test(
+    try await test(
       #"{"name":"ada","nickname":"al"}"#,
       decodesAs: MacroAliasedProfile(name: "ada", nickname: "al")
     )
@@ -102,26 +102,26 @@ struct StructuredCodableMacroIntegrationTests {
 
   /// Likewise for wrappers: a typealiased optional wrapped value selects the
   /// optional-cored wrapper specialization.
-  @Test func typealiasedOptionalWrapperCodesByOptionalConformance() throws {
+  @Test func typealiasedOptionalWrapperCodesByOptionalConformance() async throws {
     try #expect(encode(MacroAliasedMaybe(name: "ada")) == #"{"value":"ada"}"#)
     try #expect(encode(MacroAliasedMaybe(name: nil)) == #"{}"#)
-    try test(#"{}"#, decodesAs: MacroAliasedMaybe(name: nil))
-    try test(#"{"value":"ada"}"#, decodesAs: MacroAliasedMaybe(name: "ada"))
+    try await test(#"{}"#, decodesAs: MacroAliasedMaybe(name: nil))
+    try await test(#"{"value":"ada"}"#, decodesAs: MacroAliasedMaybe(name: "ada"))
   }
 
   // MARK: - Wrappers
 
   /// A `style: .wrapper` struct codes as its bare stored value.
-  @Test func wrapperRoundTrips() throws {
+  @Test func wrapperRoundTrips() async throws {
     try #expect(encode(MacroMediaType(stringValue: "image/png")) == #""image/png""#)
-    try test(#""image/png""#, decodesAs: MacroMediaType(stringValue: "image/png"))
+    try await test(#""image/png""#, decodesAs: MacroMediaType(stringValue: "image/png"))
   }
 
   /// A wrapper's schema is its wrapped value's schema, with the type's own
   /// description prepended.
-  @Test func wrapperSchemaIsWrappedValueSchema() throws {
-    try test(MacroMediaType.schema, encodesAs: #"{"type":"string"}"#)
-    try test(
+  @Test func wrapperSchemaIsWrappedValueSchema() async throws {
+    try await test(MacroMediaType.schema, encodesAs: #"{"type":"string"}"#)
+    try await test(
       MacroDescribedMediaType.schema,
       encodesAs: #"{"description":"A MIME media type","type":"string"}"#
     )
@@ -129,38 +129,38 @@ struct StructuredCodableMacroIntegrationTests {
 
   /// An optional wrapped value has no enclosing object to omit a `nil` from,
   /// so it codes by `Optional`'s own conformance.
-  @Test func optionalWrapperCodesByOptionalConformance() throws {
+  @Test func optionalWrapperCodesByOptionalConformance() async throws {
     try #expect(encode(MacroMaybeName(name: "ada")) == #"{"value":"ada"}"#)
     try #expect(encode(MacroMaybeName(name: nil)) == #"{}"#)
-    try test(#"{"value":"ada"}"#, decodesAs: MacroMaybeName(name: "ada"))
-    try test(#"{}"#, decodesAs: MacroMaybeName(name: nil))
+    try await test(#"{"value":"ada"}"#, decodesAs: MacroMaybeName(name: "ada"))
+    try await test(#"{}"#, decodesAs: MacroMaybeName(name: nil))
   }
 
   /// A `var` default on a wrapped value is a construction-time convenience
   /// with no coding role: the decoded value always wins.
-  @Test func defaultedVarWrapperRoundTrips() throws {
+  @Test func defaultedVarWrapperRoundTrips() async throws {
     try #expect(encode(MacroTag()) == #""untagged""#)
-    try test(#""tagged""#, decodesAs: MacroTag(text: "tagged"))
+    try await test(#""tagged""#, decodesAs: MacroTag(text: "tagged"))
   }
 
   /// A constant wrapped value (`let` with a default) decodes only its
   /// declared value — anything else fails validation, exactly like a constant
   /// object property.
-  @Test func constantWrapperValidatesDecodedValue() throws {
+  @Test func constantWrapperValidatesDecodedValue() async throws {
     try #expect(encode(MacroFixedTag()) == #""fixed""#)
-    try test(#""fixed""#, decodesAs: MacroFixedTag())
-    #expect(throws: (any Error).self) {
-      try test(#""other""#, decodesAs: MacroFixedTag())
+    try await test(#""fixed""#, decodesAs: MacroFixedTag())
+    await #expect(throws: (any Error).self) {
+      try await test(#""other""#, decodesAs: MacroFixedTag())
     }
   }
 
   /// A wrapper used as an object property codes as its bare value in place.
-  @Test func wrapperObjectPropertyCodesInPlace() throws {
+  @Test func wrapperObjectPropertyCodesInPlace() async throws {
     try #expect(
       encode(MacroAttachment(media: MacroMediaType(stringValue: "image/png")))
         == #"{"media":"image/png"}"#
     )
-    try test(
+    try await test(
       #"{"media":"image/png"}"#,
       decodesAs: MacroAttachment(media: MacroMediaType(stringValue: "image/png"))
     )
@@ -168,12 +168,12 @@ struct StructuredCodableMacroIntegrationTests {
 
   // MARK: - Key Conversion
 
-  @Test func snakeCaseKeysRoundTrip() throws {
+  @Test func snakeCaseKeysRoundTrip() async throws {
     try #expect(
       encode(MacroUser(firstName: "Ada", lastName: "Lovelace"))
         == #"{"first_name":"Ada","last_name":"Lovelace"}"#
     )
-    try test(
+    try await test(
       #"{"first_name":"Ada","last_name":"Lovelace"}"#,
       decodesAs: MacroUser(firstName: "Ada", lastName: "Lovelace")
     )
@@ -183,12 +183,12 @@ struct StructuredCodableMacroIntegrationTests {
 
   /// `@StructuredProperty` and `@StructuredCase` attach descriptions without
   /// affecting the coded representation.
-  @Test func annotatedMembersRoundTrip() throws {
+  @Test func annotatedMembersRoundTrip() async throws {
     try #expect(encode(MacroAnnotatedObject(x: 1)) == #"{"x":1}"#)
-    try test(#"{"x":1}"#, decodesAs: MacroAnnotatedObject(x: 1))
+    try await test(#"{"x":1}"#, decodesAs: MacroAnnotatedObject(x: 1))
 
     try #expect(encode(MacroAnnotatedEnum.text("hi")) == #"{"text":"hi"}"#)
-    try test(#"{"text":"hi"}"#, decodesAs: MacroAnnotatedEnum.text("hi"))
+    try await test(#"{"text":"hi"}"#, decodesAs: MacroAnnotatedEnum.text("hi"))
   }
 
   /// The attached descriptions surface in the generated schema: the
@@ -196,13 +196,13 @@ struct StructuredCodableMacroIntegrationTests {
   /// `@StructuredProperty` description on the property's schema, and the
   /// `@StructuredCase` description on the case's slot in the
   /// object-properties schema.
-  @Test func annotatedMembersDescribeSchema() throws {
-    try test(
+  @Test func annotatedMembersDescribeSchema() async throws {
+    try await test(
       MacroAnnotatedObject.schema,
       encodesAs:
         #"{"description":"An object with annotated members","properties":{"x":{"description":"The horizontal coordinate","type":"integer"}},"required":["x"]}"#
     )
-    try test(
+    try await test(
       MacroAnnotatedEnum.schema,
       encodesAs:
         #"{"description":"An enumeration with annotated cases","properties":{"text":{"description":"A text message","type":"string"}},"maxProperties":1}"#
@@ -211,8 +211,8 @@ struct StructuredCodableMacroIntegrationTests {
 
   /// A description prepended by a use site lands before the type's own,
   /// separated by a blank line.
-  @Test func useSiteAndTypeDescriptionsConcatenate() throws {
-    try test(
+  @Test func useSiteAndTypeDescriptionsConcatenate() async throws {
+    try await test(
       MacroAnnotatedObject.schema.prependDescription("As used here"),
       encodesAs:
         #"{"description":"As used here\n\nAn object with annotated members","properties":{"x":{"description":"The horizontal coordinate","type":"integer"}},"required":["x"]}"#
@@ -221,8 +221,8 @@ struct StructuredCodableMacroIntegrationTests {
 
   /// The same concatenation applies when the use-site description comes from
   /// a `@StructuredProperty` annotation on a property of the described type.
-  @Test func propertyAndTypeDescriptionsConcatenate() throws {
-    try test(
+  @Test func propertyAndTypeDescriptionsConcatenate() async throws {
+    try await test(
       MacroAnnotatedContainer.schema,
       encodesAs:
         #"{"properties":{"object":{"description":"The annotated object\n\nAn object with annotated members","properties":{"x":{"description":"The horizontal coordinate","type":"integer"}},"required":["x"]}},"required":["object"]}"#
@@ -256,12 +256,12 @@ struct StructuredCodableMacroIntegrationTests {
 
   /// A (non-final) class codes exactly like the equivalent struct; `decode`
   /// constructs it through the macro-generated `required init(from:)`.
-  @Test func classRoundTrips() throws {
+  @Test func classRoundTrips() async throws {
     try #expect(
       encode(MacroCounter(id: 1, label: "a", note: nil, count: 5))
         == #"{"id":1,"label":"a","kind":"counter","count":5}"#
     )
-    try test(
+    try await test(
       #"{"id":1,"label":"a","kind":"counter","count":5}"#,
       decodesAs: MacroCounter(id: 1, label: "a", note: nil, count: 5)
     )
@@ -269,17 +269,17 @@ struct StructuredCodableMacroIntegrationTests {
 
   /// The optional property may be omitted; the constant and default-initialized
   /// properties behave exactly as on a struct.
-  @Test func classOptionalAndDefaultedProperties() throws {
+  @Test func classOptionalAndDefaultedProperties() async throws {
     try #expect(
       encode(MacroCounter(id: 1, label: "a", note: "n", count: 10))
         == #"{"id":1,"label":"a","note":"n","kind":"counter","count":10}"#
     )
-    try test(
+    try await test(
       [#"{"id":1,"la"#, #"bel":"a","kind":"count"#, #"er","count":5}"#],
       decodesAs: MacroCounter(id: 1, label: "a", note: nil, count: 5)
     )
-    #expect(throws: (any Error).self) {
-      try test(
+    await #expect(throws: (any Error).self) {
+      try await test(
         #"{"id":1,"label":"a","kind":"other","count":5}"#,
         decodesAs: MacroCounter(id: 1, label: "a", note: nil, count: 5)
       )
@@ -288,12 +288,12 @@ struct StructuredCodableMacroIntegrationTests {
 
   /// A class whose every stored property is a reference-writable `var` is
   /// constructed up front and streamed in place.
-  @Test func classStreamsInPlace() throws {
-    try test(
+  @Test func classStreamsInPlace() async throws {
+    try await test(
       #"{"name":"abc"}"#,
       decodesAs: MacroReferenceObject(name: "abc")
     )
-    try test(
+    try await test(
       #"{"name":"ab"#,
       decodesAs: .partial(MacroReferenceObject(name: "a"))
     )

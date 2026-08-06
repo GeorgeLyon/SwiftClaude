@@ -4,7 +4,7 @@ public protocol StructuredAccessor<Value>: SendableMetatype, ~Escapable {
 
   associatedtype Value
 
-  /// If `true`, `mutateValue` can be called and `initializeValue` can be called more than once
+  /// If `false` mutateValue will throw and initializeValue will throw if called more than once.
   var isMutable: Bool { get }
 
   /// Initializes the value

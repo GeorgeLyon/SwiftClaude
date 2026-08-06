@@ -40,7 +40,7 @@ struct VariadicGenericObjectTests {
 
   /// Instantiating the property descriptors crashed with the default key-path
   /// emission ("Pack expansion count type should be a pack").
-  @Test func propertiesMetadataInstantiates() throws {
+  @Test func propertiesMetadataInstantiates() async throws {
     _ = PackGenericObject<Int, String>.properties()
   }
 
@@ -48,29 +48,29 @@ struct VariadicGenericObjectTests {
   /// `schema` trampoline; resolving it through the witness
   /// exercises the runtime demangling that pack-parameterized schema types
   /// used to crash. (The underlying type is deliberately not pinned.)
-  @Test func schemaWitnessResolves() throws {
+  @Test func schemaWitnessResolves() async throws {
     _ = resolvedSchemaType(of: PackGenericObject<Int, String>.self)
   }
 
   /// `.variadicGenerics` no longer degrades the schema: pack-generic objects
   /// get the same structural description as ordinary objects.
-  @Test func schemaEncodesStructurally() throws {
-    try test(
+  @Test func schemaEncodesStructurally() async throws {
+    try await test(
       PackGenericObject<Int, String>.schema,
       encodesAs:
         #"{"properties":{"first":{"type":"string"},"second":{"type":"string"}},"required":["first"]}"#
     )
   }
 
-  @Test func encodes() throws {
-    try test(
+  @Test func encodes() async throws {
+    try await test(
       PackGenericObject<Int, String>(first: "hello", second: "world"),
       encodesAs: #"{"first":"hello","second":"world"}"#
     )
   }
 
-  @Test func decodes() throws {
-    try test(
+  @Test func decodes() async throws {
+    try await test(
       #"{"first":"hello","second":"world"}"#,
       decodesAs: PackGenericObject<Int, String>(first: "hello", second: "world")
     )
@@ -80,19 +80,19 @@ struct VariadicGenericObjectTests {
   /// pack-generic type crashes with key-path emission exactly like the
   /// directly pack-generic case — inference through the lexical context
   /// must kick in.
-  @Test func nestedPropertiesMetadataInstantiates() throws {
+  @Test func nestedPropertiesMetadataInstantiates() async throws {
     _ = PackGenericOuter<Int, String>.Inner.properties()
   }
 
-  @Test func nestedEncodes() throws {
-    try test(
+  @Test func nestedEncodes() async throws {
+    try await test(
       PackGenericOuter<Int, String>.Inner(name: "nested"),
       encodesAs: #"{"name":"nested"}"#
     )
   }
 
-  @Test func nestedDecodes() throws {
-    try test(
+  @Test func nestedDecodes() async throws {
+    try await test(
       #"{"name":"nested"}"#,
       decodesAs: PackGenericOuter<Int, String>.Inner(name: "nested")
     )
@@ -106,7 +106,7 @@ struct VariadicGenericObjectTests {
 @Suite("Object Schema Metadata")
 struct ObjectSchemaMetadataTests {
 
-  @Test func constructsSchema() throws {
+  @Test func constructsSchema() async throws {
     _ = MutableStringObject.schema
   }
 

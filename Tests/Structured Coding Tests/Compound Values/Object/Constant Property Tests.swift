@@ -14,29 +14,29 @@ import Testing
 @Suite("Constant Properties")
 struct ConstantPropertyTests {
 
-  @Test func presentMatchingConstantDecodes() throws {
-    try test(#"{"kind":"fixed"}"#, decodesAs: ConstantObject())
+  @Test func presentMatchingConstantDecodes() async throws {
+    try await test(#"{"kind":"fixed"}"#, decodesAs: ConstantObject())
   }
 
-  @Test func presentMismatchedConstantThrows() throws {
-    #expect(throws: (any Error).self) {
-      try test(#"{"kind":"other"}"#, decodesAs: ConstantObject())
+  @Test func presentMismatchedConstantThrows() async throws {
+    await #expect(throws: (any Error).self) {
+      try await test(#"{"kind":"other"}"#, decodesAs: ConstantObject())
     }
   }
 
-  @Test func omittedRequiredConstantThrows() throws {
-    #expect(throws: (any Error).self) {
-      try test(#"{}"#, decodesAs: ConstantObject())
+  @Test func omittedRequiredConstantThrows() async throws {
+    await #expect(throws: (any Error).self) {
+      try await test(#"{}"#, decodesAs: ConstantObject())
     }
   }
 
-  @Test func omittedNilOptionalConstantDecodes() throws {
-    try test(#"{"kind":"fixed"}"#, decodesAs: ConstantObject())
+  @Test func omittedNilOptionalConstantDecodes() async throws {
+    try await test(#"{"kind":"fixed"}"#, decodesAs: ConstantObject())
   }
 
-  @Test func presentNilOptionalConstantThrows() throws {
-    #expect(throws: (any Error).self) {
-      try test(#"{"kind":"fixed","opt":"x"}"#, decodesAs: ConstantObject())
+  @Test func presentNilOptionalConstantThrows() async throws {
+    await #expect(throws: (any Error).self) {
+      try await test(#"{"kind":"fixed","opt":"x"}"#, decodesAs: ConstantObject())
     }
   }
 
@@ -44,12 +44,12 @@ struct ConstantPropertyTests {
   /// *before* the object is constructed must decode identically to the
   /// sibling-first order — its buffered state must not be left `.seeded` and
   /// rejected as `uninitializedValue`.
-  @Test func constantBeforeDeferredScalarDecodes() throws {
-    try test(#"{"kind":"fixed","id":1}"#, decodesAs: TaggedConstantObject(id: 1))
+  @Test func constantBeforeDeferredScalarDecodes() async throws {
+    try await test(#"{"kind":"fixed","id":1}"#, decodesAs: TaggedConstantObject(id: 1))
   }
 
-  @Test func deferredScalarBeforeConstantDecodes() throws {
-    try test(#"{"id":1,"kind":"fixed"}"#, decodesAs: TaggedConstantObject(id: 1))
+  @Test func deferredScalarBeforeConstantDecodes() async throws {
+    try await test(#"{"id":1,"kind":"fixed"}"#, decodesAs: TaggedConstantObject(id: 1))
   }
 
   // MARK: - Partial streaming
@@ -57,8 +57,8 @@ struct ConstantPropertyTests {
   /// Constants are seeded up front and never mutated while streaming (the
   /// property value is decoded into a throwaway for validation), so the object
   /// is observable as its constant value throughout — even mid-property.
-  @Test func partialExposesConstantValue() throws {
-    try test(#"{"kind":"fix"#, decodesAs: .partial(ConstantObject()))
+  @Test func partialExposesConstantValue() async throws {
+    try await test(#"{"kind":"fix"#, decodesAs: .partial(ConstantObject()))
   }
 }
 
